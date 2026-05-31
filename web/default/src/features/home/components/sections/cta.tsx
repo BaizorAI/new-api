@@ -76,6 +76,13 @@ export function CTA(props: CTAProps) {
           >
             {t('View Pricing')}
           </Button>
+          <Button
+            variant='outline'
+            className='border-border/50 hover:border-border hover:bg-muted/50 rounded-lg'
+            render={<a href='/culture' />}
+          >
+            {t('Enter Culture AIGC Lab')}
+          </Button>
         </div>
       </AnimateInView>
     </section>
