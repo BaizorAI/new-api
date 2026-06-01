@@ -28,7 +28,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { queryWeChatPayOrder, closeWeChatPayOrder } from '../api'
+import { queryWeChatPayOrder, closeWeChatPayOrder } from '../../api'
 
 interface WeChatPayDialogProps {
   open: boolean
