@@ -26,24 +26,20 @@ export function HowItWorks() {
   const steps = [
     {
       num: '1',
-      title: t('Configure'),
-      desc: t(
-        'Add your API keys, set up channels and configure access permissions'
-      ),
+      title: '配置教学环境',
+      desc: '快速搭建课程框架，导入教学资源，配置班级与学生信息，一键开启智慧课堂。',
       icon: <Settings className='size-6' strokeWidth={1.5} />,
     },
     {
       num: '2',
-      title: t('Connect'),
-      desc: t(
-        'Connect through OpenAI, Claude, Gemini, and other compatible API routes'
-      ),
+      title: '开展AI教学',
+      desc: '利用AI智能辅助进行个性化教学，结合多模态资源与学生实时互动，提升教学效果。',
       icon: <Zap className='size-6' strokeWidth={1.5} />,
     },
     {
       num: '3',
-      title: t('Monitor'),
-      desc: t('Track usage, costs and performance with real-time analytics'),
+      title: '评估与优化',
+      desc: '通过智能评估系统追踪学习进度，生成学情分析报告，持续优化教学策略。',
       icon: <BarChart3 className='size-6' strokeWidth={1.5} />,
     },
   ]
@@ -53,10 +49,10 @@ export function HowItWorks() {
       <div className='mx-auto max-w-6xl'>
         <AnimateInView className='mb-16 text-center md:mb-20'>
           <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
-            {t('How It Works')}
+            使用流程
           </p>
           <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
-            {t('Three steps to get started')}
+            三步开启智慧中文教学
           </h2>
         </AnimateInView>
 

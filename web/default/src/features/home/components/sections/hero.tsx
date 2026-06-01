@@ -47,7 +47,7 @@ export function Hero(props: HeroProps) {
   const { t } = useTranslation()
   const { status } = useStatus()
   const docsUrl =
-    (status?.docs_link as string | undefined) || 'https://docs.newapi.pro'
+    (status?.docs_link as string | undefined) || '/docs'
 
   const renderDocsButton = () => {
     const isExternal = docsUrl.startsWith('http')
@@ -109,26 +109,25 @@ export function Hero(props: HeroProps) {
               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75' />
               <span className='relative inline-flex size-1.5 rounded-full bg-blue-500 dark:bg-blue-400' />
             </span>
-            <span>{t('AI Application Infrastructure Foundation')}</span>
+            <span>白泽中华文化AI实验室</span>
           </div>
 
           <h1
             className='landing-animate-fade-up text-[clamp(2.25rem,4.5vw,3.25rem)] leading-[1.15] font-bold tracking-tight'
             style={{ animationDelay: '60ms' }}
           >
-            {t('Unified API Gateway for')}
+            白泽中华文化AI平台
             <br />
             <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-              {t('Vast Range of AI Models')}
+              通晓万物 · 洞悉智慧 · 学而有道
             </span>
           </h1>
           <p
             className='landing-animate-fade-up text-muted-foreground/80 mt-5 max-w-xl text-base leading-relaxed opacity-0 md:text-[15px]'
             style={{ animationDelay: '120ms' }}
           >
-            {t(
-              'Access a vast selection of models via a standard, unified API protocol. Power AI applications, manage digital assets, and connect the Future.'
-            )}
+            深度融合教学管理软件系统、AI智能辅助服务、多模态教学资源与智慧教室硬件设备，
+            为全球中文学习者带来智能、全面、个性化的国际中文教育解决方案。
           </p>
 
           <div
@@ -152,22 +151,22 @@ export function Hero(props: HeroProps) {
                   className='group h-11 rounded-lg px-5 text-sm font-medium'
                   render={<Link to='/sign-up' />}
                 >
-                  {t('Get Started')}
+                  立即体验
                   <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
                 </Button>
                 <Button
                   variant='outline'
                   className='border-border/50 hover:border-border hover:bg-muted/50 h-11 rounded-lg px-5 text-sm font-medium'
-                  render={<Link to='/pricing' />}
+                  render={<Link to='/about' />}
                 >
-                  {t('View Pricing')}
+                  了解更多
                 </Button>
                 <Button
                   variant='outline'
                   className='border-border/50 hover:border-border hover:bg-muted/50 h-11 rounded-lg px-5 text-sm font-medium'
-                  render={<a href='/culture' />}
+                  render={<a href='/docs' />}
                 >
-                  {t('Enter Culture AIGC Lab')}
+                  平台文档
                 </Button>
                 {renderDocsButton()}
               </>
@@ -181,57 +180,28 @@ export function Hero(props: HeroProps) {
           >
             <div className='mb-4 flex flex-col gap-1'>
               <span className='text-muted-foreground/50 text-[10px] font-bold tracking-[0.15em] uppercase'>
-                {t('Supported Applications')}
+                核心教学能力
               </span>
               <p className='text-muted-foreground/60 text-xs leading-relaxed'>
-                {t(
-                  'Supports one-click configuration and perfectly adapts to NewAPI multi-protocol configuration.'
-                )}
+                覆盖汉语听、说、读、写全技能教学，课堂互动、作业考试与智能评估一体化。
               </p>
             </div>
             <div className='flex flex-wrap items-center gap-3'>
-              {/* Cherry Studio */}
-              <a
-                href='https://cherry-ai.com'
-                target='_blank'
-                rel='noopener noreferrer'
-                className='group border-border/40 bg-muted/15 text-foreground/80 hover:border-border hover:bg-muted/30 hover:text-foreground flex items-center gap-3 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'
-              >
-                <CherryStudio.Color size={24} className='shrink-0' />
-                <span>Cherry Studio</span>
-              </a>
-
-              {/* CC Switch */}
-              <a
-                href='https://ccswitch.io'
-                target='_blank'
-                rel='noopener noreferrer'
-                className='group border-border/40 bg-muted/15 text-foreground/80 hover:border-border hover:bg-muted/30 hover:text-foreground flex items-center gap-3 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'
-              >
-                <img
-                  src='https://ccswitch.io/favicon.png'
-                  alt='CC Switch'
-                  className='size-6 shrink-0 rounded-md object-contain'
-                  onError={(e) => {
-                    // Fallback to a styled text avatar if the remote favicon fails to load in sandbox or local environments
-                    e.currentTarget.style.display = 'none'
-                    const fallback = e.currentTarget.nextSibling as HTMLElement
-                    if (fallback) fallback.style.display = 'flex'
-                  }}
-                />
-                <span
-                  style={{ display: 'none' }}
-                  className='size-6 shrink-0 items-center justify-center rounded-md bg-blue-500/10 text-[10px] font-bold text-blue-600 dark:bg-blue-400/10 dark:text-blue-400'
-                >
-                  CC
-                </span>
-                <span>CC Switch</span>
-              </a>
-
-              {/* "更多" */}
-              <div className='group border-border/40 bg-muted/15 text-foreground/55 hover:border-border hover:bg-muted/30 hover:text-foreground flex cursor-default items-center gap-2.5 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'>
-                <MoreIcon />
-                <span>{t('More Apps')}</span>
+              <div className='group border-border/40 bg-muted/15 text-foreground/80 hover:border-border hover:bg-muted/30 hover:text-foreground flex items-center gap-3 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'>
+                <span className='size-6 shrink-0 flex items-center justify-center rounded-md bg-blue-500/10 text-[10px] font-bold text-blue-600 dark:bg-blue-400/10 dark:text-blue-400'>听</span>
+                <span>智能听力训练</span>
+              </div>
+              <div className='group border-border/40 bg-muted/15 text-foreground/80 hover:border-border hover:bg-muted/30 hover:text-foreground flex items-center gap-3 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'>
+                <span className='size-6 shrink-0 flex items-center justify-center rounded-md bg-emerald-500/10 text-[10px] font-bold text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400'>说</span>
+                <span>AI口语评测</span>
+              </div>
+              <div className='group border-border/40 bg-muted/15 text-foreground/80 hover:border-border hover:bg-muted/30 hover:text-foreground flex items-center gap-3 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'>
+                <span className='size-6 shrink-0 flex items-center justify-center rounded-md bg-violet-500/10 text-[10px] font-bold text-violet-600 dark:bg-violet-400/10 dark:text-violet-400'>读</span>
+                <span>分级阅读系统</span>
+              </div>
+              <div className='group border-border/40 bg-muted/15 text-foreground/80 hover:border-border hover:bg-muted/30 hover:text-foreground flex items-center gap-3 rounded-full border px-5 py-2.5 text-sm font-medium shadow-[0_1px_2.5px_rgba(0,0,0,0.01)] backdrop-blur-xs transition-all duration-300 hover:scale-[1.02]'>
+                <span className='size-6 shrink-0 flex items-center justify-center rounded-md bg-amber-500/10 text-[10px] font-bold text-amber-600 dark:bg-amber-400/10 dark:text-amber-400'>写</span>
+                <span>智能写作辅导</span>
               </div>
             </div>
           </div>

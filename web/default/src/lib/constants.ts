@@ -21,7 +21,7 @@ For commercial licensing, please contact support@quantumnous.com
  */
 
 // System Configuration Defaults
-export const DEFAULT_SYSTEM_NAME = '白泽国际中文AI实验室'
+export const DEFAULT_SYSTEM_NAME = '白泽中华文化AI实验室'
 export const DEFAULT_LOGO = '/logo.png'
 
 // LocalStorage Keys

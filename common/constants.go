@@ -14,7 +14,7 @@ import (
 
 var StartTime = time.Now().Unix() // unit: second
 var Version = "v0.0.0"            // this hard coding will be replaced automatically when building, no need to manually change
-var SystemName = "白泽国际中文AI实验室"
+var SystemName = "白泽中华文化AI实验室"
 var Footer = ""
 var Logo = ""
 var TopUpLink = ""

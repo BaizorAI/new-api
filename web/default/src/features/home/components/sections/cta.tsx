@@ -53,35 +53,33 @@ export function CTA(props: CTAProps) {
         animation='scale-in'
       >
         <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-4xl'>
-          {t('Ready to simplify')}
+          准备好让AI赋能您的
           <br />
           <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-            {t('your AI integration?')}
+            国际中文教学了吗？
           </span>
         </h2>
         <p className='text-muted-foreground/80 mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
-          {t(
-            'Deploy your own gateway and start routing requests through your configured upstream services.'
-          )}
+          加入白泽中华文化AI平台，体验AI驱动的智能中文教育，为全球学习者带来更高效、更个性化的学习体验。
         </p>
         <div className='mt-8 flex items-center justify-center gap-3'>
           <Button className='group rounded-lg' render={<Link to='/sign-up' />}>
-            {t('Get Started')}
+            立即体验
             <ArrowRight className='ml-1 size-3.5 transition-transform duration-200 group-hover:translate-x-0.5' />
           </Button>
           <Button
             variant='outline'
             className='border-border/50 hover:border-border hover:bg-muted/50 rounded-lg'
-            render={<Link to='/pricing' />}
+            render={<Link to='/about' />}
           >
-            {t('View Pricing')}
+            了解更多
           </Button>
           <Button
             variant='outline'
             className='border-border/50 hover:border-border hover:bg-muted/50 rounded-lg'
-            render={<a href='/culture' />}
+            render={<a href='/docs' />}
           >
-            {t('Enter Culture AIGC Lab')}
+            平台文档
           </Button>
         </div>
       </AnimateInView>
