@@ -126,6 +126,21 @@ func InitOptionMap() {
 	common.OptionMap["WeChatServerAddress"] = ""
 	common.OptionMap["WeChatServerToken"] = ""
 	common.OptionMap["WeChatAccountQRCodeImageURL"] = ""
+	common.OptionMap["WeChatOAuthEnabled"] = strconv.FormatBool(common.WeChatOAuthEnabled)
+	common.OptionMap["WeChatAppId"] = ""
+	common.OptionMap["WeChatAppSecret"] = ""
+	common.OptionMap["WeChatInAppOAuthEnabled"] = strconv.FormatBool(common.WeChatInAppOAuthEnabled)
+	common.OptionMap["WeChatInAppAppId"] = ""
+	common.OptionMap["WeChatInAppSecret"] = ""
+	common.OptionMap["WeChatInAppScope"] = common.WeChatInAppScope
+	common.OptionMap["WeChatPayNativeEnabled"] = strconv.FormatBool(common.WeChatPayNativeEnabled)
+	common.OptionMap["WeChatPayNativeAppId"] = ""
+	common.OptionMap["WeChatPayMachId"] = ""
+	common.OptionMap["WeChatPaySerial"] = ""
+	common.OptionMap["WeChatPayKeyPath"] = ""
+	common.OptionMap["WeChatPayNativeCallbackURL"] = ""
+	common.OptionMap["WeChatPayApiV3Key"] = ""
+	common.OptionMap["WeChatPayNativeCloseOrderGap"] = strconv.Itoa(common.WeChatPayNativeCloseOrderGap)
 	common.OptionMap["TurnstileSiteKey"] = ""
 	common.OptionMap["TurnstileSecretKey"] = ""
 	common.OptionMap["QuotaForNewUser"] = strconv.Itoa(common.QuotaForNewUser)
@@ -290,6 +305,12 @@ func updateOptionMap(key string, value string) (err error) {
 			common.LinuxDOOAuthEnabled = boolValue
 		case "WeChatAuthEnabled":
 			common.WeChatAuthEnabled = boolValue
+		case "WeChatOAuthEnabled":
+			common.WeChatOAuthEnabled = boolValue
+		case "WeChatInAppOAuthEnabled":
+			common.WeChatInAppOAuthEnabled = boolValue
+		case "WeChatPayNativeEnabled":
+			common.WeChatPayNativeEnabled = boolValue
 		case "TelegramOAuthEnabled":
 			common.TelegramOAuthEnabled = boolValue
 		case "TurnstileCheckEnabled":
@@ -486,6 +507,30 @@ func updateOptionMap(key string, value string) (err error) {
 		common.WeChatServerToken = value
 	case "WeChatAccountQRCodeImageURL":
 		common.WeChatAccountQRCodeImageURL = value
+	case "WeChatAppId":
+		common.WeChatAppId = value
+	case "WeChatAppSecret":
+		common.WeChatAppSecret = value
+	case "WeChatInAppAppId":
+		common.WeChatInAppAppId = value
+	case "WeChatInAppSecret":
+		common.WeChatInAppSecret = value
+	case "WeChatInAppScope":
+		common.WeChatInAppScope = value
+	case "WeChatPayNativeAppId":
+		common.WeChatPayNativeAppId = value
+	case "WeChatPayMachId":
+		common.WeChatPayMachId = value
+	case "WeChatPaySerial":
+		common.WeChatPaySerial = value
+	case "WeChatPayKeyPath":
+		common.WeChatPayKeyPath = value
+	case "WeChatPayNativeCallbackURL":
+		common.WeChatPayNativeCallbackURL = value
+	case "WeChatPayApiV3Key":
+		common.WeChatPayApiV3Key = value
+	case "WeChatPayNativeCloseOrderGap":
+		common.WeChatPayNativeCloseOrderGap, _ = strconv.Atoi(value)
 	case "TelegramBotToken":
 		common.TelegramBotToken = value
 	case "TelegramBotName":

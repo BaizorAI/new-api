@@ -135,6 +135,28 @@ var WeChatServerAddress = ""
 var WeChatServerToken = ""
 var WeChatAccountQRCodeImageURL = ""
 
+// WeChat Open Platform (QR code login for desktop/web)
+var WeChatOAuthEnabled = false
+var WeChatAppId = ""
+var WeChatAppSecret = ""
+
+// WeChat In-App Browser login (Service Account for WeChat browser)
+var WeChatInAppOAuthEnabled = false
+var WeChatInAppAppId = ""
+var WeChatInAppSecret = ""
+var WeChatInAppScope = "snsapi_userinfo"
+
+// WeChat Pay Native
+var WeChatPayNativeEnabled = false
+var WeChatPayNativeAppId = ""
+var WeChatPayNonceStr = ""
+var WeChatPayMachId = ""
+var WeChatPaySerial = ""
+var WeChatPayKeyPath = ""
+var WeChatPayNativeCallbackURL = ""
+var WeChatPayApiV3Key = ""
+var WeChatPayNativeCloseOrderGap = 30
+
 var TurnstileSiteKey = ""
 var TurnstileSecretKey = ""
 

@@ -27,6 +27,7 @@ import { BillingHistoryDialog } from './components/dialogs/billing-history-dialo
 import { CreemConfirmDialog } from './components/dialogs/creem-confirm-dialog'
 import { PaymentConfirmDialog } from './components/dialogs/payment-confirm-dialog'
 import { TransferDialog } from './components/dialogs/transfer-dialog'
+import { WeChatPayDialog } from './components/dialogs/wechat-pay-dialog'
 import { RechargeFormCard } from './components/recharge-form-card'
 import { SubscriptionPlansCard } from './components/subscription-plans-card'
 import { WalletStatsCard } from './components/wallet-stats-card'
@@ -45,6 +46,7 @@ import {
   getMinTopupAmount,
   isWaffoPancakePayment,
 } from './lib'
+import { requestWeChatPay } from './api'
 import type {
   UserWalletData,
   PaymentMethod,
@@ -73,6 +75,12 @@ export function Wallet(props: WalletProps) {
   const [selectedCreemProduct, setSelectedCreemProduct] =
     useState<CreemProduct | null>(null)
   const [showSubscriptionPanel, setShowSubscriptionPanel] = useState(true)
+
+  // WeChat Pay state
+  const [wechatPayDialogOpen, setWeChatPayDialogOpen] = useState(false)
+  const [wechatPayCodeUrl, setWeChatPayCodeUrl] = useState('')
+  const [wechatPayTradeNo, setWeChatPayTradeNo] = useState('')
+  const [wechatPaying, setWeChatPaying] = useState(false)
 
   const { status } = useStatus()
   const { currency } = useSystemConfig()
@@ -245,6 +253,29 @@ export function Wallet(props: WalletProps) {
     }
   }
 
+  // Handle WeChat Pay
+  const handleWeChatPaySelect = async () => {
+    setPaymentLoading('wechat_pay')
+    try {
+      const res = await requestWeChatPay({
+        amount: topupAmount,
+        payment_method: 'wechat_pay',
+      })
+      if (res.message === 'success' && res.data?.code_url) {
+        setWeChatPayCodeUrl(res.data.code_url)
+        setWeChatPayTradeNo(res.data.trade_no)
+        setWeChatPayDialogOpen(true)
+      }
+    } finally {
+      setPaymentLoading(null)
+    }
+  }
+
+  // Handle WeChat Pay completion
+  const handleWeChatPayComplete = async () => {
+    await fetchUser()
+  }
+
   // Get discount rate for current topup amount
   const getDiscountRate = useCallback(() => {
     return topupInfo?.discount?.[topupAmount] || DEFAULT_DISCOUNT_RATE
@@ -303,6 +334,10 @@ export function Wallet(props: WalletProps) {
                   enableWaffoPancakeTopup={
                     topupInfo?.enable_waffo_pancake_topup
                   }
+                  enableWeChatPayTopup={
+                    topupInfo?.enable_wechat_pay_topup
+                  }
+                  onWeChatPaySelect={handleWeChatPaySelect}
                 />
               </div>
 
@@ -359,6 +394,15 @@ export function Wallet(props: WalletProps) {
         onConfirm={handleCreemConfirm}
         product={selectedCreemProduct}
         processing={creemProcessing}
+      />
+
+      <WeChatPayDialog
+        open={wechatPayDialogOpen}
+        onOpenChange={setWeChatPayDialogOpen}
+        codeUrl={wechatPayCodeUrl}
+        tradeNo={wechatPayTradeNo}
+        amount={topupAmount}
+        onPaymentComplete={handleWeChatPayComplete}
       />
     </>
   )

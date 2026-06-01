@@ -78,6 +78,8 @@ interface RechargeFormCardProps {
   waffoMinTopup?: number
   onWaffoMethodSelect?: (method: WaffoPayMethod, index: number) => void
   enableWaffoPancakeTopup?: boolean
+  enableWeChatPayTopup?: boolean
+  onWeChatPaySelect?: () => void
 }
 
 export function RechargeFormCard({
@@ -108,6 +110,8 @@ export function RechargeFormCard({
   waffoMinTopup,
   onWaffoMethodSelect,
   enableWaffoPancakeTopup,
+  enableWeChatPayTopup,
+  onWeChatPaySelect,
 }: RechargeFormCardProps) {
   const { t } = useTranslation()
   const [localAmount, setLocalAmount] = useState(topupAmount.toString())
@@ -128,7 +132,8 @@ export function RechargeFormCard({
     topupInfo?.enable_online_topup ||
     topupInfo?.enable_stripe_topup ||
     enableWaffoTopup ||
-    enableWaffoPancakeTopup
+    enableWaffoPancakeTopup ||
+    enableWeChatPayTopup
   const hasAnyTopup = hasConfigurableTopup || enableCreemTopup
   const hasStandardPaymentMethods =
     Array.isArray(topupInfo?.pay_methods) && topupInfo.pay_methods.length > 0
@@ -427,6 +432,30 @@ export function RechargeFormCard({
             )}
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* WeChat Pay Section */}
+      {enableWeChatPayTopup && onWeChatPaySelect && (
+        <div className='space-y-2.5 border-t pt-4 sm:space-y-3 sm:pt-6'>
+          <Label className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
+            {t('WeChat Pay')}
+          </Label>
+          <Button
+            variant='outline'
+            onClick={onWeChatPaySelect}
+            disabled={
+              !topupAmount || topupAmount < (topupInfo?.min_topup || 0) || !!paymentLoading
+            }
+            className='h-11 w-full justify-start gap-2 rounded-lg'
+          >
+            {paymentLoading === 'wechat_pay' ? (
+              <Loader2 className='h-4 w-4 animate-spin' />
+            ) : (
+              getPaymentIcon('wechat_pay')
+            )}
+            <span>{t('Pay with WeChat')}</span>
+          </Button>
+        </div>
       )}
 
       {/* Creem Products Section */}

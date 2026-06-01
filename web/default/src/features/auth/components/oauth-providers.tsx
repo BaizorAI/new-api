@@ -63,13 +63,25 @@ export function OAuthProviders({
     handleLinuxDOLogin,
     handleTelegramLogin,
     handleCustomOAuthLogin,
+    handleWeChatOpenLogin,
   } = useOAuthLogin(status)
 
   const providerButtons: ProviderButton[] = []
 
+  // New WeChat Open Platform OAuth (QR connect)
+  if (status?.wechat_oauth_enabled) {
+    providerButtons.push({
+      key: 'wechat-open',
+      label: t('Continue with WeChat'),
+      onClick: handleWeChatOpenLogin,
+      icon: <IconWeChat className='h-4 w-4' />,
+    })
+  }
+
+  // Legacy WeChat login (external server with verification code)
   if (status?.wechat_login && onWeChatLogin) {
     providerButtons.push({
-      key: 'wechat',
+      key: 'wechat-legacy',
       label: t('Continue with WeChat'),
       onClick: onWeChatLogin,
       icon: <IconWeChat className='h-4 w-4' />,

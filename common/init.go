@@ -125,6 +125,28 @@ func InitEnv() {
 	SearchRateLimitEnable = GetEnvOrDefaultBool("SEARCH_RATE_LIMIT_ENABLE", true)
 	SearchRateLimitNum = GetEnvOrDefault("SEARCH_RATE_LIMIT", 10)
 	SearchRateLimitDuration = int64(GetEnvOrDefault("SEARCH_RATE_LIMIT_DURATION", 60))
+
+	// WeChat Open Platform OAuth (QR code login)
+	WeChatOAuthEnabled = GetEnvOrDefaultBool("WECHAT_OAUTH_ENABLED", false)
+	WeChatAppId = GetEnvOrDefaultString("WECHAT_APP_ID", "")
+	WeChatAppSecret = GetEnvOrDefaultString("WECHAT_APP_SECRET", "")
+
+	// WeChat In-App Browser OAuth (Service Account)
+	WeChatInAppOAuthEnabled = GetEnvOrDefaultBool("WECHAT_INAPP_OAUTH_ENABLED", false)
+	WeChatInAppAppId = GetEnvOrDefaultString("WECHAT_INAPP_APPID", "")
+	WeChatInAppSecret = GetEnvOrDefaultString("WECHAT_INAPP_SECRET", "")
+	WeChatInAppScope = GetEnvOrDefaultString("WECHAT_INAPP_SCOPE", "snsapi_userinfo")
+
+	// WeChat Pay Native
+	WeChatPayNativeEnabled = GetEnvOrDefaultBool("WECHAT_PAY_NATIVE_ENABLED", false)
+	WeChatPayNativeAppId = GetEnvOrDefaultString("WECHAT_PAY_NATIVE_APPID", "")
+	WeChatPayNonceStr = GetEnvOrDefaultString("WECHAT_PAY_NONCE_STR", "")
+	WeChatPayMachId = GetEnvOrDefaultString("WECHAT_PAY_MACHID", "")
+	WeChatPaySerial = GetEnvOrDefaultString("WECHAT_PAY_SERIAL", "")
+	WeChatPayKeyPath = GetEnvOrDefaultString("WECHAT_PAY_KEY_PATH", "")
+	WeChatPayNativeCallbackURL = GetEnvOrDefaultString("WECHAT_PAY_NATIVE_CALLBACK_URL", "")
+	WeChatPayApiV3Key = GetEnvOrDefaultString("WECHAT_PAY_APIV3_KEY", "")
+	WeChatPayNativeCloseOrderGap = GetEnvOrDefault("WECHAT_PAY_NATIVE_CLOSE_ORDER_GAP", 30)
 	initConstantEnv()
 }
 

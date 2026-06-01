@@ -51,14 +51,18 @@ export type WaffoPancakePaymentResponse = ApiResponse<
       session_id?: string
       expires_at?: number | string
       order_id?: string
-      // Self-service session token + expiry — surfaced by the backend so
-      // future flows (refund / cancel from new-api's own UI) can use them
-      // without re-issuing checkout. Not consumed by the current handler.
       token?: string
       token_expires_at?: number | string
     }
   | string
 >
+
+export type WeChatPayResponse = ApiResponse<{
+  code_url: string
+  trade_no: string
+}>
+
+export type WeChatPayQueryResponse = ApiResponse<string>
 
 /**
  * Creem product configuration
@@ -150,6 +154,8 @@ export interface TopupInfo {
   enable_waffo_pancake_topup?: boolean
   /** Minimum topup amount for Waffo Pancake */
   waffo_pancake_min_topup?: number
+  /** Whether WeChat Pay topup is enabled */
+  enable_wechat_pay_topup?: boolean
   /** Whether redemption code usage is enabled */
   enable_redemption?: boolean
   /** Whether compliance confirmation has been completed */

@@ -38,6 +38,8 @@ import type {
   WaffoPaymentResponse,
   WaffoPancakePaymentRequest,
   WaffoPancakePaymentResponse,
+  WeChatPayResponse,
+  WeChatPayQueryResponse,
 } from './types'
 
 // ============================================================================
@@ -165,6 +167,38 @@ export async function requestWaffoPancakePayment(
   const res = await api.post('/api/user/waffo-pancake/pay', request, {
     skipBusinessError: true,
   } as Record<string, unknown>)
+  return res.data
+}
+
+/**
+ * Request WeChat Pay payment
+ */
+export async function requestWeChatPay(
+  request: PaymentRequest
+): Promise<WeChatPayResponse> {
+  const res = await api.post('/api/user/wechat-pay/pay', request, {
+    skipBusinessError: true,
+  } as Record<string, unknown>)
+  return res.data
+}
+
+/**
+ * Query WeChat Pay order status
+ */
+export async function queryWeChatPayOrder(
+  tradeNo: string
+): Promise<WeChatPayQueryResponse> {
+  const res = await api.get(`/api/user/wechat-pay/query/${tradeNo}`)
+  return res.data
+}
+
+/**
+ * Close a pending WeChat Pay order
+ */
+export async function closeWeChatPayOrder(
+  tradeNo: string
+): Promise<ApiResponse> {
+  const res = await api.post(`/api/user/wechat-pay/close/${tradeNo}`)
   return res.data
 }
 
