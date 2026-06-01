@@ -130,12 +130,22 @@ func InitEnv() {
 	WeChatOAuthEnabled = GetEnvOrDefaultBool("WECHAT_OAUTH_ENABLED", false)
 	WeChatAppId = GetEnvOrDefaultString("WECHAT_APP_ID", "")
 	WeChatAppSecret = GetEnvOrDefaultString("WECHAT_APP_SECRET", "")
+	if WeChatOAuthEnabled {
+		SysLog(fmt.Sprintf("[WeChat] Open Platform OAuth enabled, AppId=%s", WeChatAppId))
+	} else {
+		SysLog("[WeChat] Open Platform OAuth disabled")
+	}
 
 	// WeChat In-App Browser OAuth (Service Account)
 	WeChatInAppOAuthEnabled = GetEnvOrDefaultBool("WECHAT_INAPP_OAUTH_ENABLED", false)
 	WeChatInAppAppId = GetEnvOrDefaultString("WECHAT_INAPP_APPID", "")
 	WeChatInAppSecret = GetEnvOrDefaultString("WECHAT_INAPP_SECRET", "")
 	WeChatInAppScope = GetEnvOrDefaultString("WECHAT_INAPP_SCOPE", "snsapi_userinfo")
+	if WeChatInAppOAuthEnabled {
+		SysLog(fmt.Sprintf("[WeChat] In-App OAuth enabled, AppId=%s, Scope=%s", WeChatInAppAppId, WeChatInAppScope))
+	} else {
+		SysLog("[WeChat] In-App OAuth disabled")
+	}
 
 	// WeChat Pay Native
 	WeChatPayNativeEnabled = GetEnvOrDefaultBool("WECHAT_PAY_NATIVE_ENABLED", false)
@@ -147,6 +157,12 @@ func InitEnv() {
 	WeChatPayNativeCallbackURL = GetEnvOrDefaultString("WECHAT_PAY_NATIVE_CALLBACK_URL", "")
 	WeChatPayApiV3Key = GetEnvOrDefaultString("WECHAT_PAY_APIV3_KEY", "")
 	WeChatPayNativeCloseOrderGap = GetEnvOrDefault("WECHAT_PAY_NATIVE_CLOSE_ORDER_GAP", 30)
+	if WeChatPayNativeEnabled {
+		SysLog(fmt.Sprintf("[WeChat] Pay Native enabled, AppId=%s, MachId=%s, Callback=%s, CloseOrderGap=%dm",
+			WeChatPayNativeAppId, WeChatPayMachId, WeChatPayNativeCallbackURL, WeChatPayNativeCloseOrderGap))
+	} else {
+		SysLog("[WeChat] Pay Native disabled")
+	}
 	initConstantEnv()
 }
 
