@@ -11,6 +11,11 @@ on:
         description: 'Tag name to build (e.g., v0.10.8-alpha.3)'
         required: true
         type: string
+      no_cache:
+        description: 'Build without cache'
+        required: false
+        type: boolean
+        default: false
 
 env:
   GHCR_IMAGE: ghcr.io/baizorai/new-api
@@ -70,6 +75,7 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
+          no-cache: ${{ github.event.inputs.no_cache || false }}
           tags: |
             ${{ env.GHCR_IMAGE }}:${{ env.TAG }}
             ${{ env.GHCR_IMAGE }}:latest
