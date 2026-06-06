@@ -264,6 +264,14 @@ export type BillingSettings = {
   // section (saved via /api/option/waffo-pancake/save).
   WaffoPancakeStoreID: string
   WaffoPancakeProductID: string
+  WeChatPayNativeEnabled: boolean
+  WeChatPayNativeAppId: string
+  WeChatPayMachId: string
+  WeChatPaySerial: string
+  WeChatPayKeyPath: string
+  WeChatPayNativeCallbackURL: string
+  WeChatPayApiV3Key: string
+  WeChatPayNativeCloseOrderGap: number
   'checkin_setting.enabled': boolean
   'checkin_setting.min_quota': number
   'checkin_setting.max_quota': number

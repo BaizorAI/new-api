@@ -286,12 +286,26 @@ func wechatPayVerifyCallbackSignature(c *gin.Context) error {
 
 func isWeChatPayTopUpEnabled() bool {
 	if !isPaymentComplianceConfirmed() {
+		common.SysLog("[WeChat Pay] disabled: payment compliance not confirmed")
 		return false
 	}
-	return common.WeChatPayNativeEnabled &&
-		strings.TrimSpace(common.WeChatPayNativeAppId) != "" &&
-		strings.TrimSpace(common.WeChatPayMachId) != "" &&
-		strings.TrimSpace(common.WeChatPayApiV3Key) != ""
+	if !common.WeChatPayNativeEnabled {
+		common.SysLog("[WeChat Pay] disabled: WECHAT_PAY_NATIVE_ENABLED=false")
+		return false
+	}
+	if strings.TrimSpace(common.WeChatPayNativeAppId) == "" {
+		common.SysLog("[WeChat Pay] disabled: WECHAT_PAY_NATIVE_APPID is empty")
+		return false
+	}
+	if strings.TrimSpace(common.WeChatPayMachId) == "" {
+		common.SysLog("[WeChat Pay] disabled: WECHAT_PAY_MACHID is empty")
+		return false
+	}
+	if strings.TrimSpace(common.WeChatPayApiV3Key) == "" {
+		common.SysLog("[WeChat Pay] disabled: WECHAT_PAY_APIV3_KEY is empty")
+		return false
+	}
+	return true
 }
 
 // ============================================================================
@@ -563,6 +577,7 @@ func QueryWeChatPayOrder(c *gin.Context) {
 
 	httpReq, err := http.NewRequest("GET", getWeChatPayBaseURL()+urlPath, nil)
 	if err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信支付 查询请求创建失败 trade_no=%s error=%q", tradeNo, err.Error()))
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "查询失败"})
 		return
 	}
@@ -572,6 +587,7 @@ func QueryWeChatPayOrder(c *gin.Context) {
 	client := http.Client{Timeout: 10 * time.Second}
 	httpResp, err := client.Do(httpReq)
 	if err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信支付 查询API调用失败 trade_no=%s error=%q", tradeNo, err.Error()))
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "查询接口调用失败"})
 		return
 	}
@@ -580,6 +596,7 @@ func QueryWeChatPayOrder(c *gin.Context) {
 	respBody, _ := io.ReadAll(httpResp.Body)
 
 	if httpResp.StatusCode != 200 {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信支付 查询返回非200 trade_no=%s status=%d body=%s", tradeNo, httpResp.StatusCode, string(respBody)))
 		// Check local database for completed order
 		topUp := model.GetTopUpByTradeNo(tradeNo)
 		if topUp != nil && topUp.Status == common.TopUpStatusSuccess {
@@ -592,6 +609,7 @@ func QueryWeChatPayOrder(c *gin.Context) {
 
 	var transaction wechatPayTransaction
 	if err := common.Unmarshal(respBody, &transaction); err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信支付 查询响应解析失败 trade_no=%s error=%q body=%s", tradeNo, err.Error(), string(respBody)))
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "解析失败"})
 		return
 	}
@@ -635,6 +653,7 @@ func CloseWeChatPayOrder(c *gin.Context) {
 
 	httpReq, err := http.NewRequest("POST", getWeChatPayBaseURL()+urlPath, strings.NewReader(string(closeBody)))
 	if err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信支付 关闭请求创建失败 trade_no=%s error=%q", tradeNo, err.Error()))
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "关闭失败"})
 		return
 	}
@@ -645,6 +664,7 @@ func CloseWeChatPayOrder(c *gin.Context) {
 	client := http.Client{Timeout: 10 * time.Second}
 	httpResp, err := client.Do(httpReq)
 	if err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信支付 关闭API调用失败 trade_no=%s error=%q", tradeNo, err.Error()))
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "关闭订单API调用失败"})
 		return
 	}

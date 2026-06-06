@@ -183,6 +183,16 @@ const BILLING_SECTIONS = [
           confirmedAt: settings['payment_setting.compliance_confirmed_at'] ?? 0,
           confirmedBy: settings['payment_setting.compliance_confirmed_by'] ?? 0,
         }}
+        wechatPayDefaults={{
+          WeChatPayNativeEnabled: settings.WeChatPayNativeEnabled ?? false,
+          WeChatPayNativeAppId: settings.WeChatPayNativeAppId ?? '',
+          WeChatPayMachId: settings.WeChatPayMachId ?? '',
+          WeChatPaySerial: settings.WeChatPaySerial ?? '',
+          WeChatPayKeyPath: settings.WeChatPayKeyPath ?? '',
+          WeChatPayNativeCallbackURL: settings.WeChatPayNativeCallbackURL ?? '',
+          WeChatPayApiV3Key: settings.WeChatPayApiV3Key ?? '',
+          WeChatPayNativeCloseOrderGap: settings.WeChatPayNativeCloseOrderGap ?? 30,
+        }}
       />
     ),
   },
