@@ -41,6 +41,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { PublicLayout } from '@/components/layout'
 import { AnimateInView } from '@/components/animate-in-view'
+import { useStatus } from '@/hooks/use-status'
 import { getAboutContent } from './api'
 
 function isValidUrl(value: string) {
@@ -117,6 +118,7 @@ const stats = [
 
 function EmptyAboutState() {
   const { t } = useTranslation()
+  const { status } = useStatus()
   const currentYear = new Date().getFullYear()
 
   return (
@@ -398,6 +400,9 @@ function EmptyAboutState() {
             {t('AGPL v3.0 License')}
           </a>
         </p>
+        {status?.version && (
+          <p className='mt-1'>{t('Version')}: {status.version}</p>
+        )}
       </div>
     </div>
   )

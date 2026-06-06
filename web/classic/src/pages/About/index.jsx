@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Typography, Card, Button } from '@douyinfe/semi-ui';
 import {
   IconBookOpenStroked,
@@ -34,6 +34,7 @@ import {
   IconFlag,
 } from '@douyinfe/semi-icons';
 import { Link } from 'react-router-dom';
+import { API } from '../../helpers/api';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -98,6 +99,17 @@ const stats = [
 
 const About = () => {
   const currentYear = new Date().getFullYear();
+  const [version, setVersion] = useState('');
+
+  useEffect(() => {
+    API.get('/api/status')
+      .then((res) => {
+        setVersion(res.data?.data?.version || '');
+      })
+      .catch(() => {
+        setVersion('');
+      });
+  }, []);
 
   return (
     <div className='classic-page-fill flex flex-col pt-[60px] px-2'>
@@ -287,11 +299,11 @@ const About = () => {
                 欢迎通过以下方式与我们取得联系。我们期待与您携手，共同推动国际中文教育的智能化发展。
               </Paragraph>
               <div style={{ marginTop: '12px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                <a href='https://github.com/QuantumNous/new-api' target='_blank' rel='noopener noreferrer' className='!text-semi-color-primary'>
+                <a href='https://github.com/BaizorAI/new-api' target='_blank' rel='noopener noreferrer' className='!text-semi-color-primary'>
                   GitHub 项目仓库
                 </a>
-                <a href='https://github.com/QuantumNous' target='_blank' rel='noopener noreferrer' className='!text-semi-color-primary'>
-                  QuantumNous 社区
+                <a href='https://github.com/BaizorAI/new-api' target='_blank' rel='noopener noreferrer' className='!text-semi-color-primary'>
+                  白泽AI 社区
                 </a>
               </div>
             </div>
@@ -345,6 +357,7 @@ const About = () => {
             </a>{' '}
             的前提下使用
           </p>
+          {version && <p>版本号：{version}</p>}
         </div>
       </div>
     </div>
