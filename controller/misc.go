@@ -16,6 +16,7 @@ import (
 	"github.com/QuantumNous/new-api/setting/console_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -370,4 +371,29 @@ func ResetPassword(c *gin.Context) {
 		"data":    password,
 	})
 	return
+}
+
+func SendTestEmail(c *gin.Context) {
+	email := c.Query("email")
+	if err := common.Validate.Var(email, "required,email"); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "无效的邮箱地址",
+		})
+		return
+	}
+	subject := fmt.Sprintf("%s SMTP 测试邮件", common.SystemName)
+	content := fmt.Sprintf("<p>这是一封来自 %s 的 SMTP 测试邮件。</p><p>发送时间：%s</p>", common.SystemName, time.Now().Format("2006-01-02 15:04:05"))
+	err := common.SendEmail(subject, email, content)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "邮件发送失败: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "测试邮件发送成功",
+	})
 }
