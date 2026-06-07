@@ -124,6 +124,7 @@ var SMTPForceAuthLogin = false
 var SMTPAccount = ""
 var SMTPFrom = ""
 var SMTPToken = ""
+var SMTPTimeout = 10 // SMTP connection timeout in seconds
 
 var GitHubClientId = ""
 var GitHubClientSecret = ""
