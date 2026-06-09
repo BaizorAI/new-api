@@ -161,7 +161,19 @@ func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
 	case constant.ChannelTypeCustom:
 		url := info.ChannelBaseUrl
 		url = strings.Replace(url, "{model}", info.UpstreamModelName, -1)
-		return url, nil
+		// If the base URL contains {model}, it's a fully-specified URL template —
+		// return it as-is for backward compatibility.
+		if strings.Contains(info.ChannelBaseUrl, "{model}") {
+			return url, nil
+		}
+		// Otherwise, treat it as an OpenAI-compatible base URL and append the request path.
+		requestURL := info.RequestURLPath
+		// Remove /v1 prefix from request path if the base URL already ends with /v1
+		// to avoid double /v1 in the final URL.
+		if strings.HasSuffix(strings.TrimRight(url, "/"), "/v1") {
+			requestURL = strings.TrimPrefix(requestURL, "/v1")
+		}
+		return relaycommon.GetFullRequestURL(url, requestURL, info.ChannelType), nil
 	default:
 		if (info.RelayFormat == types.RelayFormatClaude || info.RelayFormat == types.RelayFormatGemini) &&
 			info.RelayMode != relayconstant.RelayModeResponses &&
