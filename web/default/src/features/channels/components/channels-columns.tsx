@@ -720,6 +720,33 @@ export function useChannelsColumns(): ColumnDef<Channel>[] {
       enableSorting: false,
     },
 
+    // Type ID column
+    {
+      accessorKey: 'type',
+      id: 'type_id',
+      meta: { label: t('Type ID'), mobileHidden: true },
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('Type ID')} />
+      ),
+      cell: ({ row }) => {
+        const isTagRow = isTagAggregateRow(row.original)
+        if (isTagRow) return null
+
+        const type = row.getValue('type') as number
+        return (
+          <span className='text-muted-foreground font-mono text-sm tabular-nums'>
+            {type}
+          </span>
+        )
+      },
+      filterFn: (row, id, value) => {
+        if (!value || value.length === 0 || value.includes('all')) return true
+        return value.includes(String(row.getValue(id)))
+      },
+      size: 80,
+      enableSorting: false,
+    },
+
     // Status column
     {
       accessorKey: 'status',
