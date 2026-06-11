@@ -170,7 +170,7 @@ function DocsPage() {
               </p>
               <div className='mt-4 flex flex-wrap gap-3'>
                 <a
-                  href='https://github.com/QuantumNous/new-api'
+                  href='https://github.com/baizorai/new-api'
                   target='_blank'
                   rel='noopener noreferrer'
                   className='text-primary hover:underline text-sm'
