@@ -174,6 +174,17 @@ func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
 			requestURL = strings.TrimPrefix(requestURL, "/v1")
 		}
 		return relaycommon.GetFullRequestURL(url, requestURL, info.ChannelType), nil
+	case constant.ChannelTypeAzureFoundry:
+		url := info.ChannelBaseUrl
+		url = strings.Replace(url, "{model}", info.UpstreamModelName, -1)
+		if strings.Contains(info.ChannelBaseUrl, "{model}") {
+			return url, nil
+		}
+		requestURL := info.RequestURLPath
+		if strings.HasSuffix(strings.TrimRight(url, "/"), "/v1") {
+			requestURL = strings.TrimPrefix(requestURL, "/v1")
+		}
+		return relaycommon.GetFullRequestURL(url, requestURL, info.ChannelType), nil
 	default:
 		if (info.RelayFormat == types.RelayFormatClaude || info.RelayFormat == types.RelayFormatGemini) &&
 			info.RelayMode != relayconstant.RelayModeResponses &&

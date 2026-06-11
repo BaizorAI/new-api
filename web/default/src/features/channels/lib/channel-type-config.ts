@@ -134,6 +134,16 @@ export const CHANNEL_TYPE_CONFIGS: Record<number, ChannelTypeConfig> = {
       baseUrl: 'Default: https://api.replicate.com',
     },
   },
+  58: {
+    id: 58,
+    name: CHANNEL_TYPES[58],
+    icon: 'azure',
+    hints: {
+      baseUrl: 'Azure AI Foundry endpoint, e.g., https://xxx.services.ai.azure.com/openai/v1',
+      key: 'Entra ID Bearer token from DefaultAzureCredential',
+      models: 'gpt-4o,gpt-4o-mini,gpt-image-2',
+    },
+  },
 }
 
 /**

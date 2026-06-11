@@ -1254,6 +1254,33 @@ export function ChannelMutateDrawer({
                       </>
                     )}
 
+                    {/* Azure AI Foundry (type 58) */}
+                    {currentType === 58 && (
+                      <FormField
+                        control={form.control}
+                        name='base_url'
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {t('Azure AI Foundry Endpoint *')}
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={t(
+                                  'e.g., https://xxx.services.ai.azure.com/openai/v1'
+                                )}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              {t('Your Azure AI Foundry endpoint URL. Must include the full path ending with /openai/v1')}
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
                     {/* Custom (type 8) */}
                     {currentType === 8 && (
                       <FormField
@@ -1772,7 +1799,7 @@ export function ChannelMutateDrawer({
                     )}
 
                     {/* General base_url for other types */}
-                    {![3, 8, 22, 36, 45].includes(currentType) && (
+                    {![3, 8, 22, 36, 45, 58].includes(currentType) && (
                       <FormField
                         control={form.control}
                         name='base_url'
