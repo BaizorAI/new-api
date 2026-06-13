@@ -79,13 +79,6 @@ import {
 } from './waffo-settings-section'
 
 const paymentSchema = z.object({
-  PayAddress: z.string().refine((value) => {
-    const trimmed = value.trim()
-    if (!trimmed) return true
-    return /^https?:\/\//.test(trimmed)
-  }, 'Provide a valid callback URL starting with http:// or https://'),
-  EpayId: z.string(),
-  EpayKey: z.string(),
   Price: z.coerce.number().min(0),
   MinTopUp: z.coerce.number().min(0),
   CustomCallbackAddress: z.string().refine((value) => {
@@ -420,9 +413,6 @@ export function PaymentSettingsSection({
 
   const onSubmit = async (values: PaymentFormValues) => {
     const sanitized = {
-      PayAddress: removeTrailingSlash(values.PayAddress),
-      EpayId: values.EpayId.trim(),
-      EpayKey: values.EpayKey.trim(),
       Price: values.Price,
       MinTopUp: values.MinTopUp,
       CustomCallbackAddress: removeTrailingSlash(values.CustomCallbackAddress),
@@ -470,9 +460,6 @@ export function PaymentSettingsSection({
     }
 
     const initial = {
-      PayAddress: removeTrailingSlash(initialRef.current.PayAddress),
-      EpayId: initialRef.current.EpayId.trim(),
-      EpayKey: initialRef.current.EpayKey.trim(),
       Price: initialRef.current.Price,
       MinTopUp: initialRef.current.MinTopUp,
       CustomCallbackAddress: removeTrailingSlash(
@@ -525,18 +512,6 @@ export function PaymentSettingsSection({
     }
 
     const updates: Array<{ key: string; value: string | number | boolean }> = []
-
-    if (sanitized.PayAddress !== initial.PayAddress) {
-      updates.push({ key: 'PayAddress', value: sanitized.PayAddress })
-    }
-
-    if (sanitized.EpayId !== initial.EpayId) {
-      updates.push({ key: 'EpayId', value: sanitized.EpayId })
-    }
-
-    if (sanitized.EpayKey && sanitized.EpayKey !== initial.EpayKey) {
-      updates.push({ key: 'EpayKey', value: sanitized.EpayKey })
-    }
 
     if (sanitized.Price !== initial.Price) {
       updates.push({ key: 'Price', value: sanitized.Price })
@@ -950,7 +925,7 @@ export function PaymentSettingsSection({
                     </FormControl>
                     <FormDescription>
                       {t(
-                        'How much to charge for each US dollar of balance (Epay)'
+                        'How much to charge for each US dollar of balance'
                       )}
                     </FormDescription>
                     <FormMessage />
@@ -973,7 +948,7 @@ export function PaymentSettingsSection({
                       />
                     </FormControl>
                     <FormDescription>
-                      {t('Smallest USD amount users can recharge (Epay)')}
+                      {t('Smallest USD amount users can recharge')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1140,107 +1115,6 @@ export function PaymentSettingsSection({
                     </FormControl>
                     <FormDescription>
                       {t('Discount map by recharge amount (JSON object)')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className='space-y-4'>
-            <div>
-              <h3 className='text-lg font-medium'>{t('Epay Gateway')}</h3>
-              <p className='text-muted-foreground text-sm'>
-                {t('Configuration for Epay payment integration')}
-              </p>
-            </div>
-
-            <div className='grid gap-6 md:grid-cols-2'>
-              <FormField
-                control={form.control}
-                name='PayAddress'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Epay endpoint')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t('https://pay.example.com')}
-                        {...field}
-                        onChange={(event) => field.onChange(event.target.value)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('Base address provided by your Epay service')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='CustomCallbackAddress'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Callback address')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t('https://gateway.example.com')}
-                        {...field}
-                        onChange={(event) => field.onChange(event.target.value)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        'Optional callback override. Leave blank to use server address'
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className='grid gap-6 md:grid-cols-2'>
-              <FormField
-                control={form.control}
-                name='EpayId'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Epay merchant ID')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='10001'
-                        autoComplete='off'
-                        {...field}
-                        onChange={(event) => field.onChange(event.target.value)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='EpayKey'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Epay secret key')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='password'
-                        placeholder={t('Enter new key to update')}
-                        autoComplete='new-password'
-                        {...field}
-                        onChange={(event) => field.onChange(event.target.value)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('Leave blank unless rotating the secret')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

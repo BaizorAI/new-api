@@ -215,6 +215,41 @@ func wechatPayDecryptNotify(ciphertext, associatedData, nonce string) (string, e
 	return string(plaintext), nil
 }
 
+// loadWeChatPayPlatformCert loads the WeChat Pay platform certificate.
+// It tries, in order:
+//  1. wechatpay_{serial}.pem — WeChat Pay's standard naming (serial from callback header)
+//  2. wechatpay_cert.pem  — legacy / simple deployment name
+func loadWeChatPayPlatformCert(keyPath string, serial string) (*x509.Certificate, error) {
+	// Candidate filenames, first match wins.
+	candidates := []string{}
+	if serial != "" {
+		candidates = append(candidates, fmt.Sprintf("wechatpay_%s.pem", serial))
+	}
+	candidates = append(candidates, "wechatpay_cert.pem")
+
+	var lastErr error
+	for _, name := range candidates {
+		certFile := filepath.Join(keyPath, name)
+		certData, err := os.ReadFile(certFile)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		block, _ := pem.Decode(certData)
+		if block == nil {
+			lastErr = fmt.Errorf("failed to decode PEM from %s", name)
+			continue
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to parse certificate from %s: %w", name, err)
+			continue
+		}
+		return cert, nil
+	}
+	return nil, fmt.Errorf("failed to load platform certificate from %s: %w", keyPath, lastErr)
+}
+
 // wechatPayVerifyCallbackSignature verifies the WeChat Pay callback signature.
 func wechatPayVerifyCallbackSignature(c *gin.Context) error {
 	timestamp := c.GetHeader("Wechatpay-Timestamp")
@@ -226,36 +261,21 @@ func wechatPayVerifyCallbackSignature(c *gin.Context) error {
 		return fmt.Errorf("missing required WeChat Pay headers")
 	}
 
-	// Read and reconstruct the body for verification
 	bodyBytes, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read body: %w", err)
 	}
 
-	// Build the verification message
 	verificationMessage := fmt.Sprintf("%s\n%s\n%s\n", timestamp, nonce, string(bodyBytes))
 
-	_ = serial // reserved for certificate lookup by serial number
-
-	// Load the WeChat Pay platform certificate from the key path
 	keyPath := common.WeChatPayKeyPath
 	if keyPath == "" {
 		keyPath = "/root/.certs/wechat"
 	}
-	certFile := filepath.Join(keyPath, "wechatpay_cert.pem")
-	certData, err := os.ReadFile(certFile)
-	if err != nil {
-		return fmt.Errorf("failed to read platform certificate: %w", err)
-	}
 
-	block, _ := pem.Decode(certData)
-	if block == nil {
-		return fmt.Errorf("failed to decode platform certificate PEM")
-	}
-
-	cert, err := x509.ParseCertificate(block.Bytes)
+	cert, err := loadWeChatPayPlatformCert(keyPath, serial)
 	if err != nil {
-		return fmt.Errorf("failed to parse platform certificate: %w", err)
+		return fmt.Errorf("failed to load platform certificate: %w", err)
 	}
 
 	pubKey, ok := cert.PublicKey.(*rsa.PublicKey)
@@ -362,8 +382,12 @@ func RequestWeChatPay(c *gin.Context) {
 	tradeNo := fmt.Sprintf("WP%s%d", common.GetRandomString(6), time.Now().Unix())
 	tradeNo = fmt.Sprintf("USR%dNO%s", id, tradeNo)
 
-	// Get callback URL
-	callBackAddress := service.GetCallbackAddress()
+	// Get callback URL — prefer WECHAT_PAY_NATIVE_CALLBACK_URL env var,
+	// fall back to GetCallbackAddress() which reads admin UI settings.
+	callBackAddress := common.WeChatPayNativeCallbackURL
+	if callBackAddress == "" {
+		callBackAddress = service.GetCallbackAddress()
+	}
 	notifyURL, err := url.JoinPath(callBackAddress, "/api/wechat-pay/notify")
 	if err != nil {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("微信支付 callback URL 构建失败: %s", err.Error()))

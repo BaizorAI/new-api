@@ -79,7 +79,7 @@ export function isStripePayment(paymentType: string): boolean {
  * Check if payment method is Waffo Pancake
  *
  * Pancake is a metered-style payment that goes through a dedicated checkout
- * URL flow rather than the generic epay form submission, so it must be
+ * URL flow rather than the generic form submission, so it must be
  * special-cased in payment dispatch logic.
  */
 export function isWaffoPancakePayment(paymentType: string): boolean {

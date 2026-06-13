@@ -165,14 +165,11 @@ export async function listWaffoPancakeSubscriptionProductOptions(): Promise<
   return res.data
 }
 
-export async function paySubscriptionEpay(
-  data: SubscriptionPayRequest & { payment_method: string }
-): Promise<SubscriptionPayResponse & { url?: string }> {
-  const res = await api.post('/api/subscription/epay/pay', data)
-  return {
-    ...res.data,
-    url: res.data.url || (res as unknown as { url?: string }).url,
-  }
+export async function paySubscriptionWeChatPay(
+  data: SubscriptionPayRequest
+): Promise<SubscriptionPayResponse> {
+  const res = await api.post('/api/subscription/wechat-pay/pay', data)
+  return res.data
 }
 
 // ============================================================================

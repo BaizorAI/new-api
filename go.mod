@@ -1,10 +1,9 @@
 module github.com/QuantumNous/new-api
 
 // +heroku goVersion go1.18
-go 1.25.1
+go 1.24.0
 
 require (
-	github.com/Calcium-Ion/go-epay v0.0.4
 	github.com/abema/go-mp4 v1.4.1
 	github.com/andybalholm/brotli v1.1.1
 	github.com/anknown/ahocorasick v0.0.0-20190904063843-d75dbd5169c0
@@ -49,11 +48,11 @@ require (
 	github.com/waffo-com/waffo-go v1.3.1
 	github.com/yapingcat/gomedia v0.0.0-20240906162731-17feea57090c
 	golang.org/x/crypto v0.45.0
-	golang.org/x/image v0.38.0
+	golang.org/x/image v0.36.0
 	golang.org/x/net v0.47.0
-	golang.org/x/sync v0.20.0
+	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.38.0
-	golang.org/x/text v0.35.0
+	golang.org/x/text v0.34.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/mysql v1.4.3
 	gorm.io/driver/postgres v1.5.2
@@ -99,7 +98,7 @@ require (
 	github.com/icza/bitio v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.9.2 // indirect
+	github.com/jackc/pgx/v5 v5.8.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect

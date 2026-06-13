@@ -96,21 +96,6 @@ export async function calculateStripeAmount(
 }
 
 /**
- * Request regular payment
- */
-export async function requestPayment(
-  request: PaymentRequest
-): Promise<PaymentResponse> {
-  const res = await api.post('/api/user/pay', request, {
-    skipBusinessError: true,
-  } as Record<string, unknown>)
-  return {
-    ...res.data,
-    url: res.data.url || (res as unknown as { url?: string }).url,
-  }
-}
-
-/**
  * Request Stripe payment
  */
 export async function requestStripePayment(

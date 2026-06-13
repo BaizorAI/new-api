@@ -41,34 +41,6 @@ import {
 
 const { Text } = Typography;
 
-// 过滤易支付方式
-function getEpayMethods(payMethods = []) {
-  return (payMethods || []).filter(
-    (m) => m?.type && m.type !== 'stripe' && m.type !== 'creem',
-  );
-}
-
-// 提交易支付表单
-function submitEpayForm({ url, params }) {
-  const form = document.createElement('form');
-  form.action = url;
-  form.method = 'POST';
-  const isSafari =
-    navigator.userAgent.indexOf('Safari') > -1 &&
-    navigator.userAgent.indexOf('Chrome') < 1;
-  if (!isSafari) form.target = '_blank';
-  Object.keys(params || {}).forEach((key) => {
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = key;
-    input.value = params[key];
-    form.appendChild(input);
-  });
-  document.body.appendChild(form);
-  form.submit();
-  document.body.removeChild(form);
-}
-
 const SubscriptionPlansCard = ({
   t,
   loading = false,
@@ -87,14 +59,11 @@ const SubscriptionPlansCard = ({
   const [open, setOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [paying, setPaying] = useState(false);
-  const [selectedEpayMethod, setSelectedEpayMethod] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-
-  const epayMethods = useMemo(() => getEpayMethods(payMethods), [payMethods]);
 
   const openBuy = (p) => {
     setSelectedPlan(p);
-    setSelectedEpayMethod(epayMethods?.[0]?.type || '');
+
     setOpen(true);
   };
 
@@ -168,36 +137,6 @@ const SubscriptionPlansCard = ({
       setPaying(false);
     }
   };
-
-  const payEpay = async () => {
-    if (!selectedEpayMethod) {
-      showError(t('请选择支付方式'));
-      return;
-    }
-    setPaying(true);
-    try {
-      const res = await API.post('/api/subscription/epay/pay', {
-        plan_id: selectedPlan.plan.id,
-        payment_method: selectedEpayMethod,
-      });
-      if (res.data?.message === 'success') {
-        submitEpayForm({ url: res.data.url, params: res.data.data });
-        showSuccess(t('已发起支付'));
-        closeBuy();
-      } else {
-        const errorMsg =
-          typeof res.data?.data === 'string'
-            ? res.data.data
-            : res.data?.message || t('支付失败');
-        showError(errorMsg);
-      }
-    } catch (e) {
-      showError(t('支付请求失败'));
-    } finally {
-      setPaying(false);
-    }
-  };
-
   // 当前订阅信息 - 支持多个订阅
   const hasActiveSubscription = activeSubscriptions.length > 0;
   const hasAnySubscription = allSubscriptions.length > 0;
@@ -667,10 +606,6 @@ const SubscriptionPlansCard = ({
         onCancel={closeBuy}
         selectedPlan={selectedPlan}
         paying={paying}
-        selectedEpayMethod={selectedEpayMethod}
-        setSelectedEpayMethod={setSelectedEpayMethod}
-        epayMethods={epayMethods}
-        enableOnlineTopUp={enableOnlineTopUp}
         enableStripeTopUp={enableStripeTopUp}
         enableCreemTopUp={enableCreemTopUp}
         purchaseLimitInfo={
@@ -683,7 +618,6 @@ const SubscriptionPlansCard = ({
         }
         onPayStripe={payStripe}
         onPayCreem={payCreem}
-        onPayEpay={payEpay}
       />
     </>
   );

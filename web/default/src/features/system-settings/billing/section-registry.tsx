@@ -132,13 +132,10 @@ const BILLING_SECTIONS = [
     build: (settings: BillingSettings) => (
       <PaymentSettingsSection
         defaultValues={{
-          PayAddress: settings.PayAddress,
-          EpayId: settings.EpayId,
-          EpayKey: settings.EpayKey,
           Price: settings.Price,
           MinTopUp: settings.MinTopUp,
           CustomCallbackAddress: settings.CustomCallbackAddress,
-          PayMethods: settings.PayMethods,
+          PayMethods: settings.PayMethods ?? '[]',
           AmountOptions: settings['payment_setting.amount_options'],
           AmountDiscount: settings['payment_setting.amount_discount'],
           StripeApiSecret: settings.StripeApiSecret,
@@ -151,6 +148,14 @@ const BILLING_SECTIONS = [
           CreemWebhookSecret: settings.CreemWebhookSecret,
           CreemTestMode: settings.CreemTestMode,
           CreemProducts: settings.CreemProducts,
+          WeChatPayNativeEnabled: settings.WeChatPayNativeEnabled ?? false,
+          WeChatPayNativeAppId: settings.WeChatPayNativeAppId ?? '',
+          WeChatPayMachId: settings.WeChatPayMachId ?? '',
+          WeChatPaySerial: settings.WeChatPaySerial ?? '',
+          WeChatPayKeyPath: settings.WeChatPayKeyPath ?? '',
+          WeChatPayNativeCallbackURL: settings.WeChatPayNativeCallbackURL ?? '',
+          WeChatPayApiV3Key: settings.WeChatPayApiV3Key ?? '',
+          WeChatPayNativeCloseOrderGap: settings.WeChatPayNativeCloseOrderGap ?? 30,
         }}
         waffoDefaultValues={{
           WaffoEnabled: settings.WaffoEnabled ?? false,

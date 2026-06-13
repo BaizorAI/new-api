@@ -202,10 +202,9 @@ const renderResetPeriod = (text, record, t) => {
   );
 };
 
-const renderPaymentConfig = (text, record, t, enableEpay) => {
+const renderPaymentConfig = (text, record, t) => {
   const hasStripe = !!record?.plan?.stripe_price_id;
   const hasCreem = !!record?.plan?.creem_product_id;
-  const hasEpay = !!enableEpay;
 
   return (
     <Space spacing={4}>
@@ -217,11 +216,6 @@ const renderPaymentConfig = (text, record, t, enableEpay) => {
       {hasCreem && (
         <Tag color='cyan' shape='circle'>
           Creem
-        </Tag>
-      )}
-      {hasEpay && (
-        <Tag color='light-green' shape='circle'>
-          {t('易支付')}
         </Tag>
       )}
     </Space>
@@ -293,7 +287,6 @@ export const getSubscriptionsColumns = ({
   t,
   openEdit,
   setPlanEnabled,
-  enableEpay,
   complianceConfirmed = true,
 }) => {
   return [
@@ -346,7 +339,7 @@ export const getSubscriptionsColumns = ({
       title: t('支付渠道'),
       width: 180,
       render: (text, record) =>
-        renderPaymentConfig(text, record, t, enableEpay),
+        renderPaymentConfig(text, record, t),
     },
     {
       title: t('总额度'),

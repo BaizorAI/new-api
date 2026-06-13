@@ -23,14 +23,12 @@ import {
   calculateAmount,
   calculateStripeAmount,
   calculateWaffoPancakeAmount,
-  requestPayment,
   requestStripePayment,
   isApiSuccess,
 } from '../api'
 import {
   isStripePayment,
   isWaffoPancakePayment,
-  submitPaymentForm,
 } from '../lib'
 
 // ============================================================================
@@ -77,43 +75,25 @@ export function usePayment() {
 
   // Process payment
   const processPayment = useCallback(
-    async (topupAmount: number, paymentType: string) => {
+    async (topupAmount: number, _paymentType: string) => {
       try {
         setProcessing(true)
 
-        const isStripe = isStripePayment(paymentType)
         const amount = Math.floor(topupAmount)
-
-        const response = isStripe
-          ? await requestStripePayment({
-              amount,
-              payment_method: 'stripe',
-            })
-          : await requestPayment({
-              amount,
-              payment_method: paymentType,
-            })
+        const response = await requestStripePayment({
+          amount,
+          payment_method: 'stripe',
+        })
 
         if (!isApiSuccess(response)) {
           toast.error(response.message || i18next.t('Payment request failed'))
           return false
         }
 
-        // Handle Stripe payment
-        if (isStripe && response.data?.pay_link) {
+        if (response.data?.pay_link) {
           window.open(response.data.pay_link as string, '_blank')
           toast.success(i18next.t('Redirecting to payment page...'))
           return true
-        }
-
-        // Handle non-Stripe payment
-        if (!isStripe && response.data) {
-          const url = (response as unknown as { url?: string }).url
-          if (url) {
-            submitPaymentForm(url, response.data)
-            toast.success(i18next.t('Redirecting to payment page...'))
-            return true
-          }
         }
 
         return false
@@ -126,7 +106,6 @@ export function usePayment() {
     },
     []
   )
-
   return {
     amount,
     calculating,

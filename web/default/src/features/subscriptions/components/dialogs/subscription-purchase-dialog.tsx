@@ -44,7 +44,6 @@ import { GroupBadge } from '@/components/group-badge'
 import {
   paySubscriptionStripe,
   paySubscriptionCreem,
-  paySubscriptionEpay,
   paySubscriptionWaffoPancake,
   paySubscriptionBalance,
 } from '../../api'
@@ -64,7 +63,6 @@ interface Props {
   enableCreem?: boolean
   enableWaffoPancake?: boolean
   enableOnlineTopUp?: boolean
-  epayMethods?: PaymentMethod[]
   purchaseLimit?: number
   purchaseCount?: number
   userQuota?: number
@@ -75,15 +73,6 @@ export function SubscriptionPurchaseDialog(props: Props) {
   const { t } = useTranslation()
   const { currency } = useSystemConfig()
   const [paying, setPaying] = useState(false)
-  const [selectedEpayMethod, setSelectedEpayMethod] = useState('')
-
-  useEffect(() => {
-    if (props.open && props.epayMethods && props.epayMethods.length > 0) {
-      setSelectedEpayMethod(props.epayMethods[0].type)
-    } else if (!props.open) {
-      setSelectedEpayMethod('')
-    }
-  }, [props.open, props.epayMethods])
 
   const plan = props.plan?.plan
   if (!plan) return null
@@ -92,14 +81,7 @@ export function SubscriptionPurchaseDialog(props: Props) {
   const hasCreem = props.enableCreem && !!plan.creem_product_id
   const hasWaffoPancake =
     props.enableWaffoPancake && !!plan.waffo_pancake_product_id
-  const hasEpay =
-    props.enableOnlineTopUp && (props.epayMethods || []).length > 0
-  const hasAnyPayment = hasStripe || hasCreem || hasWaffoPancake || hasEpay
-  const selectedEpayMethodLabel =
-    (props.epayMethods || []).find((m) => m.type === selectedEpayMethod)
-      ?.name ||
-    selectedEpayMethod ||
-    t('Select payment method')
+  const hasAnyPayment = hasStripe || hasCreem || hasWaffoPancake
   const totalAmount = Number(plan.total_amount || 0)
   const price = Number(plan.price_amount || 0).toFixed(2)
   const quotaPerUnit =
@@ -187,50 +169,6 @@ export function SubscriptionPurchaseDialog(props: Props) {
   const isSafari =
     typeof navigator !== 'undefined' &&
     /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-
-  const handlePayEpay = async () => {
-    if (!selectedEpayMethod) {
-      toast.error(t('Please select a payment method'))
-      return
-    }
-    setPaying(true)
-    try {
-      const res = await paySubscriptionEpay({
-        plan_id: plan.id,
-        payment_method: selectedEpayMethod,
-      })
-      if (res.message === 'success' && res.url) {
-        const form = document.createElement('form')
-        form.action = res.url
-        form.method = 'POST'
-        if (!isSafari) {
-          form.target = '_blank'
-        }
-        Object.entries(res.data || {}).forEach(([key, value]) => {
-          const input = document.createElement('input')
-          input.type = 'hidden'
-          input.name = key
-          input.value = String(value)
-          form.appendChild(input)
-        })
-        document.body.appendChild(form)
-        form.submit()
-        document.body.removeChild(form)
-        toast.success(t('Payment initiated'))
-        props.onOpenChange(false)
-      } else {
-        toast.error(
-          res.message && res.message !== 'success'
-            ? res.message
-            : t('Payment request failed')
-        )
-      }
-    } catch {
-      toast.error(t('Payment request failed'))
-    } finally {
-      setPaying(false)
-    }
-  }
 
   const handlePayBalance = async () => {
     if (!allowBalancePay) {
@@ -400,42 +338,6 @@ export function SubscriptionPurchaseDialog(props: Props) {
                       Waffo Pancake
                     </Button>
                   )}
-                </div>
-              )}
-              {hasEpay && (
-                <div className='grid grid-cols-[minmax(0,1fr)_auto] gap-2'>
-                  <Select
-                    items={[
-                      ...(props.epayMethods || []).map((m) => ({
-                        value: m.type,
-                        label: m.name || m.type,
-                      })),
-                    ]}
-                    value={selectedEpayMethod}
-                    onValueChange={(v) =>
-                      v !== null && setSelectedEpayMethod(v)
-                    }
-                    disabled={limitReached}
-                  >
-                    <SelectTrigger className='flex-1'>
-                      <SelectValue>{selectedEpayMethodLabel}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent alignItemWithTrigger={false}>
-                      <SelectGroup>
-                        {(props.epayMethods || []).map((m) => (
-                          <SelectItem key={m.type} value={m.type}>
-                            {m.name || m.type}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    onClick={handlePayEpay}
-                    disabled={paying || !selectedEpayMethod || limitReached}
-                  >
-                    {t('Pay')}
-                  </Button>
                 </div>
               )}
             </div>

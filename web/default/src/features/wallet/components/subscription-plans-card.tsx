@@ -66,12 +66,6 @@ interface SubscriptionPlansCardProps {
   onPurchaseSuccess?: () => void | Promise<void>
 }
 
-function getEpayMethods(payMethods: PaymentMethod[] = []): PaymentMethod[] {
-  return payMethods.filter(
-    (m) => m?.type && m.type !== 'stripe' && m.type !== 'creem'
-  )
-}
-
 function getBillingPreferenceLabel(
   preference: string,
   t: (key: string) => string
@@ -117,10 +111,6 @@ export function SubscriptionPlansCard({
   const enableCreem = !!topupInfo?.enable_creem_topup
   const enableWaffoPancake = !!topupInfo?.enable_waffo_pancake_topup
   const enableOnlineTopUp = !!topupInfo?.enable_online_topup
-  const epayMethods = useMemo(
-    () => getEpayMethods(topupInfo?.pay_methods),
-    [topupInfo?.pay_methods]
-  )
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -636,7 +626,6 @@ export function SubscriptionPlansCard({
         enableCreem={enableCreem}
         enableWaffoPancake={enableWaffoPancake}
         enableOnlineTopUp={enableOnlineTopUp}
-        epayMethods={epayMethods}
         userQuota={userQuota}
         onPurchaseSuccess={onPurchaseSuccess}
         purchaseLimit={

@@ -24,7 +24,6 @@ import {
   Typography,
   Card,
   Button,
-  Select,
   Divider,
   Tooltip,
 } from '@douyinfe/semi-ui';
@@ -46,16 +45,11 @@ const SubscriptionPurchaseModal = ({
   onCancel,
   selectedPlan,
   paying,
-  selectedEpayMethod,
-  setSelectedEpayMethod,
-  epayMethods = [],
-  enableOnlineTopUp = false,
   enableStripeTopUp = false,
   enableCreemTopUp = false,
   purchaseLimitInfo = null,
   onPayStripe,
   onPayCreem,
-  onPayEpay,
 }) => {
   const plan = selectedPlan?.plan;
   const totalAmount = Number(plan?.total_amount || 0);
@@ -68,8 +62,7 @@ const SubscriptionPurchaseModal = ({
   // 只有当管理员开启支付网关 AND 套餐配置了对应的支付ID时才显示
   const hasStripe = enableStripeTopUp && !!plan?.stripe_price_id;
   const hasCreem = enableCreemTopUp && !!plan?.creem_product_id;
-  const hasEpay = enableOnlineTopUp && epayMethods.length > 0;
-  const hasAnyPayment = hasStripe || hasCreem || hasEpay;
+  const hasAnyPayment = hasStripe || hasCreem;
   const purchaseLimit = Number(purchaseLimitInfo?.limit || 0);
   const purchaseCount = Number(purchaseLimitInfo?.count || 0);
   const purchaseLimitReached =
@@ -215,32 +208,6 @@ const SubscriptionPurchaseModal = ({
                 </div>
               )}
 
-              {/* 易支付 */}
-              {hasEpay && (
-                <div className='flex gap-2'>
-                  <Select
-                    value={selectedEpayMethod}
-                    onChange={setSelectedEpayMethod}
-                    style={{ flex: 1 }}
-                    size='default'
-                    placeholder={t('选择支付方式')}
-                    optionList={epayMethods.map((m) => ({
-                      value: m.type,
-                      label: m.name || m.type,
-                    }))}
-                    disabled={purchaseLimitReached}
-                  />
-                  <Button
-                    theme='solid'
-                    type='primary'
-                    onClick={onPayEpay}
-                    loading={paying}
-                    disabled={!selectedEpayMethod || purchaseLimitReached}
-                  >
-                    {t('支付')}
-                  </Button>
-                </div>
-              )}
             </div>
           ) : (
             <Banner
