@@ -634,7 +634,7 @@ func handleConfigUpdate(key, value string) bool {
 		InvalidatePricingCache()
 		ratio_setting.InvalidateExposedDataCache()
 	} else if configName == "theme" {
-		system_setting.UpdateAndSyncTheme()
+		// theme locked to default, no sync needed
 	}
 
 	return true // 已处理
