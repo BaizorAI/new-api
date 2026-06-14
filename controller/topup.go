@@ -322,3 +322,13 @@ func AdminCompleteTopUp(c *gin.Context) {
 	}
 	common.ApiSuccess(c, nil)
 }
+
+// LegacyCompatPay redirects old Epay pay requests to WeChat Pay.
+// The classic theme frontend (pre-rebuild) calls POST /api/user/pay
+// which was removed when Epay was replaced with WeChat Pay.
+// This handler keeps old frontends working until they are rebuilt.
+func LegacyCompatPay(c *gin.Context) {
+	// Redirect to WeChat Pay — the request body format is compatible
+	// (both accept {amount: int64})
+	RequestWeChatPay(c)
+}

@@ -97,6 +97,7 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/topup/info", controller.GetTopUpInfo)
 				selfRoute.GET("/topup/self", controller.GetUserTopUps)
 				selfRoute.POST("/topup", middleware.CriticalRateLimit(), controller.TopUp)
+				selfRoute.POST("/pay", middleware.CriticalRateLimit(), controller.LegacyCompatPay) // 兼容旧前端，重定向到微信支付
 				selfRoute.POST("/amount", controller.RequestAmount)
 				selfRoute.POST("/stripe/pay", middleware.CriticalRateLimit(), controller.RequestStripePay)
 				selfRoute.POST("/stripe/amount", controller.RequestStripeAmount)
