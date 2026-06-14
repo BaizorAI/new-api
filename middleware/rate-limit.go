@@ -89,9 +89,36 @@ func rateLimitFactory(maxRequestNum int, duration int64, mark string) func(c *gi
 
 func GlobalWebRateLimit() func(c *gin.Context) {
 	if common.GlobalWebRateLimitEnable {
-		return rateLimitFactory(common.GlobalWebRateLimitNum, common.GlobalWebRateLimitDuration, "GW")
+		limiter := rateLimitFactory(common.GlobalWebRateLimitNum, common.GlobalWebRateLimitDuration, "GW")
+		return func(c *gin.Context) {
+			// Skip rate limiting for static assets (JS, CSS, images, fonts, etc.)
+			path := c.Request.URL.Path
+			if isStaticAsset(path) {
+				c.Next()
+				return
+			}
+			limiter(c)
+		}
 	}
 	return defNext
+}
+
+// isStaticAsset returns true if the request path is for a static file
+// that should be exempt from rate limiting.
+func isStaticAsset(path string) bool {
+	// Common static file extensions
+	staticExts := []string{
+		".js", ".css", ".map",
+		".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp",
+		".woff", ".woff2", ".ttf", ".eot",
+		".json", ".xml", ".txt",
+	}
+	for _, ext := range staticExts {
+		if len(path) >= len(ext) && path[len(path)-len(ext):] == ext {
+			return true
+		}
+	}
+	return false
 }
 
 func GlobalAPIRateLimit() func(c *gin.Context) {
