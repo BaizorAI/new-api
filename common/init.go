@@ -160,8 +160,8 @@ func InitEnv() {
 	WeChatPayApiV3Key = GetEnvOrDefaultString("WECHAT_PAY_APIV3_KEY", "")
 	WeChatPayNativeCloseOrderGap = GetEnvOrDefault("WECHAT_PAY_NATIVE_CLOSE_ORDER_GAP", 30)
 	if WeChatPayNativeEnabled {
-		SysLog(fmt.Sprintf("[WeChat] Pay Native enabled, AppId=%s, MachId=%s, Callback=%s, CloseOrderGap=%dm",
-			WeChatPayNativeAppId, WeChatPayMachId, WeChatPayNativeCallbackURL, WeChatPayNativeCloseOrderGap))
+		SysLog(fmt.Sprintf("[WeChat] Pay Native enabled, AppId=%s, MachId=%s, Serial=%s, KeyPath=%s, Callback=%s, CloseOrderGap=%dm",
+			WeChatPayNativeAppId, WeChatPayMachId, WeChatPaySerial, WeChatPayKeyPath, WeChatPayNativeCallbackURL, WeChatPayNativeCloseOrderGap))
 	} else {
 		SysLog("[WeChat] Pay Native disabled")
 	}

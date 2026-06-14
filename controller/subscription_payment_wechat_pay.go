@@ -153,7 +153,7 @@ func SubscriptionRequestWeChatPay(c *gin.Context) {
 
 	if httpResp.StatusCode != 200 {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("微信支付订阅 API 返回错误: status=%d body=%s", httpResp.StatusCode, string(respBody)))
-		common.ApiErrorMsg(c, "微信支付接口返回错误，请稍后重试")
+		common.ApiErrorMsg(c, fmt.Sprintf("微信支付接口返回错误(HTTP %d)，请检查服务器日志获取详细信息", httpResp.StatusCode))
 		return
 	}
 

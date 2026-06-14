@@ -126,9 +126,15 @@ func loadWeChatPayPrivateKey() (*rsa.PrivateKey, error) {
 		return nil, fmt.Errorf("failed to decode PEM block from %s", keyFile)
 	}
 
+	// Try PKCS#8 first (standard WeChat Pay format), then PKCS#1 (legacy format).
 	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse private key: %w", err)
+		// PKCS#8 failed — try PKCS#1
+		rsaKey, pkcs1Err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		if pkcs1Err != nil {
+			return nil, fmt.Errorf("failed to parse private key as PKCS#8 (%w) or PKCS#1 (%w)", err, pkcs1Err)
+		}
+		return rsaKey, nil
 	}
 
 	rsaKey, ok := key.(*rsa.PrivateKey)
@@ -139,10 +145,10 @@ func loadWeChatPayPrivateKey() (*rsa.PrivateKey, error) {
 	return rsaKey, nil
 }
 
-// wechatPaySign signs a message using RSASSA-PSS with SHA256 (WeChat Pay APIv3).
+// wechatPaySign signs a message using SHA256 with RSA (PKCS#1 v1.5) for WeChat Pay APIv3.
 func wechatPaySign(privateKey *rsa.PrivateKey, message string) (string, error) {
 	hashed := sha256.Sum256([]byte(message))
-	signature, err := rsa.SignPSS(rand.Reader, privateKey, crypto.SHA256, hashed[:], &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash})
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, hashed[:])
 	if err != nil {
 		return "", fmt.Errorf("sign failed: %w", err)
 	}
@@ -170,7 +176,7 @@ func wechatPayBuildAuthHeader(method, urlPath string, body []byte) (string, erro
 	mchid := common.WeChatPayMachId
 	serial := common.WeChatPaySerial
 	if serial == "" {
-		serial = "PUB_KEY_ID_0116838097082025062000452394000602"
+		return "", fmt.Errorf("WECHAT_PAY_SERIAL is not configured — it must match the certificate serial number uploaded to WeChat Pay merchant platform")
 	}
 
 	return fmt.Sprintf(
@@ -289,7 +295,7 @@ func wechatPayVerifyCallbackSignature(c *gin.Context) error {
 	}
 
 	hashed := sha256.Sum256([]byte(verificationMessage))
-	err = rsa.VerifyPSS(pubKey, crypto.SHA256, hashed[:], sigBytes, &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash})
+	err = rsa.VerifyPKCS1v15(pubKey, crypto.SHA256, hashed[:], sigBytes)
 	if err != nil {
 		return fmt.Errorf("signature verification failed: %w", err)
 	}
@@ -323,6 +329,14 @@ func isWeChatPayTopUpEnabled() bool {
 	}
 	if strings.TrimSpace(common.WeChatPayApiV3Key) == "" {
 		common.SysLog("[WeChat Pay] disabled: WECHAT_PAY_APIV3_KEY is empty")
+		return false
+	}
+	if strings.TrimSpace(common.WeChatPaySerial) == "" {
+		common.SysLog("[WeChat Pay] disabled: WECHAT_PAY_SERIAL is empty — must match the certificate serial number uploaded to WeChat Pay merchant platform")
+		return false
+	}
+	if strings.TrimSpace(common.WeChatPayKeyPath) == "" {
+		common.SysLog("[WeChat Pay] disabled: WECHAT_PAY_KEY_PATH is empty — must point to directory containing apiclient_key.pem")
 		return false
 	}
 	return true
@@ -461,7 +475,7 @@ func RequestWeChatPay(c *gin.Context) {
 
 	if httpResp.StatusCode != 200 {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("微信支付 API 返回错误: status=%d body=%s", httpResp.StatusCode, string(respBody)))
-		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "微信支付接口返回错误，请稍后重试"})
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": fmt.Sprintf("微信支付接口返回错误(HTTP %d)，请检查服务器日志获取详细信息", httpResp.StatusCode)})
 		return
 	}
 
