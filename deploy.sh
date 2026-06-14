@@ -50,9 +50,9 @@ echo "  - ${IMAGE_NAME}:${NEW_VERSION}"
 
 # ========== 3. 远程部署 ==========
 echo "🚀 正在远程部署 [${NEW_VERSION}]..."
-ssh qcloud << REMOTEEEOF
+ssh baizor << REMOTEEEOF
 set -e
-cd ~/NewApi
+cd /lucky/NewApi
 
 echo "🏷️ 更新 docker-compose.yml 镜像版本为 ${NEW_VERSION}..."
 # 替换已有的 baizor-newapi 镜像版本
@@ -70,7 +70,7 @@ echo "🧹 清理旧镜像..."
 docker image prune -f
 
 echo "📋 new-api 服务状态:"
-docker compose ps new-api redis postgres
+docker compose ps new-api newapi-redis newapi-postgres
 REMOTEEEOF
 
 echo "🎉 部署完成！版本: ${NEW_VERSION}"
