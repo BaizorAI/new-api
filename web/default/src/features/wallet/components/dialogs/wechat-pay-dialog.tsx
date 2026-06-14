@@ -54,6 +54,8 @@ export function WeChatPayDialog({
   const [paymentState, setPaymentState] = useState<PaymentState>('pending')
   const [errorMessage, setErrorMessage] = useState('')
   const [cancelling, setCancelling] = useState(false)
+  const onCompleteRef = useRef(onPaymentComplete)
+  onCompleteRef.current = onPaymentComplete
 
   useEffect(() => {
     if (!open || !tradeNo) return
@@ -61,20 +63,27 @@ export function WeChatPayDialog({
     setPaymentState('pending')
     setErrorMessage('')
 
-    // Poll order status every 3 seconds
-    pollingRef.current = setInterval(async () => {
+    const poll = async () => {
       try {
         const res = await queryWeChatPayOrder(tradeNo)
+        // eslint-disable-next-line no-console
+        console.log('[WeChatPay] poll result:', res)
         if (res.message === 'success' && res.data === 'paid') {
           setPaymentState('paid')
-          if (pollingRef.current) clearInterval(pollingRef.current)
-          onPaymentComplete()
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current)
+            pollingRef.current = null
+          }
+          onCompleteRef.current()
         }
-        // Keep polling for other states
       } catch {
         // ignore polling errors
       }
-    }, 3000)
+    }
+
+    // Poll immediately, then every 3 seconds
+    poll()
+    pollingRef.current = setInterval(poll, 3000)
 
     return () => {
       if (pollingRef.current) {
@@ -82,7 +91,7 @@ export function WeChatPayDialog({
         pollingRef.current = null
       }
     }
-  }, [open, tradeNo, onPaymentComplete])
+  }, [open, tradeNo])
 
   const handleClose = async () => {
     setCancelling(true)
@@ -102,7 +111,6 @@ export function WeChatPayDialog({
 
   const handleDialogChange = (open: boolean) => {
     if (!open && paymentState === 'pending') {
-      // Auto-close the order when closing the dialog
       handleClose()
     }
     onOpenChange(open)
