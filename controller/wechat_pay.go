@@ -221,10 +221,58 @@ func wechatPayDecryptNotify(ciphertext, associatedData, nonce string) (string, e
 	return string(plaintext), nil
 }
 
-// loadWeChatPayPlatformCert loads the WeChat Pay platform certificate.
+// loadWeChatPayPlatformPubKey loads the WeChat Pay platform public key or certificate.
 // It tries, in order:
 //  1. wechatpay_{serial}.pem — WeChat Pay's standard naming (serial from callback header)
 //  2. wechatpay_cert.pem  — legacy / simple deployment name
+//  3. pub_key.pem         — WeChat Pay public key (new mode)
+// Returns the RSA public key for signature verification.
+func loadWeChatPayPlatformPubKey(keyPath string, serial string) (*rsa.PublicKey, error) {
+	// Candidate filenames, first match wins.
+	candidates := []string{}
+	if serial != "" {
+		candidates = append(candidates, fmt.Sprintf("wechatpay_%s.pem", serial))
+	}
+	candidates = append(candidates, "wechatpay_cert.pem", "pub_key.pem")
+
+	var lastErr error
+	for _, name := range candidates {
+		certFile := filepath.Join(keyPath, name)
+		certData, err := os.ReadFile(certFile)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		block, _ := pem.Decode(certData)
+		if block == nil {
+			lastErr = fmt.Errorf("failed to decode PEM from %s", name)
+			continue
+		}
+
+		// Try as certificate first
+		if cert, err := x509.ParseCertificate(block.Bytes); err == nil {
+			if rsaKey, ok := cert.PublicKey.(*rsa.PublicKey); ok {
+				return rsaKey, nil
+			}
+			lastErr = fmt.Errorf("certificate public key is not RSA in %s", name)
+			continue
+		}
+
+		// Try as raw public key (WeChat Pay public key mode)
+		if pubKey, err := x509.ParsePKIXPublicKey(block.Bytes); err == nil {
+			if rsaKey, ok := pubKey.(*rsa.PublicKey); ok {
+				return rsaKey, nil
+			}
+			lastErr = fmt.Errorf("public key is not RSA in %s", name)
+			continue
+		}
+
+		lastErr = fmt.Errorf("failed to parse as cert or public key from %s", name)
+	}
+	return nil, fmt.Errorf("failed to load platform public key from %s: %w", keyPath, lastErr)
+}
+
+// loadWeChatPayPlatformCert loads the WeChat Pay platform certificate (legacy wrapper).
 func loadWeChatPayPlatformCert(keyPath string, serial string) (*x509.Certificate, error) {
 	// Candidate filenames, first match wins.
 	candidates := []string{}
@@ -279,14 +327,9 @@ func wechatPayVerifyCallbackSignature(c *gin.Context) error {
 		keyPath = "/root/.certs/wechat"
 	}
 
-	cert, err := loadWeChatPayPlatformCert(keyPath, serial)
+	pubKey, err := loadWeChatPayPlatformPubKey(keyPath, serial)
 	if err != nil {
-		return fmt.Errorf("failed to load platform certificate: %w", err)
-	}
-
-	pubKey, ok := cert.PublicKey.(*rsa.PublicKey)
-	if !ok {
-		return fmt.Errorf("platform certificate public key is not RSA")
+		return fmt.Errorf("failed to load platform public key: %w", err)
 	}
 
 	sigBytes, err := base64.StdEncoding.DecodeString(signature)
