@@ -342,6 +342,127 @@ func isWeChatPayTopUpEnabled() bool {
 	return true
 }
 
+// ensureWeChatPayPlatformCerts downloads WeChat Pay platform certificates if missing.
+// Platform certs are required for callback signature verification.
+func ensureWeChatPayPlatformCerts() {
+	keyPath := common.WeChatPayKeyPath
+	if keyPath == "" {
+		keyPath = "/root/.certs/wechat"
+	}
+
+	// Check if we already have at least one platform cert
+	certFile := filepath.Join(keyPath, "wechatpay_cert.pem")
+	if _, err := os.Stat(certFile); err == nil {
+		return // Already exists
+	}
+
+	common.SysLog("[WeChat Pay] Downloading platform certificates...")
+
+	// Build auth header for GET /v3/certificates
+	urlPath := "/v3/certificates"
+	nonceStr := common.GetRandomString(32)
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+	message := fmt.Sprintf("GET\n%s\n%s\n%s\n\n", urlPath, timestamp, nonceStr)
+
+	privateKey, err := loadWeChatPayPrivateKey()
+	if err != nil {
+		common.SysLog("[WeChat Pay] Failed to load key for cert download: " + err.Error())
+		return
+	}
+	signature, err := wechatPaySign(privateKey, message)
+	if err != nil {
+		common.SysLog("[WeChat Pay] Failed to sign cert download request: " + err.Error())
+		return
+	}
+
+	authHeader := fmt.Sprintf(
+		`WECHATPAY2-SHA256-RSA2048 mchid="%s",nonce_str="%s",signature="%s",timestamp="%s",serial_no="%s"`,
+		common.WeChatPayMachId, nonceStr, signature, timestamp, common.WeChatPaySerial,
+	)
+
+	req, err := http.NewRequest("GET", getWeChatPayBaseURL()+urlPath, nil)
+	if err != nil {
+		common.SysLog("[WeChat Pay] Failed to create cert download request: " + err.Error())
+		return
+	}
+	req.Header.Set("Authorization", authHeader)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "new-api/1.0")
+
+	client := http.Client{Timeout: 20 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		common.SysLog("[WeChat Pay] Failed to download certs: " + err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		common.SysLog(fmt.Sprintf("[WeChat Pay] Cert download failed: HTTP %d %s", resp.StatusCode, string(body)))
+		return
+	}
+
+	var certResp struct {
+		Data []struct {
+			SerialNo         string `json:"serial_no"`
+			EffectiveTime    string `json:"effective_time"`
+			ExpireTime       string `json:"expire_time"`
+			EncryptCertificate struct {
+				Ciphertext      string `json:"ciphertext"`
+				Nonce           string `json:"nonce"`
+				AssociatedData  string `json:"associated_data"`
+			} `json:"encrypt_certificate"`
+		} `json:"data"`
+	}
+	if err := common.DecodeJson(resp.Body, &certResp); err != nil {
+		common.SysLog("[WeChat Pay] Failed to parse cert response: " + err.Error())
+		return
+	}
+
+	for _, c := range certResp.Data {
+		ct, _ := base64.StdEncoding.DecodeString(c.EncryptCertificate.Ciphertext)
+		nonce := c.EncryptCertificate.Nonce
+		ad := c.EncryptCertificate.AssociatedData
+
+		apiV3Key := common.WeChatPayApiV3Key
+		block, err := aes.NewCipher([]byte(apiV3Key))
+		if err != nil {
+			common.SysLog("[WeChat Pay] Failed to create AES cipher for cert: " + err.Error())
+			continue
+		}
+		aesgcm, err := cipher.NewGCM(block)
+		if err != nil {
+			common.SysLog("[WeChat Pay] Failed to create GCM for cert: " + err.Error())
+			continue
+		}
+		plaintext, err := aesgcm.Open(nil, []byte(nonce), ct, []byte(ad))
+		if err != nil {
+			common.SysLog("[WeChat Pay] Failed to decrypt cert: " + err.Error())
+			continue
+		}
+
+		filename := fmt.Sprintf("wechatpay_%s.pem", c.SerialNo)
+		fp := filepath.Join(keyPath, filename)
+		if err := os.WriteFile(fp, plaintext, 0644); err != nil {
+			common.SysLog("[WeChat Pay] Failed to save cert: " + err.Error())
+			continue
+		}
+		common.SysLog(fmt.Sprintf("[WeChat Pay] Saved platform cert: %s", filename))
+
+		// Create/update the fallback symlink
+		linkPath := filepath.Join(keyPath, "wechatpay_cert.pem")
+		os.Remove(linkPath)
+		os.Symlink(filename, linkPath)
+	}
+	common.SysLog("[WeChat Pay] Platform certificates updated")
+}
+
+// EnsureWeChatPayPlatformCerts is the public wrapper for external callers.
+func EnsureWeChatPayPlatformCerts() {
+	ensureWeChatPayPlatformCerts()
+}
+
 // ============================================================================
 // WeChat Pay Request DTOs
 // ============================================================================

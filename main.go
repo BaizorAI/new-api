@@ -289,6 +289,9 @@ func InitResources() error {
 	// Initialize options, should after model.InitDB()
 	model.InitOptionMap()
 
+	// Download WeChat Pay platform certificates for callback verification
+	controller.EnsureWeChatPayPlatformCerts()
+
 	// 清理旧的磁盘缓存文件
 	common.CleanupOldCacheFiles()
 
