@@ -766,6 +766,12 @@ func QueryWeChatPayOrder(c *gin.Context) {
 		return
 	}
 
+	// Check local database first — callback may have already completed the order
+	if topUp := model.GetTopUpByTradeNo(tradeNo); topUp != nil && topUp.Status == common.TopUpStatusSuccess {
+		c.JSON(http.StatusOK, gin.H{"message": "success", "data": "paid"})
+		return
+	}
+
 	// Query the order from WeChat Pay API
 	mchid := common.WeChatPayMachId
 	urlPath := fmt.Sprintf("/v3/pay/transactions/out-trade-no/%s?mchid=%s", url.QueryEscape(tradeNo), mchid)
