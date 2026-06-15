@@ -179,12 +179,12 @@ function DocsPage() {
                 </a>
                 <span className='text-muted-foreground'>·</span>
                 <a
-                  href='https://github.com/QuantumNous'
+                  href='https://github.com/BaizorAI'
                   target='_blank'
                   rel='noopener noreferrer'
                   className='text-primary hover:underline text-sm'
                 >
-                  QuantumNous 社区
+                  BaizorAI 社区
                 </a>
               </div>
             </div>

@@ -302,7 +302,7 @@ function EmptyAboutState() {
               </p>
               <div className='mt-4 flex flex-wrap gap-4 text-sm'>
                 <a
-                  href='https://github.com/QuantumNous/new-api'
+                  href='https://github.com/BaizorAI/new-api'
                   target='_blank'
                   rel='noopener noreferrer'
                   className='text-primary hover:underline'
@@ -311,12 +311,12 @@ function EmptyAboutState() {
                 </a>
                 <span className='text-muted-foreground/40'>·</span>
                 <a
-                  href='https://github.com/QuantumNous'
+                  href='https://github.com/BaizorAI'
                   target='_blank'
                   rel='noopener noreferrer'
                   className='text-primary hover:underline'
                 >
-                  QuantumNous 社区
+                  BaizorAI 社区
                 </a>
               </div>
             </div>
@@ -354,7 +354,7 @@ function EmptyAboutState() {
       <div className='border-border/30 mt-8 border-t pt-8 text-center text-xs text-muted-foreground/60'>
         <p>
           <a
-            href='https://github.com/QuantumNous/new-api'
+            href='https://github.com/BaizorAI/new-api'
             target='_blank'
             rel='noopener noreferrer'
             className='text-primary hover:underline'
@@ -363,7 +363,7 @@ function EmptyAboutState() {
           </a>{' '}
           © {currentYear}{' '}
           <a
-            href='https://github.com/QuantumNous'
+            href='https://github.com/BaizorAI'
             target='_blank'
             rel='noopener noreferrer'
             className='text-primary hover:underline'
@@ -392,7 +392,7 @@ function EmptyAboutState() {
         <p className='mt-1'>
           {t('This project must be used in compliance with the')}{' '}
           <a
-            href='https://github.com/QuantumNous/new-api/blob/main/LICENSE'
+            href='https://github.com/BaizorAI/new-api/blob/main/LICENSE'
             target='_blank'
             rel='noopener noreferrer'
             className='text-primary hover:underline'
