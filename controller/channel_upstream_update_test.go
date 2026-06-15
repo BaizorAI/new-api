@@ -3,8 +3,8 @@ package controller
 import (
 	"testing"
 
-	"github.com/QuantumNous/new-api/dto"
-	"github.com/QuantumNous/new-api/model"
+	"github.com/BaizorAI/new-api/dto"
+	"github.com/BaizorAI/new-api/model"
 	"github.com/stretchr/testify/require"
 )
 

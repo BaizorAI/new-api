@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/dto"
-	relaycommon "github.com/QuantumNous/new-api/relay/common"
-	"github.com/QuantumNous/new-api/service"
-	"github.com/QuantumNous/new-api/types"
+	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/dto"
+	relaycommon "github.com/BaizorAI/new-api/relay/common"
+	"github.com/BaizorAI/new-api/service"
+	"github.com/BaizorAI/new-api/types"
 
 	"github.com/gin-gonic/gin"
 )

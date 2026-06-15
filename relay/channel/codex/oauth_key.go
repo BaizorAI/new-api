@@ -3,7 +3,7 @@ package codex
 import (
 	"errors"
 
-	"github.com/QuantumNous/new-api/common"
+	"github.com/BaizorAI/new-api/common"
 )
 
 type OAuthKey struct {

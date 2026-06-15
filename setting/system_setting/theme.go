@@ -1,7 +1,7 @@
 package system_setting
 
 import (
-	"github.com/QuantumNous/new-api/setting/config"
+	"github.com/BaizorAI/new-api/setting/config"
 )
 
 type ThemeSettings struct {

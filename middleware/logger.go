@@ -3,7 +3,7 @@ package middleware
 import (
 	"fmt"
 
-	"github.com/QuantumNous/new-api/common"
+	"github.com/BaizorAI/new-api/common"
 	"github.com/gin-gonic/gin"
 )
 

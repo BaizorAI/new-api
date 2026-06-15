@@ -22,7 +22,7 @@ Please fill this in, for example: `v1.0.0`
 **Submission Checks**
 
 [//]: # (Remove the space in the box and fill with an x)
-- [ ] **Non-duplicate issue:** I have searched existing [Issues](https://github.com/QuantumNous/new-api/issues?q=is%3Aissue) and confirmed there are no similar issues.
+- [ ] **Non-duplicate issue:** I have searched existing [Issues](https://github.com/BaizorAI/new-api/issues?q=is%3Aissue) and confirmed there are no similar issues.
 - [ ] **Read this first:** I have fully read the section above, reviewed the docs at https://docs.newapi.ai/ and the project README, and asked AI first, confirming this is not a usage, configuration, or integration question, and that the current version cannot meet my needs.
 - [ ] **Template intact:** I have not removed any guidance or section headings from this template and will complete it as requested.
 - [ ] **Maintainer time:** I understand that maintainers have limited time and issues that do not follow this template may be ignored or closed directly.

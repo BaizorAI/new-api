@@ -1,7 +1,7 @@
 package setting
 
 import (
-	"github.com/QuantumNous/new-api/common"
+	"github.com/BaizorAI/new-api/common"
 )
 
 var autoGroups = []string{

@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/constant"
-	"github.com/QuantumNous/new-api/dto"
-	"github.com/QuantumNous/new-api/logger"
-	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/relay/channel/task/taskcommon"
-	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/constant"
+	"github.com/BaizorAI/new-api/dto"
+	"github.com/BaizorAI/new-api/logger"
+	"github.com/BaizorAI/new-api/model"
+	"github.com/BaizorAI/new-api/relay/channel/task/taskcommon"
+	relaycommon "github.com/BaizorAI/new-api/relay/common"
 
 	"github.com/samber/lo"
 )

@@ -9,18 +9,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/model"
+	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/model"
 	"github.com/gin-gonic/gin"
 
-	"github.com/QuantumNous/new-api/constant"
-	"github.com/QuantumNous/new-api/dto"
-	"github.com/QuantumNous/new-api/relay/channel"
-	geminitask "github.com/QuantumNous/new-api/relay/channel/task/gemini"
-	taskcommon "github.com/QuantumNous/new-api/relay/channel/task/taskcommon"
-	vertexcore "github.com/QuantumNous/new-api/relay/channel/vertex"
-	relaycommon "github.com/QuantumNous/new-api/relay/common"
-	"github.com/QuantumNous/new-api/service"
+	"github.com/BaizorAI/new-api/constant"
+	"github.com/BaizorAI/new-api/dto"
+	"github.com/BaizorAI/new-api/relay/channel"
+	geminitask "github.com/BaizorAI/new-api/relay/channel/task/gemini"
+	taskcommon "github.com/BaizorAI/new-api/relay/channel/task/taskcommon"
+	vertexcore "github.com/BaizorAI/new-api/relay/channel/vertex"
+	relaycommon "github.com/BaizorAI/new-api/relay/common"
+	"github.com/BaizorAI/new-api/service"
 )
 
 // ============================

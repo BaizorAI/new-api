@@ -22,7 +22,7 @@ assignees: ''
 **提交确认**
 
 [//]: # (方框内删除已有的空格，填 x 号)
-- [ ] **非重复 issue:** 我已搜索现有 [Issues](https://github.com/QuantumNous/new-api/issues?q=is%3Aissue)，确认目前没有类似 issue。
+- [ ] **非重复 issue:** 我已搜索现有 [Issues](https://github.com/BaizorAI/new-api/issues?q=is%3Aissue)，确认目前没有类似 issue。
 - [ ] **提交前必读:** 我已完整阅读上方“提交前必读”，并已查看文档 https://docs.newapi.ai/、项目 README 且向 AI 提问，确认这不是使用、配置或接入类问题。
 - [ ] **模板完整:** 我未删除此模板中的任何引导内容或小节标题，并会按要求完整填写。
 - [ ] **维护成本:** 我理解项目维护者精力有限，不遵循模板要求的 issue 可能会被无视或直接关闭。

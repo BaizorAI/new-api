@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/service"
-	"github.com/QuantumNous/new-api/setting/ratio_setting"
+	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/model"
+	"github.com/BaizorAI/new-api/service"
+	"github.com/BaizorAI/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
 )

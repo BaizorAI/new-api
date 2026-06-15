@@ -4,12 +4,12 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/dto"
-	"github.com/QuantumNous/new-api/logger"
-	relaycommon "github.com/QuantumNous/new-api/relay/common"
-	"github.com/QuantumNous/new-api/service"
-	"github.com/QuantumNous/new-api/types"
+	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/dto"
+	"github.com/BaizorAI/new-api/logger"
+	relaycommon "github.com/BaizorAI/new-api/relay/common"
+	"github.com/BaizorAI/new-api/service"
+	"github.com/BaizorAI/new-api/types"
 
 	"github.com/gin-gonic/gin"
 )

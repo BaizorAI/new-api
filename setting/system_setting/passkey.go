@@ -4,8 +4,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/setting/config"
+	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/setting/config"
 )
 
 type PasskeySettings struct {

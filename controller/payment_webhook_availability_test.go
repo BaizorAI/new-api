@@ -3,7 +3,7 @@ package controller
 import (
 	"testing"
 
-	"github.com/QuantumNous/new-api/setting"
+	"github.com/BaizorAI/new-api/setting"
 	"github.com/stretchr/testify/require"
 )
 

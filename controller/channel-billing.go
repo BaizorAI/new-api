@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/constant"
-	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/service"
-	"github.com/QuantumNous/new-api/setting/operation_setting"
-	"github.com/QuantumNous/new-api/types"
+	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/constant"
+	"github.com/BaizorAI/new-api/model"
+	"github.com/BaizorAI/new-api/service"
+	"github.com/BaizorAI/new-api/setting/operation_setting"
+	"github.com/BaizorAI/new-api/types"
 
 	"github.com/shopspring/decimal"
 

@@ -3,9 +3,9 @@ package middleware
 import (
 	"fmt"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/logger"
-	"github.com/QuantumNous/new-api/types"
+	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/logger"
+	"github.com/BaizorAI/new-api/types"
 	"github.com/gin-gonic/gin"
 )
 

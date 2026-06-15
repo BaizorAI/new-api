@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/constant"
-	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/relay/channel/codex"
-	"github.com/QuantumNous/new-api/service"
+	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/constant"
+	"github.com/BaizorAI/new-api/model"
+	"github.com/BaizorAI/new-api/relay/channel/codex"
+	"github.com/BaizorAI/new-api/service"
 
 	"github.com/gin-gonic/gin"
 )
