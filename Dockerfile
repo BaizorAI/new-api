@@ -24,7 +24,7 @@ RUN go mod download
 
 COPY . .
 COPY --from=builder /build/web/default/dist ./web/default/dist
-RUN go build -ldflags "-s -w -X 'github.com/QuantumNous/new-api/common.Version=$(cat VERSION)'" -o new-api
+RUN go build -ldflags "-s -w -X 'github.com/BaizorAI/new-api/common.Version=$(cat VERSION)'" -o new-api
 
 FROM  ccr.ccs.tencentyun.com/lucky/debian:bookworm-slim
 

@@ -359,7 +359,7 @@ function EmptyAboutState() {
             rel='noopener noreferrer'
             className='text-primary hover:underline'
           >
-            {t('NewAPI')}
+            {t('Baizor API')}
           </a>{' '}
           © {currentYear}{' '}
           <a
@@ -368,26 +368,25 @@ function EmptyAboutState() {
             rel='noopener noreferrer'
             className='text-primary hover:underline'
           >
-            {t('QuantumNous')}
+            {t('BaizorAI')}
           </a>{' '}
           {t('| Based on')}{' '}
-          <a
-            href='https://github.com/songquanpeng/one-api'
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-primary hover:underline'
-          >
             {t('One API')}
-          </a>{' '}
+            {' '}
+          © 2026{' '}
+            {t('QiMa')}
+        </p>
+        <p>
+            {t('NewAPI')}
+            {' '}
+          © {currentYear}{' '}
+            {t('QuantumNous')}
+            {' '}
+          {t('| Based on')}{' '}
+            {t('One API')}
+            {' '}
           © 2023{' '}
-          <a
-            href='https://github.com/songquanpeng'
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-primary hover:underline'
-          >
             {t('JustSong')}
-          </a>
         </p>
         <p className='mt-1'>
           {t('This project must be used in compliance with the')}{' '}
