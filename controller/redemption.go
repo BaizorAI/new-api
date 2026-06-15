@@ -7,6 +7,7 @@ import (
 
 	"github.com/BaizorAI/new-api/common"
 	"github.com/BaizorAI/new-api/i18n"
+	"github.com/BaizorAI/new-api/logger"
 	"github.com/BaizorAI/new-api/model"
 	"github.com/BaizorAI/new-api/setting/operation_setting"
 
@@ -110,6 +111,11 @@ func AddRedemption(c *gin.Context) {
 		}
 		keys = append(keys, key)
 	}
+	recordManageAudit(c, "redemption.create", map[string]interface{}{
+		"name":  redemption.Name,
+		"count": redemption.Count,
+		"quota": logger.LogQuota(redemption.Quota),
+	})
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
