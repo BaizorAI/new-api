@@ -110,6 +110,7 @@ export interface ChatCompletionResponse {
 export interface PlaygroundConfig {
   model: string
   group: string
+  systemPrompt: string
   temperature: number
   top_p: number
   max_tokens: number

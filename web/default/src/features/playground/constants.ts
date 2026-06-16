@@ -47,6 +47,7 @@ export const DEFAULT_GROUP = 'default' as const
 export const DEFAULT_CONFIG: PlaygroundConfig = {
   model: 'gpt-4o',
   group: DEFAULT_GROUP,
+  systemPrompt: '请使用中文回答。',
   temperature: 0.7,
   top_p: 1,
   max_tokens: 4096,
