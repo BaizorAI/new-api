@@ -69,18 +69,13 @@ export function OAuthProviders({
 
   const providerButtons: ProviderButton[] = []
 
-  // New WeChat Open Platform OAuth (QR connect)
-  if (status?.wechat_oauth_enabled) {
-    providerButtons.push({
-      key: 'wechat-open',
-      label: t('Continue with WeChat'),
-      onClick: handleWeChatOpenLogin,
-      icon: <IconWeChat className='h-4 w-4' />,
-    })
-  }
+  // Detect WeChat browser for appropriate login method
+  const isWeChatBrowser =
+    typeof navigator !== 'undefined' &&
+    /MicroMessenger/i.test(navigator.userAgent)
 
-  // WeChat In-App Browser OAuth (Official Account)
-  if (status?.wechat_inapp_oauth_enabled) {
+  // WeChat In-App Browser OAuth (Official Account) — only in WeChat client
+  if (isWeChatBrowser && status?.wechat_inapp_oauth_enabled) {
     providerButtons.push({
       key: 'wechat-inapp',
       label: t('Continue with WeChat'),
@@ -89,8 +84,18 @@ export function OAuthProviders({
     })
   }
 
-  // Legacy WeChat login (external server with verification code)
-  if (status?.wechat_login && onWeChatLogin) {
+  // New WeChat Open Platform OAuth (QR connect) — only outside WeChat client
+  if (!isWeChatBrowser && status?.wechat_oauth_enabled) {
+    providerButtons.push({
+      key: 'wechat-open',
+      label: t('Continue with WeChat'),
+      onClick: handleWeChatOpenLogin,
+      icon: <IconWeChat className='h-4 w-4' />,
+    })
+  }
+
+  // Legacy WeChat login (external server with verification code) — only outside WeChat client
+  if (!isWeChatBrowser && status?.wechat_login && onWeChatLogin) {
     providerButtons.push({
       key: 'wechat-legacy',
       label: t('Continue with WeChat'),
