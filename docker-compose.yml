@@ -90,8 +90,20 @@ services:
 #    ports:
 #      - "3306:3306"  # Uncomment if you need to access MySQL from outside Docker
 
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: always
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+    networks:
+      - new-api-network
+
 volumes:
   pg_data:
+  uptime_kuma_data:
 #  mysql_data:
 
 networks:
