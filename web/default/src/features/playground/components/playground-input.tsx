@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   PaperclipIcon,
   FileIcon,
@@ -66,15 +66,6 @@ interface PlaygroundInputProps {
   onGroupChange: (value: string) => void
 }
 
-const suggestions = [
-  { icon: BarChartIcon, text: 'Analyze data', color: '#76d0eb' },
-  { icon: BoxIcon, text: 'Surprise me', color: '#76d0eb' },
-  { icon: NotepadTextIcon, text: 'Summarize text', color: '#ea8444' },
-  { icon: CodeSquareIcon, text: 'Code', color: '#6c71ff' },
-  { icon: GraduationCapIcon, text: 'Get advice', color: '#76d0eb' },
-  { icon: null, text: 'More' },
-]
-
 export function PlaygroundInput({
   onSubmit,
   onStop,
@@ -90,6 +81,18 @@ export function PlaygroundInput({
 }: PlaygroundInputProps) {
   const { t } = useTranslation()
   const [text, setText] = useState('')
+
+  const suggestions = useMemo(
+    () => [
+      { icon: BarChartIcon, text: t('Analyze data'), color: '#76d0eb' },
+      { icon: BoxIcon, text: t('Surprise me'), color: '#76d0eb' },
+      { icon: NotepadTextIcon, text: t('Summarize text'), color: '#ea8444' },
+      { icon: CodeSquareIcon, text: t('Code'), color: '#6c71ff' },
+      { icon: GraduationCapIcon, text: t('Get advice'), color: '#76d0eb' },
+      { icon: null, text: t('More') },
+    ],
+    [t]
+  )
 
   const isModelSelectDisabled =
     disabled || isModelLoading || models.length === 0
@@ -223,7 +226,7 @@ export function PlaygroundInput({
         {suggestions.map(({ icon: Icon, text, color }) => (
           <Suggestion
             className={`text-xs font-normal sm:text-sm ${
-              text === 'More' ? 'hidden sm:flex' : ''
+              text === t('More') ? 'hidden sm:flex' : ''
             }`}
             key={text}
             onClick={() => handleSuggestionClick(text)}
