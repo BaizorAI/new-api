@@ -71,6 +71,7 @@ func GetStatus(c *gin.Context) {
 		"wechat_oauth_enabled":        common.WeChatOAuthEnabled,
 		"wechat_oauth_appid":          common.WeChatAppId,
 		"wechat_inapp_oauth_enabled":  common.WeChatInAppOAuthEnabled,
+		"wechat_inapp_appid":          common.WeChatInAppAppId,
 		"wechat_pay_native_enabled":   common.WeChatPayNativeEnabled,
 		"server_address":              system_setting.ServerAddress,
 		"turnstile_check":             common.TurnstileCheckEnabled,

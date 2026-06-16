@@ -183,6 +183,10 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider) {
 	} else {
 		// Built-in provider: update user record directly
 		provider.SetProviderUserID(&user, oauthUser.ProviderUserID)
+		// Also update union ID for WeChat providers if present
+		if unionid, ok := oauthUser.Extra["unionid"].(string); ok && unionid != "" {
+			user.WeChatUnionId = unionid
+		}
 		err = user.Update(false)
 		if err != nil {
 			common.ApiError(c, err)
@@ -209,6 +213,17 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 		if user.Id == 0 {
 			return nil, &OAuthUserDeletedError{}
 		}
+		// Backfill union ID for existing users who registered before this feature
+		if user.WeChatUnionId == "" {
+			if unionid, ok := oauthUser.Extra["unionid"].(string); ok && unionid != "" {
+				user.WeChatUnionId = unionid
+				if err := model.DB.Model(user).Update("wechat_union_id", unionid).Error; err != nil {
+					common.SysError(fmt.Sprintf("[OAuth] Failed to backfill wechat_union_id for user %d: %s", user.Id, err.Error()))
+				} else {
+					common.SysLog(fmt.Sprintf("[OAuth] Backfilled wechat_union_id=%s for user %d", unionid, user.Id))
+				}
+			}
+		}
 		return user, nil
 	}
 
@@ -228,6 +243,21 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 					// Continue with login even if migration fails
 				}
 				return user, nil
+			}
+		}
+	}
+
+	// Try to find user by union ID (cross-app account linking for providers that support it, e.g. WeChat)
+	if unionid, ok := oauthUser.Extra["unionid"].(string); ok && unionid != "" {
+		if model.IsWeChatUnionIdAlreadyTaken(unionid) {
+			unionUser := &model.User{WeChatUnionId: unionid}
+			if err := unionUser.FillUserByWeChatUnionId(); err == nil && unionUser.Id != 0 {
+				common.SysLog(fmt.Sprintf("[OAuth] Union ID linking: user %d matched via union_id=%s, linking provider_id=%s",
+					unionUser.Id, unionid, oauthUser.ProviderUserID))
+				if err := unionUser.UpdateWeChatId(oauthUser.ProviderUserID); err != nil {
+					common.SysError(fmt.Sprintf("[OAuth] Failed to update wechat_id for user %d: %s", unionUser.Id, err.Error()))
+				}
+				return unionUser, nil
 			}
 		}
 	}
@@ -261,6 +291,11 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 	}
 	user.Role = common.RoleCommonUser
 	user.Status = common.UserStatusEnabled
+
+	// Set WeChat union ID if present (for cross-app account linking)
+	if unionid, ok := oauthUser.Extra["unionid"].(string); ok && unionid != "" {
+		user.WeChatUnionId = unionid
+	}
 
 	// Handle affiliate code
 	affCode := session.Get("aff")
@@ -311,8 +346,9 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 				"discord_id":  user.DiscordId,
 				"oidc_id":     user.OidcId,
 				"linux_do_id": user.LinuxDOId,
-				"wechat_id":   user.WeChatId,
-				"telegram_id": user.TelegramId,
+				"wechat_id":      user.WeChatId,
+				"wechat_union_id": user.WeChatUnionId,
+				"telegram_id":    user.TelegramId,
 			}).Error; err != nil {
 				return err
 			}

@@ -24,6 +24,7 @@ export {
   buildOIDCOAuthUrl,
   buildLinuxDOOAuthUrl,
   buildWeChatOpenOAuthUrl,
+  buildWeChatInAppOAuthUrl,
 } from '@/lib/oauth'
 
 // ============================================================================

@@ -41,6 +41,27 @@ services:
 #      - UMAMI_WEBSITE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  # Umami 网站 ID (Umami Website ID)
 #      - UMAMI_SCRIPT_URL=https://analytics.umami.is/script.js  # Umami 脚本 URL，默认为官方地址 (Umami Script URL, defaults to official URL)
 
+      # 微信开放平台
+      - WECHAT_OAUTH_ENABLED=true
+      - WECHAT_APP_ID=
+      - WECHAT_APP_SECRET=
+
+      # 微信服务号（用于微信内置浏览器访问）
+      - WECHAT_INAPP_OAUTH_ENABLED=true
+      - WECHAT_INAPP_APPID=
+      - WECHAT_INAPP_SECRET=
+      - WECHAT_INAPP_SCOPE=snsapi_userinfo  # 微信内应用的 scope（服务号使用 snsapi_base）
+
+      # 微信支付配置参数
+      - WECHAT_PAY_NATIVE_APPID=
+      - WECHAT_PAY_MACHID=                                      # 商户号
+      - WECHAT_PAY_SERIAL=
+      - WECHAT_PAY_KEY_PATH=/root/.certs/wechat                           # 相关证书
+      - WECHAT_PAY_NATIVE_CALLBACK_URL=https://baizor.com           # 微信支付基础回调地址
+      - WECHAT_PAY_NATIVE_CLOSE_ORDER_GAP=30                         # 微信支付单关闭时间
+      - WECHAT_PAY_NATIVE_ENABLED=True                                    # 是否开启微信支付
+      - WECHAT_PAY_APIV3_KEY=                    # APIv3密
+
     depends_on:
       - redis
       - postgres

@@ -29,6 +29,7 @@ import {
   buildOIDCOAuthUrl,
   buildLinuxDOOAuthUrl,
   buildWeChatOpenOAuthUrl,
+  buildWeChatInAppOAuthUrl,
 } from '../lib/oauth'
 import type { SystemStatus, CustomOAuthProviderInfo } from '../types'
 
@@ -243,6 +244,27 @@ export function useOAuthLogin(status: SystemStatus | null) {
     }
   }
 
+  const handleWeChatInAppLogin = async () => {
+    if (!status?.wechat_inapp_appid) return
+
+    setIsLoading(true)
+    try {
+      await resetSession()
+      const state = await getOAuthState()
+      if (!state) {
+        toast.error(t('Failed to initialize OAuth'))
+        return
+      }
+
+      const url = buildWeChatInAppOAuthUrl(status.wechat_inapp_appid, state)
+      window.open(url, '_self')
+    } catch (_error) {
+      toast.error(t('Failed to start WeChat login'))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return {
     isLoading,
     githubButtonText,
@@ -254,5 +276,6 @@ export function useOAuthLogin(status: SystemStatus | null) {
     handleTelegramLogin,
     handleCustomOAuthLogin,
     handleWeChatOpenLogin,
+    handleWeChatInAppLogin,
   }
 }

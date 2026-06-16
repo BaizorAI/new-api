@@ -64,6 +64,7 @@ export function OAuthProviders({
     handleTelegramLogin,
     handleCustomOAuthLogin,
     handleWeChatOpenLogin,
+    handleWeChatInAppLogin,
   } = useOAuthLogin(status)
 
   const providerButtons: ProviderButton[] = []
@@ -74,6 +75,16 @@ export function OAuthProviders({
       key: 'wechat-open',
       label: t('Continue with WeChat'),
       onClick: handleWeChatOpenLogin,
+      icon: <IconWeChat className='h-4 w-4' />,
+    })
+  }
+
+  // WeChat In-App Browser OAuth (Official Account)
+  if (status?.wechat_inapp_oauth_enabled) {
+    providerButtons.push({
+      key: 'wechat-inapp',
+      label: t('Continue with WeChat'),
+      onClick: handleWeChatInAppLogin,
       icon: <IconWeChat className='h-4 w-4' />,
     })
   }

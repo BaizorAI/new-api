@@ -113,6 +113,7 @@ export interface SystemStatus {
     wechat_oauth_enabled?: boolean
     wechat_oauth_appid?: string
     wechat_inapp_oauth_enabled?: boolean
+    wechat_inapp_appid?: string
     wechat_pay_native_enabled?: boolean
     turnstile_check?: boolean
     turnstile_site_key?: string

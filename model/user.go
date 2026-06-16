@@ -34,6 +34,7 @@ type User struct {
 	DiscordId        string         `json:"discord_id" gorm:"column:discord_id;index"`
 	OidcId           string         `json:"oidc_id" gorm:"column:oidc_id;index"`
 	WeChatId         string         `json:"wechat_id" gorm:"column:wechat_id;index"`
+	WeChatUnionId    string         `json:"wechat_union_id" gorm:"column:wechat_union_id;index"`
 	TelegramId       string         `json:"telegram_id" gorm:"column:telegram_id;index"`
 	VerificationCode string         `json:"verification_code" gorm:"-:all"`                         // this field is only for Email verification, don't save it to database!
 	AccessToken      *string        `json:"-" gorm:"type:char(32);column:access_token;uniqueIndex"` // this token is for system management
@@ -650,6 +651,14 @@ func (user *User) UpdateGitHubId(newGitHubId string) error {
 	return DB.Model(user).Update("github_id", newGitHubId).Error
 }
 
+// UpdateWeChatId updates the user's WeChat ID (used for union ID cross-app account linking)
+func (user *User) UpdateWeChatId(newWeChatId string) error {
+	if user.Id == 0 {
+		return errors.New("user id is empty")
+	}
+	return DB.Model(user).Update("wechat_id", newWeChatId).Error
+}
+
 func (user *User) FillUserByDiscordId() error {
 	if user.DiscordId == "" {
 		return errors.New("discord id 为空！")
@@ -674,6 +683,14 @@ func (user *User) FillUserByWeChatId() error {
 	return nil
 }
 
+func (user *User) FillUserByWeChatUnionId() error {
+	if user.WeChatUnionId == "" {
+		return errors.New("WeChat union id is empty")
+	}
+	DB.Where(User{WeChatUnionId: user.WeChatUnionId}).First(user)
+	return nil
+}
+
 func (user *User) FillUserByTelegramId() error {
 	if user.TelegramId == "" {
 		return errors.New("Telegram id 为空！")
@@ -691,6 +708,10 @@ func IsEmailAlreadyTaken(email string) bool {
 
 func IsWeChatIdAlreadyTaken(wechatId string) bool {
 	return DB.Unscoped().Where("wechat_id = ?", wechatId).Find(&User{}).RowsAffected == 1
+}
+
+func IsWeChatUnionIdAlreadyTaken(wechatUnionId string) bool {
+	return DB.Unscoped().Where("wechat_union_id = ?", wechatUnionId).Find(&User{}).RowsAffected == 1
 }
 
 func IsGitHubIdAlreadyTaken(githubId string) bool {
