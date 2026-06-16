@@ -17,6 +17,12 @@ func SetRouter(router *gin.Engine, assets ThemeAssets) {
 	SetDashboardRouter(router)
 	SetRelayRouter(router)
 	SetVideoRouter(router)
+
+	// Serve WeChat MP domain verification file at site root
+	router.GET("/MP_verify_R49wU53vsJy7wmuk.txt", func(c *gin.Context) {
+		c.String(http.StatusOK, "R49wU53vsJy7wmuk")
+	})
+
 	frontendBaseUrl := os.Getenv("FRONTEND_BASE_URL")
 	if common.IsMasterNode && frontendBaseUrl != "" {
 		frontendBaseUrl = ""
