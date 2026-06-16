@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { queryWeChatPayOrder, closeWeChatPayOrder } from '../../api'
+import type { WeChatPayJSAPIParams } from '../../types'
 
 interface WeChatPayDialogProps {
   open: boolean
@@ -37,9 +38,25 @@ interface WeChatPayDialogProps {
   tradeNo: string
   amount: number
   onPaymentComplete: () => void
+  /** Payment mode: native = QR code, jsapi = in-app WeixinJSBridge */
+  mode?: 'native' | 'jsapi'
+  /** JSAPI prepay parameters (required when mode='jsapi') */
+  jsapiParams?: WeChatPayJSAPIParams | null
 }
 
 type PaymentState = 'pending' | 'paid' | 'expired' | 'error'
+
+declare global {
+  interface Window {
+    WeixinJSBridge?: {
+      invoke: (
+        method: string,
+        params: Record<string, unknown>,
+        callback: (res: { err_msg: string }) => void
+      ) => void
+    }
+  }
+}
 
 export function WeChatPayDialog({
   open,
@@ -48,6 +65,8 @@ export function WeChatPayDialog({
   tradeNo,
   amount,
   onPaymentComplete,
+  mode = 'native',
+  jsapiParams,
 }: WeChatPayDialogProps) {
   const { t } = useTranslation()
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -56,9 +75,71 @@ export function WeChatPayDialog({
   const [cancelling, setCancelling] = useState(false)
   const onCompleteRef = useRef(onPaymentComplete)
   onCompleteRef.current = onPaymentComplete
+  const jsapiInvokedRef = useRef(false)
 
+  // JSAPI mode: invoke WeixinJSBridge
   useEffect(() => {
-    if (!open || !tradeNo) return
+    if (mode !== 'jsapi' || !open || !jsapiParams || jsapiInvokedRef.current) return
+    jsapiInvokedRef.current = true
+
+    const invokePay = () => {
+      if (typeof window.WeixinJSBridge === 'undefined') {
+        setPaymentState('error')
+        setErrorMessage(t('WeChat JSAPI not available'))
+        return
+      }
+
+      window.WeixinJSBridge.invoke(
+        'getBrandWCPayRequest',
+        {
+          appId: jsapiParams.appId,
+          timeStamp: jsapiParams.timeStamp,
+          nonceStr: jsapiParams.nonceStr,
+          package: jsapiParams.package,
+          signType: jsapiParams.signType,
+          paySign: jsapiParams.paySign,
+        },
+        (res) => {
+          if (res.err_msg === 'get_brand_wcpay_request:ok') {
+            setPaymentState('paid')
+            onCompleteRef.current()
+          } else if (res.err_msg === 'get_brand_wcpay_request:cancel') {
+            setPaymentState('expired')
+          } else {
+            setPaymentState('error')
+            setErrorMessage(res.err_msg || t('Payment failed'))
+          }
+        }
+      )
+    }
+
+    // WeixinJSBridge may not be ready immediately; retry if needed
+    if (typeof window.WeixinJSBridge !== 'undefined') {
+      invokePay()
+    } else {
+      // Wait for WeixinJSBridge to be ready
+      const handleReady = () => {
+        invokePay()
+      }
+      document.addEventListener('WeixinJSBridgeReady', handleReady, false)
+      // Timeout fallback
+      const timer = setTimeout(() => {
+        document.removeEventListener('WeixinJSBridgeReady', handleReady)
+        if (!jsapiInvokedRef.current) {
+          setPaymentState('error')
+          setErrorMessage(t('WeChat JSAPI timeout'))
+        }
+      }, 10000)
+      return () => {
+        clearTimeout(timer)
+        document.removeEventListener('WeixinJSBridgeReady', handleReady)
+      }
+    }
+  }, [mode, open, jsapiParams, t])
+
+  // Native mode: poll for payment status
+  useEffect(() => {
+    if (mode !== 'native' || !open || !tradeNo) return
 
     setPaymentState('pending')
     setErrorMessage('')
@@ -66,8 +147,6 @@ export function WeChatPayDialog({
     const poll = async () => {
       try {
         const res = await queryWeChatPayOrder(tradeNo)
-        // eslint-disable-next-line no-console
-        console.log('[WeChatPay] poll result:', res)
         if (res.message === 'success' && res.data === 'paid') {
           setPaymentState('paid')
           if (pollingRef.current) {
@@ -81,7 +160,6 @@ export function WeChatPayDialog({
       }
     }
 
-    // Poll immediately, then every 3 seconds
     poll()
     pollingRef.current = setInterval(poll, 3000)
 
@@ -91,7 +169,7 @@ export function WeChatPayDialog({
         pollingRef.current = null
       }
     }
-  }, [open, tradeNo])
+  }, [mode, open, tradeNo])
 
   const handleClose = async () => {
     setCancelling(true)
@@ -126,11 +204,13 @@ export function WeChatPayDialog({
               ? t('Payment successful!')
               : paymentState === 'expired'
                 ? t('Order has been cancelled')
-                : t('Scan the QR code with WeChat to pay')}
+                : mode === 'jsapi'
+                  ? t('WeChat Pay popup should appear...')
+                  : t('Scan the QR code with WeChat to pay')}
           </DialogDescription>
         </DialogHeader>
 
-        {paymentState === 'pending' && codeUrl && (
+        {paymentState === 'pending' && mode === 'native' && codeUrl && (
           <div className='flex flex-col items-center gap-4'>
             <div className='rounded-lg border bg-white p-4'>
               <QRCodeSVG value={codeUrl} size={200} />
@@ -141,6 +221,15 @@ export function WeChatPayDialog({
             <p className='text-muted-foreground text-xs text-center flex items-center gap-1'>
               <Loader2 className='h-3 w-3 animate-spin' />
               {t('Waiting for payment...')}
+            </p>
+          </div>
+        )}
+
+        {paymentState === 'pending' && mode === 'jsapi' && (
+          <div className='flex flex-col items-center gap-4 py-4'>
+            <Loader2 className='h-10 w-10 animate-spin text-primary' />
+            <p className='text-muted-foreground text-sm text-center'>
+              {t('Launching WeChat Pay...')}
             </p>
           </div>
         )}

@@ -46,13 +46,21 @@ import {
   getMinTopupAmount,
   isWaffoPancakePayment,
 } from './lib'
-import { requestWeChatPay } from './api'
+import { requestWeChatPay, requestWeChatJSAPIPay } from './api'
 import type {
   UserWalletData,
   PaymentMethod,
   PresetAmount,
   CreemProduct,
+  WeChatPayJSAPIParams,
 } from './types'
+
+/** Detect whether the current browser is WeChat's built-in browser. */
+function isWeChatBrowser(): boolean {
+  return (
+    typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent)
+  )
+}
 
 interface WalletProps {
   initialShowHistory?: boolean
@@ -81,6 +89,9 @@ export function Wallet(props: WalletProps) {
   const [wechatPayCodeUrl, setWeChatPayCodeUrl] = useState('')
   const [wechatPayTradeNo, setWeChatPayTradeNo] = useState('')
   const [wechatPaying, setWeChatPaying] = useState(false)
+  const [wechatPayMode, setWeChatPayMode] = useState<'native' | 'jsapi'>('native')
+  const [wechatPayJSAPIParams, setWeChatPayJSAPIParams] =
+    useState<WeChatPayJSAPIParams | null>(null)
 
   const { status } = useStatus()
   const { currency } = useSystemConfig()
@@ -257,14 +268,32 @@ export function Wallet(props: WalletProps) {
   const handleWeChatPaySelect = async () => {
     setPaymentLoading('wechat_pay')
     try {
-      const res = await requestWeChatPay({
-        amount: topupAmount,
-        payment_method: 'wechat_pay',
-      })
-      if (res.message === 'success' && res.data?.code_url) {
-        setWeChatPayCodeUrl(res.data.code_url)
-        setWeChatPayTradeNo(res.data.trade_no)
-        setWeChatPayDialogOpen(true)
+      if (isWeChatBrowser()) {
+        // WeChat in-app browser → JSAPI pay
+        const res = await requestWeChatJSAPIPay({
+          amount: topupAmount,
+          payment_method: 'wechat_pay',
+        })
+        if (res.message === 'success' && res.data) {
+          setWeChatPayJSAPIParams(res.data)
+          setWeChatPayTradeNo(res.data.trade_no)
+          setWeChatPayMode('jsapi')
+          setWeChatPayCodeUrl('')
+          setWeChatPayDialogOpen(true)
+        }
+      } else {
+        // PC browser → Native QR code pay
+        const res = await requestWeChatPay({
+          amount: topupAmount,
+          payment_method: 'wechat_pay',
+        })
+        if (res.message === 'success' && res.data?.code_url) {
+          setWeChatPayCodeUrl(res.data.code_url)
+          setWeChatPayTradeNo(res.data.trade_no)
+          setWeChatPayMode('native')
+          setWeChatPayJSAPIParams(null)
+          setWeChatPayDialogOpen(true)
+        }
       }
     } finally {
       setPaymentLoading(null)
@@ -403,6 +432,8 @@ export function Wallet(props: WalletProps) {
         tradeNo={wechatPayTradeNo}
         amount={topupAmount}
         onPaymentComplete={handleWeChatPayComplete}
+        mode={wechatPayMode}
+        jsapiParams={wechatPayJSAPIParams}
       />
     </>
   )

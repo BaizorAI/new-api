@@ -56,6 +56,22 @@ type wechatPayNativeResponse struct {
 	PrepayId string `json:"prepay_id"`
 }
 
+// wechatPayJSAPIParams is returned to the frontend for WeixinJSBridge.invoke().
+type wechatPayJSAPIParams struct {
+	AppId     string `json:"appId"`
+	TimeStamp string `json:"timeStamp"`
+	NonceStr  string `json:"nonceStr"`
+	Package   string `json:"package"`
+	SignType  string `json:"signType"`
+	PaySign   string `json:"paySign"`
+	TradeNo   string `json:"trade_no"`
+}
+
+// wechatPayJSAPIResponse is the JSON response from WeChat Pay /v3/pay/transactions/jsapi.
+type wechatPayJSAPIResponse struct {
+	PrepayId string `json:"prepay_id"`
+}
+
 // wechatPayNotify is the decrypted callback body.
 type wechatPayNotifyDecrypted struct {
 	ID           string           `json:"id"`
@@ -347,6 +363,39 @@ func wechatPayVerifyCallbackSignature(c *gin.Context) error {
 	c.Request.Body = io.NopCloser(strings.NewReader(string(bodyBytes)))
 
 	return nil
+}
+
+// wechatPayJSAPIPrepaySign generates the parameters needed for WeixinJSBridge.invoke().
+// It uses the merchant private key to sign the prepay message in the legacy WeChat Pay format:
+//
+//	appId\n{appid}\ntimeStamp\n{ts}\nnonceStr\n{nonce}\npackage\nprepay_id={prepayId}\n
+func wechatPayJSAPIPrepaySign(prepayID string) (wechatPayJSAPIParams, error) {
+	nonceStr := common.GetRandomString(32)
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+	pkg := fmt.Sprintf("prepay_id=%s", prepayID)
+
+	// Legacy WeChat Pay JSAPI signing: appId, timeStamp, nonceStr, package joined by \n
+	message := fmt.Sprintf("%s\n%s\n%s\n%s\n",
+		common.WeChatPayNativeAppId, timestamp, nonceStr, pkg)
+
+	privateKey, err := loadWeChatPayPrivateKey()
+	if err != nil {
+		return wechatPayJSAPIParams{}, fmt.Errorf("load private key failed: %w", err)
+	}
+
+	signature, err := wechatPaySign(privateKey, message)
+	if err != nil {
+		return wechatPayJSAPIParams{}, fmt.Errorf("prepay sign failed: %w", err)
+	}
+
+	return wechatPayJSAPIParams{
+		AppId:     common.WeChatPayNativeAppId,
+		TimeStamp: timestamp,
+		NonceStr:  nonceStr,
+		Package:   pkg,
+		SignType:  "RSA",
+		PaySign:   signature,
+	}, nil
 }
 
 // ============================================================================
@@ -892,4 +941,189 @@ func CloseWeChatPayOrder(c *gin.Context) {
 	logger.LogError(c.Request.Context(), fmt.Sprintf("微信支付 关闭订单失败 trade_no=%s status=%d body=%s", tradeNo, httpResp.StatusCode, string(respBody)))
 	_ = model.UpdatePendingTopUpStatus(tradeNo, model.PaymentProviderWeChatPay, common.TopUpStatusExpired)
 	c.JSON(http.StatusOK, gin.H{"message": "success", "data": "订单已标记为过期"})
+}
+
+// ============================================================================
+// WeChat Pay JSAPI (in-app browser payment)
+// ============================================================================
+
+// RequestWeChatJSAPIPay creates a JSAPI order for payment inside the WeChat browser.
+// The user must have previously logged in via WeChat OAuth so their wechat_id (openid)
+// is available in the database. The frontend receives prepay parameters and invokes
+// WeixinJSBridge.invoke('getBrandWCPayRequest', params, callback) with them.
+func RequestWeChatJSAPIPay(c *gin.Context) {
+	if !isWeChatPayTopUpEnabled() {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "微信支付未启用"})
+		return
+	}
+
+	var req wechatPayTopUpRequest
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "参数错误"})
+		return
+	}
+
+	if req.Amount < getMinTopup() {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": fmt.Sprintf("充值数量不能小于 %d", getMinTopup())})
+		return
+	}
+
+	id := c.GetInt("id")
+	group, err := model.GetUserGroup(id, true)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "获取用户分组失败"})
+		return
+	}
+
+	// Get user's openid from their WeChat binding
+	user := &model.User{Id: id}
+	if err := user.FillUserById(); err != nil {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "获取用户信息失败"})
+		return
+	}
+	if user.WeChatId == "" {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "请先使用微信登录后再支付"})
+		return
+	}
+	openid := user.WeChatId
+
+	payMoney := getPayMoney(req.Amount, group)
+	if payMoney < 0.01 {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "充值金额过低"})
+		return
+	}
+
+	amountInFen := int(payMoney * 100)
+	if amountInFen < 1 {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "支付金额过低"})
+		return
+	}
+
+	// Generate trade number
+	tradeNo := fmt.Sprintf("WP%s%d", common.GetRandomString(6), time.Now().Unix())
+	tradeNo = fmt.Sprintf("USR%dNO%s", id, tradeNo)
+
+	// Build callback URL
+	callBackAddress := common.WeChatPayNativeCallbackURL
+	if callBackAddress == "" {
+		callBackAddress = service.GetCallbackAddress()
+	}
+	notifyURL, err := url.JoinPath(callBackAddress, "/api/wechat-pay/notify")
+	if err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信JSAPI支付 callback URL 构建失败: %s", err.Error()))
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "回调地址配置错误"})
+		return
+	}
+
+	// Calculate expiry time
+	closeGap := common.WeChatPayNativeCloseOrderGap
+	if closeGap <= 0 {
+		closeGap = 30
+	}
+	expireTime := time.Now().Add(time.Duration(closeGap) * time.Minute)
+	timeExpire := expireTime.Format(time.RFC3339)
+
+	// Build JSAPI request (same structure as Native but with payer.openid)
+	payReq := wechatPayNativeRequest{
+		Appid:       common.WeChatPayNativeAppId,
+		Mchid:       common.WeChatPayMachId,
+		Description: fmt.Sprintf("API额度充值 - %d", req.Amount),
+		OutTradeNo:  tradeNo,
+		NotifyUrl:   notifyURL,
+		Amount: wechatPayAmount{
+			Total:    amountInFen,
+			Currency: "CNY",
+		},
+		Payer: &wechatPayPayer{
+			Openid: openid,
+		},
+		TimeExpire: timeExpire,
+	}
+
+	bodyBytes, err := common.Marshal(payReq)
+	if err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信JSAPI支付 请求序列化失败: %s", err.Error()))
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "创建订单失败"})
+		return
+	}
+
+	// Call WeChat Pay JSAPI endpoint
+	urlPath := "/v3/pay/transactions/jsapi"
+	authHeader, err := wechatPayBuildAuthHeader("POST", urlPath, bodyBytes)
+	if err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信JSAPI支付 签名失败: %s", err.Error()))
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "支付签名失败，请联系管理员"})
+		return
+	}
+
+	httpReq, err := http.NewRequestWithContext(c.Request.Context(), "POST", getWeChatPayBaseURL()+urlPath, strings.NewReader(string(bodyBytes)))
+	if err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信JSAPI支付 请求创建失败: %s", err.Error()))
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "创建支付请求失败"})
+		return
+	}
+
+	httpReq.Header.Set("Authorization", authHeader)
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "application/json")
+
+	client := http.Client{Timeout: 10 * time.Second}
+	httpResp, err := client.Do(httpReq)
+	if err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信JSAPI支付 API调用失败: %s", err.Error()))
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "微信支付接口调用失败"})
+		return
+	}
+	defer httpResp.Body.Close()
+
+	respBody, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信JSAPI支付 读取响应失败: %s", err.Error()))
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "读取支付响应失败"})
+		return
+	}
+
+	var jsapiResp wechatPayJSAPIResponse
+	if err := common.Unmarshal(respBody, &jsapiResp); err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信JSAPI支付 响应解析失败: %s body=%s", err.Error(), string(respBody)))
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "解析支付响应失败"})
+		return
+	}
+
+	if jsapiResp.PrepayId == "" {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信JSAPI支付 未返回prepay_id: body=%s", string(respBody)))
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "微信支付返回异常：" + string(respBody)})
+		return
+	}
+
+	// Insert topup record (same as Native pay)
+	topUp := &model.TopUp{
+		UserId:          id,
+		Amount:          req.Amount,
+		Money:           payMoney,
+		TradeNo:         tradeNo,
+		PaymentMethod:   model.PaymentMethodWeChatPay,
+		PaymentProvider: model.PaymentProviderWeChatPay,
+		Status:          common.TopUpStatusPending,
+	}
+	if err := topUp.Insert(); err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信JSAPI支付 创建充值记录失败 trade_no=%s error=%s", tradeNo, err.Error()))
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "创建充值记录失败"})
+		return
+	}
+
+	// Generate JSAPI prepay signature for WeixinJSBridge
+	payParams, err := wechatPayJSAPIPrepaySign(jsapiResp.PrepayId)
+	if err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("微信JSAPI支付 生成预支付签名失败: %s", err.Error()))
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "生成支付参数失败"})
+		return
+	}
+	payParams.TradeNo = tradeNo
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "success",
+		"data":    payParams,
+	})
 }

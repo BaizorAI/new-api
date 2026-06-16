@@ -62,6 +62,18 @@ export type WeChatPayResponse = ApiResponse<{
   trade_no: string
 }>
 
+export type WeChatPayJSAPIParams = {
+  appId: string
+  timeStamp: string
+  nonceStr: string
+  package: string
+  signType: string
+  paySign: string
+  trade_no: string
+}
+
+export type WeChatPayJSAPIResponse = ApiResponse<WeChatPayJSAPIParams>
+
 export type WeChatPayQueryResponse = ApiResponse<string>
 
 /**
