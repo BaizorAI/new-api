@@ -23,6 +23,9 @@ func SetRouter(router *gin.Engine, assets ThemeAssets) {
 		c.String(http.StatusOK, "R49wU53vsJy7wmuk")
 	})
 
+	// Serve standalone download/install files
+	router.Static("/install", "./install")
+
 	frontendBaseUrl := os.Getenv("FRONTEND_BASE_URL")
 	if common.IsMasterNode && frontendBaseUrl != "" {
 		frontendBaseUrl = ""
