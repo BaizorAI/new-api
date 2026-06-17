@@ -251,15 +251,29 @@ func TestDoResponse_Success(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
 
-	// Simulated OCR response from Alibaba Cloud
+	// Simulated OCR response matching real Alibaba Cloud structure
 	ocrResp := OCRResponse{
 		RequestId: "test-request-id-12345",
 		Data: &OCRData{
 			Height: 800,
 			Width:  600,
-			KvInfo: []OCRKVItem{
-				{Key: "Name", Value: "张三", Confidence: 99.5},
-				{Key: "IdNumber", Value: "110101199001011234", Confidence: 98.2},
+			SubImageCount: 1,
+			SubImages: []OCRSubImage{
+				{
+					SubImageId: 0,
+					Type:       "身份证正面",
+					KvInfo: &OCRKVInfo{
+						KvCount: 2,
+						Data: map[string]string{
+							"name":     "张三",
+							"idNumber": "110101199001011234",
+						},
+						KvDetails: map[string]*OCRKVDetail{
+							"name":     {KeyName: "name", Value: "张三", KeyConfidence: 99.5, ValueConfidence: 99.5},
+							"idNumber": {KeyName: "idNumber", Value: "110101199001011234", KeyConfidence: 98.2, ValueConfidence: 98.2},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -314,8 +328,8 @@ func TestDoResponse_Success(t *testing.T) {
 	if err := json.Unmarshal([]byte(content), &ocrData); err != nil {
 		t.Fatalf("choice content is not valid OCRData JSON: %v", err)
 	}
-	if len(ocrData.KvInfo) != 2 {
-		t.Errorf("expected 2 KvInfo items, got %d", len(ocrData.KvInfo))
+	if len(ocrData.SubImages) == 0 || ocrData.SubImages[0].KvInfo == nil || ocrData.SubImages[0].KvInfo.KvCount != 2 {
+		t.Errorf("expected 2 KvInfo items, got %v", ocrData.SubImages)
 	}
 }
 
