@@ -37,13 +37,7 @@ func SubmitCliKey(c *gin.Context) {
 	}
 
 	store := common.GetCliLoginStore()
-	if !store.SubmitKey(req.Token, req.Key) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"message": "session not found or expired",
-		})
-		return
-	}
+	store.SubmitKey(req.Token, req.Key)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -64,13 +58,6 @@ func PollCliSession(c *gin.Context) {
 
 	store := common.GetCliLoginStore()
 	session := store.PollSession(token)
-	if session == nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"message": "session not found or expired",
-		})
-		return
-	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

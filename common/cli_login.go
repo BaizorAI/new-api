@@ -65,29 +65,41 @@ func (s *CliLoginStore) CreateSession() (string, error) {
 }
 
 // SubmitKey associates an API key with a CLI login session.
-// Returns true if the session was found and updated.
-func (s *CliLoginStore) SubmitKey(token, key string) bool {
+// Creates the session if it doesn't exist yet.
+func (s *CliLoginStore) SubmitKey(token, key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	session, ok := s.sessions[token]
-	if !ok {
-		return false
+	if session, ok := s.sessions[token]; ok {
+		session.Key = key
+		session.Status = "done"
+		return
 	}
-	session.Key = key
-	session.Status = "done"
-	return true
+
+	s.sessions[token] = &CliLoginSession{
+		Token:     token,
+		Key:       key,
+		Status:    "done",
+		CreatedAt: time.Now().Unix(),
+	}
 }
 
-// PollSession returns the session for the given token, or nil if not found/expired.
+// PollSession returns the session for the given token.
+// Auto-creates a pending session if it doesn't exist yet.
 func (s *CliLoginStore) PollSession(token string) *CliLoginSession {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	session, ok := s.sessions[token]
-	if !ok {
-		return nil
+	if session, ok := s.sessions[token]; ok {
+		return session
 	}
+
+	session := &CliLoginSession{
+		Token:     token,
+		Status:    "pending",
+		CreatedAt: time.Now().Unix(),
+	}
+	s.sessions[token] = session
 	return session
 }
 
