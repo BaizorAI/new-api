@@ -23,6 +23,7 @@ import (
 	"github.com/BaizorAI/new-api/relay/channel/mistral"
 	"github.com/BaizorAI/new-api/relay/channel/mokaai"
 	"github.com/BaizorAI/new-api/relay/channel/moonshot"
+	"github.com/BaizorAI/new-api/relay/channel/ocrali"
 	"github.com/BaizorAI/new-api/relay/channel/ollama"
 	"github.com/BaizorAI/new-api/relay/channel/openai"
 	"github.com/BaizorAI/new-api/relay/channel/palm"
@@ -120,6 +121,8 @@ func GetAdaptor(apiType int) channel.Adaptor {
 		return &replicate.Adaptor{}
 	case constant.APITypeCodex:
 		return &codex.Adaptor{}
+	case constant.APITypeAliOCR:
+		return &ocrali.Adaptor{}
 	}
 	return nil
 }
