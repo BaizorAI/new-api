@@ -55,9 +55,6 @@ func SubmitCliKey(c *gin.Context) {
 func PollCliSession(c *gin.Context) {
 	token := c.Query("token")
 	if token == "" {
-		token = c.Query("cli_token")
-	}
-	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"message": "token is required",

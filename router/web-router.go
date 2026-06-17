@@ -22,6 +22,12 @@ type ThemeAssets struct {
 func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
 	fs := common.EmbedFolder(assets.BuildFS, "web/default/dist")
 
+	// CLI login short URL: /code/token?token=xxx → /keys?login_token=xxx
+	router.GET("/code/token", func(c *gin.Context) {
+		token := c.Query("token")
+		c.Redirect(http.StatusFound, "/keys?login_token="+token)
+	})
+
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.GlobalWebRateLimit())
 	router.Use(middleware.Cache())

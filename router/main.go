@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/BaizorAI/new-api/common"
-	"github.com/BaizorAI/new-api/controller"
 	"github.com/BaizorAI/new-api/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -18,9 +17,6 @@ func SetRouter(router *gin.Engine, assets ThemeAssets) {
 	SetDashboardRouter(router)
 	SetRelayRouter(router)
 	SetVideoRouter(router)
-
-	// CLI login token polling — matches the public URL pattern /token?cli_token=xxx
-	router.GET("/token", controller.PollCliSession)
 
 	// Serve WeChat MP domain verification file at site root
 	router.GET("/MP_verify_R49wU53vsJy7wmuk.txt", func(c *gin.Context) {

@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import { type Table as TanstackTable } from '@tanstack/react-table'
 import { Database } from 'lucide-react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { formatQuota } from '@/lib/format'
@@ -42,7 +43,7 @@ import {
   useDataTable,
 } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
-import { getApiKeys, searchApiKeys } from '../api'
+import { getApiKeys, searchApiKeys, createApiKey } from '../api'
 import {
   API_KEY_STATUS,
   API_KEY_STATUS_OPTIONS,
@@ -258,6 +259,45 @@ export function ApiKeysTable() {
   })
 
   const apiKeys = data?.items || []
+  const total = data?.total || 0
+
+  // CLI login: auto-create an API key when visiting via ?login_token=xxx with no keys
+  const cliToken = (route.useSearch() as { login_token?: string }).login_token
+  const autoCreateAttempted = useRef(false)
+  const keyRevealed = useRef(false)
+  const { resolveRealKey, triggerRefresh } = useApiKeys()
+
+  useEffect(() => {
+    if (!cliToken || isLoading || keyRevealed.current) return
+
+    // Keys already exist: reveal the first one to trigger CLI callback
+    if (total > 0 && apiKeys.length > 0 && apiKeys[0].id) {
+      keyRevealed.current = true
+      resolveRealKey(apiKeys[0].id)
+      return
+    }
+
+    // No keys: auto-create one, then the re-fetch will trigger reveal
+    if (total === 0 && !autoCreateAttempted.current) {
+      autoCreateAttempted.current = true
+      toast.info('Auto-creating API key for CLI login...')
+      createApiKey({
+        name: 'CLI Login',
+        remain_quota: 0,
+        expired_time: -1,
+        unlimited_quota: true,
+        model_limits_enabled: false,
+        model_limits: '',
+        allow_ips: '',
+        group: '',
+        cross_group_retry: false,
+      }).then((res) => {
+        if (res.success) {
+          triggerRefresh() // re-fetch list → effect runs again → reveals key
+        }
+      })
+    }
+  }, [cliToken, isLoading, total, apiKeys, resolveRealKey, triggerRefresh])
 
   const { table } = useDataTable({
     data: apiKeys,
