@@ -73,7 +73,7 @@ const features = [
 
 const scenarios = [
   {
-    title: '高校国际中文教育',
+    title: '传文化之美',
     desc: '为高校国际教育学院提供完整的汉语作为第二语言教学解决方案，覆盖初级到高级各阶段课程。',
   },
   {
@@ -113,7 +113,7 @@ function About() {
           </div>
         </div>
         <h1 className='text-4xl font-bold tracking-tight md:text-5xl'>
-          白泽中华文化AI平台
+          白泽AI平台
         </h1>
         <p className='text-muted-foreground mx-auto mt-4 max-w-2xl text-lg leading-relaxed'>
           用「通晓万物、洞悉智慧」的AI力量，为全球中文学习者带来智能、全面、个性化的教学指导。
@@ -169,10 +169,10 @@ function About() {
             <div>
               <h2 className='text-xl font-bold'>我们的使命</h2>
               <p className='text-muted-foreground mt-2 leading-relaxed'>
-                白泽中华文化AI平台由白泽中华文化AI实验室倾力打造，致力于将前沿人工智能技术与国际中文教育深度融合。
-                我们相信，每一位中文学习者都值得拥有个性化、智能化、全方位的学习体验。
-                通过AI的力量，我们让汉语听、说、读、写教学变得更加高效、生动、有趣，
-                助力中华文化走向世界，连接全球学习者的心。
+                白泽AI平台由白泽团队倾力打造，致力于将前沿人工智能技术与文化深度融合。
+                我们相信，每一位学习者都值得拥有个性化、智能化、全方位的学习体验。
+                通过AI的力量，我们让听、说、读、写教学变得更加高效、生动、有趣，
+                助力文化走向世界，连接全球学习者的心。
               </p>
             </div>
           </div>
@@ -279,8 +279,8 @@ function About() {
             <div className='flex-1'>
               <h2 className='text-xl font-bold'>联系我们</h2>
               <p className='text-muted-foreground mt-2 leading-relaxed'>
-                如果您是高校、华文教育机构或企业，希望了解白泽中华文化AI平台的合作方案，
-                欢迎通过以下方式与我们取得联系。我们期待与您携手，共同推动国际中文教育的智能化发展。
+                如果您是高校、华文教育机构或企业，希望了解白泽AI平台的合作方案，
+                欢迎通过以下方式与我们取得联系。我们期待与您携手，共同推动传文化之美的智能化发展。
               </p>
               <div className='mt-4 flex flex-wrap gap-4 text-sm'>
                 <a
@@ -314,7 +314,7 @@ function About() {
             准备好开启智慧中文教学之旅了吗？
           </h2>
           <p className='text-muted-foreground mx-auto mt-3 max-w-lg'>
-            无论您是高校教师、华文教育机构，还是中文学习爱好者，白泽中华文化AI平台都将成为您最得力的智能助手。
+            无论您是高校教师、华文教育机构，还是中文学习爱好者，白泽AI平台都将成为您最得力的智能助手。
           </p>
           <div className='mt-6 flex items-center justify-center gap-3'>
             <Button className='group rounded-lg' render={<Link to='/docs' />}>

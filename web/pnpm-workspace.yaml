@@ -1,6 +1,5 @@
 packages:
   - 'default'
-  - 'classic'
 allowBuilds:
   '@swc/core': true
 catalog:

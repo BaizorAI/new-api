@@ -56,11 +56,11 @@ export function CTA(props: CTAProps) {
           准备好让AI赋能您的
           <br />
           <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-            国际中文教学了吗？
+            文化教学了吗？
           </span>
         </h2>
         <p className='text-muted-foreground/80 mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
-          加入白泽中华文化AI平台，体验AI驱动的智能中文教育，为全球学习者带来更高效、更个性化的学习体验。
+          加入白泽AI平台，体验AI驱动的智能教育，为全球学习者带来更高效、更个性化的学习体验。
         </p>
         <div className='mt-8 flex items-center justify-center gap-3'>
           <Button className='group rounded-lg' render={<Link to='/sign-up' />}>

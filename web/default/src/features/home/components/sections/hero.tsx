@@ -109,14 +109,14 @@ export function Hero(props: HeroProps) {
               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75' />
               <span className='relative inline-flex size-1.5 rounded-full bg-blue-500 dark:bg-blue-400' />
             </span>
-            <span>白泽中华文化AI实验室</span>
+            <span>白泽AI平台</span>
           </div>
 
           <h1
             className='landing-animate-fade-up text-[clamp(2.25rem,4.5vw,3.25rem)] leading-[1.15] font-bold tracking-tight'
             style={{ animationDelay: '60ms' }}
           >
-            白泽中华文化AI平台
+            白泽AI平台
             <br />
             <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
               通晓万物 · 洞悉智慧 · 学而有道
@@ -127,7 +127,7 @@ export function Hero(props: HeroProps) {
             style={{ animationDelay: '120ms' }}
           >
             深度融合教学管理软件系统、AI智能辅助服务、多模态教学资源与智慧教室硬件设备，
-            为全球中文学习者带来智能、全面、个性化的国际中文教育解决方案。
+            为全球中文学习者带来智能、全面、个性化的传文化之美解决方案。
           </p>
 
           <div

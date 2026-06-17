@@ -182,9 +182,9 @@ export function Features(_props: FeaturesProps) {
             核心特性
           </p>
           <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-3xl'>
-            为国际中文教育而生，
+            为传文化之美而生，
             <br />
-            用AI赋能智慧教学
+            用AI赋能智慧学习
           </h2>
         </AnimateInView>
 

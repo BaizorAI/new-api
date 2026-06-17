@@ -65,9 +65,9 @@ func InitOptionMap() {
 	common.OptionMap["SMTPSSLEnabled"] = strconv.FormatBool(common.SMTPSSLEnabled)
 	common.OptionMap["SMTPForceAuthLogin"] = strconv.FormatBool(common.SMTPForceAuthLogin)
 	common.OptionMap["Notice"] = ""
-	common.OptionMap["About"] = "# 白泽中华文化AI实验室\n\n白泽中华文化AI实验室（Baize International Chinese AI Lab）致力于国际中文教育与中华文化的 AI 多模态创作与智慧教学。\n\n实验室名取自中国古代神话祥瑞神兽「白泽」——通晓万物、明察幽微、逢凶化吉，寓意以 AI 之智为全球中文学习者带来全面、智能、贴心的指导。\n\n## 我们提供\n\n- 统一的多模型 AI API 网关与管理控制台\n- 中华文化 AIGC 多模态实验平台（OCR 解析、RAG 检索、图文生成、对齐检测、课件生成等）\n- 面向国际中文教育的智能教学与评估能力\n\n---\n\n本平台基于开源项目 [New API](https://github.com/BaizorAI/new-api) 构建，特此致谢 [QuantumNous] 及上游 [One API]。本项目遵循 [AGPL v3.0 License](https://github.com/BaizorAI/new-api/blob/main/LICENSE)。"
+	common.OptionMap["About"] = "# 白泽AI平台\n\n白泽AI平台（Baize AI Platform）致力于文化的 AI 多模态创作与智慧教学。\n\n平台名取自中国古代神话祥瑞神兽「白泽」——通晓万物、明察幽微、逢凶化吉，寓意以 AI 之智为全球中文学习者带来全面、智能、贴心的指导。\n\n## 我们提供\n\n- 统一的多模型 AI API 网关与管理控制台\n- 文化 AIGC 多模态实验平台（OCR 解析、RAG 检索、图文生成、对齐检测、课件生成等）\n- 面向教育的智能教学与评估能力\n\n---\n\n本平台基于开源项目 [New API](https://github.com/BaizorAI/new-api) 构建，特此致谢 [QuantumNous] 及上游 [One API]。本项目遵循 [AGPL v3.0 License](https://github.com/BaizorAI/new-api/blob/main/LICENSE)。"
 	common.OptionMap["HomePageContent"] = ""
-	common.OptionMap["Footer"] = "<p>白泽中华文化AI实验室 · 以 AI 之智，传中华文化之美</p>"
+	common.OptionMap["Footer"] = "<p>白泽AI平台 · 以 AI 之智，传文化之美</p><p>清大华宇（厦门）数字科技有限公司 <a href=\"https://beian.miit.gov.cn/\" target=\"_blank\" rel=\"noopener\">闽ICP备2024082627号-2</a> </p> <p>增值电信业务经营许可证: B1-20252819  </p> <p>DSMM数据 安全管理认证 2级：01125DSMM10081R0S</p>"
 	common.OptionMap["SystemName"] = common.SystemName
 	common.OptionMap["Logo"] = common.Logo
 	common.OptionMap["ServerAddress"] = ""

@@ -39,10 +39,10 @@ function DocsPage() {
             </div>
           </div>
           <h1 className='text-3xl font-bold tracking-tight md:text-4xl'>
-            白泽中华文化AI平台文档
+            白泽AI平台文档
           </h1>
           <p className='text-muted-foreground mx-auto mt-4 max-w-xl text-base'>
-            了解白泽平台的教学理念、核心功能与使用方法，开启AI赋能的国际中文教育之旅。
+            了解白泽平台的教学理念、核心功能与使用方法，开启AI赋能的传文化之美之旅。
           </p>
         </AnimateInView>
 
@@ -52,7 +52,7 @@ function DocsPage() {
             <h2 className='mb-4 text-xl font-bold'>平台简介</h2>
             <div className='border-border/40 bg-muted/20 rounded-xl border p-6'>
               <p className='text-muted-foreground leading-relaxed'>
-                白泽中华文化AI平台是由白泽中华文化AI实验室开发的一套针对国际中文教育（即汉语作为第二语言教学）的AI智能教学系统。
+                白泽AI平台是由白泽团队开发的一套针对传文化之美的AI智能教学系统。
                 它深度融合了教学管理软件系统、AI智能辅助服务、多模态教学资源（文字、语音、视频等）与智慧教室硬件设备，
                 主要服务于国内外高校、华文教育机构，帮助开展汉语听、说、读、写教学、课堂互动、作业考试、智能评估等功能。
               </p>
@@ -165,7 +165,7 @@ function DocsPage() {
             <h2 className='mb-4 text-xl font-bold'>技术支持</h2>
             <div className='border-border/40 bg-muted/20 rounded-xl border p-6'>
               <p className='text-muted-foreground leading-relaxed'>
-                如在使用白泽中华文化AI平台过程中遇到任何问题，或希望了解更多合作信息，
+                如在使用白泽AI平台过程中遇到任何问题，或希望了解更多合作信息，
                 请通过以下方式联系我们：
               </p>
               <div className='mt-4 flex flex-wrap gap-3'>

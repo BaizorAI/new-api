@@ -3,7 +3,6 @@ FROM ccr.ccs.tencentyun.com/lucky/oven-bun:1 AS builder
 WORKDIR /build/web
 COPY web/package.json web/bun.lock ./
 COPY web/default/package.json ./default/package.json
-COPY web/classic/package.json ./classic/package.json
 RUN bun install --frozen-lockfile
 COPY ./web/default ./default
 COPY ./VERSION /build/VERSION
