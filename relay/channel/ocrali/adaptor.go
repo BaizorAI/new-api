@@ -139,8 +139,8 @@ func (a *Adaptor) ConvertGeminiRequest(c *gin.Context, info *relaycommon.RelayIn
 }
 
 // DoRequest sends the signed request to Alibaba Cloud OCR API.
-// It uses RPC-style signature: system parameters + signature in query string,
-// and request data (Url, Type, etc.) in JSON body.
+// Uses RPC-style: ALL parameters (system + business) go in query string,
+// signature covers the complete canonical query, body is empty.
 func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, requestBody io.Reader) (any, error) {
 	// Extract AK/SK from channel key
 	accessKeyId, accessKeySecret, err := extractAPIKey(info.ApiKey)
@@ -148,35 +148,44 @@ func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, request
 		return nil, fmt.Errorf("invalid api key: %w", err)
 	}
 
-	// Build the signed URL with system parameters
+	// Parse the OCR request from the body
+	bodyBytes, err := io.ReadAll(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("read request body failed: %w", err)
+	}
+	var ocrReq OCRRequest
+	if err := common.Unmarshal(bodyBytes, &ocrReq); err != nil {
+		return nil, fmt.Errorf("unmarshal OCR request failed: %w", err)
+	}
+
+	// Build the complete params map: system params + business params
+	params := map[string]string{
+		"Action":  "RecognizeAllText",
+		"Version": "2021-07-07",
+	}
+	for k, v := range buildOCRQueryParams(&ocrReq) {
+		params[k] = v
+	}
+
+	// Extract host from base URL
 	baseURL, err := a.GetRequestURL(info)
 	if err != nil {
 		return nil, err
 	}
 	host := strings.TrimPrefix(strings.TrimPrefix(baseURL, "https://"), "http://")
 
-	params := map[string]string{
-		"Action":  "RecognizeAllText",
-		"Version": "2021-07-07",
-	}
-
-	// Read and re-buffer the request body for signing and sending
-	bodyBytes, err := io.ReadAll(requestBody)
-	if err != nil {
-		return nil, fmt.Errorf("read request body failed: %w", err)
-	}
-
+	// Build signed URL with ALL parameters in query string
 	signedURL := buildSignedURL(host, "POST", params, accessKeyId, accessKeySecret)
 
-	// Create the HTTP request
-	req, err := http.NewRequest("POST", signedURL, bytes.NewReader(bodyBytes))
+	logger.LogDebug(c, "OCR request URL: %s", signedURL)
+
+	// Send POST with empty body (all params in URL). Must NOT be nil — doRequest
+	// calls req.Body.Close() which panics on nil body.
+	req, err := http.NewRequest("POST", signedURL, bytes.NewReader([]byte{}))
 	if err != nil {
 		return nil, fmt.Errorf("create request failed: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
-
-	logger.LogDebug(c, "OCR request URL: %s", signedURL)
-	logger.LogDebug(c, "OCR request body: %s", string(bodyBytes))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := channel.DoRequest(c, req, info)
 	if err != nil {
@@ -245,6 +254,13 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 	if marshalErr != nil {
 		return nil, types.NewOpenAIError(marshalErr, types.ErrorCodeBadResponseBody, http.StatusInternalServerError)
 	}
+
+	// Store raw upstream response and converted result for audit/logging.
+	if info.ExtraLogData == nil {
+		info.ExtraLogData = make(map[string]any)
+	}
+	info.ExtraLogData["ocr_raw_upstream"] = string(bodyBytes)
+	info.ExtraLogData["ocr_converted_openai"] = string(openAIBytes)
 
 	service.IOCopyBytesGracefully(c, resp, openAIBytes)
 

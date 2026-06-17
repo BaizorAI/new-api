@@ -459,6 +459,13 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 		InjectTieredBillingInfo(other, relayInfo, tieredResult)
 	}
 
+	// Merge any extra per-request log data set by channel adaptors (e.g. OCR raw response).
+	if relayInfo.ExtraLogData != nil {
+		for k, v := range relayInfo.ExtraLogData {
+			other[k] = v
+		}
+	}
+
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:        relayInfo.ChannelId,
 		PromptTokens:     summary.PromptTokens,

@@ -4,7 +4,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -119,12 +118,34 @@ func extractAPIKey(key string) (accessKeyId, accessKeySecret string, err error) 
 	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), nil
 }
 
-// buildOCRRequestBody constructs the JSON request body for the OCR API.
-// It takes the OCR request struct and serializes it.
-func buildOCRRequestBody(ocrReq *OCRRequest) ([]byte, error) {
-	body, err := json.Marshal(ocrReq)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal OCR request: %w", err)
+// buildOCRRequestBody converts an OCR request to a flat map of query parameters
+// suitable for Alibaba Cloud RPC-style API calls (all parameters in query string).
+func buildOCRQueryParams(ocrReq *OCRRequest) map[string]string {
+	params := map[string]string{}
+	if ocrReq.Url != "" {
+		params["Url"] = ocrReq.Url
 	}
-	return body, nil
+	if ocrReq.ImageBase64 != "" {
+		params["ImageBase64"] = ocrReq.ImageBase64
+	}
+	params["Type"] = ocrReq.Type
+	if ocrReq.OutputFormat != "" {
+		params["OutputFormat"] = ocrReq.OutputFormat
+	}
+	if ocrReq.OutputCharInfo {
+		params["OutputCharInfo"] = "true"
+	}
+	if ocrReq.OutputTable {
+		params["OutputTable"] = "true"
+	}
+	if ocrReq.OutputPDF {
+		params["Output_PDF"] = "true"
+	}
+	if ocrReq.OutputStamp {
+		params["OutputStamp"] = "true"
+	}
+	if ocrReq.BarCode {
+		params["BarCode"] = "true"
+	}
+	return params
 }

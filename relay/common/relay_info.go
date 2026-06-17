@@ -186,6 +186,11 @@ type RelayInfo struct {
 	*ResponsesUsageInfo
 	*ChannelMeta
 	*TaskRelayInfo
+
+	// ExtraLogData allows channel adaptors to attach arbitrary data that will be
+	// merged into the consume log's "other" JSON column. OCR adaptors, for
+	// example, use this to persist raw upstream response and converted result.
+	ExtraLogData map[string]any
 }
 
 func (info *RelayInfo) InitChannelMeta(c *gin.Context) {
