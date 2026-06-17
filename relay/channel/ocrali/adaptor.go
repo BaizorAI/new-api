@@ -162,6 +162,12 @@ func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, request
 		return nil, fmt.Errorf("unmarshal OCR request failed: %w", err)
 	}
 
+	// Store the original image URL for later persistence alongside OCR results.
+	if info.ExtraLogData == nil {
+		info.ExtraLogData = make(map[string]any)
+	}
+	info.ExtraLogData["ocr_image_url"] = ocrReq.Url
+
 	// Build the complete params map: system params + business params
 	params := map[string]string{
 		"Action":  "RecognizeAllText",
@@ -259,10 +265,15 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 		return nil, types.NewOpenAIError(marshalErr, types.ErrorCodeBadResponseBody, http.StatusInternalServerError)
 	}
 
-	// Persist raw upstream response and converted result to disk asynchronously.
-	// Files are written to /data/ocr/{requestId}_raw.json and _converted.json.
+	// Persist raw upstream response, converted result, and original image to disk.
+	imageURL := ""
+	if info.ExtraLogData != nil {
+		if url, ok := info.ExtraLogData["ocr_image_url"].(string); ok {
+			imageURL = url
+		}
+	}
 	gopool.Go(func() {
-		persistOCRData(ocrResp.RequestId, bodyBytes, openAIBytes)
+		persistOCRData(ocrResp.RequestId, bodyBytes, openAIBytes, imageURL)
 	})
 
 	// Store raw upstream response and converted result for audit/logging.
@@ -285,10 +296,9 @@ func (a *Adaptor) GetChannelName() string {
 	return ChannelName
 }
 
-// persistOCRData writes the raw upstream response and converted OpenAI result
-// to disk files under /data/ocr/. Files are named {requestId}_raw.json and
-// {requestId}_converted.json. Errors are logged but not surfaced.
-func persistOCRData(requestId string, rawBody []byte, convertedBody []byte) {
+// persistOCRData writes the raw upstream response, converted OpenAI result,
+// and original input image to disk under /data/ocr/.
+func persistOCRData(requestId string, rawBody []byte, convertedBody []byte, imageURL string) {
 	if requestId == "" {
 		return
 	}
@@ -306,6 +316,44 @@ func persistOCRData(requestId string, rawBody []byte, convertedBody []byte) {
 	convFile := filepath.Join(dir, requestId+"_converted.json")
 	if err := os.WriteFile(convFile, convertedBody, 0644); err != nil {
 		log.Printf("persistOCRData: failed to write converted file %s: %v", convFile, err)
+	}
+
+	// Download and save the original image
+	if imageURL != "" {
+		resp, err := http.Get(imageURL)
+		if err != nil {
+			log.Printf("persistOCRData: failed to download image %s: %v", imageURL, err)
+			return
+		}
+		defer resp.Body.Close()
+		imgBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("persistOCRData: failed to read image body %s: %v", imageURL, err)
+			return
+		}
+		// Determine file extension from URL path or Content-Type
+		ext := filepath.Ext(imageURL)
+		if ext == "" || len(ext) > 5 {
+			ct := resp.Header.Get("Content-Type")
+			switch {
+			case strings.Contains(ct, "jpeg") || strings.Contains(ct, "jpg"):
+				ext = ".jpg"
+			case strings.Contains(ct, "png"):
+				ext = ".png"
+			case strings.Contains(ct, "gif"):
+				ext = ".gif"
+			case strings.Contains(ct, "webp"):
+				ext = ".webp"
+			case strings.Contains(ct, "bmp"):
+				ext = ".bmp"
+			default:
+				ext = ".jpg"
+			}
+		}
+		imgFile := filepath.Join(dir, requestId+"_original"+ext)
+		if err := os.WriteFile(imgFile, imgBytes, 0644); err != nil {
+			log.Printf("persistOCRData: failed to write image file %s: %v", imgFile, err)
+		}
 	}
 }
 
