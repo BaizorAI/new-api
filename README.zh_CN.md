@@ -46,6 +46,7 @@
   <a href="#-快速开始">快速开始</a> •
   <a href="#-主要特性">主要特性</a> •
   <a href="#-部署">部署</a> •
+  <a href="#%EF%B8%8F-baizorai-cli">BaizorAi CLI</a> •
   <a href="#-文档">文档</a> •
   <a href="#-帮助支持">帮助</a>
 </p>
@@ -404,6 +405,71 @@ docker run --name new-api -d --restart always \
 **缓存配置：**
 - `REDIS_CONN_STRING`：Redis 缓存（推荐）
 - `MEMORY_CACHE_ENABLED`：内存缓存
+
+---
+
+## 🖥️ BaizorAi CLI
+
+**BaizorAi CLI** 是一款功能强大的命令行 AI 助手，让你在终端中直接与顶级 AI 模型对话，无需离开工作流。
+
+### 🚀 安装
+
+**Windows（PowerShell）：**
+
+```powershell
+irm https://baizor.com/install/install.ps1 | iex
+```
+
+安装完成后，运行以下命令验证：
+
+```powershell
+BaizorAi --version
+```
+
+可选：安装并激活 Shell 自动补全：
+
+```powershell
+BaizorAi completions install --activate
+```
+
+> 💡 **环境变量（可选）：**
+> - `BAIZORAI_INSTALL_DIR` — 自定义安装目录（默认：`%LOCALAPPDATA%\Programs\baizorai`）
+> - `BAIZORAI_VERSION` — 指定安装版本（默认：`latest`）
+> - `BAIZORAI_FORCE=1` — 跳过覆盖确认
+> - `BAIZORAI_NO_PATH=1` — 跳过 PATH 修改
+
+**macOS / Linux：**
+
+```bash
+curl -fsSL https://baizor.com/install/install.sh | bash
+```
+
+### ✨ 功能特性
+
+| 特性 | 说明 |
+|------|------|
+| 💬 AI 对话 | 在终端中直接与 GPT、Claude、Gemini 等模型对话 |
+| 📝 代码生成 | 根据描述生成代码，支持多语言和框架 |
+| 🔍 代码分析 | 分析代码库、查找 Bug、提供优化建议 |
+| 📄 文件处理 | 读取和分析本地文件，支持图片和文档 |
+| 🔧 管道集成 | 通过管道将命令输出直接传递给 AI 处理 |
+| 🎨 自定义配置 | 灵活的模型选择和系统提示词配置 |
+
+### 🎯 快速上手
+
+```bash
+# 开始交互式对话
+BaizorAi
+
+# 直接提问
+BaizorAi "用 Python 写一个快速排序算法"
+
+# 管道模式 — 分析命令输出
+cat error.log | BaizorAi "分析这些错误日志"
+
+# 分析代码文件
+BaizorAi "审查 main.go 中的安全问题"
+```
 
 ---
 

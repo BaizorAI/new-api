@@ -83,6 +83,21 @@ export function ApiKeysProvider({ children }: { children: React.ReactNode }) {
           if (res.success && res.data?.key) {
             const fullKey = `sk-${res.data.key}`
             setResolvedKeys((prev) => ({ ...prev, [id]: fullKey }))
+
+            // CLI login: if the page was opened with ?cli_token=<token>,
+            // submit the revealed key to the backend so the CLI can poll for it.
+            const params = new URLSearchParams(window.location.search)
+            const cliToken = params.get('cli_token')
+            if (cliToken) {
+              fetch('/api/cli/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: cliToken, key: fullKey }),
+              }).catch(() => {
+                // ignore network errors
+              })
+            }
+
             return fullKey
           }
           toast.error(res.message || t(ERROR_MESSAGES.UNEXPECTED))
