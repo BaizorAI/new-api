@@ -254,7 +254,7 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 			},
 		},
 		Usage: dto.Usage{
-			PromptTokens:     0,
+			PromptTokens:     1,
 			CompletionTokens: 0,
 			TotalTokens:      1,
 		},
