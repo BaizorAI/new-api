@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,6 +20,7 @@ import (
 	"github.com/BaizorAI/new-api/service"
 	"github.com/BaizorAI/new-api/types"
 
+	"github.com/bytedance/gopkg/util/gopool"
 	"github.com/gin-gonic/gin"
 )
 
@@ -255,6 +259,12 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 		return nil, types.NewOpenAIError(marshalErr, types.ErrorCodeBadResponseBody, http.StatusInternalServerError)
 	}
 
+	// Persist raw upstream response and converted result to disk asynchronously.
+	// Files are written to /data/ocr/{requestId}_raw.json and _converted.json.
+	gopool.Go(func() {
+		persistOCRData(ocrResp.RequestId, bodyBytes, openAIBytes)
+	})
+
 	// Store raw upstream response and converted result for audit/logging.
 	if info.ExtraLogData == nil {
 		info.ExtraLogData = make(map[string]any)
@@ -273,6 +283,30 @@ func (a *Adaptor) GetModelList() []string {
 
 func (a *Adaptor) GetChannelName() string {
 	return ChannelName
+}
+
+// persistOCRData writes the raw upstream response and converted OpenAI result
+// to disk files under /data/ocr/. Files are named {requestId}_raw.json and
+// {requestId}_converted.json. Errors are logged but not surfaced.
+func persistOCRData(requestId string, rawBody []byte, convertedBody []byte) {
+	if requestId == "" {
+		return
+	}
+	dir := filepath.Join("/", "data", "ocr")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		log.Printf("persistOCRData: failed to create dir %s: %v", dir, err)
+		return
+	}
+
+	rawFile := filepath.Join(dir, requestId+"_raw.json")
+	if err := os.WriteFile(rawFile, rawBody, 0644); err != nil {
+		log.Printf("persistOCRData: failed to write raw file %s: %v", rawFile, err)
+	}
+
+	convFile := filepath.Join(dir, requestId+"_converted.json")
+	if err := os.WriteFile(convFile, convertedBody, 0644); err != nil {
+		log.Printf("persistOCRData: failed to write converted file %s: %v", convFile, err)
+	}
 }
 
 // parseTypeOverride checks if a text content contains a type override directive.
