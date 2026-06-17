@@ -13,6 +13,7 @@ var ModelList = []string{
 	"ocr-household-register",   // 户口本
 	"ocr-marriage-certificate", // 结婚证
 	"ocr-vehicle-cert",         // 车辆合格证
+	"ocr-vehicle-registration", // 机动车登记证书
 	"ocr-general",              // 通用文字识别
 }
 
