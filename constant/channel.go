@@ -57,6 +57,7 @@ const (
 	ChannelTypeCodex          = 57
 	ChannelTypeAzureFoundry   = 58
 	ChannelTypeAliOCR         = 59
+	ChannelTypeOcrSelf        = 60
 	ChannelTypeDummy          // this one is only for count, do not add any channel after this
 
 )
@@ -122,6 +123,7 @@ var ChannelBaseURLs = []string{
 	"https://chatgpt.com",                       //57
 	"",                                          //58
 	"https://ocr-api.cn-hangzhou.aliyuncs.com",  //59
+	"",                                          //60
 }
 
 var ChannelTypeNames = map[int]string{
@@ -181,6 +183,7 @@ var ChannelTypeNames = map[int]string{
 	ChannelTypeCodex:          "ChatGPT Subscription (Codex)",
 	ChannelTypeAzureFoundry:   "AzureFoundry",
 	ChannelTypeAliOCR:         "AliOCR",
+	ChannelTypeOcrSelf:        "OcrSelf",
 }
 
 func GetChannelTypeName(channelType int) string {

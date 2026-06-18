@@ -79,6 +79,8 @@ func ChannelType2APIType(channelType int) (int, bool) {
 		apiType = constant.APITypeOpenAI
 	case constant.ChannelTypeAliOCR:
 		apiType = constant.APITypeAliOCR
+	case constant.ChannelTypeOcrSelf:
+		apiType = constant.APITypeOcrSelf
 	}
 	if apiType == -1 {
 		return constant.APITypeOpenAI, false
