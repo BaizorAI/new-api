@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/setting/model_setting"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,8 +17,12 @@ type CliLoginSubmitRequest struct {
 
 // CliLoginPollResponse is the response for polling a session.
 type CliLoginPollResponse struct {
-	Status string `json:"status"`
-	Key    string `json:"key,omitempty"`
+	Status      string `json:"status"`
+	Key         string `json:"key,omitempty"`
+	Model       string `json:"model,omitempty"`
+	HaikuModel  string `json:"haiku_model,omitempty"`
+	SonnetModel string `json:"sonnet_model,omitempty"`
+	OpusModel   string `json:"opus_model,omitempty"`
 }
 
 // SubmitCliKey handles POST /api/cli/submit — called by the frontend after a key is revealed.
@@ -59,12 +64,23 @@ func PollCliSession(c *gin.Context) {
 	store := common.GetCliLoginStore()
 	session := store.PollSession(token)
 
+	resp := CliLoginPollResponse{
+		Status: session.Status,
+		Key:    session.Key,
+	}
+
+	// Include default model settings when session is done
+	if session.Status == "done" {
+		cfg := model_setting.GetCliDefaultModelSettings()
+		resp.Model = cfg.Model
+		resp.HaikuModel = cfg.HaikuModel
+		resp.SonnetModel = cfg.SonnetModel
+		resp.OpusModel = cfg.OpusModel
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data": CliLoginPollResponse{
-			Status: session.Status,
-			Key:    session.Key,
-		},
+		"data":    resp,
 	})
 }

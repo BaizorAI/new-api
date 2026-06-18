@@ -21,6 +21,7 @@ import { IoNetDeploymentSettingsSection } from '../integrations/ionet-deployment
 import type { ModelSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
 import { ClaudeSettingsCard } from './claude-settings-card'
+import { CliDefaultModelSettingsCard } from './cli-default-model-settings-card'
 import { GeminiSettingsCard } from './gemini-settings-card'
 import { GlobalSettingsCard } from './global-settings-card'
 import { GrokSettingsCard } from './grok-settings-card'
@@ -102,6 +103,20 @@ const MODELS_SECTIONS = [
             thinking_adapter_budget_tokens_percentage:
               settings['claude.thinking_adapter_budget_tokens_percentage'],
           },
+        }}
+      />
+    ),
+  },
+  {
+    id: 'cli-default-model',
+    titleKey: 'CLI Default Models',
+    build: (settings: ModelSettings) => (
+      <CliDefaultModelSettingsCard
+        defaultValues={{
+          'cli_default_model.model': settings['cli_default_model.model'] ?? '',
+          'cli_default_model.haiku_model': settings['cli_default_model.haiku_model'] ?? '',
+          'cli_default_model.sonnet_model': settings['cli_default_model.sonnet_model'] ?? '',
+          'cli_default_model.opus_model': settings['cli_default_model.opus_model'] ?? '',
         }}
       />
     ),
