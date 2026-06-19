@@ -2,6 +2,7 @@ package ocrali
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -167,6 +168,7 @@ func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, request
 		info.ExtraLogData = make(map[string]any)
 	}
 	info.ExtraLogData["ocr_image_url"] = ocrReq.Url
+	info.ExtraLogData["ocr_request"] = ocrReq
 
 	// Build the complete params map: system params + business params
 	params := map[string]string{
@@ -276,6 +278,11 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 		persistOCRData(ocrResp.RequestId, bodyBytes, openAIBytes, imageURL)
 	})
 
+	// Asynchronously call the self-hosted OCR service for training data collection.
+	gopool.Go(func() {
+		shadowCallSelfHosted(ocrResp.RequestId, info)
+	})
+
 	// Store raw upstream response and converted result for audit/logging.
 	if info.ExtraLogData == nil {
 		info.ExtraLogData = make(map[string]any)
@@ -354,6 +361,116 @@ func persistOCRData(requestId string, rawBody []byte, convertedBody []byte, imag
 		if err := os.WriteFile(imgFile, imgBytes, 0644); err != nil {
 			log.Printf("persistOCRData: failed to write image file %s: %v", imgFile, err)
 		}
+	}
+}
+
+// shadowEnabled returns true if the self-hosted OCR shadow call is enabled.
+func shadowEnabled() bool {
+	return os.Getenv("OCR_SHADOW_SELF_ENABLED") == "true"
+}
+
+// shadowCallSelfHosted sends the same OCR request to the self-hosted baizor-ocr-service
+// and persists a paired training record comparing Aliyun OCR vs self-hosted OCR.
+func shadowCallSelfHosted(requestId string, info *relaycommon.RelayInfo) {
+	if !shadowEnabled() || requestId == "" {
+		return
+	}
+
+	// Retrieve the original OCR request stored in DoRequest.
+	if info.ExtraLogData == nil {
+		return
+	}
+	ocrReq, ok := info.ExtraLogData["ocr_request"].(OCRRequest)
+	if !ok {
+		log.Printf("shadowCallSelfHosted: original OCR request not found")
+		return
+	}
+
+	selfURL := os.Getenv("OCR_SHADOW_SELF_URL")
+	if selfURL == "" {
+		selfURL = "http://localhost:8000/v1/ocr"
+	}
+	selfToken := os.Getenv("OCR_SHADOW_SELF_TOKEN")
+	if selfToken == "" {
+		selfToken = "changeme"
+	}
+
+	bodyBytes, err := common.Marshal(ocrReq)
+	if err != nil {
+		log.Printf("shadowCallSelfHosted: marshal request failed: %v", err)
+		return
+	}
+
+	req, err := http.NewRequest("POST", selfURL, bytes.NewReader(bodyBytes))
+	if err != nil {
+		log.Printf("shadowCallSelfHosted: create request failed: %v", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+selfToken)
+
+	client := &http.Client{Timeout: 120 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("shadowCallSelfHosted: request failed: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("shadowCallSelfHosted: read response failed: %v", err)
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("shadowCallSelfHosted: non-200 status %d: %s", resp.StatusCode, string(respBytes))
+		return
+	}
+
+	var selfResp OCRResponse
+	if err := common.Unmarshal(respBytes, &selfResp); err != nil {
+		log.Printf("shadowCallSelfHosted: unmarshal response failed: %v", err)
+		return
+	}
+
+	// Load the official Aliyun OCR raw response for comparison.
+	officialRaw := ""
+	if raw, ok := info.ExtraLogData["ocr_raw_upstream"].(string); ok {
+		officialRaw = raw
+	}
+
+	saveTrainingRecord(requestId, ocrReq.Type, officialRaw, string(respBytes))
+}
+
+// saveTrainingRecord writes a paired comparison of Aliyun vs self-hosted OCR.
+func saveTrainingRecord(requestId, ocrType, officialRaw, selfRaw string) {
+	dir := os.Getenv("OCR_SHADOW_TRAINING_DIR")
+	if dir == "" {
+		dir = filepath.Join("/", "data", "ocr-training")
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		log.Printf("saveTrainingRecord: failed to create dir %s: %v", dir, err)
+		return
+	}
+
+	record := map[string]any{
+		"request_id": requestId,
+		"timestamp":  time.Now().UTC().Format(time.RFC3339),
+		"type":       ocrType,
+		"official":   json.RawMessage(officialRaw),
+		"self":       json.RawMessage(selfRaw),
+	}
+
+	recordBytes, err := common.Marshal(record)
+	if err != nil {
+		log.Printf("saveTrainingRecord: marshal record failed: %v", err)
+		return
+	}
+
+	recordFile := filepath.Join(dir, requestId+"_training.json")
+	if err := os.WriteFile(recordFile, recordBytes, 0644); err != nil {
+		log.Printf("saveTrainingRecord: failed to write record %s: %v", recordFile, err)
 	}
 }
 

@@ -2,8 +2,11 @@ package ocrali
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -478,6 +481,88 @@ func TestSignOCRApi_BuildsSignedURL(t *testing.T) {
 		if !strings.Contains(url, param) {
 			t.Errorf("URL missing required param: %s\nURL: %s", param, url)
 		}
+	}
+}
+
+func TestShadowCallSelfHosted(t *testing.T) {
+	// Mock self-hosted OCR service
+	var receivedBody string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer test-token" {
+			t.Errorf("expected Authorization header Bearer test-token, got %q", r.Header.Get("Authorization"))
+		}
+		body, _ := io.ReadAll(r.Body)
+		receivedBody = string(body)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(OCRResponse{
+			RequestId: "self-req-id",
+			Code:      "200",
+			Data: &OCRData{
+				Content: "self hosted result",
+			},
+		})
+	}))
+	defer server.Close()
+
+	tmpDir := t.TempDir()
+	t.Setenv("OCR_SHADOW_SELF_ENABLED", "true")
+	t.Setenv("OCR_SHADOW_SELF_URL", server.URL+"/v1/ocr")
+	t.Setenv("OCR_SHADOW_SELF_TOKEN", "test-token")
+	t.Setenv("OCR_SHADOW_TRAINING_DIR", tmpDir)
+
+	info := &relaycommon.RelayInfo{
+		ExtraLogData: map[string]any{
+			"ocr_request": OCRRequest{
+				Url:  "https://example.com/id.jpg",
+				Type: "IdCard",
+			},
+			"ocr_raw_upstream": `{"RequestId":"ali-req-id","Code":"200","Data":{}}`,
+		},
+	}
+
+	shadowCallSelfHosted("train-req-1", info)
+
+	// Wait for goroutine? shadowCallSelfHosted is synchronous in our test call.
+
+	if !strings.Contains(receivedBody, `"Url":"https://example.com/id.jpg"`) {
+		t.Errorf("self-hosted request body missing Url, got: %s", receivedBody)
+	}
+	if !strings.Contains(receivedBody, `"Type":"IdCard"`) {
+		t.Errorf("self-hosted request body missing Type, got: %s", receivedBody)
+	}
+
+	recordPath := filepath.Join(tmpDir, "train-req-1_training.json")
+	if _, err := os.Stat(recordPath); os.IsNotExist(err) {
+		t.Fatalf("training record not written: %s", recordPath)
+	}
+}
+
+func TestShadowCallSelfHosted_DisabledByDefault(t *testing.T) {
+	// Ensure no network call is made when the feature is not explicitly enabled.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("self-hosted OCR should not be called when shadow is disabled")
+	}))
+	defer server.Close()
+
+	tmpDir := t.TempDir()
+	t.Setenv("OCR_SHADOW_SELF_ENABLED", "")
+	t.Setenv("OCR_SHADOW_SELF_URL", server.URL+"/v1/ocr")
+	t.Setenv("OCR_SHADOW_TRAINING_DIR", tmpDir)
+
+	info := &relaycommon.RelayInfo{
+		ExtraLogData: map[string]any{
+			"ocr_request": OCRRequest{
+				Url:  "https://example.com/id.jpg",
+				Type: "IdCard",
+			},
+		},
+	}
+
+	shadowCallSelfHosted("train-req-disabled", info)
+
+	recordPath := filepath.Join(tmpDir, "train-req-disabled_training.json")
+	if _, err := os.Stat(recordPath); !os.IsNotExist(err) {
+		t.Fatalf("training record should not be written when disabled: %s", recordPath)
 	}
 }
 
