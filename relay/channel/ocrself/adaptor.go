@@ -41,7 +41,7 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 // ConvertOpenAIRequest extracts image data and OCR type from the OpenAI chat
 // request and converts it to an OCRRequest. The logic is identical to ocrali.
 func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayInfo, request *dto.GeneralOpenAIRequest) (any, error) {
-	return ocrali.Adaptor{}.ConvertOpenAIRequest(c, info, request)
+	return (&ocrali.Adaptor{}).ConvertOpenAIRequest(c, info, request)
 }
 
 func (a *Adaptor) ConvertRerankRequest(c *gin.Context, relayMode int, request dto.RerankRequest) (any, error) {
@@ -80,7 +80,7 @@ func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, request
 // DoResponse parses the self-hosted OCR response and formats it as an OpenAI
 // chat completion response. The conversion logic is identical to ocrali.
 func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo) (usage any, err *types.NewAPIError) {
-	return ocrali.Adaptor{}.DoResponse(c, resp, info)
+	return (&ocrali.Adaptor{}).DoResponse(c, resp, info)
 }
 
 func (a *Adaptor) GetModelList() []string {

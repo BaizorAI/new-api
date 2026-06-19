@@ -7,6 +7,8 @@ import (
 	"sync"
 
 	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/constant"
+	"github.com/BaizorAI/new-api/dto"
 
 	"github.com/samber/lo"
 	"gorm.io/gorm"

@@ -7,6 +7,8 @@ Makefile
 docs
 .eslintcache
 .gocache
+baizor-ocr-service/
+*.log
 /web/node_modules
 /web/default/node_modules
 /web/default/dist

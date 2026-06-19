@@ -11,6 +11,7 @@ import (
 
 	"github.com/BaizorAI/new-api/common"
 	"github.com/BaizorAI/new-api/constant"
+	"github.com/BaizorAI/new-api/dto"
 	"github.com/BaizorAI/new-api/logger"
 	"github.com/BaizorAI/new-api/setting/ratio_setting"
 )

@@ -201,16 +201,6 @@ type PaymentSettingsSectionProps = {
   waffoPancakeProvisionedStoreID?: string
   waffoPancakeProvisionedProductID?: string
   complianceDefaults: PaymentComplianceDefaults
-  wechatPayDefaults: {
-    WeChatPayNativeEnabled: boolean
-    WeChatPayNativeAppId: string
-    WeChatPayMachId: string
-    WeChatPaySerial: string
-    WeChatPayKeyPath: string
-    WeChatPayNativeCallbackURL: string
-    WeChatPayApiV3Key: string
-    WeChatPayNativeCloseOrderGap: number
-  }
 }
 
 function parseWaffoPayMethods(value: string): PayMethod[] {
@@ -229,7 +219,6 @@ export function PaymentSettingsSection({
   waffoPancakeProvisionedStoreID,
   waffoPancakeProvisionedProductID,
   complianceDefaults,
-  wechatPayDefaults,
 }: PaymentSettingsSectionProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -239,9 +228,8 @@ export function PaymentSettingsSection({
       ...defaultValues,
       ...waffoDefaultValues,
       ...waffoPancakeDefaultValues,
-      ...wechatPayDefaults,
     }),
-    [defaultValues, waffoDefaultValues, waffoPancakeDefaultValues, wechatPayDefaults]
+    [defaultValues, waffoDefaultValues, waffoPancakeDefaultValues]
   )
   const initialRef = React.useRef(initialFormValues)
   const defaultsSignature = React.useMemo(
@@ -918,108 +906,52 @@ export function PaymentSettingsSection({
           />
           <Tabs defaultValue='general' className='min-w-0'>
             <div className='overflow-x-auto pb-1'>
-              <TabsList className='grid min-w-[44rem] grid-cols-6'>
+              <TabsList className='grid min-w-[50rem] grid-cols-7'>
                 <TabsTrigger value='general'>{t('General')}</TabsTrigger>
                 <TabsTrigger value='epay'>Epay</TabsTrigger>
                 <TabsTrigger value='stripe'>{t('Stripe')}</TabsTrigger>
                 <TabsTrigger value='creem'>Creem</TabsTrigger>
                 <TabsTrigger value='waffo-pancake'>Waffo Pancake</TabsTrigger>
                 <TabsTrigger value='waffo'>Waffo</TabsTrigger>
+                <TabsTrigger value='wechat-pay'>{t('WeChat Pay')}</TabsTrigger>
               </TabsList>
             </div>
 
-            <div className='grid gap-6 md:grid-cols-2'>
-              <FormField
-                control={form.control}
-                name='Price'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Price (local currency / USD)')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='number'
-                        step='0.01'
-                        min={0}
-                        {...safeNumberFieldProps(field)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        'How much to charge for each US dollar of balance'
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <TabsContent value='general' className={paymentTabContentClassName}>
+              <div className='space-y-4'>
+                <div>
+                  <h3 className='text-lg font-medium'>
+                    {t('General Settings')}
+                  </h3>
+                  <p className='text-muted-foreground text-sm'>
+                    {t('Shared configuration for all payment gateways')}
+                  </p>
+                </div>
 
-              <FormField
-                control={form.control}
-                name='MinTopUp'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Minimum top-up (USD)')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='number'
-                        step='0.01'
-                        min={0}
-                        {...safeNumberFieldProps(field)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('Smallest USD amount users can recharge')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name='PayMethods'
-              render={({ field }) => (
-                <FormItem>
-                  <div className='mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
-                    <FormLabel>{t('Payment methods')}</FormLabel>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      size='sm'
-                      onClick={() =>
-                        setPayMethodsVisualMode(!payMethodsVisualMode)
-                      }
-                      className='w-full sm:w-auto'
-                    >
-                      {payMethodsVisualMode ? (
-                        <>
-                          <Code2 className='mr-2 h-3 w-3' />
-                          {t('JSON Editor')}
-                        </>
-                      ) : (
-                        <>
-                          <Eye className='mr-2 h-3 w-3' />
-                          {t('Visual Editor')}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  <FormControl>
-                    {payMethodsVisualMode ? (
-                      <PaymentMethodsVisualEditor
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    ) : (
-                      <Textarea
-                        rows={4}
-                        placeholder={t(
-                          '[{"name":"支付宝","type":"alipay","color":"#1677FF"}]'
-                        )}
-                        {...field}
-                        onChange={(event) => field.onChange(event.target.value)}
-                      />
+                <div className='grid gap-6 md:grid-cols-2'>
+                  <FormField
+                    control={form.control}
+                    name='Price'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t('Price (local currency / USD)')}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            step='0.01'
+                            min={0}
+                            {...safeNumberFieldProps(field)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            'How much to charge for each US dollar of balance (Epay)'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
                     )}
                   />
 
@@ -1093,203 +1025,7 @@ export function PaymentSettingsSection({
                             }
                           />
                         )}
-                      </Button>
-                    </div>
-                    <FormControl>
-                      {amountDiscountVisualMode ? (
-                        <AmountDiscountVisualEditor
-                          value={field.value}
-                          onChange={field.onChange}
-                        />
-                      ) : (
-                        <Textarea
-                          rows={4}
-                          placeholder='{"100":0.95,"200":0.9}'
-                          {...field}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                        />
-                      )}
-                    </FormControl>
-                    <FormDescription>
-                      {t('Discount map by recharge amount (JSON object)')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className='space-y-4'>
-            <div>
-              <h3 className='text-lg font-medium'>{t('Stripe Gateway')}</h3>
-              <p className='text-muted-foreground text-sm'>
-                {t('Configuration for Stripe payment integration')}
-              </p>
-            </div>
-
-            <div className='rounded-md bg-blue-50 p-4 text-sm text-blue-900 dark:bg-blue-950 dark:text-blue-100'>
-              <p className='mb-2 font-medium'>{t('Webhook Configuration:')}</p>
-              <ul className='list-inside list-disc space-y-1'>
-                <li>
-                  {t('Webhook URL:')}{' '}
-                  <code className='rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900'>
-                    {'<ServerAddress>/api/stripe/webhook'}
-                  </code>
-                </li>
-                <li>
-                  {t('Required events:')}{' '}
-                  <code className='rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900'>
-                    {t('checkout.session.completed')}
-                  </code>{' '}
-                  {t('and')}{' '}
-                  <code className='rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900'>
-                    {t('checkout.session.expired')}
-                  </code>
-                </li>
-                <li>
-                  {t('Configure at:')}{' '}
-                  <a
-                    href='https://dashboard.stripe.com/developers'
-                    target='_blank'
-                    rel='noreferrer'
-                    className='underline hover:no-underline'
-                  >
-                    {t('Stripe Dashboard')}
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div className='grid gap-6 md:grid-cols-3'>
-              <FormField
-                control={form.control}
-                name='StripeApiSecret'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('API secret')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='password'
-                        placeholder={t('sk_xxx or rk_xxx')}
-                        autoComplete='new-password'
-                        {...field}
-                        onChange={(event) => field.onChange(event.target.value)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('Stripe API key (leave blank unless updating)')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='StripeWebhookSecret'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Webhook secret')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='password'
-                        placeholder={t('whsec_xxx')}
-                        autoComplete='new-password'
-                        {...field}
-                        onChange={(event) => field.onChange(event.target.value)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t(
-                        'Webhook signing secret (leave blank unless updating)'
-                      )}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='StripePriceId'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Price ID')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t('price_xxx')}
-                        {...field}
-                        onChange={(event) => field.onChange(event.target.value)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('Stripe product price ID')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className='grid gap-6 md:grid-cols-3'>
-              <FormField
-                control={form.control}
-                name='StripeUnitPrice'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t('Unit price (local currency / USD)')}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type='number'
-                        step='0.01'
-                        min={0}
-                        {...safeNumberFieldProps(field)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('e.g., 8 means 8 local currency per USD')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='StripeMinTopUp'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Minimum top-up (USD)')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='number'
-                        step='0.01'
-                        min={0}
-                        {...safeNumberFieldProps(field)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('Minimum recharge amount in USD')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='StripePromotionCodesEnabled'
-                render={({ field }) => (
-                  <SettingsSwitchItem>
-                    <SettingsSwitchContent>
-                      <FormLabel>{t('Promotion codes')}</FormLabel>
+                      </FormControl>
                       <FormDescription>
                         {t(
                           'Configured as PayMethods JSON. The type value decides which payment flow is used: stripe for Stripe, waffo_pancake for Waffo Pancake, and other values are sent to Epay as the type parameter.'
@@ -1416,242 +1152,14 @@ export function PaymentSettingsSection({
               </div>
             </TabsContent>
 
-          <div className='space-y-4'>
-            <div>
-              <h3 className='text-lg font-medium'>{t('WeChat Pay Native')}</h3>
-              <p className='text-muted-foreground text-sm'>
-                {t('Configuration for WeChat Pay APIv3 Native payment')}
-              </p>
-            </div>
-
-            <div className='rounded-md bg-blue-50 p-4 text-sm text-blue-900 dark:bg-blue-950 dark:text-blue-100'>
-              <p className='mb-2 font-medium'>{t('Prerequisites:')}</p>
-              <ul className='list-inside list-disc space-y-1'>
-                <li>{t('WeChat Pay merchant account with Native payment enabled')}</li>
-                <li>{t('Merchant APIv3 key and certificate (apiclient_key.pem)')}</li>
-                <li>{t('Platform certificate (wechatpay_cert.pem) in the key path directory')}</li>
-                <li>
-                  {t('Callback URL:')}{' '}
-                  <code className='rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900'>
-                    {'<ServerAddress>/api/wechat-pay/notify'}
-                  </code>
-                </li>
-              </ul>
-            </div>
-
-            <FormField
-              control={form.control}
-              name='WeChatPayNativeEnabled'
-              render={({ field }) => (
-                <SettingsSwitchItem>
-                  <SettingsSwitchContent>
-                    <FormLabel>{t('Enable WeChat Pay')}</FormLabel>
-                    <FormDescription>
-                      {t('Allow users to top up via WeChat Pay Native QR code')}
-                    </FormDescription>
-                  </SettingsSwitchContent>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </SettingsSwitchItem>
-              )}
-            />
-
-            <div className='grid gap-6 md:grid-cols-2'>
-              <FormField
-                control={form.control}
-                name='WeChatPayNativeAppId'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('App ID')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='wx1bb077ee0b6e3c5e'
-                        autoComplete='off'
-                        value={field.value ?? ''}
-                        onChange={(event) => field.onChange(event.target.value)}
-                        name={field.name}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('WeChat Pay merchant AppID (from WeChat Pay merchant platform)')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='WeChatPayMachId'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Merchant ID')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='1234567890'
-                        autoComplete='off'
-                        value={field.value ?? ''}
-                        onChange={(event) => field.onChange(event.target.value)}
-                        name={field.name}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('WeChat Pay merchant ID (mchid)')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className='grid gap-6 md:grid-cols-2'>
-              <FormField
-                control={form.control}
-                name='WeChatPaySerial'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Certificate Serial No.')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='PUB_KEY_ID_0116838097082025062000452394000602'
-                        autoComplete='off'
-                        value={field.value ?? ''}
-                        onChange={(event) => field.onChange(event.target.value)}
-                        name={field.name}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('Merchant API certificate serial number')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='WeChatPayKeyPath'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Key Path')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder='/root/.certs/wechat'
-                        autoComplete='off'
-                        value={field.value ?? ''}
-                        onChange={(event) => field.onChange(event.target.value)}
-                        name={field.name}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('Directory containing apiclient_key.pem and wechatpay_cert.pem')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className='grid gap-6 md:grid-cols-2'>
-              <FormField
-                control={form.control}
-                name='WeChatPayApiV3Key'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('API v3 Key')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='password'
-                        placeholder={t('Enter APIv3 key to update')}
-                        autoComplete='new-password'
-                        value={field.value ?? ''}
-                        onChange={(event) => field.onChange(event.target.value)}
-                        name={field.name}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('WeChat Pay APIv3 key (leave blank unless updating)')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='WeChatPayNativeCallbackURL'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Callback URL (optional)')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t('https://your-domain.com')}
-                        autoComplete='off'
-                        value={field.value ?? ''}
-                        onChange={(event) => field.onChange(event.target.value)}
-                        name={field.name}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('Custom callback base URL. Leave blank to use server address')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className='grid gap-6 md:grid-cols-2'>
-              <FormField
-                control={form.control}
-                name='WeChatPayNativeCloseOrderGap'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Close Order Gap (minutes)')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type='number'
-                        min={1}
-                        step={1}
-                        {...safeNumberFieldProps(field)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('Minutes before unpaid orders are automatically closed (default: 30)')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-
-          <Separator />
-
-          <WaffoPancakeSettingsSection
-            defaultValues={waffoPancakeDefaultValues}
-            values={waffoPancakeValues}
-            onValueChange={setWaffoPancakeValue}
-            selectedBinding={waffoPancakeSelection}
-            savedBinding={waffoPancakeSavedBinding}
-            onSelectedBindingChange={setWaffoPancakeSelection}
-          />
+            <TabsContent value='epay' className={paymentTabContentClassName}>
+              <div className='space-y-4'>
+                <div>
+                  <h3 className='text-lg font-medium'>{t('Epay Gateway')}</h3>
+                  <p className='text-muted-foreground text-sm'>
+                    {t('Configuration for Epay payment integration')}
+                  </p>
+                </div>
 
                 <Alert>
                   <ShieldAlert className='h-4 w-4' />
@@ -1664,29 +1172,6 @@ export function PaymentSettingsSection({
                 </Alert>
 
                 <div className='grid gap-6 md:grid-cols-2'>
-                  <FormField
-                    control={form.control}
-                    name='PayAddress'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Epay endpoint')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder={t('https://pay.example.com')}
-                            {...field}
-                            onChange={(event) =>
-                              field.onChange(event.target.value)
-                            }
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('Base address provided by your Epay service')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <FormField
                     control={form.control}
                     name='CustomCallbackAddress'
@@ -1706,54 +1191,6 @@ export function PaymentSettingsSection({
                           {t(
                             'Only enter the site origin, for example https://api.example.com. Do not include any path such as /api/user/epay/notify. Leave blank to use the server address.'
                           )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className='grid gap-6 md:grid-cols-2'>
-                  <FormField
-                    control={form.control}
-                    name='EpayId'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Epay merchant ID')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder='10001'
-                            autoComplete='off'
-                            {...field}
-                            onChange={(event) =>
-                              field.onChange(event.target.value)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name='EpayKey'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Epay secret key')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type='password'
-                            placeholder={t('Enter new key to update')}
-                            autoComplete='new-password'
-                            {...field}
-                            onChange={(event) =>
-                              field.onChange(event.target.value)
-                            }
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('Leave blank unless rotating the secret')}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -2131,6 +1568,234 @@ export function PaymentSettingsSection({
                 payMethods={waffoPayMethods}
                 onPayMethodsChange={setWaffoPayMethods}
               />
+            </TabsContent>
+
+            <TabsContent value='wechat-pay' className={paymentTabContentClassName}>
+              <div className='space-y-4'>
+                <div>
+                  <h3 className='text-lg font-medium'>{t('WeChat Pay Native')}</h3>
+                  <p className='text-muted-foreground text-sm'>
+                    {t('Configuration for WeChat Pay APIv3 Native payment')}
+                  </p>
+                </div>
+
+                <div className='rounded-md bg-blue-50 p-4 text-sm text-blue-900 dark:bg-blue-950 dark:text-blue-100'>
+                  <p className='mb-2 font-medium'>{t('Prerequisites:')}</p>
+                  <ul className='list-inside list-disc space-y-1'>
+                    <li>{t('WeChat Pay merchant account with Native payment enabled')}</li>
+                    <li>{t('Merchant APIv3 key and certificate (apiclient_key.pem)')}</li>
+                    <li>{t('Platform certificate (wechatpay_cert.pem) in the key path directory')}</li>
+                    <li>
+                      {t('Callback URL:')}{' '}
+                      <code className='rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900'>
+                        {'<ServerAddress>/api/wechat-pay/notify'}
+                      </code>
+                    </li>
+                  </ul>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name='WeChatPayNativeEnabled'
+                  render={({ field }) => (
+                    <SettingsSwitchItem>
+                      <SettingsSwitchContent>
+                        <FormLabel>{t('Enable WeChat Pay')}</FormLabel>
+                        <FormDescription>
+                          {t('Allow users to top up via WeChat Pay Native QR code')}
+                        </FormDescription>
+                      </SettingsSwitchContent>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </SettingsSwitchItem>
+                  )}
+                />
+
+                <div className='grid gap-6 md:grid-cols-2'>
+                  <FormField
+                    control={form.control}
+                    name='WeChatPayNativeAppId'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('App ID')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder='wx1bb077ee0b6e3c5e'
+                            autoComplete='off'
+                            value={field.value ?? ''}
+                            onChange={(event) => field.onChange(event.target.value)}
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t('WeChat Pay merchant AppID (from WeChat Pay merchant platform)')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='WeChatPayMachId'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Merchant ID')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder='1234567890'
+                            autoComplete='off'
+                            value={field.value ?? ''}
+                            onChange={(event) => field.onChange(event.target.value)}
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t('WeChat Pay merchant ID (mchid)')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className='grid gap-6 md:grid-cols-2'>
+                  <FormField
+                    control={form.control}
+                    name='WeChatPaySerial'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Certificate Serial No.')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder='PUB_KEY_ID_0116838097082025062000452394000602'
+                            autoComplete='off'
+                            value={field.value ?? ''}
+                            onChange={(event) => field.onChange(event.target.value)}
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t('Merchant API certificate serial number')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='WeChatPayKeyPath'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Key Path')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder='/root/.certs/wechat'
+                            autoComplete='off'
+                            value={field.value ?? ''}
+                            onChange={(event) => field.onChange(event.target.value)}
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t('Directory containing apiclient_key.pem and wechatpay_cert.pem')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className='grid gap-6 md:grid-cols-2'>
+                  <FormField
+                    control={form.control}
+                    name='WeChatPayApiV3Key'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('API v3 Key')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='password'
+                            placeholder={t('Enter APIv3 key to update')}
+                            autoComplete='new-password'
+                            value={field.value ?? ''}
+                            onChange={(event) => field.onChange(event.target.value)}
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t('WeChat Pay APIv3 key (leave blank unless updating)')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='WeChatPayNativeCallbackURL'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Callback URL (optional)')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={t('https://your-domain.com')}
+                            autoComplete='off'
+                            value={field.value ?? ''}
+                            onChange={(event) => field.onChange(event.target.value)}
+                            name={field.name}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t('Custom callback base URL. Leave blank to use server address')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className='grid gap-6 md:grid-cols-2'>
+                  <FormField
+                    control={form.control}
+                    name='WeChatPayNativeCloseOrderGap'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Close Order Gap (minutes)')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={1}
+                            step={1}
+                            {...safeNumberFieldProps(field)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t('Minutes before unpaid orders are automatically closed (default: 30)')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </SettingsForm>

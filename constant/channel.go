@@ -58,6 +58,7 @@ const (
 	ChannelTypeAzureFoundry   = 58
 	ChannelTypeAliOCR         = 59
 	ChannelTypeOcrSelf        = 60
+	ChannelTypeAdvancedCustom = 61
 	ChannelTypeDummy          // this one is only for count, do not add any channel after this
 
 )
@@ -184,6 +185,7 @@ var ChannelTypeNames = map[int]string{
 	ChannelTypeAzureFoundry:   "AzureFoundry",
 	ChannelTypeAliOCR:         "AliOCR",
 	ChannelTypeOcrSelf:        "OcrSelf",
+	ChannelTypeAdvancedCustom: "Advanced Custom",
 }
 
 func GetChannelTypeName(channelType int) string {
