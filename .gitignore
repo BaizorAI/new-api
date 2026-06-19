@@ -8,6 +8,7 @@ upload
 build
 *.db-journal
 logs
+*.log
 web/default/dist
 web/node_modules
 web/dist
