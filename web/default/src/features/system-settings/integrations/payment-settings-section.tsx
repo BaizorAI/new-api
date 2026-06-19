@@ -296,34 +296,31 @@ export function PaymentSettingsSection({
     [t]
   )
 
-  const complianceRequiredText = t(
-    'I have read and understood the above compliance reminder, acknowledge the related legal risks, and confirm that I bear legal responsibility arising from deployment, operation, and charging behavior.'
-  )
   const complianceRequiredTextParts = React.useMemo(
     () => [
       {
         type: 'input' as const,
         text: t('I have read and understood the above compliance reminder'),
       },
-      { type: 'static' as const, text: t('，') },
+      { type: 'static' as const, text: t(', ') },
       {
         type: 'input' as const,
         text: t('acknowledge the related legal risks'),
       },
-      { type: 'static' as const, text: t('，and ') },
+      { type: 'static' as const, text: t(', and ') },
       {
         type: 'input' as const,
         text: t(
-          'confirm that I bear legal responsibility arising from deployment'
+          'confirm that I bear legal responsibility arising from deployment, operation, and charging behavior'
         ),
-      },
-      { type: 'static' as const, text: t('、') },
-      {
-        type: 'input' as const,
-        text: t('operation and charging behavior'),
       },
     ],
     [t]
+  )
+
+  const complianceRequiredText = React.useMemo(
+    () => complianceRequiredTextParts.map((part) => part.text).join(''),
+    [complianceRequiredTextParts]
   )
 
   const complianceConfirmed =
