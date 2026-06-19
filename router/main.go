@@ -26,6 +26,10 @@ func SetRouter(router *gin.Engine, assets ThemeAssets) {
 	// Serve standalone download/install files
 	router.Static("/install", "./install")
 
+	// Serve persisted OCR audit data.
+	// Files are written by relay/channel/ocrali/persistOCRData under /data/ocr.
+	router.Static("/ocr", "./ocr")
+
 	frontendBaseUrl := os.Getenv("FRONTEND_BASE_URL")
 	if common.IsMasterNode && frontendBaseUrl != "" {
 		frontendBaseUrl = ""
