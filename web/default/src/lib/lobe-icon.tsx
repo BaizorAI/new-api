@@ -28,6 +28,23 @@ For commercial licensing, please contact support@quantumnous.com
 import * as LobeIcons from '@lobehub/icons'
 
 /**
+ * Custom icon registry.
+ *
+ * To add your own icon:
+ * 1. Place the SVG file under src/assets/icons/
+ * 2. Import it here
+ * 3. Add a name → component mapping below
+ *
+ * The name you choose here is what you pass to getLobeIcon(),
+ * e.g. getLobeIcon("Baizor.Avatar", 24)
+ */
+const CUSTOM_ICONS: Record<string, React.ComponentType<Record<string, unknown>>> = {
+  // Example:
+  // "Baizor.Avatar": BaizorAvatar,
+  // "MyIcon": MyIconComponent,
+}
+
+/**
  * Parse a property value from string to appropriate type
  * @param raw - Raw string value
  * @returns Parsed value (boolean, number, or string)
@@ -102,6 +119,14 @@ export function getLobeIcon(
   // Parse component path and chained properties
   const segments = trimmedName.split('.')
   const baseKey = segments[0]
+
+  // 1. Check custom icon registry first
+  const CustomComponent = CUSTOM_ICONS[baseKey]
+  if (CustomComponent) {
+    return <CustomComponent size={size} />
+  }
+
+  // 2. Fall back to @lobehub/icons
   const BaseIcon = (LobeIcons as Record<string, unknown>)[baseKey] as
     | Record<string, unknown>
     | undefined
