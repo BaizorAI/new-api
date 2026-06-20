@@ -16,18 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { toast } from 'sonner'
+import { createContext } from 'react'
 
-export function showSubmittedData(
-  data: unknown,
-  title: string = 'You submitted the following values:'
-) {
-  toast.message(title, {
-    description: (
-      // w-[340px]
-      <pre className='bg-muted text-foreground mt-2 w-full overflow-x-auto rounded-md p-4'>
-        <code>{JSON.stringify(data, null, 2)}</code>
-      </pre>
-    ),
-  })
-}
+/**
+ * Where the channel row actions are being rendered. In the card view we
+ * surface the "Test Connection" action as an inline button next to the quick
+ * test; in the table it stays inside the overflow menu.
+ */
+export type ChannelRowActionsLayout = 'table' | 'card'
+
+export const ChannelRowActionsLayoutContext =
+  createContext<ChannelRowActionsLayout>('table')
