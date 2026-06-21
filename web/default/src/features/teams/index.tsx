@@ -33,7 +33,7 @@ import {
   UserPlus,
   WalletCards,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -107,11 +107,20 @@ import {
   listTeams,
   removeTeamMember,
   revealTeamTokenKey,
+  searchTeamMemberCandidates,
   transferQuotaToTeam,
+  updateTeamMemberRole,
   updateTeamToken,
   updateTeamTokenStatus,
 } from './api'
-import type { Team, TeamDetail, TeamRole, TeamToken } from './types'
+import type {
+  Team,
+  TeamDetail,
+  TeamMember,
+  TeamMemberCandidate,
+  TeamRole,
+  TeamToken,
+} from './types'
 
 const ROLE_OPTIONS: TeamRole[] = ['admin', 'member', 'viewer']
 
@@ -166,6 +175,14 @@ export function Teams() {
   const [ccSwitchKey, setCcSwitchKey] = useState('')
   const [teamName, setTeamName] = useState('')
   const [memberIdentifier, setMemberIdentifier] = useState('')
+  const [memberCandidates, setMemberCandidates] = useState<
+    TeamMemberCandidate[]
+  >([])
+  const [memberSearchOpen, setMemberSearchOpen] = useState(false)
+  const [memberSearching, setMemberSearching] = useState(false)
+  const [updatingMemberRoleId, setUpdatingMemberRoleId] = useState<
+    number | null
+  >(null)
   const [memberRole, setMemberRole] = useState<TeamRole>('member')
   const [quota, setQuota] = useState('')
   const [models, setModels] = useState<string[]>([])
@@ -177,11 +194,14 @@ export function Teams() {
   const [tokenAllowIps, setTokenAllowIps] = useState('')
   const [tokenGroup, setTokenGroup] = useState('')
   const [tokenCrossGroupRetry, setTokenCrossGroupRetry] = useState(false)
+  const memberSearchRef = useRef<HTMLDivElement>(null)
+  const memberSearchSeq = useRef(0)
 
   const selectedTeam =
     detail?.team ?? teams.find((team) => team.id === selectedTeamId)
   const canManage =
     selectedTeam?.role === 'owner' || selectedTeam?.role === 'admin'
+  const canChangeMemberRoles = selectedTeam?.role === 'owner'
   const { meta: currencyMeta } = getCurrencyDisplay()
   const currencyLabel = getCurrencyLabel()
   const tokensOnly = currencyMeta.kind === 'tokens'
@@ -245,6 +265,63 @@ export function Teams() {
       setDetail(null)
     }
   }, [loadDetail, selectedTeamId])
+
+  useEffect(() => {
+    setMemberIdentifier('')
+    setMemberCandidates([])
+    setMemberSearchOpen(false)
+    setMemberSearching(false)
+  }, [selectedTeamId])
+
+  useEffect(() => {
+    if (!memberSearchOpen) return
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        memberSearchRef.current &&
+        !memberSearchRef.current.contains(event.target as Node)
+      ) {
+        setMemberSearchOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [memberSearchOpen])
+
+  useEffect(() => {
+    const keyword = memberIdentifier.trim()
+    const requestSeq = memberSearchSeq.current + 1
+    memberSearchSeq.current = requestSeq
+
+    if (!selectedTeamId || !canManage || !keyword) {
+      setMemberCandidates([])
+      setMemberSearching(false)
+      return
+    }
+
+    setMemberSearching(true)
+    setMemberCandidates([])
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await searchTeamMemberCandidates(selectedTeamId, keyword)
+        if (memberSearchSeq.current !== requestSeq) return
+        setMemberCandidates(
+          res.success && res.data ? res.data.slice(0, 10) : []
+        )
+      } catch {
+        if (memberSearchSeq.current === requestSeq) {
+          setMemberCandidates([])
+        }
+      } finally {
+        if (memberSearchSeq.current === requestSeq) {
+          setMemberSearching(false)
+        }
+      }
+    }, 200)
+
+    return () => window.clearTimeout(timer)
+  }, [canManage, memberIdentifier, selectedTeamId])
 
   const stats = useMemo(
     () => [
@@ -328,6 +405,8 @@ export function Teams() {
     if (res.success) {
       toast.success(t('Member added'))
       setMemberIdentifier('')
+      setMemberCandidates([])
+      setMemberSearchOpen(false)
       await loadDetail(selectedTeamId)
     }
   }
@@ -434,6 +513,32 @@ export function Teams() {
     }
   }
 
+  async function handleUpdateMemberRole(member: TeamMember, role: TeamRole) {
+    if (!selectedTeamId || member.role === role) return
+    setUpdatingMemberRoleId(member.user_id)
+    try {
+      const res = await updateTeamMemberRole(
+        selectedTeamId,
+        member.user_id,
+        role
+      )
+      if (res.success) {
+        toast.success(t('Member role updated'))
+        await loadDetail(selectedTeamId)
+      }
+    } finally {
+      setUpdatingMemberRoleId(null)
+    }
+  }
+
+  function handleSelectMemberCandidate(candidate: TeamMemberCandidate) {
+    setMemberIdentifier(candidate.username || candidate.email)
+    setMemberSearchOpen(false)
+  }
+
+  const showMemberSearchDropdown =
+    memberSearchOpen && memberIdentifier.trim() !== ''
+
   return (
     <>
       <SectionPageLayout fixedContent>
@@ -524,13 +629,77 @@ export function Teams() {
                       <CardContent className='space-y-4'>
                         {canManage ? (
                           <div className='grid gap-2 sm:grid-cols-[minmax(0,1fr)_128px_auto]'>
-                            <Input
-                              value={memberIdentifier}
-                              onChange={(event) =>
-                                setMemberIdentifier(event.target.value)
-                              }
-                              placeholder={t('Username or email')}
-                            />
+                            <div ref={memberSearchRef} className='relative'>
+                              <Input
+                                value={memberIdentifier}
+                                onChange={(event) => {
+                                  setMemberIdentifier(event.target.value)
+                                  setMemberSearchOpen(true)
+                                }}
+                                onFocus={() => {
+                                  if (memberIdentifier.trim()) {
+                                    setMemberSearchOpen(true)
+                                  }
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Escape') {
+                                    setMemberSearchOpen(false)
+                                  }
+                                }}
+                                placeholder={t(
+                                  'Search username, display name, or email'
+                                )}
+                              />
+                              {showMemberSearchDropdown ? (
+                                <div className='bg-popover text-popover-foreground absolute top-full left-0 z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-md border p-1 shadow-md'>
+                                  {memberCandidates.length > 0 ? (
+                                    <div role='listbox'>
+                                      {memberCandidates.map((candidate) => {
+                                        const secondary = [
+                                          candidate.username
+                                            ? `@${candidate.username}`
+                                            : '',
+                                          candidate.email,
+                                        ]
+                                          .filter(Boolean)
+                                          .join(' - ')
+
+                                        return (
+                                          <button
+                                            key={candidate.id}
+                                            type='button'
+                                            role='option'
+                                            className='hover:bg-accent hover:text-accent-foreground flex w-full min-w-0 flex-col rounded-sm px-2 py-1.5 text-left text-sm'
+                                            onMouseDown={(event) => {
+                                              event.preventDefault()
+                                              handleSelectMemberCandidate(
+                                                candidate
+                                              )
+                                            }}
+                                          >
+                                            <span className='truncate font-medium'>
+                                              {candidate.display_name ||
+                                                candidate.username}
+                                            </span>
+                                            {secondary ? (
+                                              <span className='text-muted-foreground truncate text-xs'>
+                                                {secondary}
+                                              </span>
+                                            ) : null}
+                                          </button>
+                                        )
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <div className='text-muted-foreground px-2 py-3 text-sm'>
+                                      {memberSearching
+                                        ? t('Searching users...')
+                                        : t('No matching users')}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : null}
+                            </div>
                             <Select
                               items={ROLE_OPTIONS.map((role) => ({
                                 value: role,
@@ -582,9 +751,48 @@ export function Teams() {
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <Badge variant='secondary'>
-                                    {roleLabel(member.role, t)}
-                                  </Badge>
+                                  {canChangeMemberRoles &&
+                                  member.role !== 'owner' ? (
+                                    <Select
+                                      items={ROLE_OPTIONS.map((role) => ({
+                                        value: role,
+                                        label: roleLabel(role, t),
+                                      }))}
+                                      value={member.role}
+                                      onValueChange={(value) => {
+                                        if (value) {
+                                          handleUpdateMemberRole(
+                                            member,
+                                            value as TeamRole
+                                          )
+                                        }
+                                      }}
+                                      disabled={
+                                        updatingMemberRoleId === member.user_id
+                                      }
+                                    >
+                                      <SelectTrigger className='w-32' size='sm'>
+                                        <SelectValue>
+                                          {roleLabel(member.role, t)}
+                                        </SelectValue>
+                                      </SelectTrigger>
+                                      <SelectContent
+                                        alignItemWithTrigger={false}
+                                      >
+                                        <SelectGroup>
+                                          {ROLE_OPTIONS.map((role) => (
+                                            <SelectItem key={role} value={role}>
+                                              {roleLabel(role, t)}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectGroup>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <Badge variant='secondary'>
+                                      {roleLabel(member.role, t)}
+                                    </Badge>
+                                  )}
                                 </TableCell>
                                 <TableCell>
                                   {canManage && member.role !== 'owner' ? (

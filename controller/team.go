@@ -21,6 +21,10 @@ type addTeamMemberRequest struct {
 	Role            string `json:"role"`
 }
 
+type updateTeamMemberRoleRequest struct {
+	Role string `json:"role"`
+}
+
 type teamQuotaTransferRequest struct {
 	Quota int `json:"quota"`
 }
@@ -83,6 +87,44 @@ func AddTeamMember(c *gin.Context) {
 		return
 	}
 	member, err := model.AddTeamMemberByUsernameOrEmail(team.Id, req.UsernameOrEmail, req.Role)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, member)
+}
+
+func SearchTeamMemberCandidates(c *gin.Context) {
+	team, err := getManageableTeamForCurrentUser(c)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	candidates, err := model.SearchTeamMemberCandidates(team.Id, c.Query("keyword"), 10)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, candidates)
+}
+
+func UpdateTeamMemberRole(c *gin.Context) {
+	team, err := getOwnedTeamForCurrentUser(c)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	userId, err := strconv.Atoi(c.Param("user_id"))
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	req := updateTeamMemberRoleRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	member, err := model.UpdateTeamMemberRole(team.Id, userId, req.Role)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -335,6 +377,17 @@ func getManageableTeamForCurrentUser(c *gin.Context) (*model.TeamWithRole, error
 	}
 	if !model.CanManageTeamRole(team.Role) {
 		return nil, fmt.Errorf("no permission to manage team")
+	}
+	return team, nil
+}
+
+func getOwnedTeamForCurrentUser(c *gin.Context) (*model.TeamWithRole, error) {
+	team, err := getTeamForCurrentUser(c)
+	if err != nil {
+		return nil, err
+	}
+	if team.Role != model.TeamRoleOwner {
+		return nil, fmt.Errorf("only team owner can change member roles")
 	}
 	return team, nil
 }

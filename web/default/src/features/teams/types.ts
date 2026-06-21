@@ -45,6 +45,13 @@ export interface TeamMember {
   email: string
 }
 
+export interface TeamMemberCandidate {
+  id: number
+  username: string
+  display_name: string
+  email: string
+}
+
 export interface TeamToken {
   id: number
   user_id: number

@@ -52,6 +52,13 @@ type TeamMemberInfo struct {
 	Email       string `json:"email"`
 }
 
+type TeamMemberCandidate struct {
+	Id          int    `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"display_name"`
+	Email       string `json:"email"`
+}
+
 func NormalizeTeamRole(role string) string {
 	switch strings.ToLower(strings.TrimSpace(role)) {
 	case TeamRoleOwner:
@@ -157,6 +164,31 @@ func ListTeamMembers(teamId int) ([]TeamMemberInfo, error) {
 	return members, err
 }
 
+func SearchTeamMemberCandidates(teamId int, keyword string, limit int) ([]TeamMemberCandidate, error) {
+	keyword = strings.TrimSpace(keyword)
+	if keyword == "" {
+		return []TeamMemberCandidate{}, nil
+	}
+	if limit <= 0 || limit > 10 {
+		limit = 10
+	}
+
+	var candidates []TeamMemberCandidate
+	like := "%" + keyword + "%"
+	memberSubQuery := DB.Model(&TeamMember{}).
+		Select("user_id").
+		Where("team_id = ? AND status = ?", teamId, TeamStatusEnabled)
+	err := DB.Model(&User{}).
+		Select("id, username, display_name, email").
+		Where("status = ?", common.UserStatusEnabled).
+		Where("(username LIKE ? OR email LIKE ? OR display_name LIKE ?)", like, like, like).
+		Where("id NOT IN (?)", memberSubQuery).
+		Order("id desc").
+		Limit(limit).
+		Find(&candidates).Error
+	return candidates, err
+}
+
 func AddTeamMemberByUsernameOrEmail(teamId int, identifier string, role string) (*TeamMember, error) {
 	identifier = strings.TrimSpace(identifier)
 	if identifier == "" {
@@ -188,6 +220,25 @@ func AddTeamMemberByUsernameOrEmail(teamId int, identifier string, role string) 
 		member.Status = TeamStatusEnabled
 		return tx.Create(member).Error
 	})
+	return member, err
+}
+
+func UpdateTeamMemberRole(teamId int, userId int, role string) (*TeamMember, error) {
+	role = NormalizeTeamRole(role)
+	if role == TeamRoleOwner {
+		return nil, errors.New("cannot set team owner role")
+	}
+
+	member := &TeamMember{}
+	if err := DB.Where("team_id = ? AND user_id = ? AND status = ?", teamId, userId, TeamStatusEnabled).First(member).Error; err != nil {
+		return nil, err
+	}
+	if member.Role == TeamRoleOwner {
+		return nil, errors.New("cannot change team owner role")
+	}
+
+	member.Role = role
+	err := DB.Model(member).Update("role", role).Error
 	return member, err
 }
 

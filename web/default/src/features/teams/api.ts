@@ -18,7 +18,16 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import { api } from '@/lib/api'
-import type { ApiResponse, Team, TeamDetail, TeamRole, TeamToken } from './types'
+
+import type {
+  ApiResponse,
+  Team,
+  TeamDetail,
+  TeamMember,
+  TeamMemberCandidate,
+  TeamRole,
+  TeamToken,
+} from './types'
 
 export async function listTeams(): Promise<ApiResponse<Team[]>> {
   const res = await api.get('/api/team/')
@@ -47,11 +56,32 @@ export async function addTeamMember(
   return res.data
 }
 
+export async function searchTeamMemberCandidates(
+  teamId: number,
+  keyword: string
+): Promise<ApiResponse<TeamMemberCandidate[]>> {
+  const res = await api.get(`/api/team/${teamId}/member_candidates`, {
+    params: { keyword },
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  return res.data
+}
+
 export async function removeTeamMember(
   teamId: number,
   userId: number
 ): Promise<ApiResponse> {
   const res = await api.delete(`/api/team/${teamId}/members/${userId}`)
+  return res.data
+}
+
+export async function updateTeamMemberRole(
+  teamId: number,
+  userId: number,
+  role: TeamRole
+): Promise<ApiResponse<TeamMember>> {
+  const res = await api.put(`/api/team/${teamId}/members/${userId}`, { role })
   return res.data
 }
 
@@ -106,9 +136,12 @@ export async function updateTeamTokenStatus(
   tokenId: number,
   status: number
 ): Promise<ApiResponse<TeamToken>> {
-  const res = await api.put(`/api/team/${teamId}/tokens/${tokenId}?status_only=true`, {
-    status,
-  })
+  const res = await api.put(
+    `/api/team/${teamId}/tokens/${tokenId}?status_only=true`,
+    {
+      status,
+    }
+  )
   return res.data
 }
 
