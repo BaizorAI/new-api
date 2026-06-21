@@ -120,3 +120,33 @@ func TestUpdateTeamMemberRole(t *testing.T) {
 	_, err = UpdateTeamMemberRole(team.Id, owner.UserId, TeamRoleViewer)
 	require.Error(t, err)
 }
+
+func TestTransferUserQuotaToTeam(t *testing.T) {
+	setupTeamTestDB(t)
+
+	user := User{
+		Username: "quota-user", Password: "password", Status: common.UserStatusEnabled,
+		Quota: 50000, AffCode: "aff-quota-user",
+	}
+	require.NoError(t, DB.Create(&user).Error)
+	team := Team{Name: "Quota Team", OwnerId: user.Id, Status: TeamStatusEnabled}
+	require.NoError(t, DB.Create(&team).Error)
+
+	require.NoError(t, TransferUserQuotaToTeam(user.Id, team.Id, 10000))
+
+	var savedUser User
+	require.NoError(t, DB.First(&savedUser, user.Id).Error)
+	assert.Equal(t, 40000, savedUser.Quota)
+
+	var savedTeam Team
+	require.NoError(t, DB.First(&savedTeam, team.Id).Error)
+	assert.Equal(t, 10000, savedTeam.Quota)
+
+	err := TransferUserQuotaToTeam(user.Id, team.Id, 50000)
+	require.Error(t, err)
+
+	require.NoError(t, DB.First(&savedUser, user.Id).Error)
+	assert.Equal(t, 40000, savedUser.Quota)
+	require.NoError(t, DB.First(&savedTeam, team.Id).Error)
+	assert.Equal(t, 10000, savedTeam.Quota)
+}

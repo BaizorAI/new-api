@@ -290,23 +290,33 @@ func TransferUserQuotaToTeam(userId int, teamId int, quota int) error {
 	if quota <= 0 {
 		return errors.New("quota must be greater than zero")
 	}
-	userQuota, err := GetUserQuota(userId, false)
-	if err != nil {
-		return err
-	}
-	if userQuota < quota {
-		return errors.New("user quota is not enough")
-	}
-	err = DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&User{}).Where("id = ?", userId).Update("quota", gorm.Expr("quota - ?", quota)).Error; err != nil {
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&User{}).
+			Where("id = ? AND quota >= ?", userId, quota).
+			Update("quota", gorm.Expr("quota - ?", quota))
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return errors.New("user quota is not enough")
+		}
+		if err := tx.Model(&Team{}).Where("id = ?", teamId).Update("quota", gorm.Expr("quota + ?", quota)).Error; err != nil {
 			return err
 		}
-		return tx.Model(&Team{}).Where("id = ?", teamId).Update("quota", gorm.Expr("quota + ?", quota)).Error
+		return nil
 	})
 	if err != nil {
 		return err
 	}
-	return updateUserQuotaCache(userId, userQuota-quota)
+	userQuota, err := GetUserQuota(userId, true)
+	if err != nil {
+		common.SysLog("failed to refresh user quota after team transfer: " + err.Error())
+		return nil
+	}
+	if err := updateUserQuotaCache(userId, userQuota); err != nil {
+		common.SysLog("failed to update user quota cache after team transfer: " + err.Error())
+	}
+	return nil
 }
 
 func UpdateTeamUsedQuotaAndRequestCount(teamId int, quota int) {

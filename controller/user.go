@@ -1033,6 +1033,9 @@ func ManageUser(c *gin.Context) {
 			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 			return
 		}
+		if err := model.InvalidateUserCache(user.Id); err != nil {
+			common.SysLog(fmt.Sprintf("failed to invalidate user cache after quota change for user %d: %s", user.Id, err.Error()))
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"message": "",
