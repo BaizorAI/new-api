@@ -91,33 +91,32 @@ interface StatItem {
   end: number
   suffix: string
   label: string
-  decimals?: number
 }
 
 export function Stats(_props: StatsProps) {
   const { t } = useTranslation()
 
   const stats: StatItem[] = [
-    { end: 50, suffix: '+', label: '合作高校与机构' },
-    { end: 100, suffix: '万+', label: '服务学习者' },
-    { end: 4, suffix: '项', label: '核心技能覆盖（听说读写）' },
-    { end: 99, suffix: '%', label: '教学满意度' },
+    { end: 40, suffix: '+', label: 'model service adaptors' },
+    { end: 10, suffix: '+', label: 'model access protocol families' },
+    { end: 3, suffix: '', label: 'platform distribution capabilities' },
+    { end: 6, suffix: '', label: 'console languages' },
   ]
 
   return (
     <div className='border-border/40 bg-muted/10 relative z-10 border-y'>
       <div className='mx-auto max-w-6xl px-6 py-10 md:py-12'>
         <div className='grid grid-cols-2 gap-8 md:grid-cols-4 md:gap-12'>
-          {stats.map((s) => (
+          {stats.map((stat) => (
             <div
-              key={s.label}
+              key={stat.label}
               className='flex flex-col items-center text-center'
             >
               <span className='text-2xl font-bold tracking-tight md:text-3xl'>
-                <Counter end={s.end} suffix={s.suffix} decimals={s.decimals} />
+                <Counter end={stat.end} suffix={stat.suffix} />
               </span>
               <span className='text-muted-foreground mt-1.5 text-xs'>
-                {s.label}
+                {t(stat.label)}
               </span>
             </div>
           ))}

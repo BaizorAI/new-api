@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Settings, Zap, BarChart3 } from 'lucide-react'
+import { BarChart3, KeyRound, Settings } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { AnimateInView } from '@/components/animate-in-view'
 
@@ -26,20 +26,20 @@ export function HowItWorks() {
   const steps = [
     {
       num: '1',
-      title: '配置教学环境',
-      desc: '快速搭建课程框架，导入教学资源，配置班级与学生信息，一键开启智慧课堂。',
+      title: 'Connect upstream providers',
+      desc: 'Add channels for OpenAI, Claude, Gemini, Azure, Bedrock and other providers, then configure models, groups, weights and health checks.',
       icon: <Settings className='size-6' strokeWidth={1.5} />,
     },
     {
       num: '2',
-      title: '开展AI教学',
-      desc: '利用AI智能辅助进行个性化教学，结合多模态资源与学生实时互动，提升教学效果。',
-      icon: <Zap className='size-6' strokeWidth={1.5} />,
+      title: 'Issue governed API tokens',
+      desc: 'Create user or application tokens with quota, group and model limits so clients can call a single compatible endpoint safely.',
+      icon: <KeyRound className='size-6' strokeWidth={1.5} />,
     },
     {
       num: '3',
-      title: '评估与优化',
-      desc: '通过智能评估系统追踪学习进度，生成学情分析报告，持续优化教学策略。',
+      title: 'Observe and settle usage',
+      desc: 'Pre-consume quota, route requests, retry failures, reconcile actual usage and review logs, billing details and performance metrics.',
       icon: <BarChart3 className='size-6' strokeWidth={1.5} />,
     },
   ]
@@ -49,18 +49,18 @@ export function HowItWorks() {
       <div className='mx-auto max-w-6xl'>
         <AnimateInView className='mb-16 text-center md:mb-20'>
           <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
-            使用流程
+            {t('Operating flow')}
           </p>
           <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
-            三步开启智慧中文教学
+            {t('From upstream keys to governed AI access in three steps')}
           </h2>
         </AnimateInView>
 
         <div className='grid gap-8 md:grid-cols-3 md:gap-12'>
-          {steps.map((step, i) => (
+          {steps.map((step, index) => (
             <AnimateInView
               key={step.num}
-              delay={i * 150}
+              delay={index * 150}
               animation='fade-up'
               className='relative flex flex-col items-center text-center'
             >
@@ -72,9 +72,9 @@ export function HowItWorks() {
                   {step.num}
                 </div>
               </div>
-              <h3 className='mb-2 text-base font-semibold'>{step.title}</h3>
-              <p className='text-muted-foreground max-w-[240px] text-sm leading-relaxed'>
-                {step.desc}
+              <h3 className='mb-2 text-base font-semibold'>{t(step.title)}</h3>
+              <p className='text-muted-foreground max-w-[260px] text-sm leading-relaxed'>
+                {t(step.desc)}
               </p>
             </AnimateInView>
           ))}

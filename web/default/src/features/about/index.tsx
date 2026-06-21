@@ -16,86 +16,83 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { Link } from '@tanstack/react-router'
 import {
-  Sparkles,
-  Globe,
-  GraduationCap,
-  MonitorSmartphone,
-  BookOpen,
-  Zap,
-  Shield,
   ArrowRight,
-  Users,
-  Target,
-  Mail,
-  Layers,
   BarChart3,
+  Database,
+  GitBranch,
+  KeyRound,
+  Mail,
+  Route,
+  Shield,
+  Sparkles,
+  WalletCards,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Link } from '@tanstack/react-router'
-import { Button } from '@/components/ui/button'
-import { PublicLayout } from '@/components/layout'
 import { AnimateInView } from '@/components/animate-in-view'
+import { PublicLayout } from '@/components/layout'
+import { Button } from '@/components/ui/button'
 import { useStatus } from '@/hooks/use-status'
 
-const features = [
+const capabilities = [
   {
-    icon: <Zap className='size-5 text-blue-500' />,
-    title: 'AI 智能辅助',
-    desc: '基于大语言模型的智能答疑、个性化学习路径推荐与自动作业批改，为每位学习者提供专属导师般的指导。',
+    icon: <Route className='size-5 text-blue-500' />,
+    title: 'Localization and Xinchuang readiness',
+    desc: 'Support private, intranet and trusted deployment needs for localized infrastructure and Xinchuang-oriented environments.',
   },
   {
-    icon: <Globe className='size-5 text-violet-500' />,
-    title: '多模态教学资源',
-    desc: '整合文字、语音、视频、动画等丰富媒体资源，构建沉浸式中文学习环境，让知识变得生动有趣。',
+    icon: <GitBranch className='size-5 text-violet-500' />,
+    title: 'Unified compute access',
+    desc: 'Bring multi-source compute, private model services and external intelligent models into one governed AI Hub capability pool.',
   },
   {
-    icon: <MonitorSmartphone className='size-5 text-emerald-500' />,
-    title: '智慧教室融合',
-    desc: '线上线下一体化教学管理，支持实时课堂互动、分组讨论、即时测验与学情反馈，打造高效智慧课堂。',
+    icon: <WalletCards className='size-5 text-emerald-500' />,
+    title: 'Intelligent model scheduling',
+    desc: 'Coordinate model selection, priority, weight, tags, groups, health signals and fallback strategies for different business scenarios.',
   },
   {
-    icon: <GraduationCap className='size-5 text-amber-500' />,
-    title: '智能评估系统',
-    desc: '覆盖听、说、读、写全技能的综合评测体系，基于AI的自动化评分与学情分析报告，精准定位学习薄弱点。',
+    icon: <Shield className='size-5 text-amber-500' />,
+    title: 'Routing middleware',
+    desc: 'Provide transparent routing, exception handling, access control and policy distribution from the platform layer.',
   },
   {
-    icon: <Users className='size-5 text-rose-500' />,
-    title: '团队协作',
-    desc: '多教师管理、学生分组与灵活权限分配，支持机构级多校区、多班级统一管理。',
+    icon: <Database className='size-5 text-cyan-500' />,
+    title: 'AI resource governance',
+    desc: 'Control users, application credentials, model permissions, quota boundaries, request logs and security audit records.',
   },
   {
-    icon: <Shield className='size-5 text-cyan-500' />,
-    title: '数据安全',
-    desc: '企业级数据加密与隐私保护，完善的权限管理体系，确保教学过程与学习者数据安全无忧。',
+    icon: <BarChart3 className='size-5 text-rose-500' />,
+    title: 'Flexible deployment',
+    desc: 'Run with SQLite, MySQL or PostgreSQL, optionally enable Redis, and deploy as a single Go service or separated frontend topology.',
   },
-]
+] as const
 
-const scenarios = [
+const audiences = [
   {
-    title: '传文化之美',
-    desc: '为高校国际教育学院提供完整的汉语作为第二语言教学解决方案，覆盖初级到高级各阶段课程。',
+    title: 'Government and enterprise teams',
+    desc: 'Build a unified, trusted and auditable AI capability foundation under localization and Xinchuang requirements.',
   },
   {
-    title: '华文教育机构',
-    desc: '助力海外华文学校与培训机构实现数字化转型，提升教学效率与学习者满意度。',
+    title: 'AI platform operators',
+    desc: 'Manage models, compute, users, applications, quotas, logs and security policies from one AI platform.',
   },
   {
-    title: '企业中文培训',
-    desc: '为跨国企业员工的汉语培训提供智能化平台，支持商务汉语、日常交际等定制化课程。',
+    title: 'Operations and infrastructure teams',
+    desc: 'Bring multi-source compute, local models and external model services into a unified operating system.',
   },
   {
-    title: '个人自主学习',
-    desc: '为中文爱好者提供个性化学习路径与AI陪练，随时随地享受高质量的中文学习体验。',
+    title: 'Business application teams',
+    desc: 'Use stable, governed intelligent capabilities without repeatedly handling model access, scheduling and audit concerns.',
   },
-]
+] as const
 
 const stats = [
-  { num: '50+', label: '合作高校与机构' },
-  { num: '100万+', label: '服务学习者' },
-  { num: '4', label: '核心技能覆盖' },
-  { num: '99%', label: '教学满意度' },
-]
+  { num: '40+', label: 'model service adaptors' },
+  { num: '10+', label: 'model access protocol families' },
+  { num: '3', label: 'platform distribution capabilities' },
+  { num: '6', label: 'console languages' },
+] as const
 
 function About() {
   const { t } = useTranslation()
@@ -104,221 +101,24 @@ function About() {
 
   return (
     <PublicLayout>
-      <div className='mx-auto max-w-5xl space-y-16 py-12 md:py-20'>
-      {/* Hero */}
-      <AnimateInView className='text-center'>
-        <div className='mb-6 flex justify-center'>
-          <div className='flex size-20 items-center justify-center rounded-3xl border border-blue-500/15 bg-blue-500/5 shadow-sm'>
-            <Sparkles className='size-10 text-blue-500' />
-          </div>
-        </div>
-        <h1 className='text-4xl font-bold tracking-tight md:text-5xl'>
-          白泽AI平台
-        </h1>
-        <p className='text-muted-foreground mx-auto mt-4 max-w-2xl text-lg leading-relaxed'>
-          用「通晓万物、洞悉智慧」的AI力量，为全球中文学习者带来智能、全面、个性化的教学指导。
-        </p>
-        <div className='mt-8 flex items-center justify-center gap-3'>
-          <Button className='group rounded-lg' render={<Link to='/docs' />}>
-            查看文档
-            <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
-          </Button>
-          <Button
-            variant='outline'
-            className='border-border/50 hover:border-border hover:bg-muted/50 rounded-lg'
-            render={<Link to='/' />}
-          >
-            返回首页
-          </Button>
-        </div>
-      </AnimateInView>
-
-      {/* Stats */}
-      <AnimateInView delay={100}>
-        <div className='border-border/40 bg-muted/20 rounded-2xl border p-8'>
-          <div className='grid grid-cols-2 gap-6 md:grid-cols-4'>
-            {stats.map((s) => (
-              <div key={s.label} className='text-center'>
-                <div className='text-3xl font-bold tracking-tight text-foreground'>
-                  {s.num}
-                </div>
-                <div className='text-muted-foreground mt-1 text-sm'>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </AnimateInView>
-
-      {/* Mission */}
-      <AnimateInView delay={100}>
-        <div className='border-border/40 bg-muted/20 relative overflow-hidden rounded-2xl border p-8 md:p-10'>
-          <div
-            aria-hidden
-            className='pointer-events-none absolute -top-20 -right-20 size-64 opacity-20 dark:opacity-10'
-            style={{
-              background:
-                'radial-gradient(circle, oklch(0.65 0.15 250 / 60%) 0%, transparent 70%)',
-            }}
-          />
-          <div className='relative flex flex-col gap-6 md:flex-row md:items-center md:gap-10'>
-            <div className='shrink-0'>
-              <div className='flex size-14 items-center justify-center rounded-2xl border border-amber-500/15 bg-amber-500/5'>
-                <Target className='size-7 text-amber-500' />
-              </div>
-            </div>
-            <div>
-              <h2 className='text-xl font-bold'>我们的使命</h2>
-              <p className='text-muted-foreground mt-2 leading-relaxed'>
-                白泽AI平台由白泽团队倾力打造，致力于将前沿人工智能技术与文化深度融合。
-                我们相信，每一位学习者都值得拥有个性化、智能化、全方位的学习体验。
-                通过AI的力量，我们让听、说、读、写教学变得更加高效、生动、有趣，
-                助力文化走向世界，连接全球学习者的心。
-              </p>
+      <div className='mx-auto max-w-5xl space-y-16 px-4 py-12 md:py-20'>
+        <AnimateInView className='text-center'>
+          <div className='mb-6 flex justify-center'>
+            <div className='flex size-20 items-center justify-center rounded-3xl border border-blue-500/15 bg-blue-500/5 shadow-sm'>
+              <Sparkles className='size-10 text-blue-500' />
             </div>
           </div>
-        </div>
-      </AnimateInView>
-
-      {/* Features Grid */}
-      <section>
-        <AnimateInView className='mb-10 text-center'>
-          <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
-            核心能力
-          </h2>
-          <p className='text-muted-foreground mt-2'>
-            六大核心模块，构建完整的智慧中文教学生态
+          <h1 className='text-4xl font-bold tracking-tight md:text-5xl'>
+            {t('About Baize AI Platform')}
+          </h1>
+          <p className='text-muted-foreground mx-auto mt-4 max-w-2xl text-lg leading-relaxed'>
+            {t(
+              'Baize AI Platform connects model services, applications and governance capabilities so organizations can use AI through a stable, controllable and observable operating layer.'
+            )}
           </p>
-        </AnimateInView>
-        <div className='grid gap-5 md:grid-cols-2 lg:grid-cols-3'>
-          {features.map((f, i) => (
-            <AnimateInView key={f.title} delay={i * 80} animation='fade-up'>
-              <div className='border-border/40 bg-muted/20 group hover:bg-muted/30 h-full rounded-xl border p-6 transition-colors duration-300'>
-                <div className='mb-4 flex items-center gap-3'>
-                  <div className='flex size-10 items-center justify-center rounded-xl border border-border/40 bg-background shadow-sm'>
-                    {f.icon}
-                  </div>
-                  <h3 className='font-semibold'>{f.title}</h3>
-                </div>
-                <p className='text-muted-foreground text-sm leading-relaxed'>
-                  {f.desc}
-                </p>
-              </div>
-            </AnimateInView>
-          ))}
-        </div>
-      </section>
-
-      {/* Scenarios */}
-      <section>
-        <AnimateInView className='mb-10 text-center'>
-          <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
-            应用场景
-          </h2>
-          <p className='text-muted-foreground mt-2'>
-            多元化的教学场景，满足不同层次的中文学习需求
-          </p>
-        </AnimateInView>
-        <div className='grid gap-5 md:grid-cols-2'>
-          {scenarios.map((s, i) => (
-            <AnimateInView key={s.title} delay={i * 100} animation='fade-up'>
-              <div className='border-border/40 bg-muted/20 group hover:bg-muted/30 h-full rounded-xl border p-6 transition-colors duration-300'>
-                <div className='mb-3 flex items-center gap-3'>
-                  <Layers className='text-primary size-5' />
-                  <h3 className='font-semibold'>{s.title}</h3>
-                </div>
-                <p className='text-muted-foreground text-sm leading-relaxed'>
-                  {s.desc}
-                </p>
-              </div>
-            </AnimateInView>
-          ))}
-        </div>
-      </section>
-
-      {/* Legend */}
-      <AnimateInView delay={100}>
-        <div className='border-border/40 bg-muted/20 rounded-2xl border p-8 md:p-10'>
-          <div className='flex flex-col gap-6 md:flex-row md:items-start md:gap-10'>
-            <div className='shrink-0'>
-              <div className='flex size-14 items-center justify-center rounded-2xl border border-blue-500/15 bg-blue-500/5'>
-                <BookOpen className='size-7 text-blue-500' />
-              </div>
-            </div>
-            <div className='flex-1'>
-              <h2 className='text-xl font-bold'>「白泽」的传说与寓意</h2>
-              <div className='text-muted-foreground mt-4 space-y-3 leading-relaxed'>
-                <p>
-                  在中国古代神话中，白泽是地位崇高的祥瑞神兽，仅次于麒麟、凤凰、龙等顶级瑞兽。
-                  传说它通晓天下万物之情，能说人话，知晓所有鬼神精怪的名字、形貌与降服之法。
-                  黄帝曾亲往请教，将其所述记录成《白泽图》，以辨天下妖邪、护佑苍生平安。
-                </p>
-                <p>
-                  白泽象征着<strong>通晓万物、智慧洞察</strong>，亦代表着
-                  <strong>逢凶化吉、辟邪护佑</strong>。在盛世明君治下才会现世，是太平盛世的瑞兆。
-                </p>
-                <p>
-                  今天，我们将「白泽」之名赋予AI教育平台，寓意以人工智能之智，
-                  如白泽般<strong>无所不知、明察幽微</strong>，为全球中文学习者带来智慧、祥瑞与全面指导——
-                  让每一位学习者都能在中文世界中<strong>逢凶化吉、学而有道</strong>。
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </AnimateInView>
-
-      {/* Contact */}
-      <AnimateInView delay={100}>
-        <div className='border-border/40 bg-muted/20 rounded-2xl border p-8 md:p-10'>
-          <div className='flex flex-col gap-6 md:flex-row md:items-start md:gap-10'>
-            <div className='shrink-0'>
-              <div className='flex size-14 items-center justify-center rounded-2xl border border-emerald-500/15 bg-emerald-500/5'>
-                <Mail className='size-7 text-emerald-500' />
-              </div>
-            </div>
-            <div className='flex-1'>
-              <h2 className='text-xl font-bold'>联系我们</h2>
-              <p className='text-muted-foreground mt-2 leading-relaxed'>
-                如果您是高校、华文教育机构或企业，希望了解白泽AI平台的合作方案，
-                欢迎通过以下方式与我们取得联系。我们期待与您携手，共同推动传文化之美的智能化发展。
-              </p>
-              <div className='mt-4 flex flex-wrap gap-4 text-sm'>
-                <a
-                  href='https://github.com/BaizorAI/new-api'
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='text-primary hover:underline'
-                >
-                  GitHub 项目仓库
-                </a>
-                <span className='text-muted-foreground/40'>·</span>
-                <a
-                  href='https://github.com/BaizorAI'
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='text-primary hover:underline'
-                >
-                  BaizorAI 社区
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </AnimateInView>
-
-      {/* CTA */}
-      <AnimateInView delay={100} className='text-center'>
-        <div className='border-border/40 bg-muted/20 rounded-2xl border p-10'>
-          <BarChart3 className='text-muted-foreground/50 mx-auto size-10' />
-          <h2 className='mt-4 text-2xl font-bold'>
-            准备好开启智慧中文教学之旅了吗？
-          </h2>
-          <p className='text-muted-foreground mx-auto mt-3 max-w-lg'>
-            无论您是高校教师、华文教育机构，还是中文学习爱好者，白泽AI平台都将成为您最得力的智能助手。
-          </p>
-          <div className='mt-6 flex items-center justify-center gap-3'>
+          <div className='mt-8 flex flex-wrap items-center justify-center gap-3'>
             <Button className='group rounded-lg' render={<Link to='/docs' />}>
-              阅读文档
+              {t('Read docs')}
               <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
             </Button>
             <Button
@@ -326,65 +126,302 @@ function About() {
               className='border-border/50 hover:border-border hover:bg-muted/50 rounded-lg'
               render={<Link to='/' />}
             >
-              返回首页
+              {t('Back to home')}
             </Button>
           </div>
-        </div>
-      </AnimateInView>
+        </AnimateInView>
 
-      {/* Footer attribution */}
-      <div className='border-border/30 mt-8 border-t pt-8 text-center text-xs text-muted-foreground/60'>
-        <p>
-          <a
-            href='https://github.com/BaizorAI/new-api'
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-primary hover:underline'
-          >
-            {t('Baizor API')}
-          </a>{' '}
-          © {currentYear}{' '}
-          <a
-            href='https://github.com/BaizorAI'
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-primary hover:underline'
-          >
-            {t('BaizorAI')}
-          </a>{' '}
-          {t('| Based on')}{' '}
-            {t('One API')}
-            {' '}
-          © 2026{' '}
-            {t('QiMa')}
-        </p>
-        <p>
-            {t('NewAPI')}
-            {' '}
-          © {currentYear}{' '}
-            {t('QuantumNous')}
-            {' '}
-          {t('| Based on')}{' '}
-            {t('One API')}
-            {' '}
-          © 2023{' '}
-            {t('JustSong')}
-        </p>
-        <p className='mt-1'>
-          {t('This project must be used in compliance with the')}{' '}
-          <a
-            href='https://github.com/BaizorAI/new-api/blob/main/LICENSE'
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-primary hover:underline'
-          >
-            {t('AGPL v3.0 License')}
-          </a>
-        </p>
-        {status?.version && (
-          <p className='mt-1'>{t('Version')}: {status.version}</p>
-        )}
-      </div>
+        <AnimateInView delay={100}>
+          <div className='border-border/40 bg-muted/20 rounded-2xl border p-8'>
+            <div className='grid grid-cols-2 gap-6 md:grid-cols-4'>
+              {stats.map((stat) => (
+                <div key={stat.label} className='text-center'>
+                  <div className='text-3xl font-bold tracking-tight text-foreground'>
+                    {stat.num}
+                  </div>
+                  <div className='text-muted-foreground mt-1 text-sm'>
+                    {t(stat.label)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </AnimateInView>
+
+        <AnimateInView delay={100}>
+          <div className='border-border/40 bg-muted/20 rounded-2xl border p-8 md:p-10'>
+            <div className='flex flex-col gap-6 md:flex-row md:items-start md:gap-10'>
+              <div className='shrink-0'>
+                <div className='flex size-14 items-center justify-center rounded-2xl border border-blue-500/15 bg-blue-500/5'>
+                  <Shield className='size-7 text-blue-500' />
+                </div>
+              </div>
+              <div className='flex-1'>
+                <h2 className='text-xl font-bold'>{t('Service modes')}</h2>
+                <div className='text-muted-foreground mt-2 space-y-3 leading-relaxed'>
+                  <p>
+                    {t(
+                      'Baize AI Platform supports both online access and private deployment. Online access is suitable for evaluation, lightweight team use and cross-organization collaboration.'
+                    )}
+                  </p>
+                  <p>
+                    {t(
+                      'Private deployment is designed for organizations that need data, permissions, model resources and operational records to remain inside their own controlled boundary.'
+                    )}
+                  </p>
+                  <p>
+                    {t(
+                      'The same control plane manages model access, routing, quotas, audit logs and operational visibility, so teams can move from trial use to private deployment without changing core workflows.'
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </AnimateInView>
+
+        <AnimateInView delay={100}>
+          <div className='border-border/40 bg-muted/20 relative overflow-hidden rounded-2xl border p-8 md:p-10'>
+            <div
+              aria-hidden
+              className='pointer-events-none absolute -top-20 -right-20 size-64 opacity-20 dark:opacity-10'
+              style={{
+                background:
+                  'radial-gradient(circle, oklch(0.65 0.15 250 / 60%) 0%, transparent 70%)',
+              }}
+            />
+            <div className='relative flex flex-col gap-6 md:flex-row md:items-center md:gap-10'>
+              <div className='shrink-0'>
+                <div className='flex size-14 items-center justify-center rounded-2xl border border-amber-500/15 bg-amber-500/5'>
+                  <KeyRound className='size-7 text-amber-500' />
+                </div>
+              </div>
+              <div>
+                <h2 className='text-xl font-bold'>{t('Product mission')}</h2>
+                <p className='text-muted-foreground mt-2 leading-relaxed'>
+                  {t(
+                    'Connect compute, models and business scenarios through a trusted AI Hub, so organizations can use artificial intelligence safely, efficiently and controllably under localization and Xinchuang systems.'
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        </AnimateInView>
+
+        <AnimateInView delay={100}>
+          <div className='border-border/40 bg-muted/20 rounded-2xl border p-8 md:p-10'>
+            <div className='mb-5 flex items-center gap-3'>
+              <div className='flex size-12 items-center justify-center rounded-2xl border border-blue-500/15 bg-blue-500/5'>
+                <Sparkles className='size-6 text-blue-500' />
+              </div>
+              <div>
+                <h2 className='text-xl font-bold'>
+                  {t('The legend and meaning of Baize')}
+                </h2>
+                <p className='text-muted-foreground text-sm'>
+                  {t('Know all things, perceive wisdom')}
+                </p>
+              </div>
+            </div>
+            <div className='text-muted-foreground space-y-4 leading-relaxed'>
+              <p>
+                {t(
+                  'In ancient Chinese mythology, Baize is an auspicious divine beast of high status. It is said to understand all things under heaven, speak human language, and know the names, forms and ways to subdue spirits and strange beings. The Yellow Emperor once consulted Baize and recorded its knowledge as the Baize Tu, using it to understand the world, avoid misfortune and protect the people.'
+                )}
+              </p>
+              <p>
+                {t(
+                  'Baize symbolizes universal knowledge, wise insight, turning danger into safety and protective auspiciousness. It appears only under enlightened rule and is regarded as a sign of order, wisdom and peace.'
+                )}
+              </p>
+              <p>
+                {t(
+                  'Today, the name Baize is given to the AI platform to carry the meaning of knowing all things and perceiving wisdom. The platform gathers multi-source compute and intelligent models, adapts to localization and Xinchuang environments, and provides model scheduling plus intelligent routing so complex model access, compute allocation, permission control and usage governance become clear and controllable.'
+                )}
+              </p>
+              <p>
+                {t(
+                  'Baize AI Platform aims to be the AI Hub foundation for organizations: gather compute, schedule models and connect intelligence, making every AI capability call safe, stable, trusted and well governed.'
+                )}
+              </p>
+            </div>
+          </div>
+        </AnimateInView>
+
+        <section>
+          <AnimateInView className='mb-10 text-center'>
+            <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
+              {t('Core capabilities')}
+            </h2>
+            <p className='text-muted-foreground mt-2'>
+              {t(
+                'A trusted AI Hub for localization adaptation, compute access, model scheduling, routing middleware and AI resource governance.'
+              )}
+            </p>
+          </AnimateInView>
+          <div className='grid gap-5 md:grid-cols-2 lg:grid-cols-3'>
+            {capabilities.map((capability, index) => (
+              <AnimateInView
+                key={capability.title}
+                delay={index * 80}
+                animation='fade-up'
+              >
+                <div className='border-border/40 bg-muted/20 group hover:bg-muted/30 h-full rounded-xl border p-6 transition-colors duration-300'>
+                  <div className='mb-4 flex items-center gap-3'>
+                    <div className='border-border/40 bg-background flex size-10 items-center justify-center rounded-xl border shadow-sm'>
+                      {capability.icon}
+                    </div>
+                    <h3 className='font-semibold'>{t(capability.title)}</h3>
+                  </div>
+                  <p className='text-muted-foreground text-sm leading-relaxed'>
+                    {t(capability.desc)}
+                  </p>
+                </div>
+              </AnimateInView>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <AnimateInView className='mb-10 text-center'>
+            <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
+              {t('Who it is for')}
+            </h2>
+            <p className='text-muted-foreground mt-2'>
+              {t(
+                'Baize AI Platform is designed for organizational AI adoption and operation scenarios where localization, trust, controllability and reliability matter.'
+              )}
+            </p>
+          </AnimateInView>
+          <div className='grid gap-5 md:grid-cols-2'>
+            {audiences.map((audience, index) => (
+              <AnimateInView
+                key={audience.title}
+                delay={index * 100}
+                animation='fade-up'
+              >
+                <div className='border-border/40 bg-muted/20 group hover:bg-muted/30 h-full rounded-xl border p-6 transition-colors duration-300'>
+                  <div className='mb-3 flex items-center gap-3'>
+                    <Route className='text-primary size-5' />
+                    <h3 className='font-semibold'>{t(audience.title)}</h3>
+                  </div>
+                  <p className='text-muted-foreground text-sm leading-relaxed'>
+                    {t(audience.desc)}
+                  </p>
+                </div>
+              </AnimateInView>
+            ))}
+          </div>
+        </section>
+
+        <AnimateInView delay={100}>
+          <div className='border-border/40 bg-muted/20 rounded-2xl border p-8 md:p-10'>
+            <div className='flex flex-col gap-6 md:flex-row md:items-start md:gap-10'>
+              <div className='shrink-0'>
+                <div className='flex size-14 items-center justify-center rounded-2xl border border-emerald-500/15 bg-emerald-500/5'>
+                  <Mail className='size-7 text-emerald-500' />
+                </div>
+              </div>
+              <div className='flex-1'>
+                <h2 className='text-xl font-bold'>{t('Contact and community')}</h2>
+                <p className='text-muted-foreground mt-2 leading-relaxed'>
+                  {t(
+                    'For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.'
+                  )}
+                </p>
+                <div className='mt-4 flex flex-wrap gap-4 text-sm'>
+                  <a
+                    href='https://github.com/BaizorAI/new-api'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-primary hover:underline'
+                  >
+                    {t('GitHub repository')}
+                  </a>
+                  <span className='text-muted-foreground/40'>/</span>
+                  <a
+                    href='https://github.com/BaizorAI'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-primary hover:underline'
+                  >
+                    {t('BaizorAI community')}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </AnimateInView>
+
+        <AnimateInView delay={100} className='text-center'>
+          <div className='border-border/40 bg-muted/20 rounded-2xl border p-10'>
+            <BarChart3 className='text-muted-foreground/50 mx-auto size-10' />
+            <h2 className='mt-4 text-2xl font-bold'>
+              {t('Use AI capabilities through one trusted AI Hub')}
+            </h2>
+            <p className='text-muted-foreground mx-auto mt-3 max-w-lg'>
+              {t(
+                'Connect compute, schedule models, govern usage and provide stable intelligent capabilities for every business scenario.'
+              )}
+            </p>
+            <div className='mt-6 flex flex-wrap items-center justify-center gap-3'>
+              <Button className='group rounded-lg' render={<Link to='/docs' />}>
+                {t('Read docs')}
+                <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
+              </Button>
+              <Button
+                variant='outline'
+                className='border-border/50 hover:border-border hover:bg-muted/50 rounded-lg'
+                render={<Link to='/' />}
+              >
+                {t('Back to home')}
+              </Button>
+            </div>
+          </div>
+        </AnimateInView>
+
+        <div className='border-border/30 mt-8 border-t pt-8 text-center text-xs text-muted-foreground/60'>
+          <p>
+            <a
+              href='https://github.com/BaizorAI/new-api'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-primary hover:underline'
+            >
+              {t('Baizor API')}
+            </a>{' '}
+            © {currentYear}{' '}
+            <a
+              href='https://github.com/BaizorAI'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-primary hover:underline'
+            >
+              {t('BaizorAI')}
+            </a>{' '}
+            {t('| Based on')} {t('One API')} © 2026 {t('QiMa')}
+          </p>
+          <p>
+            {t('NewAPI')} © {currentYear} {t('QuantumNous')}{' '}
+            {t('| Based on')} {t('One API')} © 2023 {t('JustSong')}
+          </p>
+          <p className='mt-1'>
+            {t('This project must be used in compliance with the')}{' '}
+            <a
+              href='https://github.com/BaizorAI/new-api/blob/main/LICENSE'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-primary hover:underline'
+            >
+              {t('AGPL v3.0 License')}
+            </a>
+          </p>
+          {status?.version && (
+            <p className='mt-1'>
+              {t('Version')}: {status.version}
+            </p>
+          )}
+        </div>
       </div>
     </PublicLayout>
   )
