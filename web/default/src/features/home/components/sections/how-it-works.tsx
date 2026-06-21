@@ -26,20 +26,20 @@ export function HowItWorks() {
   const steps = [
     {
       num: '1',
-      title: 'Connect upstream providers',
-      desc: 'Add channels for OpenAI, Claude, Gemini, Azure, Bedrock and other providers, then configure models, groups, weights and health checks.',
+      title: 'Connect compute and models',
+      desc: 'Bring multi-source compute, private model services and external intelligent models into one governed AI Hub capability pool.',
       icon: <Settings className='size-6' strokeWidth={1.5} />,
     },
     {
       num: '2',
-      title: 'Issue governed API tokens',
-      desc: 'Create user or application tokens with quota, group and model limits so clients can call a single compatible endpoint safely.',
+      title: 'Model scheduling and routing middleware',
+      desc: 'Set model scheduling, routing middleware, access permissions, quota boundaries and audit policies for different business scenarios.',
       icon: <KeyRound className='size-6' strokeWidth={1.5} />,
     },
     {
       num: '3',
-      title: 'Observe and settle usage',
-      desc: 'Pre-consume quota, route requests, retry failures, reconcile actual usage and review logs, billing details and performance metrics.',
+      title: 'Quota and usage governance',
+      desc: 'Review usage data, request logs, model service health, performance metrics, cache state and security audit records.',
       icon: <BarChart3 className='size-6' strokeWidth={1.5} />,
     },
   ]
@@ -49,10 +49,10 @@ export function HowItWorks() {
       <div className='mx-auto max-w-6xl'>
         <AnimateInView className='mb-16 text-center md:mb-20'>
           <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
-            {t('Operating flow')}
+            {t('Private deployment and onboarding flow')}
           </p>
           <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
-            {t('From upstream keys to governed AI access in three steps')}
+            {t('Use AI capabilities through one trusted AI Hub')}
           </h2>
         </AnimateInView>
 

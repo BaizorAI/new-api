@@ -29,10 +29,10 @@ interface HeroProps {
 }
 
 const capabilityKeys = [
-  'Unified API relay',
-  'Usage-based billing',
-  'Provider failover',
-  'Admin control plane',
+  'Localization and Xinchuang readiness',
+  'Unified compute access',
+  'Intelligent model scheduling',
+  'Private deployment',
 ] as const
 
 export function Hero(props: HeroProps) {
@@ -100,17 +100,17 @@ export function Hero(props: HeroProps) {
               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75' />
               <span className='relative inline-flex size-1.5 rounded-full bg-blue-500 dark:bg-blue-400' />
             </span>
-            <span>{t('AI API gateway and asset management')}</span>
+            <span>{t('AI Hub for organizations')}</span>
           </div>
 
           <h1
             className='landing-animate-fade-up text-[clamp(2.25rem,4.5vw,3.25rem)] leading-[1.15] font-bold tracking-tight'
             style={{ animationDelay: '60ms' }}
           >
-            {t('New API')}
+            {t('Baize AI Platform')}
             <br />
             <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-              {t('One gateway for every AI model')}
+              {t('Know all things, perceive wisdom')}
             </span>
           </h1>
           <p
@@ -118,7 +118,7 @@ export function Hero(props: HeroProps) {
             style={{ animationDelay: '120ms' }}
           >
             {t(
-              'Aggregate OpenAI, Claude, Gemini, Azure, AWS Bedrock, DeepSeek and dozens of upstream providers behind one compatible API with unified routing, billing, quotas and audit logs.'
+              'Baize AI Platform serves organizational AI adoption and operation. It connects compute, intelligent models and business applications, then provides model scheduling, routing middleware, access control, usage governance, security audit and operational visibility from the AI Hub layer.'
             )}
           </p>
 
@@ -168,7 +168,7 @@ export function Hero(props: HeroProps) {
               </span>
               <p className='text-muted-foreground/60 text-xs leading-relaxed'>
                 {t(
-                  'Designed for teams that need governed access to many AI providers without rebuilding authentication, billing and observability for each one.'
+                  'Use Baize AI Platform online, or deploy it privately inside the organization so data, permissions, model resources and operational signals stay within a controlled boundary.'
                 )}
               </p>
             </div>

@@ -52,11 +52,11 @@ export function CTA(props: CTAProps) {
         animation='scale-in'
       >
         <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-4xl'>
-          {t('Ready to route AI traffic through one governed gateway?')}
+          {t('Ready to use a trusted AI Hub?')}
         </h2>
         <p className='text-muted-foreground/80 mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
           {t(
-            'Create tokens, connect channels, configure billing and give your users one stable API surface for many upstream providers.'
+            'Use Baize AI Platform online, or deploy it privately inside the organization so data, permissions, model resources and operational signals stay within a controlled boundary.'
           )}
         </p>
         <div className='mt-8 flex flex-wrap items-center justify-center gap-3'>

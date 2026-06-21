@@ -36,51 +36,51 @@ export function Features() {
     {
       id: 'relay',
       num: '01',
-      title: 'Unified relay protocols',
-      desc: 'Serve OpenAI-compatible, Claude Messages, Gemini, Responses, Realtime, image, audio, embedding, rerank and task APIs from one gateway.',
+      title: 'Unified compute access',
+      desc: 'Connect multi-source compute and intelligent model services into one AI Hub, giving business systems a stable and governed capability entry.',
       span: 'md:col-span-2',
       icon: <Route className='size-4 text-blue-400' />,
-      visual: ['OpenAI', 'Claude', 'Gemini', 'Responses', 'Realtime', 'Rerank'],
+      visual: ['Local models', 'OpenAI', 'Claude', 'Gemini', 'DeepSeek'],
     },
     {
       id: 'routing',
       num: '02',
-      title: 'Channel routing and failover',
-      desc: 'Route by model, group, weight, priority and channel health, then retry eligible failures without changing client integrations.',
+      title: 'Model scheduling and routing middleware',
+      desc: 'Set model scheduling, routing middleware, access permissions, quota boundaries and audit policies for different business scenarios.',
       span: 'md:col-span-1',
       icon: <Zap className='size-4 text-violet-400' />,
-      visual: ['Weights', 'Priority', 'Tags'],
+      visual: ['Scheduling', 'Routing', 'Policy'],
     },
     {
       id: 'billing',
       num: '03',
-      title: 'Quota, wallet and subscriptions',
-      desc: 'Pre-consume quota, reconcile actual usage, support wallet balance, subscription plans, reset periods and optional wallet overflow.',
+      title: 'Private deployment capability',
+      desc: 'Private deployment fits data-sensitive, intranet, Xinchuang and dedicated compute scenarios where organizations need controllable AI capability boundaries.',
       span: 'md:col-span-1',
       icon: <WalletCards className='size-4 text-emerald-400' />,
-      visual: ['Prepay', 'Settle', 'Refund'],
+      visual: ['Intranet', 'Xinchuang', 'Dedicated compute'],
     },
     {
       id: 'governance',
       num: '04',
-      title: 'Security and audit control',
-      desc: 'Manage users, API tokens, OAuth, 2FA, passkeys, model limits, request logs and administrator-only secret reveal flows.',
+      title: 'Quota and usage governance',
+      desc: 'Apply routing strategies, access boundaries, quota controls, usage records and security audit policies from the platform layer.',
       span: 'md:col-span-2',
       icon: <Shield className='size-4 text-amber-400' />,
-      visual: ['2FA', 'Passkey', 'Logs', 'Limits'],
+      visual: ['Access', 'Quota', 'Audit', 'Logs'],
     },
   ]
 
   const additionalFeatures = [
     {
       icon: <BarChart3 className='size-5' strokeWidth={1.5} />,
-      title: 'Expression billing',
-      desc: 'Model complex provider prices with cache, image, audio, long-context and request-aware billing expressions.',
+      title: 'Localization and Xinchuang adaptation',
+      desc: 'Add model request conversion, response handling, usage extraction and localized compute adaptation without changing business applications.',
     },
     {
       icon: <Database className='size-5' strokeWidth={1.5} />,
-      title: 'Cross-database support',
-      desc: 'Run small SQLite installs or scale with MySQL and PostgreSQL using one shared code path.',
+      title: 'AI resource governance',
+      desc: 'Manage users, application credentials, access boundaries, quota allocation, usage records and security audit flows.',
     },
     {
       icon: <Gauge className='size-5' strokeWidth={1.5} />,
@@ -89,8 +89,8 @@ export function Features() {
     },
     {
       icon: <HeartHandshake className='size-5' strokeWidth={1.5} />,
-      title: 'Extensible providers',
-      desc: 'Add provider adaptors without rewriting the controller, billing and frontend management surfaces.',
+      title: 'Connect compute and models',
+      desc: 'Bring multi-source compute, private model services and external intelligent models into one governed AI Hub capability pool.',
     },
   ]
 
@@ -102,7 +102,7 @@ export function Features() {
             {t('Product capabilities')}
           </p>
           <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-3xl'>
-            {t('Everything needed to operate AI access at scale')}
+            {t('A trusted AI Hub for localization adaptation, compute access, model scheduling, routing middleware and AI resource governance.')}
           </h2>
         </AnimateInView>
 

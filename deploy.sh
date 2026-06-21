@@ -42,7 +42,7 @@ echo "$NEW_VERSION" > VERSION
 
 # ========== 2. 构建 & 推送镜像 ==========
 echo "🐳 正在构建镜像 [${IMAGE_NAME}:${NEW_VERSION}]"
-docker build -t "${IMAGE_NAME}:${NEW_VERSION}" . || { echo "❌ 镜像构建失败"; exit 1; }
+docker build --pull --no-cache -t "${IMAGE_NAME}:${NEW_VERSION}" . || { echo "❌ 镜像构建失败"; exit 1; }
 docker push "${IMAGE_NAME}:${NEW_VERSION}"
 
 echo "✅ 构建并推送成功！"
