@@ -118,6 +118,9 @@ type RelayInfo struct {
 	UserSetting            dto.UserSetting
 	UserEmail              string
 	UserQuota              int
+	TeamId                 int
+	TeamName               string
+	TeamQuota              int
 	RelayFormat            types.RelayFormat
 	SendResponseCount      int
 	ReceivedResponseCount  int
@@ -269,6 +272,9 @@ func (info *RelayInfo) ToString() string {
 	// User & token info (mask secrets)
 	fmt.Fprintf(b, "User{ Id: %d, Email: %q, Group: %q, UsingGroup: %q, Quota: %d }, ",
 		info.UserId, common.MaskEmail(info.UserEmail), info.UserGroup, info.UsingGroup, info.UserQuota)
+	if info.TeamId > 0 {
+		fmt.Fprintf(b, "Team{ Id: %d, Name: %q, Quota: %d }, ", info.TeamId, info.TeamName, info.TeamQuota)
+	}
 	fmt.Fprintf(b, "Token{ Id: %d, Unlimited: %t, Key: ***masked*** }, ", info.TokenId, info.TokenUnlimited)
 
 	// Time info
@@ -475,6 +481,9 @@ func genBaseRelayInfo(c *gin.Context, request dto.Request) *RelayInfo {
 		UserGroup:  common.GetContextKeyString(c, constant.ContextKeyUserGroup),
 		UserQuota:  common.GetContextKeyInt(c, constant.ContextKeyUserQuota),
 		UserEmail:  common.GetContextKeyString(c, constant.ContextKeyUserEmail),
+		TeamId:     common.GetContextKeyInt(c, constant.ContextKeyTeamId),
+		TeamName:   common.GetContextKeyString(c, constant.ContextKeyTeamName),
+		TeamQuota:  common.GetContextKeyInt(c, constant.ContextKeyTeamQuota),
 
 		OriginModelName: common.GetContextKeyString(c, constant.ContextKeyOriginalModel),
 

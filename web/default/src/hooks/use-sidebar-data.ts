@@ -83,6 +83,11 @@ export function useSidebarData(): SidebarData {
             icon: Key,
           },
           {
+            title: t('Teams'),
+            url: '/teams',
+            icon: Users,
+          },
+          {
             title: t('Usage Logs'),
             url: '/usage-logs/common',
             icon: FileText,

@@ -1,3 +1,4 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -17,10 +18,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ChangeEvent } from 'react'
-import * as z from 'zod'
+import { useMemo } from 'react'
 import type { Resolver } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
+import * as z from 'zod'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Form,
@@ -33,6 +35,9 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
+import { parseQuotaFromDollars, quotaUnitsToDollars } from '@/lib/format'
+
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
 import {
@@ -68,12 +73,37 @@ type QuotaSettingsSectionProps = {
   complianceConfirmed?: boolean
 }
 
+const DISPLAY_QUOTA_FIELDS = new Set([
+  'QuotaForNewUser',
+  'PreConsumedQuota',
+  'QuotaForInviter',
+  'QuotaForInvitee',
+])
+
 export function QuotaSettingsSection({
   defaultValues,
   complianceConfirmed = true,
 }: QuotaSettingsSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
+  const { meta: currencyMeta } = getCurrencyDisplay()
+  const currencyLabel = getCurrencyLabel()
+  const tokensOnly = currencyMeta.kind === 'tokens'
+  const quotaInputDescription = tokensOnly
+    ? t('Enter the quota amount in tokens')
+    : t('Enter the quota amount in {{currency}}', {
+        currency: currencyLabel,
+      })
+  const displayDefaultValues = useMemo(
+    () => ({
+      ...defaultValues,
+      QuotaForNewUser: quotaUnitsToDollars(defaultValues.QuotaForNewUser),
+      PreConsumedQuota: quotaUnitsToDollars(defaultValues.PreConsumedQuota),
+      QuotaForInviter: quotaUnitsToDollars(defaultValues.QuotaForInviter),
+      QuotaForInvitee: quotaUnitsToDollars(defaultValues.QuotaForInvitee),
+    }),
+    [defaultValues]
+  )
   const handleNumberChange =
     (onChange: (value: number | string) => void) =>
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -89,12 +119,16 @@ export function QuotaSettingsSection({
         unknown,
         QuotaFormValues
       >,
-      defaultValues,
+      defaultValues: displayDefaultValues,
       onSubmit: async (_data, changedFields) => {
         for (const [key, value] of Object.entries(changedFields)) {
+          const optionValue = DISPLAY_QUOTA_FIELDS.has(key)
+            ? parseQuotaFromDollars(Number(value) || 0)
+            : value
+
           await updateOption.mutateAsync({
             key,
-            value: value as string | number | boolean,
+            value: optionValue as string | number | boolean,
           })
         }
       },
@@ -127,10 +161,14 @@ export function QuotaSettingsSection({
               name='QuotaForNewUser'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('New User Quota')}</FormLabel>
+                  <FormLabel>
+                    {t('New User Quota')} ({currencyLabel})
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type='number'
+                      min='0'
+                      step={tokensOnly ? 1 : 0.01}
                       value={field.value ?? ''}
                       onChange={handleNumberChange(field.onChange)}
                       name={field.name}
@@ -139,7 +177,8 @@ export function QuotaSettingsSection({
                     />
                   </FormControl>
                   <FormDescription>
-                    {t('Initial quota given to new users')}
+                    {t('Initial quota given to new users')}{' '}
+                    {quotaInputDescription}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -151,10 +190,14 @@ export function QuotaSettingsSection({
               name='PreConsumedQuota'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('Pre-Consumed Quota')}</FormLabel>
+                  <FormLabel>
+                    {t('Pre-Consumed Quota')} ({currencyLabel})
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type='number'
+                      min='0'
+                      step={tokensOnly ? 1 : 0.01}
                       value={field.value ?? ''}
                       onChange={handleNumberChange(field.onChange)}
                       name={field.name}
@@ -163,7 +206,8 @@ export function QuotaSettingsSection({
                     />
                   </FormControl>
                   <FormDescription>
-                    {t('Quota consumed before charging users')}
+                    {t('Quota consumed before charging users')}{' '}
+                    {quotaInputDescription}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -175,10 +219,14 @@ export function QuotaSettingsSection({
               name='QuotaForInviter'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('Inviter Reward')}</FormLabel>
+                  <FormLabel>
+                    {t('Inviter Reward')} ({currencyLabel})
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type='number'
+                      min='0'
+                      step={tokensOnly ? 1 : 0.01}
                       value={field.value ?? ''}
                       onChange={handleNumberChange(field.onChange)}
                       name={field.name}
@@ -187,7 +235,8 @@ export function QuotaSettingsSection({
                     />
                   </FormControl>
                   <FormDescription>
-                    {t('Quota given to users who invite others')}
+                    {t('Quota given to users who invite others')}{' '}
+                    {quotaInputDescription}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -199,10 +248,14 @@ export function QuotaSettingsSection({
               name='QuotaForInvitee'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('Invitee Reward')}</FormLabel>
+                  <FormLabel>
+                    {t('Invitee Reward')} ({currencyLabel})
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type='number'
+                      min='0'
+                      step={tokensOnly ? 1 : 0.01}
                       value={field.value ?? ''}
                       onChange={handleNumberChange(field.onChange)}
                       name={field.name}
@@ -211,7 +264,7 @@ export function QuotaSettingsSection({
                     />
                   </FormControl>
                   <FormDescription>
-                    {t('Quota given to invited users')}
+                    {t('Quota given to invited users')} {quotaInputDescription}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

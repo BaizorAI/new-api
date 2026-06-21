@@ -52,6 +52,10 @@ const (
 	ContextKeyUsingGroup  ContextKey = "group"
 	ContextKeyUserName    ContextKey = "username"
 
+	ContextKeyTeamId    ContextKey = "team_id"
+	ContextKeyTeamName  ContextKey = "team_name"
+	ContextKeyTeamQuota ContextKey = "team_quota"
+
 	ContextKeyLocalCountTokens ContextKey = "local_count_tokens"
 
 	ContextKeySystemPromptOverride ContextKey = "system_prompt_override"

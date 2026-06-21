@@ -22,6 +22,41 @@ type FundingSource interface {
 	Refund() error
 }
 
+type TeamFunding struct {
+	teamId   int
+	consumed int
+}
+
+func (t *TeamFunding) Source() string { return BillingSourceWallet }
+
+func (t *TeamFunding) PreConsume(amount int) error {
+	if amount <= 0 {
+		return nil
+	}
+	if err := model.DecreaseTeamQuota(t.teamId, amount); err != nil {
+		return err
+	}
+	t.consumed = amount
+	return nil
+}
+
+func (t *TeamFunding) Settle(delta int) error {
+	if delta == 0 {
+		return nil
+	}
+	if delta > 0 {
+		return model.DecreaseTeamQuota(t.teamId, delta)
+	}
+	return model.IncreaseTeamQuota(t.teamId, -delta)
+}
+
+func (t *TeamFunding) Refund() error {
+	if t.consumed <= 0 {
+		return nil
+	}
+	return model.IncreaseTeamQuota(t.teamId, t.consumed)
+}
+
 // ---------------------------------------------------------------------------
 // WalletFunding — 钱包资金来源实现
 // ---------------------------------------------------------------------------
