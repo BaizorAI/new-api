@@ -1,0 +1,35 @@
+# Hermes sidecar overlay for Baize AI Platform.
+#
+# Start with:
+#   HERMES_API_SERVER_KEY=change-me docker compose -f docker-compose.yml -f docker-compose.hermes.yml up -d
+#
+# The Hermes API server is exposed only inside the Docker network. Add Hermes
+# to the platform as an OpenAI-compatible channel with:
+#   Base URL: http://hermes:8642/v1
+#   API Key:  ${HERMES_API_SERVER_KEY}
+
+version: '3.4'
+
+services:
+  hermes:
+    image: ${HERMES_IMAGE:-hermes-agent:latest}
+    container_name: hermes
+    restart: unless-stopped
+    command: ["gateway", "run"]
+    expose:
+      - "${HERMES_API_SERVER_PORT:-8642}"
+    volumes:
+      - hermes_data:/opt/data
+    environment:
+      - HERMES_UID=${HERMES_UID:-10000}
+      - HERMES_GID=${HERMES_GID:-10000}
+      - API_SERVER_HOST=0.0.0.0
+      - API_SERVER_PORT=${HERMES_API_SERVER_PORT:-8642}
+      - API_SERVER_KEY=${HERMES_API_SERVER_KEY:?set HERMES_API_SERVER_KEY}
+    depends_on:
+      - new-api
+    networks:
+      - new-api-network
+
+volumes:
+  hermes_data:

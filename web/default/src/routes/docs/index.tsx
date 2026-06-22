@@ -20,6 +20,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   BarChart3,
   BookOpen,
+  Bot,
   Database,
   KeyRound,
   Route as RouteIcon,
@@ -61,6 +62,12 @@ const docSections = [
     items: ['Multi-source compute access', 'Private model services', 'External intelligent models'],
   },
   {
+    icon: <Bot className='size-5 text-teal-500' />,
+    title: 'Hermes sidecar multi-user scenario',
+    desc: 'Run Hermes in a separate container and publish it as a governed platform model for teams, applications and business users.',
+    items: ['Internal sidecar service', 'Platform model exposure', 'Team quota and audit'],
+  },
+  {
     icon: <BarChart3 className='size-5 text-amber-500' />,
     title: 'Model scheduling and routing middleware',
     desc: 'Configure priority, weight, tags, grouping, health checks, fallback strategy and transparent routing behavior.',
@@ -83,6 +90,7 @@ const docSections = [
 const privateDeploymentHighlights = [
   'Online service fits quick evaluation, lightweight team use and cross-organization collaboration.',
   'Private deployment fits data-sensitive, intranet, Xinchuang and dedicated compute scenarios where organizations need controllable AI capability boundaries.',
+  'Hermes sidecar fits private agent runtime scenarios where users should access agent capabilities through platform credentials, model permissions, quotas and logs.',
   'A digital employee is not a single chatbot. It is an AI work unit composed of models, knowledge, tools, permissions, workflows, memory, audit records and operational policies.',
   'Baize AI Platform provides the AI Hub layer for digital employees: connect compute and models, govern access, dispatch the right capability, observe usage and keep business execution traceable.',
 ] as const
@@ -209,6 +217,42 @@ function DocsPage() {
                   )}
                 </li>
               </ol>
+            </div>
+          </section>
+
+          <section>
+            <h2 className='mb-4 text-xl font-bold'>
+              {t('Hermes sidecar multi-user scenario')}
+            </h2>
+            <div className='border-border/40 bg-muted/20 rounded-xl border p-6'>
+              <div className='mb-4 flex items-center gap-2'>
+                <Bot className='size-5 text-teal-500' />
+                <h3 className='font-semibold'>
+                  {t('Use Hermes through platform models')}
+                </h3>
+              </div>
+              <p className='text-muted-foreground mb-4 leading-relaxed'>
+                {t(
+                  'Hermes can run as an internal sidecar container and be added to the platform as an OpenAI-compatible model service. Users call the platform model, while the Hermes service remains inside the Docker network.'
+                )}
+              </p>
+              <ul className='text-muted-foreground list-disc space-y-2 pl-5 leading-relaxed'>
+                <li>
+                  {t(
+                    'Expose Hermes only to the internal Docker network, then configure a platform channel with the base URL http://hermes:8642/v1.'
+                  )}
+                </li>
+                <li>
+                  {t(
+                    'Give users and teams access through platform keys, model permissions, quotas, IP restrictions and audit logs.'
+                  )}
+                </li>
+                <li>
+                  {t(
+                    'When Hermes needs a foundation model, configure it to call the platform endpoint with a dedicated service account or team key.'
+                  )}
+                </li>
+              </ul>
             </div>
           </section>
 

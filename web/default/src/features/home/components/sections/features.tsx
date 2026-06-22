@@ -55,10 +55,10 @@ export function Features() {
       id: 'billing',
       num: '03',
       title: 'Private deployment capability',
-      desc: 'Private deployment fits data-sensitive, intranet, Xinchuang and dedicated compute scenarios where organizations need controllable AI capability boundaries.',
+      desc: 'Private deployment fits data-sensitive, intranet, Xinchuang, dedicated compute and Hermes sidecar scenarios where organizations need controllable AI capability boundaries.',
       span: 'md:col-span-1',
       icon: <WalletCards className='size-4 text-emerald-400' />,
-      visual: ['Intranet', 'Xinchuang', 'Dedicated compute'],
+      visual: ['Intranet', 'Xinchuang', 'Hermes sidecar', 'Dedicated compute'],
     },
     {
       id: 'governance',
@@ -90,7 +90,7 @@ export function Features() {
     {
       icon: <HeartHandshake className='size-5' strokeWidth={1.5} />,
       title: 'Connect compute and models',
-      desc: 'Bring multi-source compute, private model services and external intelligent models into one governed AI Hub capability pool.',
+      desc: 'Bring multi-source compute, private model services, Hermes sidecars and external intelligent models into one governed AI Hub capability pool.',
     },
   ]
 

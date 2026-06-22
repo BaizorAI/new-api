@@ -3,6 +3,7 @@
 set -e
 
 INI_FILE="version.ini"
+HERMES_SIDECAR_ENABLED="${HERMES_SIDECAR_ENABLED:-false}"
 
 # ========== 1. 确保本地代码是最新的 ==========
 DEPLOY_BRANCH="main"
@@ -50,9 +51,23 @@ echo "  - ${IMAGE_NAME}:${NEW_VERSION}"
 
 # ========== 3. 远程部署 ==========
 echo "🚀 正在远程部署 [${NEW_VERSION}]..."
+if [ "$HERMES_SIDECAR_ENABLED" = "true" ]; then
+  echo "Syncing Hermes sidecar compose overlay..."
+  scp docker-compose.hermes.yml baizor:/lucky/NewApi/docker-compose.hermes.yml
+fi
+
 ssh baizor << REMOTEEEOF
 set -e
 cd /lucky/NewApi
+
+COMPOSE_ARGS="-f docker-compose.yml"
+if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
+  COMPOSE_ARGS="\$COMPOSE_ARGS -f docker-compose.hermes.yml"
+  if [ -z "\${HERMES_API_SERVER_KEY:-}" ] && ! grep -q '^HERMES_API_SERVER_KEY=' .env 2>/dev/null; then
+    echo "HERMES_API_SERVER_KEY must be set in /lucky/NewApi/.env or remote environment before enabling Hermes sidecar."
+    exit 1
+  fi
+fi
 
 echo "🏷️ 更新 docker-compose.yml 镜像版本为 ${NEW_VERSION}..."
 # 替换已有的 baizor-newapi 镜像版本
@@ -61,16 +76,24 @@ sed -i 's|image: ccr\.ccs\.tencentyun\.com/lucky/baizor-newapi:[^[:space:]]*|ima
 sed -i 's|image: calciumion/new-api:[^[:space:]]*|image: ccr.ccs.tencentyun.com/lucky/baizor-newapi:${NEW_VERSION}|' docker-compose.yml
 
 echo "🐳 拉取新版本镜像..."
-docker compose pull new-api
+docker compose \$COMPOSE_ARGS pull new-api
 
 echo "🚀 重启 new-api 服务..."
-docker compose up -d new-api
+if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
+  docker compose \$COMPOSE_ARGS up -d new-api hermes
+else
+  docker compose up -d new-api
+fi
 
 echo "🧹 清理旧镜像..."
 docker image prune -f
 
 echo "📋 new-api 服务状态:"
-docker compose ps new-api newapi-redis newapi-postgres
+if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
+  docker compose \$COMPOSE_ARGS ps new-api hermes
+else
+  docker compose ps new-api newapi-redis newapi-postgres
+fi
 REMOTEEEOF
 
 echo "🎉 部署完成！版本: ${NEW_VERSION}"

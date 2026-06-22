@@ -20,6 +20,7 @@ import { Link } from '@tanstack/react-router'
 import {
   ArrowRight,
   BarChart3,
+  Bot,
   Database,
   GitBranch,
   KeyRound,
@@ -60,6 +61,11 @@ const capabilities = [
     icon: <Database className='size-5 text-cyan-500' />,
     title: 'AI resource governance',
     desc: 'Control users, application credentials, model permissions, quota boundaries, request logs and security audit records.',
+  },
+  {
+    icon: <Bot className='size-5 text-teal-500' />,
+    title: 'Hermes sidecar agent runtime',
+    desc: 'Operate Hermes as an internal sidecar while users access it through platform models, teams, quotas and audit logs.',
   },
   {
     icon: <BarChart3 className='size-5 text-rose-500' />,
@@ -172,6 +178,35 @@ function About() {
                   <p>
                     {t(
                       'The same control plane manages model access, routing, quotas, audit logs and operational visibility, so teams can move from trial use to private deployment without changing core workflows.'
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </AnimateInView>
+
+        <AnimateInView delay={100}>
+          <div className='border-border/40 bg-muted/20 rounded-2xl border p-8 md:p-10'>
+            <div className='flex flex-col gap-6 md:flex-row md:items-start md:gap-10'>
+              <div className='shrink-0'>
+                <div className='flex size-14 items-center justify-center rounded-2xl border border-teal-500/15 bg-teal-500/5'>
+                  <Bot className='size-7 text-teal-500' />
+                </div>
+              </div>
+              <div className='flex-1'>
+                <h2 className='text-xl font-bold'>
+                  {t('Hermes sidecar scenario')}
+                </h2>
+                <div className='text-muted-foreground mt-2 space-y-3 leading-relaxed'>
+                  <p>
+                    {t(
+                      'Hermes can run in a separate sidecar container and be exposed to users as a platform-governed model capability instead of a standalone service.'
+                    )}
+                  </p>
+                  <p>
+                    {t(
+                      'This lets multiple users and teams use Hermes through platform credentials, model permissions, quota allocation, usage logs and security audit policies.'
                     )}
                   </p>
                 </div>

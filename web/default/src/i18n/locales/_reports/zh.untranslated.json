@@ -1,5 +1,7 @@
 {
+  "Hermes sidecar": "Hermes sidecar",
   "Realtime": "Realtime",
   "Rerank": "Rerank",
-  "Responses": "Responses"
+  "Responses": "Responses",
+  "Sidecar": "Sidecar"
 }
