@@ -1,7 +1,11 @@
 # Hermes sidecar overlay for Baize AI Platform.
 #
-# Start with:
+# Start manually with:
 #   HERMES_API_SERVER_KEY=change-me docker compose -f docker-compose.yml -f docker-compose.hermes.yml up -d
+#
+# deploy.sh writes HERMES_IMAGE from version.ini:
+#   image_name_hermes=ccr.ccs.tencentyun.com/lucky/baizor-hermes
+#   hermes_versions=<tag>
 #
 # The Hermes API server is exposed only inside the Docker network. Add Hermes
 # to the platform as an OpenAI-compatible channel with:
@@ -12,7 +16,7 @@ version: '3.4'
 
 services:
   hermes:
-    image: ${HERMES_IMAGE:-hermes-agent:latest}
+    image: ${HERMES_IMAGE:-ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.0}
     container_name: hermes
     restart: unless-stopped
     command: ["gateway", "run"]

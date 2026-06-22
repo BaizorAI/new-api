@@ -360,3 +360,4 @@
 - Hermes 内部需要大模型能力时，优先调用平台统一 OpenAI-compatible 端点，并使用单独服务账号或团队密钥归集底层模型消耗。
 - 应避免 Hermes 内部调用自身暴露给平台的 Hermes 模型别名，防止形成递归调用。
 - 部署脚本应支持可选启用 Hermes sidecar，不启用时保持原有部署流程不变。
+- Hermes sidecar 镜像应由 `version.ini` 中的 `image_name_hermes` 与 `hermes_versions` 组合确定，便于平台主镜像版本与 Hermes 镜像版本分别管理。

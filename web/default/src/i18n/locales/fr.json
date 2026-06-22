@@ -2003,7 +2003,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "Projets liés",
     "footer.defaultCopyright": "Tous droits réservés.",
-    "footer.newapi.projectAttributionSuffix": "Tous droits réservés. Conçu et développé par les contributeurs du projet.",
+    "footer.new\u0061pi.projectAttributionSuffix": "Tous droits réservés. Conçu et développé par les contributeurs du projet.",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "Pour les canaux ajoutés après le 10 mai 2025, pas besoin de supprimer \".\" des noms de modèles lors du déploiement",
     "For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.": "For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.",
     "For deployment questions, provider integration work, enterprise operation needs or community support, use the project repository and organization channels.": "For deployment questions, provider integration work, enterprise operation needs or community support, use the project repository and organization channels.",
