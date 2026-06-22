@@ -73,6 +73,7 @@ func SetRelayRouter(router *gin.Engine) {
 	{
 		hermesPlaygroundRouter.GET("/skills", controller.HermesPlaygroundSkills)
 		hermesPlaygroundRouter.POST("/skills", controller.HermesPlaygroundSkills)
+		hermesPlaygroundRouter.GET("/toolsets", controller.HermesPlaygroundToolsets)
 	}
 	relayV1Router := router.Group("/v1")
 	relayV1Router.Use(middleware.RouteTag("relay"))

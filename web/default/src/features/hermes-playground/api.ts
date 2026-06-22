@@ -25,6 +25,25 @@ export interface CreateHermesSkillPayload {
   category?: string
 }
 
+export interface HermesSkill {
+  name: string
+  description: string
+  category?: string
+  path?: string
+  source: 'user' | 'system' | 'external' | 'unknown'
+  ownerScope: 'user' | 'system' | 'external' | 'unknown'
+  isUserCreated: boolean
+}
+
+export interface HermesToolset {
+  name: string
+  label: string
+  description: string
+  enabled: boolean
+  configured: boolean
+  tools: string[]
+}
+
 export async function createHermesSkill(payload: CreateHermesSkillPayload) {
   const content = buildSkillContent(payload)
   const response = await api.post(
@@ -39,6 +58,22 @@ export async function createHermesSkill(payload: CreateHermesSkillPayload) {
     }
   )
   return response.data
+}
+
+export async function listHermesSkills(): Promise<HermesSkill[]> {
+  const response = await api.get('/pg/hermes/skills', {
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  return normalizeSkillsResponse(response.data)
+}
+
+export async function listHermesToolsets(): Promise<HermesToolset[]> {
+  const response = await api.get('/pg/hermes/toolsets', {
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  return normalizeToolsetsResponse(response.data)
 }
 
 function buildSkillContent(payload: CreateHermesSkillPayload): string {
@@ -58,4 +93,86 @@ ${instructions}
 
 function quoteYamlString(value: string): string {
   return JSON.stringify(value)
+}
+
+function normalizeSkillsResponse(payload: unknown): HermesSkill[] {
+  const record = asRecord(payload)
+  const rawSkills =
+    arrayFromUnknown(record.data) ?? arrayFromUnknown(record.skills)
+  if (!rawSkills) return []
+
+  return rawSkills.map((item) => {
+    const skill = asRecord(item)
+    const source = normalizeSource(stringFromUnknown(skill.source))
+    const ownerScope = normalizeOwnerScope(stringFromUnknown(skill.owner_scope))
+    const isUserCreated =
+      booleanFromUnknown(skill.is_user_created) ??
+      (source === 'user' || ownerScope === 'user')
+
+    return {
+      name: stringFromUnknown(skill.name) || 'Unnamed skill',
+      description: stringFromUnknown(skill.description),
+      category: stringFromUnknown(skill.category) || undefined,
+      path: stringFromUnknown(skill.path) || undefined,
+      source,
+      ownerScope,
+      isUserCreated,
+    }
+  })
+}
+
+function normalizeToolsetsResponse(payload: unknown): HermesToolset[] {
+  const record = asRecord(payload)
+  const rawToolsets = arrayFromUnknown(record.data)
+  if (!rawToolsets) return []
+
+  return rawToolsets.map((item) => {
+    const toolset = asRecord(item)
+    return {
+      name: stringFromUnknown(toolset.name) || 'unknown',
+      label:
+        stringFromUnknown(toolset.label) ||
+        stringFromUnknown(toolset.name) ||
+        'Unknown',
+      description: stringFromUnknown(toolset.description),
+      enabled: booleanFromUnknown(toolset.enabled) ?? false,
+      configured: booleanFromUnknown(toolset.configured) ?? false,
+      tools: (arrayFromUnknown(toolset.tools) ?? [])
+        .map((tool) => stringFromUnknown(tool))
+        .filter((tool) => tool.length > 0),
+    }
+  })
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
+
+function arrayFromUnknown(value: unknown): unknown[] | null {
+  return Array.isArray(value) ? value : null
+}
+
+function stringFromUnknown(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function booleanFromUnknown(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null
+}
+
+function normalizeSource(value: string): HermesSkill['source'] {
+  if (value === 'user' || value === 'system' || value === 'external') {
+    return value
+  }
+  return 'unknown'
+}
+
+function normalizeOwnerScope(value: string): HermesSkill['ownerScope'] {
+  if (value === 'user' || value === 'system' || value === 'external') {
+    return value
+  }
+  return 'unknown'
 }

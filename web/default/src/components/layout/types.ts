@@ -67,6 +67,15 @@ export type NavHermesSessions = BaseNavItem & {
 }
 
 /**
+ * Dynamic Playground conversations type - locally persisted conversation tree.
+ */
+export type NavPlaygroundSessions = BaseNavItem & {
+  type: 'playground-sessions'
+  url?: never
+  items?: never
+}
+
+/**
  * Navigation item union type
  */
 export type NavItem =
@@ -74,6 +83,7 @@ export type NavItem =
   | NavLink
   | NavChatPresets
   | NavHermesSessions
+  | NavPlaygroundSessions
 
 /**
  * Navigation group type - a group of navigation items in sidebar

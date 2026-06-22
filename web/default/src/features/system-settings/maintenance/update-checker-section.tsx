@@ -54,18 +54,10 @@ export function UpdateCheckerSection({
   const handleCheckUpdates = async () => {
     setChecking(true)
     try {
-      const response = await fetch(
-        'https://api.github.com/repos/Calcium-Ion/new-api/releases/latest',
-        {
-          headers: {
-            Accept: 'application/vnd.github+json',
-            'User-Agent': 'new-api-dashboard',
-          },
-        }
-      )
+      const response = await fetch('https://baizor.com/install/latest')
 
       if (!response.ok) {
-        throw new Error(t('Failed to contact GitHub releases API'))
+        throw new Error(t('Failed to contact update server'))
       }
 
       const data = (await response.json()) as ReleaseInfo

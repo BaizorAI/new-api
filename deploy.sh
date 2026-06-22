@@ -118,6 +118,34 @@ if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
     fi
   }
 
+  ensure_new_api_env_line() {
+    line="\$1"
+    key="\$2"
+    if sed -n '/^  new-api:/,/^  [^ ].*:/p' docker-compose.yml | grep -q "\$key"; then
+      return
+    fi
+
+    tmp_file="\$(mktemp)"
+    awk -v line="      - \${line}" '
+      BEGIN { in_new_api = 0; inserted = 0 }
+      /^  new-api:/ { in_new_api = 1 }
+      in_new_api && /^  [^ ].*:/ && \$0 !~ /^  new-api:/ { in_new_api = 0 }
+      { print }
+      in_new_api && !inserted && /^[[:space:]]*-[[:space:]]*no_proxy=/ {
+        print line
+        inserted = 1
+      }
+      in_new_api && !inserted && /^[[:space:]]*environment:[[:space:]]*$/ {
+        print line
+        inserted = 1
+      }
+    ' docker-compose.yml > "\$tmp_file"
+    mv "\$tmp_file" docker-compose.yml
+  }
+
+  ensure_new_api_env_line 'HERMES_API_SERVER_URL=\${HERMES_API_SERVER_URL:-http://baizor-hermes:8642}' 'HERMES_API_SERVER_URL'
+  ensure_new_api_env_line 'HERMES_API_SERVER_KEY=\${HERMES_API_SERVER_KEY:-}' 'HERMES_API_SERVER_KEY'
+
   set_env_var HERMES_IMAGE "${HERMES_IMAGE}"
   set_env_var HERMES_API_SERVER_PORT "${HERMES_API_SERVER_PORT}"
   set_env_var HERMES_API_SERVER_PUBLISH_PORT "${HERMES_API_SERVER_PUBLISH_PORT}"

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/BaizorAI/new-api/setting"
+	"github.com/BaizorAI/new-api/setting/operation_setting"
 	"github.com/stretchr/testify/require"
 )
 

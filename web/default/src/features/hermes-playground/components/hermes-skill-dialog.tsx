@@ -19,22 +19,22 @@ For commercial licensing, please contact support@quantumnous.com
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+
 import { Dialog } from '@/components/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+
 import { createHermesSkill } from '../api'
 
 interface HermesSkillDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onCreated?: () => void
 }
 
-export function HermesSkillDialog({
-  open,
-  onOpenChange,
-}: HermesSkillDialogProps) {
+export function HermesSkillDialog(props: HermesSkillDialogProps) {
   const { t } = useTranslation()
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
@@ -52,7 +52,9 @@ export function HermesSkillDialog({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!name.trim() || !description.trim() || !instructions.trim()) {
-      toast.error(t('Please complete the skill name, description, and instructions'))
+      toast.error(
+        t('Please complete the skill name, description, and instructions')
+      )
       return
     }
 
@@ -66,7 +68,8 @@ export function HermesSkillDialog({
       })
       toast.success(t('Skill added'))
       reset()
-      onOpenChange(false)
+      props.onCreated?.()
+      props.onOpenChange(false)
     } catch (error) {
       const message =
         error instanceof Error ? error.message : t('Failed to add skill')
@@ -78,30 +81,40 @@ export function HermesSkillDialog({
 
   return (
     <Dialog
-      open={open}
+      open={props.open}
       onOpenChange={(nextOpen) => {
-        onOpenChange(nextOpen)
+        props.onOpenChange(nextOpen)
         if (!nextOpen) reset()
       }}
       title={t('Add Hermes skill')}
-      description={t('Create a reusable Hermes skill for future conversations.')}
+      description={t(
+        'Create a reusable Hermes skill for future conversations.'
+      )}
       footer={
         <>
           <Button
             type='button'
             variant='outline'
-            onClick={() => onOpenChange(false)}
+            onClick={() => props.onOpenChange(false)}
             disabled={isSubmitting}
           >
             {t('Cancel')}
           </Button>
-          <Button type='submit' form='hermes-skill-form' disabled={isSubmitting}>
+          <Button
+            type='submit'
+            form='hermes-skill-form'
+            disabled={isSubmitting}
+          >
             {isSubmitting ? t('Saving...') : t('Add Hermes skill')}
           </Button>
         </>
       }
     >
-      <form id='hermes-skill-form' onSubmit={handleSubmit} className='space-y-4'>
+      <form
+        id='hermes-skill-form'
+        onSubmit={handleSubmit}
+        className='space-y-4'
+      >
         <div className='grid gap-1.5'>
           <Label htmlFor='hermes-skill-name'>{t('Skill name')}</Label>
           <Input
@@ -138,7 +151,9 @@ export function HermesSkillDialog({
             id='hermes-skill-instructions'
             value={instructions}
             onChange={(event) => setInstructions(event.target.value)}
-            placeholder={t('Write the reusable procedure Hermes should follow.')}
+            placeholder={t(
+              'Write the reusable procedure Hermes should follow.'
+            )}
             disabled={isSubmitting}
             className='min-h-40'
           />

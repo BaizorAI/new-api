@@ -17,14 +17,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { SparklesIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '@/stores/auth-store'
-import { isSidebarModuleEnabled } from '@/lib/nav-modules'
+
 import { Main } from '@/components/layout'
+import { Button } from '@/components/ui/button'
+import { HermesCapabilityCenter } from '@/features/hermes-playground/components/hermes-capability-center'
 import { HermesSkillDialog } from '@/features/hermes-playground/components/hermes-skill-dialog'
-import { Playground } from '@/features/playground'
-import { DEFAULT_CONFIG } from '@/features/playground/constants'
 import {
   createDefaultConversation,
   createHermesConversation,
@@ -38,7 +39,11 @@ import {
   SESSION_TOUCH_INTERVAL_MS,
   type HermesConversation,
 } from '@/features/hermes-playground/sessions'
+import { Playground } from '@/features/playground'
+import { DEFAULT_CONFIG } from '@/features/playground/constants'
 import type { Message, ModelOption } from '@/features/playground/types'
+import { isSidebarModuleEnabled } from '@/lib/nav-modules'
+import { useAuthStore } from '@/stores/auth-store'
 
 export const Route = createFileRoute('/_authenticated/hermes-playground/')({
   beforeLoad: () => {
@@ -51,6 +56,7 @@ export const Route = createFileRoute('/_authenticated/hermes-playground/')({
 
 function HermesPlaygroundPage() {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const userId = useAuthStore((s) => s.auth.user?.id)
   const baseScope = getHermesBaseScope(userId)
   const [sessions, setSessions] = useState<HermesConversation[]>(() =>
@@ -60,6 +66,7 @@ function HermesPlaygroundPage() {
     loadActiveConversationId(baseScope, sessions)
   )
   const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false)
+  const [isCapabilityCenterOpen, setIsCapabilityCenterOpen] = useState(false)
 
   const reloadSessions = useCallback(() => {
     const nextSessions = loadHermesConversations(baseScope)
@@ -160,8 +167,26 @@ function HermesPlaygroundPage() {
     [activeSession]
   )
 
+  const handleSkillCreated = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: ['hermes-capabilities', 'skills'],
+    })
+  }, [queryClient])
+
   return (
-    <Main className='p-0'>
+    <Main className='relative p-0'>
+      <div className='absolute top-3 right-3 z-10'>
+        <Button
+          className='bg-background/95 shadow-sm backdrop-blur'
+          onClick={() => setIsCapabilityCenterOpen(true)}
+          size='sm'
+          type='button'
+          variant='outline'
+        >
+          <SparklesIcon className='size-4' />
+          {t('Capabilities')}
+        </Button>
+      </div>
       <Playground
         key={activeSession.storageScope}
         defaultConfig={defaultConfig}
@@ -179,6 +204,12 @@ function HermesPlaygroundPage() {
       <HermesSkillDialog
         open={isSkillDialogOpen}
         onOpenChange={setIsSkillDialogOpen}
+        onCreated={handleSkillCreated}
+      />
+      <HermesCapabilityCenter
+        open={isCapabilityCenterOpen}
+        onAddSkill={() => setIsSkillDialogOpen(true)}
+        onOpenChange={setIsCapabilityCenterOpen}
       />
     </Main>
   )
@@ -197,7 +228,9 @@ function downloadJson(payload: unknown, filename: string): void {
 }
 
 function sanitizeDownloadFilename(filename: string): string {
-  const filenameWithoutPathChars = filename.trim().replaceAll(/[<>:"/\\|?*]/g, '_')
+  const filenameWithoutPathChars = filename
+    .trim()
+    .replaceAll(/[<>:"/\\|?*]/g, '_')
   const safeName = [...filenameWithoutPathChars]
     .filter((character) => character.charCodeAt(0) >= 32)
     .join('')

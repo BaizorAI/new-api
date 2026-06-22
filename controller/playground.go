@@ -78,7 +78,7 @@ func HermesPlaygroundSkills(c *gin.Context) {
 
 	switch c.Request.Method {
 	case http.MethodGet:
-		proxyHermesPlaygroundSkills(c, http.MethodGet, nil)
+		proxyHermesPlayground(c, http.MethodGet, "/v1/skills", nil)
 	case http.MethodPost:
 		var request hermesSkillCreateRequest
 		if err := common.DecodeJson(c.Request.Body, &request); err != nil {
@@ -98,10 +98,23 @@ func HermesPlaygroundSkills(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to encode request"})
 			return
 		}
-		proxyHermesPlaygroundSkills(c, http.MethodPost, body)
+		proxyHermesPlayground(c, http.MethodPost, "/v1/skills", body)
 	default:
 		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
 	}
+}
+
+func HermesPlaygroundToolsets(c *gin.Context) {
+	if c == nil || c.Request == nil {
+		return
+	}
+
+	if c.Request.Method != http.MethodGet {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
+		return
+	}
+
+	proxyHermesPlayground(c, http.MethodGet, "/v1/toolsets", nil)
 }
 
 func applyHermesPlaygroundHeaderOverride(c *gin.Context, userId int) {
@@ -130,7 +143,7 @@ func applyHermesPlaygroundHeaderOverride(c *gin.Context, userId int) {
 	common.SetContextKey(c, constant.ContextKeyChannelHeaderOverride, merged)
 }
 
-func proxyHermesPlaygroundSkills(c *gin.Context, method string, body []byte) {
+func proxyHermesPlayground(c *gin.Context, method string, path string, body []byte) {
 	baseURL := strings.TrimRight(common.GetEnvOrDefaultString("HERMES_API_SERVER_URL", "http://baizor-hermes:8642"), "/")
 	apiKey := strings.TrimSpace(common.GetEnvOrDefaultString("HERMES_API_SERVER_KEY", ""))
 	if apiKey == "" {
@@ -143,7 +156,7 @@ func proxyHermesPlaygroundSkills(c *gin.Context, method string, body []byte) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "HERMES_API_SERVER_URL is invalid"})
 		return
 	}
-	parsedURL.Path = strings.TrimRight(parsedURL.Path, "/") + "/v1/skills"
+	parsedURL.Path = strings.TrimRight(parsedURL.Path, "/") + path
 	parsedURL.RawQuery = ""
 
 	var reader io.Reader
@@ -161,8 +174,14 @@ func proxyHermesPlaygroundSkills(c *gin.Context, method string, body []byte) {
 	if len(body) > 0 {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	req.Header.Set("X-Hermes-User-Id", strconv.Itoa(c.GetInt("id")))
+	userId := c.GetInt("id")
+	req.Header.Set("X-Hermes-User-Id", strconv.Itoa(userId))
 	req.Header.Set("X-Hermes-Source", "baizor-web-playground")
+	sessionId := sanitizeHermesSessionID(c.GetHeader("X-Baizor-Hermes-Session"))
+	if sessionId == "" {
+		sessionId = "user-" + strconv.Itoa(userId)
+	}
+	req.Header.Set("X-Hermes-Session-Id", sessionId)
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)

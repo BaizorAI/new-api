@@ -50,11 +50,13 @@ import type {
   NavCollapsible,
   NavChatPresets,
   NavHermesSessions,
+  NavPlaygroundSessions,
   NavLink,
   NavGroup as NavGroupProps,
 } from '../types'
 import { ChatPresetsItem } from './chat-presets-item'
 import { HermesSessionsItem } from './hermes-sessions-item'
+import { PlaygroundSessionsItem } from './playground-sessions-item'
 
 /**
  * Sidebar navigation group component
@@ -81,6 +83,12 @@ export function NavGroup({ title, items }: NavGroupProps) {
           if (item.type === 'hermes-sessions') {
             return (
               <HermesSessionsItem key={key} item={item as NavHermesSessions} />
+            )
+          }
+
+          if (item.type === 'playground-sessions') {
+            return (
+              <PlaygroundSessionsItem key={key} item={item as NavPlaygroundSessions} />
             )
           }
 

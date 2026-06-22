@@ -54,8 +54,8 @@ export function useSidebarData(): SidebarData {
         items: [
           {
             title: t('Playground'),
-            url: '/playground',
             icon: FlaskConical,
+            type: 'playground-sessions',
           },
           {
             title: t('HermesAgent'),

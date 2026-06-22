@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -60,4 +61,91 @@ func TestSanitizeHermesSessionID(t *testing.T) {
 	assert.Equal(t, "abc-123._:xyz", sanitizeHermesSessionID(" abc-123._:xyz "))
 	assert.Empty(t, sanitizeHermesSessionID("abc\r\nx-bad: 1"))
 	assert.Empty(t, sanitizeHermesSessionID(strings.Repeat("a", 129)))
+}
+
+func TestHermesPlaygroundToolsetsProxiesWithUserHeaders(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var receivedPath string
+	var receivedAuth string
+	var receivedUser string
+	var receivedSession string
+	var receivedSource string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedPath = r.URL.Path
+		receivedAuth = r.Header.Get("Authorization")
+		receivedUser = r.Header.Get("X-Hermes-User-Id")
+		receivedSession = r.Header.Get("X-Hermes-Session-Id")
+		receivedSource = r.Header.Get("X-Hermes-Source")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"object":"list","data":[{"name":"shell","enabled":true}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("HERMES_API_SERVER_URL", server.URL+"/api")
+	t.Setenv("HERMES_API_SERVER_KEY", "test-key")
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/toolsets", nil)
+	c.Request.Header.Set("X-Baizor-Hermes-Session", "session-456")
+	c.Set("id", 42)
+
+	HermesPlaygroundToolsets(c)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.JSONEq(t, `{"object":"list","data":[{"name":"shell","enabled":true}]}`, recorder.Body.String())
+	assert.Equal(t, "/api/v1/toolsets", receivedPath)
+	assert.Equal(t, "Bearer test-key", receivedAuth)
+	assert.Equal(t, "42", receivedUser)
+	assert.Equal(t, "session-456", receivedSession)
+	assert.Equal(t, "baizor-web-playground", receivedSource)
+}
+
+func TestHermesPlaygroundSkillsPostForwardsBody(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var receivedBody string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		receivedBody = string(body)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"success":true}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("HERMES_API_SERVER_URL", server.URL)
+	t.Setenv("HERMES_API_SERVER_KEY", "test-key")
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(
+		http.MethodPost,
+		"/pg/hermes/skills",
+		strings.NewReader(`{"name":"demo","category":"work","content":"---\nname: demo\n---\nbody"}`),
+	)
+	c.Set("id", 42)
+
+	HermesPlaygroundSkills(c)
+
+	require.Equal(t, http.StatusCreated, recorder.Code)
+	assert.JSONEq(t, `{"success":true}`, recorder.Body.String())
+	assert.JSONEq(t, `{"name":"demo","category":"work","content":"---\nname: demo\n---\nbody"}`, receivedBody)
+}
+
+func TestHermesPlaygroundProxyRequiresAPIKey(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	t.Setenv("HERMES_API_SERVER_KEY", "")
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/toolsets", nil)
+	c.Set("id", 42)
+
+	HermesPlaygroundToolsets(c)
+
+	require.Equal(t, http.StatusServiceUnavailable, recorder.Code)
+	assert.JSONEq(t, `{"message":"HERMES_API_SERVER_KEY is not configured"}`, recorder.Body.String())
 }

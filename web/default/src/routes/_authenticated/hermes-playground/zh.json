@@ -1793,7 +1793,7 @@
     "Failed to complete order": "完成订单失败",
     "Failed to complete Passkey login": "无法完成 Passkey 登录",
     "Failed to confirm compliance": "确认合规失败",
-    "Failed to contact GitHub releases API": "无法连接 GitHub Releases API",
+    "Failed to contact update server": "无法连接更新服务器",
     "Failed to copy": "复制失败",
     "Failed to copy channel": "复制渠道失败",
     "Failed to copy keys": "复制密钥失败",
