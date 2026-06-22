@@ -38,6 +38,10 @@ import {
   CodeSquareIcon,
   GraduationCapIcon,
   ListChecksIcon,
+  PackagePlusIcon,
+  PlusCircleIcon,
+  RefreshCwIcon,
+  SaveIcon,
   SearchCheckIcon,
   TerminalIcon,
   WandSparklesIcon,
@@ -62,6 +66,8 @@ import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion'
 import { ModelGroupSelector } from '@/components/model-group-selector'
 import type { ModelOption, GroupOption } from '../types'
 
+export type PlaygroundSlashAction = 'new' | 'save' | 'retry' | 'skill'
+
 interface PlaygroundInputProps {
   onSubmit: (text: string) => void
   onStop?: () => void
@@ -75,6 +81,7 @@ interface PlaygroundInputProps {
   groupValue: string
   onGroupChange: (value: string) => void
   enableSlashCommands?: boolean
+  onSlashAction?: (action: PlaygroundSlashAction) => void
 }
 
 export function PlaygroundInput({
@@ -90,6 +97,7 @@ export function PlaygroundInput({
   groupValue,
   onGroupChange,
   enableSlashCommands = false,
+  onSlashAction,
 }: PlaygroundInputProps) {
   const { t } = useTranslation()
   const [text, setText] = useState('')
@@ -109,6 +117,34 @@ export function PlaygroundInput({
 
   const slashCommands = useMemo(
     () => [
+      {
+        icon: PlusCircleIcon,
+        command: '/new',
+        label: t('New session'),
+        description: t('Start a new Hermes conversation'),
+        action: 'new' as const,
+      },
+      {
+        icon: SaveIcon,
+        command: '/save',
+        label: t('Save'),
+        description: t('Export the current Hermes conversation'),
+        action: 'save' as const,
+      },
+      {
+        icon: RefreshCwIcon,
+        command: '/retry',
+        label: t('Retry'),
+        description: t('Retry the last user request'),
+        action: 'retry' as const,
+      },
+      {
+        icon: PackagePlusIcon,
+        command: '/skill',
+        label: t('Add skill'),
+        description: t('Create a reusable Hermes skill'),
+        action: 'skill' as const,
+      },
       {
         icon: TerminalIcon,
         command: '/help',
@@ -192,6 +228,14 @@ export function PlaygroundInput({
     setText(prompt)
   }, [])
 
+  const runSlashAction = useCallback(
+    (action: PlaygroundSlashAction) => {
+      setText('')
+      onSlashAction?.(action)
+    },
+    [onSlashAction]
+  )
+
   const handleTextareaKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
       if (!isSlashCommandOpen || filteredSlashCommands.length === 0) return
@@ -215,7 +259,11 @@ export function PlaygroundInput({
       if (event.key === 'Enter') {
         event.preventDefault()
         const command = filteredSlashCommands[activeCommandIndex]
-        if (command) applySlashCommand(command.prompt)
+        if (command?.action) {
+          runSlashAction(command.action)
+        } else if (command?.prompt) {
+          applySlashCommand(command.prompt)
+        }
         return
       }
 
@@ -229,6 +277,7 @@ export function PlaygroundInput({
       applySlashCommand,
       filteredSlashCommands,
       isSlashCommandOpen,
+      runSlashAction,
     ]
   )
 
@@ -268,7 +317,13 @@ export function PlaygroundInput({
                         ? 'bg-muted'
                         : 'hover:bg-muted'
                     }`}
-                    onClick={() => applySlashCommand(item.prompt)}
+                    onClick={() => {
+                      if (item.action) {
+                        runSlashAction(item.action)
+                      } else if (item.prompt) {
+                        applySlashCommand(item.prompt)
+                      }
+                    }}
                   >
                     <Icon className='text-muted-foreground mt-0.5 size-4 shrink-0' />
                     <span className='min-w-0 flex-1'>

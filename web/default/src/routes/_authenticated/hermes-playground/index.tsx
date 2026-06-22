@@ -22,15 +22,18 @@ import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
 import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 import { Main } from '@/components/layout'
+import { HermesSkillDialog } from '@/features/hermes-playground/components/hermes-skill-dialog'
 import { Playground } from '@/features/playground'
 import { DEFAULT_CONFIG } from '@/features/playground/constants'
 import {
   createDefaultConversation,
+  createHermesConversation,
   deriveConversationTitle,
   getHermesBaseScope,
   HERMES_SESSIONS_CHANGED_EVENT,
   loadActiveConversationId,
   loadHermesConversations,
+  saveActiveConversationId,
   saveHermesConversations,
   SESSION_TOUCH_INTERVAL_MS,
   type HermesConversation,
@@ -56,6 +59,7 @@ function HermesPlaygroundPage() {
   const [activeSessionId, setActiveSessionId] = useState(() =>
     loadActiveConversationId(baseScope, sessions)
   )
+  const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false)
 
   const reloadSessions = useCallback(() => {
     const nextSessions = loadHermesConversations(baseScope)
@@ -133,6 +137,29 @@ function HermesPlaygroundPage() {
     [activeSession.id, baseScope]
   )
 
+  const createSession = useCallback(() => {
+    const nextSession = createHermesConversation(baseScope)
+    const nextSessions = [nextSession, ...sessions]
+    saveHermesConversations(baseScope, nextSessions)
+    saveActiveConversationId(baseScope, nextSession.id)
+    setSessions(nextSessions)
+    setActiveSessionId(nextSession.id)
+  }, [baseScope, sessions])
+
+  const exportActiveSession = useCallback(
+    (messages: Message[]) => {
+      downloadJson(
+        {
+          exportedAt: new Date().toISOString(),
+          session: activeSession,
+          messages,
+        },
+        `${activeSession.title || activeSession.id}.json`
+      )
+    },
+    [activeSession]
+  )
+
   return (
     <Main className='p-0'>
       <Playground
@@ -141,11 +168,38 @@ function HermesPlaygroundPage() {
         enableSlashCommands
         emptyModelsMessage={t('No Hermes models available')}
         modelFilter={modelFilter}
+        onAddSkill={() => setIsSkillDialogOpen(true)}
         onMessagesChange={updateActiveSessionFromMessages}
+        onNewSession={createSession}
+        onSaveSession={exportActiveSession}
         queryKeyPrefix='hermes-playground'
         requestHeaders={requestHeaders}
         storageScope={activeSession.storageScope}
       />
+      <HermesSkillDialog
+        open={isSkillDialogOpen}
+        onOpenChange={setIsSkillDialogOpen}
+      />
     </Main>
   )
+}
+
+function downloadJson(payload: unknown, filename: string): void {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: 'application/json',
+  })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = sanitizeDownloadFilename(filename)
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
+function sanitizeDownloadFilename(filename: string): string {
+  const filenameWithoutPathChars = filename.trim().replaceAll(/[<>:"/\\|?*]/g, '_')
+  const safeName = [...filenameWithoutPathChars]
+    .filter((character) => character.charCodeAt(0) >= 32)
+    .join('')
+  return safeName || 'hermes-session.json'
 }

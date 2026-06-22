@@ -66,6 +66,14 @@ func SetRelayRouter(router *gin.Engine) {
 	{
 		playgroundRouter.POST("/chat/completions", controller.Playground)
 	}
+	hermesPlaygroundRouter := router.Group("/pg/hermes")
+	hermesPlaygroundRouter.Use(middleware.RouteTag("relay"))
+	hermesPlaygroundRouter.Use(middleware.SystemPerformanceCheck())
+	hermesPlaygroundRouter.Use(middleware.UserAuth())
+	{
+		hermesPlaygroundRouter.GET("/skills", controller.HermesPlaygroundSkills)
+		hermesPlaygroundRouter.POST("/skills", controller.HermesPlaygroundSkills)
+	}
 	relayV1Router := router.Group("/v1")
 	relayV1Router.Use(middleware.RouteTag("relay"))
 	relayV1Router.Use(middleware.SystemPerformanceCheck())

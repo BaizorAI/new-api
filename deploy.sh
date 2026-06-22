@@ -13,6 +13,7 @@ HERMES_BUILD_CONTEXT="${HERMES_BUILD_CONTEXT:-}"
 HERMES_API_SERVER_PORT="${HERMES_API_SERVER_PORT:-8642}"
 HERMES_API_SERVER_PUBLISH_PORT="${HERMES_API_SERVER_PUBLISH_PORT:-$HERMES_API_SERVER_PORT}"
 HERMES_API_SERVER_BIND="${HERMES_API_SERVER_BIND:-127.0.0.1}"
+HERMES_API_SERVER_URL="${HERMES_API_SERVER_URL:-}"
 HERMES_UID="${HERMES_UID:-10000}"
 HERMES_GID="${HERMES_GID:-10000}"
 HERMES_NO_PROXY="${HERMES_NO_PROXY:-localhost,127.0.0.1,new-api,hermes,baizor-hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}"
@@ -89,6 +90,10 @@ if [ "$HERMES_SIDECAR_ENABLED" = "true" ]; then
     echo "Syncing Hermes sidecar compose overlay..."
     scp docker-compose.hermes.yml "${REMOTE_HOST}:${REMOTE_DIR}/docker-compose.hermes.yml"
   fi
+
+  if [ -z "$HERMES_API_SERVER_URL" ]; then
+    HERMES_API_SERVER_URL="http://${HERMES_SERVICE_NAME}:${HERMES_API_SERVER_PORT}"
+  fi
 fi
 
 echo "Deploying version ${NEW_VERSION} to ${REMOTE_HOST}:${REMOTE_DIR}..."
@@ -117,6 +122,7 @@ if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
   set_env_var HERMES_API_SERVER_PORT "${HERMES_API_SERVER_PORT}"
   set_env_var HERMES_API_SERVER_PUBLISH_PORT "${HERMES_API_SERVER_PUBLISH_PORT}"
   set_env_var HERMES_API_SERVER_BIND "${HERMES_API_SERVER_BIND}"
+  set_env_var HERMES_API_SERVER_URL "${HERMES_API_SERVER_URL}"
   set_env_var HERMES_UID "${HERMES_UID}"
   set_env_var HERMES_GID "${HERMES_GID}"
   set_env_var NO_PROXY "${HERMES_NO_PROXY}"

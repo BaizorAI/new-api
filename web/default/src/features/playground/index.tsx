@@ -22,7 +22,10 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { getUserModels, getUserGroups } from './api'
 import { PlaygroundChat } from './components/playground-chat'
-import { PlaygroundInput } from './components/playground-input'
+import {
+  PlaygroundInput,
+  type PlaygroundSlashAction,
+} from './components/playground-input'
 import { usePlaygroundState, useChatHandler } from './hooks'
 import { createUserMessage, createLoadingAssistantMessage } from './lib'
 import type {
@@ -40,6 +43,9 @@ interface PlaygroundProps {
   emptyModelsMessage?: string
   onMessagesChange?: (messages: MessageType[]) => void
   enableSlashCommands?: boolean
+  onNewSession?: () => void
+  onSaveSession?: (messages: MessageType[]) => void
+  onAddSkill?: () => void
 }
 
 export function Playground(props: PlaygroundProps = {}) {
@@ -183,6 +189,51 @@ export function Playground(props: PlaygroundProps = {}) {
     sendChat(newMessages)
   }
 
+  const handleRetryLatest = useCallback(() => {
+    if (isGenerating) return
+
+    let userMessageIndex = -1
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      if (messages[index]?.from === 'user') {
+        userMessageIndex = index
+        break
+      }
+    }
+
+    if (userMessageIndex === -1) {
+      toast.info(t('No user message to retry'))
+      return
+    }
+
+    const loadingMessage = createLoadingAssistantMessage()
+    const messagesToSubmit = [
+      ...messages.slice(0, userMessageIndex + 1),
+      loadingMessage,
+    ]
+    updateMessagesAndNotify(messagesToSubmit)
+    sendChat(messagesToSubmit)
+  }, [isGenerating, messages, sendChat, t, updateMessagesAndNotify])
+
+  const handleSlashAction = useCallback(
+    (action: PlaygroundSlashAction) => {
+      switch (action) {
+        case 'new':
+          props.onNewSession?.()
+          break
+        case 'save':
+          props.onSaveSession?.(messages)
+          break
+        case 'retry':
+          handleRetryLatest()
+          break
+        case 'skill':
+          props.onAddSkill?.()
+          break
+      }
+    },
+    [handleRetryLatest, messages, props]
+  )
+
   const handleEditMessage = useCallback((message: MessageType) => {
     setEditingMessageKey(message.key)
   }, [])
@@ -265,6 +316,7 @@ export function Playground(props: PlaygroundProps = {}) {
           models={models}
           onGroupChange={(value) => updateConfig('group', value)}
           onModelChange={(value) => updateConfig('model', value)}
+          onSlashAction={handleSlashAction}
           onStop={stopGeneration}
           onSubmit={handleSendMessage}
         />
