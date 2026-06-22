@@ -31,6 +31,7 @@ import {
 import { ChevronDown, Copy, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { formatTokens } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -324,9 +325,7 @@ function formatTokenHint(n: number | string | null | undefined): string {
   if (n == null || n === '' || Number.isNaN(Number(n))) return ''
   const v = Number(n)
   if (v === 0) return '= 0'
-  if (v >= 1_000_000) return `= ${(v / 1_000_000).toLocaleString()}M tokens`
-  if (v >= 1_000) return `= ${(v / 1_000).toLocaleString()}K tokens`
-  return `= ${v.toLocaleString()} tokens`
+  return `= ${formatTokens(v)}`
 }
 
 function formatNumberDraft(value: number | string): string {

@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { dataScheme as vchartDefaultDataScheme } from '@visactor/vchart/esm/theme/color-scheme/builtin/default'
 import { getCurrencyDisplay } from '@/lib/currency'
+import { formatTokens } from '@/lib/format'
 import { formatChartTime, type TimeGranularity } from '@/lib/time'
 import { MAX_CHART_TREND_POINTS } from '@/features/dashboard/constants'
 import type {
@@ -49,7 +50,7 @@ function getVChartDefaultColors(domainLength: number) {
 
 function renderQuotaCompat(rawQuota: number, digits = 4): string {
   const { config, meta } = getCurrencyDisplay()
-  if (meta.kind === 'tokens') return rawQuota.toLocaleString()
+  if (meta.kind === 'tokens') return formatTokens(rawQuota)
   const usd = rawQuota / config.quotaPerUnit
   const rate = 'exchangeRate' in meta ? meta.exchangeRate : 1
   const symbol = 'symbol' in meta ? meta.symbol : '$'

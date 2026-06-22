@@ -347,44 +347,44 @@ function TokenBreakdown(props: { log: UsageLog; other: LogOtherData }) {
 
   const rows: Array<{ label: string; value: string }> = []
 
-  rows.push({ label: t('Input Tokens'), value: promptTokens.toLocaleString() })
+  rows.push({ label: t('Input Tokens'), value: formatTokens(promptTokens) })
   rows.push({
     label: t('Output Tokens'),
-    value: completionTokens.toLocaleString(),
+    value: formatTokens(completionTokens),
   })
 
   if (cacheRead > 0) {
     rows.push({
       label: t('Cache Read'),
-      value: cacheRead.toLocaleString(),
+      value: formatTokens(cacheRead),
     })
   }
 
   if (cacheWrite > 0 && cacheWrite5m === 0 && cacheWrite1h === 0) {
     rows.push({
       label: t('Cache Write'),
-      value: cacheWrite.toLocaleString(),
+      value: formatTokens(cacheWrite),
     })
   }
 
   if (cacheWrite5m > 0) {
     rows.push({
       label: t('Cache Write (5m)'),
-      value: cacheWrite5m.toLocaleString(),
+      value: formatTokens(cacheWrite5m),
     })
   }
 
   if (cacheWrite1h > 0) {
     rows.push({
       label: t('Cache Write (1h)'),
-      value: cacheWrite1h.toLocaleString(),
+      value: formatTokens(cacheWrite1h),
     })
   }
 
   if (other.image && other.image_output) {
     rows.push({
       label: t('Image Tokens'),
-      value: other.image_output.toLocaleString(),
+      value: formatTokens(other.image_output),
     })
   }
 

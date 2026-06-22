@@ -172,14 +172,56 @@ export function formatLogQuota(quota: number): string {
   })
 }
 
+function getInterfaceLanguage(): string {
+  if (typeof window === 'undefined') return ''
+  try {
+    return (
+      window.localStorage.getItem('i18nextLng') ||
+      window.navigator.language ||
+      ''
+    )
+  } catch {
+    return window.navigator.language || ''
+  }
+}
+
+function isChineseLocale(locale?: string): boolean {
+  const language = locale || getInterfaceLanguage()
+  return language === 'zh' || Boolean(language?.startsWith('zh-'))
+}
+
+function trimFixed(value: number, digits: number): string {
+  return value.toFixed(digits).replace(/\.?0+$/, '')
+}
+
+function formatChineseTokens(tokens: number): string {
+  if (tokens >= 100_000_000) return `${trimFixed(tokens / 100_000_000, 2)}亿`
+  if (tokens >= 10_000) return `${trimFixed(tokens / 10_000, 2)}万`
+  return `${Math.round(tokens).toLocaleString('zh-CN')}个`
+}
+
+function formatWesternTokens(tokens: number): string {
+  if (tokens < 1_000) return Math.round(tokens).toLocaleString()
+  if (tokens < 1_000_000) return `${trimFixed(tokens / 1_000, 1)}K`
+  if (tokens < 1_000_000_000) return `${trimFixed(tokens / 1_000_000, 2)}M`
+  if (tokens < 1_000_000_000_000) {
+    const digits = tokens >= 10_000_000_000 ? 1 : 2
+    return `${trimFixed(tokens / 1_000_000_000, digits)}B`
+  }
+  return `${trimFixed(tokens / 1_000_000_000_000, 2)}T`
+}
+
 /**
- * Format tokens count with K/M suffixes
+ * Format token counts using the current interface language.
  */
-export function formatTokens(tokens: number): string {
-  if (tokens === 0) return '-'
-  if (tokens < 1000) return tokens.toString()
-  if (tokens < 1000000) return `${(tokens / 1000).toFixed(1)}K`
-  return `${(tokens / 1000000).toFixed(2)}M`
+export function formatTokens(
+  tokens: number,
+  zeroValue = '-',
+  locale?: string
+): string {
+  if (!Number.isFinite(tokens) || tokens <= 0) return zeroValue
+  if (isChineseLocale(locale)) return formatChineseTokens(tokens)
+  return formatWesternTokens(tokens)
 }
 
 /**
