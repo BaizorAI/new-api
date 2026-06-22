@@ -34,6 +34,8 @@ interface HermesSkillDialogProps {
   onCreated?: () => void
 }
 
+const HERMES_SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/
+
 export function HermesSkillDialog(props: HermesSkillDialogProps) {
   const { t } = useTranslation()
   const [name, setName] = useState('')
@@ -54,6 +56,22 @@ export function HermesSkillDialog(props: HermesSkillDialogProps) {
     if (!name.trim() || !description.trim() || !instructions.trim()) {
       toast.error(
         t('Please complete the skill name, description, and instructions')
+      )
+      return
+    }
+    if (!HERMES_SKILL_NAME_PATTERN.test(name.trim())) {
+      toast.error(
+        t(
+          'Skill name must use lowercase letters, numbers, dots, underscores, or hyphens, and start with a letter or number.'
+        )
+      )
+      return
+    }
+    if (category.trim() && !HERMES_SKILL_NAME_PATTERN.test(category.trim())) {
+      toast.error(
+        t(
+          'Category must use lowercase letters, numbers, dots, underscores, or hyphens.'
+        )
       )
       return
     }

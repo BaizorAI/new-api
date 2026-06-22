@@ -1,4 +1,4 @@
-﻿{
+{
   "translation": {
     "360": "360",
     "1000": "1000",
@@ -730,6 +730,7 @@
     "Capture a reusable bundle of models, tags, or endpoints.": "捕获可重用的模型、标签或端点捆绑包。",
     "Card view": "卡片视图",
     "Category": "分类",
+    "Category must use lowercase letters, numbers, dots, underscores, or hyphens.": "分类只能使用小写英文字母、数字、点、下划线或连字符。",
     "Category Name": "分类名称",
     "Category name is required": "分类名称不能为空",
     "Category name must be less than 50 characters": "分类名称不能超过 50 个字符",
@@ -4235,6 +4236,7 @@
     "sk_xxx or rk_xxx": "sk_xxx 或 rk_xxx",
     "Skill added": "Skill 已添加",
     "Skill name": "Skill 名称",
+    "Skill name must use lowercase letters, numbers, dots, underscores, or hyphens, and start with a letter or number.": "Skill 名称只能使用小写英文字母、数字、点、下划线或连字符，并且必须以字母或数字开头。",
     "Skill name copied": "技能名称已复制",
     "Skills": "技能",
     "Skip retry on failure": "失败后不重试",

@@ -46,18 +46,23 @@ export interface HermesToolset {
 
 export async function createHermesSkill(payload: CreateHermesSkillPayload) {
   const content = buildSkillContent(payload)
-  const response = await api.post(
-    '/pg/hermes/skills',
-    {
-      name: payload.name,
-      category: payload.category,
-      content,
-    },
-    {
-      skipBusinessError: true,
-    }
-  )
-  return response.data
+  try {
+    const response = await api.post(
+      '/pg/hermes/skills',
+      {
+        name: payload.name,
+        category: payload.category,
+        content,
+      },
+      {
+        skipBusinessError: true,
+        skipErrorHandler: true,
+      }
+    )
+    return response.data
+  } catch (error) {
+    throw new Error(getHermesRequestErrorMessage(error))
+  }
 }
 
 export async function listHermesSkills(): Promise<HermesSkill[]> {
@@ -93,6 +98,23 @@ ${instructions}
 
 function quoteYamlString(value: string): string {
   return JSON.stringify(value)
+}
+
+function getHermesRequestErrorMessage(error: unknown): string {
+  const errorRecord = asRecord(error)
+  const response = asRecord(errorRecord.response)
+  const data = asRecord(response.data)
+  const hermesError = asRecord(data.error)
+  const hermesMessage = stringFromUnknown(hermesError.message)
+  if (hermesMessage) return hermesMessage
+
+  const message = stringFromUnknown(data.message)
+  if (message) return message
+
+  const fallback = stringFromUnknown(errorRecord.message)
+  if (fallback) return fallback
+
+  return 'Failed to add skill'
 }
 
 function normalizeSkillsResponse(payload: unknown): HermesSkill[] {
