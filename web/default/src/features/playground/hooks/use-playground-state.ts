@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { DEFAULT_CONFIG, DEFAULT_PARAMETER_ENABLED } from '../constants'
 import {
   loadConfig,
@@ -25,6 +25,7 @@ import {
   saveParameterEnabled,
   loadMessages,
   saveMessages,
+  createPlaygroundStorageKeys,
 } from '../lib'
 import type {
   Message,
@@ -34,25 +35,36 @@ import type {
   GroupOption,
 } from '../types'
 
+interface UsePlaygroundStateOptions {
+  storageScope?: string
+  defaultConfig?: PlaygroundConfig
+}
+
 /**
  * Main state management hook for playground
  */
-export function usePlaygroundState() {
+export function usePlaygroundState(options: UsePlaygroundStateOptions = {}) {
+  const storageKeys = useMemo(
+    () => createPlaygroundStorageKeys(options.storageScope),
+    [options.storageScope]
+  )
+  const defaultConfig = options.defaultConfig ?? DEFAULT_CONFIG
+
   // Load initial state from localStorage
   const [config, setConfig] = useState<PlaygroundConfig>(() => {
-    const savedConfig = loadConfig()
-    return { ...DEFAULT_CONFIG, ...savedConfig }
+    const savedConfig = loadConfig(storageKeys)
+    return { ...defaultConfig, ...savedConfig }
   })
 
   const [parameterEnabled, setParameterEnabled] = useState<ParameterEnabled>(
     () => {
-      const saved = loadParameterEnabled()
+      const saved = loadParameterEnabled(storageKeys)
       return { ...DEFAULT_PARAMETER_ENABLED, ...saved }
     }
   )
 
   const [messages, setMessages] = useState<Message[]>(() => {
-    return loadMessages() || []
+    return loadMessages(storageKeys) || []
   })
 
   const [models, setModels] = useState<ModelOption[]>([])
@@ -63,11 +75,11 @@ export function usePlaygroundState() {
     <K extends keyof PlaygroundConfig>(key: K, value: PlaygroundConfig[K]) => {
       setConfig((prev) => {
         const updated = { ...prev, [key]: value }
-        saveConfig(updated)
+        saveConfig(updated, storageKeys)
         return updated
       })
     },
-    []
+    [storageKeys]
   )
 
   // Update parameter enabled with automatic save
@@ -75,11 +87,11 @@ export function usePlaygroundState() {
     (key: keyof ParameterEnabled, value: boolean) => {
       setParameterEnabled((prev) => {
         const updated = { ...prev, [key]: value }
-        saveParameterEnabled(updated)
+        saveParameterEnabled(updated, storageKeys)
         return updated
       })
     },
-    []
+    [storageKeys]
   )
 
   // Update messages with automatic save
@@ -88,11 +100,11 @@ export function usePlaygroundState() {
       setMessages((prev) => {
         const newMessages =
           typeof updater === 'function' ? updater(prev) : updater
-        saveMessages(newMessages)
+        saveMessages(newMessages, storageKeys)
         return newMessages
       })
     },
-    []
+    [storageKeys]
   )
 
   // Clear all messages
@@ -102,11 +114,11 @@ export function usePlaygroundState() {
 
   // Reset config to defaults
   const resetConfig = useCallback(() => {
-    setConfig(DEFAULT_CONFIG)
+    setConfig(defaultConfig)
     setParameterEnabled(DEFAULT_PARAMETER_ENABLED)
-    saveConfig(DEFAULT_CONFIG)
-    saveParameterEnabled(DEFAULT_PARAMETER_ENABLED)
-  }, [])
+    saveConfig(defaultConfig, storageKeys)
+    saveParameterEnabled(DEFAULT_PARAMETER_ENABLED, storageKeys)
+  }, [defaultConfig, storageKeys])
 
   return {
     // State

@@ -29,9 +29,11 @@ import type {
  * Send chat completion request (non-streaming)
  */
 export async function sendChatCompletion(
-  payload: ChatCompletionRequest
+  payload: ChatCompletionRequest,
+  headers?: Record<string, string>
 ): Promise<ChatCompletionResponse> {
   const res = await api.post(API_ENDPOINTS.CHAT_COMPLETIONS, payload, {
+    headers,
     skipErrorHandler: true,
   } as Record<string, unknown>)
   return res.data

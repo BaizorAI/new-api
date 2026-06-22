@@ -32,12 +32,16 @@ export function useStreamRequest() {
   const sendStreamRequest = useCallback(
     (
       payload: ChatCompletionRequest,
+      requestHeaders: Record<string, string> | undefined,
       onUpdate: (type: 'reasoning' | 'content', chunk: string) => void,
       onComplete: () => void,
       onError: (error: string, errorCode?: string) => void
     ) => {
       const source = new SSE(API_ENDPOINTS.CHAT_COMPLETIONS, {
-        headers: getCommonHeaders(),
+        headers: {
+          ...getCommonHeaders(),
+          ...requestHeaders,
+        },
         method: 'POST',
         payload: JSON.stringify(payload),
       })

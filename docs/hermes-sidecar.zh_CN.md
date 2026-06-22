@@ -89,6 +89,19 @@ HERMES_API_SERVER_PORT=8642
 
 用户侧只看到平台分配给他的模型名和团队 Key。平台管理员可以通过分组、模型权限、额度、团队密钥、IP 限制和日志来控制可见范围。
 
+## Web 版 Hermes Playground
+
+平台前端提供独立入口 `/hermes-playground`，用于在浏览器中测试 Hermes agent。该入口复用平台 Playground 的模型选择、分组选择、流式响应、消息编辑和重试能力，但使用独立的本地存储作用域，避免和普通 Playground 的会话、参数、消息记录混在一起。
+
+隔离策略分为两层：
+
+- 浏览器层：按登录用户生成独立的 `hermes_user_<userId>` 存储作用域，不同用户在同一浏览器登录时不会复用彼此的 Hermes Playground 配置和消息。
+- 平台层：Hermes Playground 请求会由后端写入 `X-Hermes-User-Id`、`X-Hermes-Session-Id` 和 `X-Hermes-Source` 上游请求头，用户 ID 由服务端登录态生成，前端不能伪造。
+
+Hermes Playground 默认只展示名称中包含 `hermes` 的模型。上线前需要在平台模型渠道中配置类似 `hermes-agent` 的模型别名，并授权给目标用户或团队；如果没有可用 Hermes 模型，页面会禁止发送请求并提示未找到可用模型。
+
+如果 Hermes 容器内部要做更细的工作区、缓存、任务状态隔离，应以 `X-Hermes-User-Id` 与 `X-Hermes-Session-Id` 作为隔离键。平台侧已经保证这些头只在 Hermes Playground 场景写入，并且用户标识来自服务端。
+
 ## Hermes 使用平台模型
 
 Hermes 内部如果需要调用大模型，应配置为使用白泽 AI 平台统一 OpenAI-compatible 端点：

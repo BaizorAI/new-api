@@ -51,7 +51,9 @@ type SidebarModulesSectionProps = {
 type SidebarFormValues = SidebarModulesAdminConfig
 
 const toTitleCase = (value: string) =>
-  value.replace(/[_-]+/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+  value
+    .replaceAll(/[_-]+/g, ' ')
+    .replaceAll(/\b\w/g, (char) => char.toUpperCase())
 
 export function SidebarModulesSection({
   config,
@@ -87,6 +89,10 @@ export function SidebarModulesSection({
       playground: {
         title: t('Playground'),
         description: t('Experiment with prompts and models in real time.'),
+      },
+      hermes_playground: {
+        title: t('Hermes Playground'),
+        description: t('Run isolated Hermes agent sessions in the browser.'),
       },
       chat: {
         title: t('Chat'),

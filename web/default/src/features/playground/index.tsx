@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -25,9 +25,22 @@ import { PlaygroundChat } from './components/playground-chat'
 import { PlaygroundInput } from './components/playground-input'
 import { usePlaygroundState, useChatHandler } from './hooks'
 import { createUserMessage, createLoadingAssistantMessage } from './lib'
-import type { Message as MessageType } from './types'
+import type {
+  Message as MessageType,
+  ModelOption,
+  PlaygroundConfig,
+} from './types'
 
-export function Playground() {
+interface PlaygroundProps {
+  storageScope?: string
+  defaultConfig?: PlaygroundConfig
+  modelFilter?: (model: ModelOption) => boolean
+  queryKeyPrefix?: string
+  requestHeaders?: Record<string, string>
+  emptyModelsMessage?: string
+}
+
+export function Playground(props: PlaygroundProps = {}) {
   const { t } = useTranslation()
   const {
     config,
@@ -39,12 +52,16 @@ export function Playground() {
     setModels,
     setGroups,
     updateConfig,
-  } = usePlaygroundState()
+  } = usePlaygroundState({
+    storageScope: props.storageScope,
+    defaultConfig: props.defaultConfig,
+  })
 
   const { sendChat, stopGeneration, isGenerating } = useChatHandler({
     config,
     parameterEnabled,
     onMessageUpdate: updateMessages,
+    requestHeaders: props.requestHeaders,
   })
 
   // Edit dialog state
@@ -54,7 +71,7 @@ export function Playground() {
 
   // Load models
   const { data: modelsData, isLoading: isLoadingModels } = useQuery({
-    queryKey: ['playground-models'],
+    queryKey: [props.queryKeyPrefix ?? 'playground', 'models'],
     queryFn: async () => {
       try {
         return await getUserModels()
@@ -69,9 +86,15 @@ export function Playground() {
     },
   })
 
+  const availableModels = useMemo(() => {
+    if (!modelsData) return []
+    if (!props.modelFilter) return modelsData
+    return modelsData.filter(props.modelFilter)
+  }, [modelsData, props.modelFilter])
+
   // Load groups
   const { data: groupsData } = useQuery({
-    queryKey: ['playground-groups'],
+    queryKey: [props.queryKeyPrefix ?? 'playground', 'groups'],
     queryFn: async () => {
       try {
         return await getUserGroups()
@@ -90,14 +113,16 @@ export function Playground() {
   useEffect(() => {
     if (!modelsData) return
 
-    setModels(modelsData)
+    setModels(availableModels)
 
     // Set default model if current model is not available
-    const isCurrentModelValid = modelsData.some((m) => m.value === config.model)
-    if (modelsData.length > 0 && !isCurrentModelValid) {
-      updateConfig('model', modelsData[0].value)
+    const isCurrentModelValid = availableModels.some(
+      (m) => m.value === config.model
+    )
+    if (availableModels.length > 0 && !isCurrentModelValid) {
+      updateConfig('model', availableModels[0].value)
     }
-  }, [modelsData, config.model, setModels, updateConfig])
+  }, [modelsData, availableModels, config.model, setModels, updateConfig])
 
   // Update groups when data changes
   useEffect(() => {
@@ -188,6 +213,9 @@ export function Playground() {
     updateMessages(newMessages)
   }
 
+  const modelUnavailable =
+    Boolean(props.modelFilter) && !isLoadingModels && models.length === 0
+
   return (
     <div className='relative flex size-full flex-col overflow-hidden'>
       {/* Full-width scroll container: scrolling works even over side whitespace */}
@@ -208,8 +236,13 @@ export function Playground() {
 
       {/* Input area: center content and constrain to the same container width */}
       <div className='mx-auto w-full max-w-4xl'>
+        {modelUnavailable && (
+          <div className='text-muted-foreground mx-1 mb-3 rounded-lg border px-3 py-2 text-sm'>
+            {props.emptyModelsMessage ?? t('No available models')}
+          </div>
+        )}
         <PlaygroundInput
-          disabled={isGenerating}
+          disabled={isGenerating || modelUnavailable}
           groups={groups}
           groupValue={config.group}
           isGenerating={isGenerating}

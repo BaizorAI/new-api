@@ -65,6 +65,11 @@ export function SidebarModulesCard() {
           description: t('AI model testing environment'),
         },
         {
+          key: 'hermes_playground',
+          title: t('Hermes Playground'),
+          description: t('Hermes agent testing environment'),
+        },
+        {
           key: 'chat',
           title: t('Chat'),
           description: t('Chat session management'),

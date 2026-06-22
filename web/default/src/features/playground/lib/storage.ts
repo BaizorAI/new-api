@@ -20,12 +20,35 @@ import { STORAGE_KEYS } from '../constants'
 import type { PlaygroundConfig, ParameterEnabled, Message } from '../types'
 import { sanitizeMessagesOnLoad } from './message-utils'
 
+export interface PlaygroundStorageKeys {
+  CONFIG: string
+  MESSAGES: string
+  PARAMETER_ENABLED: string
+}
+
+export function createPlaygroundStorageKeys(
+  scope?: string
+): PlaygroundStorageKeys {
+  if (!scope?.trim()) {
+    return STORAGE_KEYS
+  }
+
+  const safeScope = scope.trim().replaceAll(/[^a-zA-Z0-9_-]/g, '_')
+  return {
+    CONFIG: `playground_${safeScope}_config`,
+    MESSAGES: `playground_${safeScope}_messages`,
+    PARAMETER_ENABLED: `playground_${safeScope}_parameter_enabled`,
+  }
+}
+
 /**
  * Load playground config from localStorage
  */
-export function loadConfig(): Partial<PlaygroundConfig> {
+export function loadConfig(
+  keys: PlaygroundStorageKeys = STORAGE_KEYS
+): Partial<PlaygroundConfig> {
   try {
-    const saved = localStorage.getItem(STORAGE_KEYS.CONFIG)
+    const saved = localStorage.getItem(keys.CONFIG)
     if (saved) {
       return JSON.parse(saved)
     }
@@ -39,9 +62,12 @@ export function loadConfig(): Partial<PlaygroundConfig> {
 /**
  * Save playground config to localStorage
  */
-export function saveConfig(config: Partial<PlaygroundConfig>): void {
+export function saveConfig(
+  config: Partial<PlaygroundConfig>,
+  keys: PlaygroundStorageKeys = STORAGE_KEYS
+): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config))
+    localStorage.setItem(keys.CONFIG, JSON.stringify(config))
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to save config:', error)
@@ -51,9 +77,11 @@ export function saveConfig(config: Partial<PlaygroundConfig>): void {
 /**
  * Load parameter enabled state from localStorage
  */
-export function loadParameterEnabled(): Partial<ParameterEnabled> {
+export function loadParameterEnabled(
+  keys: PlaygroundStorageKeys = STORAGE_KEYS
+): Partial<ParameterEnabled> {
   try {
-    const saved = localStorage.getItem(STORAGE_KEYS.PARAMETER_ENABLED)
+    const saved = localStorage.getItem(keys.PARAMETER_ENABLED)
     if (saved) {
       return JSON.parse(saved)
     }
@@ -68,11 +96,12 @@ export function loadParameterEnabled(): Partial<ParameterEnabled> {
  * Save parameter enabled state to localStorage
  */
 export function saveParameterEnabled(
-  parameterEnabled: Partial<ParameterEnabled>
+  parameterEnabled: Partial<ParameterEnabled>,
+  keys: PlaygroundStorageKeys = STORAGE_KEYS
 ): void {
   try {
     localStorage.setItem(
-      STORAGE_KEYS.PARAMETER_ENABLED,
+      keys.PARAMETER_ENABLED,
       JSON.stringify(parameterEnabled)
     )
   } catch (error) {
@@ -84,9 +113,11 @@ export function saveParameterEnabled(
 /**
  * Load messages from localStorage
  */
-export function loadMessages(): Message[] | null {
+export function loadMessages(
+  keys: PlaygroundStorageKeys = STORAGE_KEYS
+): Message[] | null {
   try {
-    const saved = localStorage.getItem(STORAGE_KEYS.MESSAGES)
+    const saved = localStorage.getItem(keys.MESSAGES)
     if (saved) {
       const parsed: unknown = JSON.parse(saved)
       if (!Array.isArray(parsed)) {
@@ -95,7 +126,7 @@ export function loadMessages(): Message[] | null {
       const sanitized = sanitizeMessagesOnLoad(parsed as Message[])
       // Persist sanitized result to avoid re-sanitizing on subsequent loads
       if (sanitized !== parsed) {
-        saveMessages(sanitized)
+        saveMessages(sanitized, keys)
       }
       return sanitized
     }
@@ -109,9 +140,12 @@ export function loadMessages(): Message[] | null {
 /**
  * Save messages to localStorage
  */
-export function saveMessages(messages: Message[]): void {
+export function saveMessages(
+  messages: Message[],
+  keys: PlaygroundStorageKeys = STORAGE_KEYS
+): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages))
+    localStorage.setItem(keys.MESSAGES, JSON.stringify(messages))
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to save messages:', error)
@@ -121,13 +155,35 @@ export function saveMessages(messages: Message[]): void {
 /**
  * Clear all playground data
  */
-export function clearPlaygroundData(): void {
+export function clearPlaygroundData(
+  keys: PlaygroundStorageKeys = STORAGE_KEYS
+): void {
   try {
-    localStorage.removeItem(STORAGE_KEYS.CONFIG)
-    localStorage.removeItem(STORAGE_KEYS.PARAMETER_ENABLED)
-    localStorage.removeItem(STORAGE_KEYS.MESSAGES)
+    localStorage.removeItem(keys.CONFIG)
+    localStorage.removeItem(keys.PARAMETER_ENABLED)
+    localStorage.removeItem(keys.MESSAGES)
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to clear playground data:', error)
+  }
+}
+
+export function getOrCreatePlaygroundSessionId(scope: string): string {
+  const safeScope = scope.trim().replaceAll(/[^a-zA-Z0-9_-]/g, '_')
+  const key = `playground_${safeScope}_session_id`
+
+  try {
+    const saved = localStorage.getItem(key)
+    if (saved) return saved
+
+    const sessionId =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+    localStorage.setItem(key, sessionId)
+    return sessionId
+  } catch {
+    return `session-${Date.now()}`
   }
 }
