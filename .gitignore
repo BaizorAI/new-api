@@ -25,7 +25,6 @@ tiktoken_cache
 plans
 .claude
 .cursor
-
 electron/node_modules
 electron/dist
 data/
@@ -37,3 +36,4 @@ token_estimator_test.go
 skills-lock.json
 .playwright-mcp
 .trellis
+.tmp-go-build

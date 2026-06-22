@@ -243,7 +243,7 @@ export function SidebarModulesSection({
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         name={`${sectionKey}.${moduleKey}` as any}
                         render={({ field }) => (
-                          <SettingsSwitchItem className='border-b-0 py-2'>
+                          <SettingsSwitchItem className='py-2'>
                             <SettingsSwitchContent>
                               <FormLabel>{moduleInfo.title}</FormLabel>
                               <FormDescription>
