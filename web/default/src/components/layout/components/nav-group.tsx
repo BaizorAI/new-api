@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type ReactNode, useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { ChevronRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -46,13 +46,15 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { checkIsActive } from '../lib/url-utils'
-import {
-  type NavCollapsible,
-  type NavChatPresets,
-  type NavLink,
-  type NavGroup as NavGroupProps,
+import type {
+  NavCollapsible,
+  NavChatPresets,
+  NavHermesSessions,
+  NavLink,
+  NavGroup as NavGroupProps,
 } from '../types'
 import { ChatPresetsItem } from './chat-presets-item'
+import { HermesSessionsItem } from './hermes-sessions-item'
 
 /**
  * Sidebar navigation group component
@@ -74,6 +76,12 @@ export function NavGroup({ title, items }: NavGroupProps) {
           // Special handling: dynamic chat presets list
           if (item.type === 'chat-presets') {
             return <ChatPresetsItem key={key} item={item as NavChatPresets} />
+          }
+
+          if (item.type === 'hermes-sessions') {
+            return (
+              <HermesSessionsItem key={key} item={item as NavHermesSessions} />
+            )
           }
 
           // If no sub-items, render regular link

@@ -91,7 +91,7 @@ export function SidebarModulesSection({
         description: t('Experiment with prompts and models in real time.'),
       },
       hermes_playground: {
-        title: t('Hermes Playground'),
+        title: t('HermesAgent'),
         description: t('Run isolated Hermes agent sessions in the browser.'),
       },
       chat: {

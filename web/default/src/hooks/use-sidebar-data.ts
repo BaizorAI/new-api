@@ -18,7 +18,6 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import {
   Activity,
-  Bot,
   Box,
   CreditCard,
   FileText,
@@ -36,6 +35,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { SidebarData } from '@/components/layout/types'
+import { IconHermes } from '@/assets/brand-icons'
 
 /**
  * Root navigation groups for the application sidebar.
@@ -58,9 +58,9 @@ export function useSidebarData(): SidebarData {
             icon: FlaskConical,
           },
           {
-            title: t('Hermes Playground'),
-            url: '/hermes-playground',
-            icon: Bot,
+            title: t('HermesAgent'),
+            icon: IconHermes,
+            type: 'hermes-sessions',
           },
           {
             title: t('Chat'),

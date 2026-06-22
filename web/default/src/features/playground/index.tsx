@@ -38,6 +38,8 @@ interface PlaygroundProps {
   queryKeyPrefix?: string
   requestHeaders?: Record<string, string>
   emptyModelsMessage?: string
+  onMessagesChange?: (messages: MessageType[]) => void
+  enableSlashCommands?: boolean
 }
 
 export function Playground(props: PlaygroundProps = {}) {
@@ -57,10 +59,21 @@ export function Playground(props: PlaygroundProps = {}) {
     defaultConfig: props.defaultConfig,
   })
 
+  const updateMessagesAndNotify = useCallback(
+    (updater: MessageType[] | ((prev: MessageType[]) => MessageType[])) => {
+      updateMessages((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater
+        props.onMessagesChange?.(next)
+        return next
+      })
+    },
+    [props, updateMessages]
+  )
+
   const { sendChat, stopGeneration, isGenerating } = useChatHandler({
     config,
     parameterEnabled,
-    onMessageUpdate: updateMessages,
+    onMessageUpdate: updateMessagesAndNotify,
     requestHeaders: props.requestHeaders,
   })
 
@@ -144,7 +157,7 @@ export function Playground(props: PlaygroundProps = {}) {
     const assistantMessage = createLoadingAssistantMessage()
 
     const newMessages = [...messages, userMessage, assistantMessage]
-    updateMessages(newMessages)
+    updateMessagesAndNotify(newMessages)
 
     // Send chat request
     sendChat(newMessages)
@@ -166,7 +179,7 @@ export function Playground(props: PlaygroundProps = {}) {
     const loadingMessage = createLoadingAssistantMessage()
     const newMessages = [...messagesUpToHere, loadingMessage]
 
-    updateMessages(newMessages)
+    updateMessagesAndNotify(newMessages)
     sendChat(newMessages)
   }
 
@@ -194,7 +207,7 @@ export function Playground(props: PlaygroundProps = {}) {
       setEditingMessageKey(null)
 
       if (!submit || updated[index].from !== 'user') {
-        updateMessages(updated)
+        updateMessagesAndNotify(updated)
         return
       }
 
@@ -202,15 +215,15 @@ export function Playground(props: PlaygroundProps = {}) {
         ...updated.slice(0, index + 1),
         createLoadingAssistantMessage(),
       ]
-      updateMessages(toSubmit)
+      updateMessagesAndNotify(toSubmit)
       sendChat(toSubmit)
     },
-    [editingMessageKey, messages, updateMessages, sendChat]
+    [editingMessageKey, messages, updateMessagesAndNotify, sendChat]
   )
 
   const handleDeleteMessage = (message: MessageType) => {
     const newMessages = messages.filter((m) => m.key !== message.key)
-    updateMessages(newMessages)
+    updateMessagesAndNotify(newMessages)
   }
 
   const modelUnavailable =
@@ -243,6 +256,7 @@ export function Playground(props: PlaygroundProps = {}) {
         )}
         <PlaygroundInput
           disabled={isGenerating || modelUnavailable}
+          enableSlashCommands={props.enableSlashCommands}
           groups={groups}
           groupValue={config.group}
           isGenerating={isGenerating}

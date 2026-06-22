@@ -16,8 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type LinkProps } from '@tanstack/react-router'
-import { type TFunction } from 'i18next'
+import type { LinkProps } from '@tanstack/react-router'
+import type { TFunction } from 'i18next'
 
 /**
  * Base navigation item type
@@ -58,9 +58,22 @@ export type NavChatPresets = BaseNavItem & {
 }
 
 /**
+ * Dynamic Hermes sessions type - locally persisted Hermes session tree.
+ */
+export type NavHermesSessions = BaseNavItem & {
+  type: 'hermes-sessions'
+  url?: never
+  items?: never
+}
+
+/**
  * Navigation item union type
  */
-export type NavItem = NavCollapsible | NavLink | NavChatPresets
+export type NavItem =
+  | NavCollapsible
+  | NavLink
+  | NavChatPresets
+  | NavHermesSessions
 
 /**
  * Navigation group type - a group of navigation items in sidebar

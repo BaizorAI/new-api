@@ -66,7 +66,7 @@ export function SidebarModulesCard() {
         },
         {
           key: 'hermes_playground',
-          title: t('Hermes Playground'),
+          title: t('HermesAgent'),
           description: t('Hermes agent testing environment'),
         },
         {
