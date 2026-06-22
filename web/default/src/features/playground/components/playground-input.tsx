@@ -141,7 +141,7 @@ export function PlaygroundInput({
       {
         icon: PackagePlusIcon,
         command: '/skill',
-        label: t('Add skill'),
+        label: t('Add Hermes skill'),
         description: t('Create a reusable Hermes skill'),
         action: 'skill' as const,
       },

@@ -96,7 +96,7 @@ export function HermesSkillDialog({
             {t('Cancel')}
           </Button>
           <Button type='submit' form='hermes-skill-form' disabled={isSubmitting}>
-            {isSubmitting ? t('Saving') : t('Add skill')}
+            {isSubmitting ? t('Saving...') : t('Add Hermes skill')}
           </Button>
         </>
       }
