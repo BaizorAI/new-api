@@ -16,15 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import * as React from 'react'
-import * as z from 'zod'
-import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Code2, Eye, ShieldAlert } from 'lucide-react'
+import * as React from 'react'
+import { useForm, type Resolver } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import * as z from 'zod'
+
+import { RiskAcknowledgementDialog } from '@/components/risk-acknowledgement-dialog'
 import {
   Alert,
   AlertAction,
@@ -45,7 +46,8 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { RiskAcknowledgementDialog } from '@/components/risk-acknowledgement-dialog'
+import { cn } from '@/lib/utils'
+
 import { confirmPaymentCompliance } from '../api'
 import {
   SettingsForm,
@@ -455,7 +457,9 @@ export function PaymentSettingsSection({
       WeChatPayMachId: values.WeChatPayMachId.trim(),
       WeChatPaySerial: values.WeChatPaySerial.trim(),
       WeChatPayKeyPath: values.WeChatPayKeyPath.trim(),
-      WeChatPayNativeCallbackURL: removeTrailingSlash(values.WeChatPayNativeCallbackURL.trim()),
+      WeChatPayNativeCallbackURL: removeTrailingSlash(
+        values.WeChatPayNativeCallbackURL.trim()
+      ),
       WeChatPayApiV3Key: values.WeChatPayApiV3Key.trim(),
       WeChatPayNativeCloseOrderGap: values.WeChatPayNativeCloseOrderGap,
     }
@@ -507,9 +511,12 @@ export function PaymentSettingsSection({
       WeChatPayMachId: initialRef.current.WeChatPayMachId.trim(),
       WeChatPaySerial: initialRef.current.WeChatPaySerial.trim(),
       WeChatPayKeyPath: initialRef.current.WeChatPayKeyPath.trim(),
-      WeChatPayNativeCallbackURL: removeTrailingSlash(initialRef.current.WeChatPayNativeCallbackURL.trim()),
+      WeChatPayNativeCallbackURL: removeTrailingSlash(
+        initialRef.current.WeChatPayNativeCallbackURL.trim()
+      ),
       WeChatPayApiV3Key: initialRef.current.WeChatPayApiV3Key.trim(),
-      WeChatPayNativeCloseOrderGap: initialRef.current.WeChatPayNativeCloseOrderGap,
+      WeChatPayNativeCloseOrderGap:
+        initialRef.current.WeChatPayNativeCloseOrderGap,
     }
 
     const updates: Array<{ key: string; value: string | number | boolean }> = []
@@ -696,11 +703,17 @@ export function PaymentSettingsSection({
     }
 
     if (sanitized.WeChatPayNativeEnabled !== initial.WeChatPayNativeEnabled) {
-      updates.push({ key: 'WeChatPayNativeEnabled', value: sanitized.WeChatPayNativeEnabled })
+      updates.push({
+        key: 'WeChatPayNativeEnabled',
+        value: sanitized.WeChatPayNativeEnabled,
+      })
     }
 
     if (sanitized.WeChatPayNativeAppId !== initial.WeChatPayNativeAppId) {
-      updates.push({ key: 'WeChatPayNativeAppId', value: sanitized.WeChatPayNativeAppId })
+      updates.push({
+        key: 'WeChatPayNativeAppId',
+        value: sanitized.WeChatPayNativeAppId,
+      })
     }
 
     if (sanitized.WeChatPayMachId !== initial.WeChatPayMachId) {
@@ -712,19 +725,40 @@ export function PaymentSettingsSection({
     }
 
     if (sanitized.WeChatPayKeyPath !== initial.WeChatPayKeyPath) {
-      updates.push({ key: 'WeChatPayKeyPath', value: sanitized.WeChatPayKeyPath })
+      updates.push({
+        key: 'WeChatPayKeyPath',
+        value: sanitized.WeChatPayKeyPath,
+      })
     }
 
-    if (sanitized.WeChatPayNativeCallbackURL !== initial.WeChatPayNativeCallbackURL) {
-      updates.push({ key: 'WeChatPayNativeCallbackURL', value: sanitized.WeChatPayNativeCallbackURL })
+    if (
+      sanitized.WeChatPayNativeCallbackURL !==
+      initial.WeChatPayNativeCallbackURL
+    ) {
+      updates.push({
+        key: 'WeChatPayNativeCallbackURL',
+        value: sanitized.WeChatPayNativeCallbackURL,
+      })
     }
 
-    if (sanitized.WeChatPayApiV3Key && sanitized.WeChatPayApiV3Key !== initial.WeChatPayApiV3Key) {
-      updates.push({ key: 'WeChatPayApiV3Key', value: sanitized.WeChatPayApiV3Key })
+    if (
+      sanitized.WeChatPayApiV3Key &&
+      sanitized.WeChatPayApiV3Key !== initial.WeChatPayApiV3Key
+    ) {
+      updates.push({
+        key: 'WeChatPayApiV3Key',
+        value: sanitized.WeChatPayApiV3Key,
+      })
     }
 
-    if (sanitized.WeChatPayNativeCloseOrderGap !== initial.WeChatPayNativeCloseOrderGap) {
-      updates.push({ key: 'WeChatPayNativeCloseOrderGap', value: sanitized.WeChatPayNativeCloseOrderGap })
+    if (
+      sanitized.WeChatPayNativeCloseOrderGap !==
+      initial.WeChatPayNativeCloseOrderGap
+    ) {
+      updates.push({
+        key: 'WeChatPayNativeCloseOrderGap',
+        value: sanitized.WeChatPayNativeCloseOrderGap,
+      })
     }
 
     const hasWaffoPancakeChanges =
@@ -1567,10 +1601,15 @@ export function PaymentSettingsSection({
               />
             </TabsContent>
 
-            <TabsContent value='wechat-pay' className={paymentTabContentClassName}>
+            <TabsContent
+              value='wechat-pay'
+              className={paymentTabContentClassName}
+            >
               <div className='space-y-4'>
                 <div>
-                  <h3 className='text-lg font-medium'>{t('WeChat Pay Native')}</h3>
+                  <h3 className='text-lg font-medium'>
+                    {t('WeChat Pay Native')}
+                  </h3>
                   <p className='text-muted-foreground text-sm'>
                     {t('Configuration for WeChat Pay APIv3 Native payment')}
                   </p>
@@ -1579,9 +1618,21 @@ export function PaymentSettingsSection({
                 <div className='rounded-md bg-blue-50 p-4 text-sm text-blue-900 dark:bg-blue-950 dark:text-blue-100'>
                   <p className='mb-2 font-medium'>{t('Prerequisites:')}</p>
                   <ul className='list-inside list-disc space-y-1'>
-                    <li>{t('WeChat Pay merchant account with Native payment enabled')}</li>
-                    <li>{t('Merchant APIv3 key and certificate (apiclient_key.pem)')}</li>
-                    <li>{t('Platform certificate (wechatpay_cert.pem) in the key path directory')}</li>
+                    <li>
+                      {t(
+                        'WeChat Pay merchant account with Native payment enabled'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Merchant APIv3 key and certificate (apiclient_key.pem)'
+                      )}
+                    </li>
+                    <li>
+                      {t(
+                        'Platform certificate (wechatpay_cert.pem) in the key path directory'
+                      )}
+                    </li>
                     <li>
                       {t('Callback URL:')}{' '}
                       <code className='rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900'>
@@ -1599,7 +1650,9 @@ export function PaymentSettingsSection({
                       <SettingsSwitchContent>
                         <FormLabel>{t('Enable WeChat Pay')}</FormLabel>
                         <FormDescription>
-                          {t('Allow users to top up via WeChat Pay Native QR code')}
+                          {t(
+                            'Allow users to top up via WeChat Pay Native QR code'
+                          )}
                         </FormDescription>
                       </SettingsSwitchContent>
                       <FormControl>
@@ -1624,14 +1677,18 @@ export function PaymentSettingsSection({
                             placeholder='wx1bb077ee0b6e3c5e'
                             autoComplete='off'
                             value={field.value ?? ''}
-                            onChange={(event) => field.onChange(event.target.value)}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
                             name={field.name}
                             onBlur={field.onBlur}
                             ref={field.ref}
                           />
                         </FormControl>
                         <FormDescription>
-                          {t('WeChat Pay merchant AppID (from WeChat Pay merchant platform)')}
+                          {t(
+                            'WeChat Pay merchant AppID (from WeChat Pay merchant platform)'
+                          )}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -1649,7 +1706,9 @@ export function PaymentSettingsSection({
                             placeholder='1234567890'
                             autoComplete='off'
                             value={field.value ?? ''}
-                            onChange={(event) => field.onChange(event.target.value)}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
                             name={field.name}
                             onBlur={field.onBlur}
                             ref={field.ref}
@@ -1676,7 +1735,9 @@ export function PaymentSettingsSection({
                             placeholder='PUB_KEY_ID_0116838097082025062000452394000602'
                             autoComplete='off'
                             value={field.value ?? ''}
-                            onChange={(event) => field.onChange(event.target.value)}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
                             name={field.name}
                             onBlur={field.onBlur}
                             ref={field.ref}
@@ -1701,14 +1762,18 @@ export function PaymentSettingsSection({
                             placeholder='/root/.certs/wechat'
                             autoComplete='off'
                             value={field.value ?? ''}
-                            onChange={(event) => field.onChange(event.target.value)}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
                             name={field.name}
                             onBlur={field.onBlur}
                             ref={field.ref}
                           />
                         </FormControl>
                         <FormDescription>
-                          {t('Directory containing apiclient_key.pem and wechatpay_cert.pem')}
+                          {t(
+                            'Directory containing apiclient_key.pem and wechatpay_cert.pem'
+                          )}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -1729,14 +1794,18 @@ export function PaymentSettingsSection({
                             placeholder={t('Enter APIv3 key to update')}
                             autoComplete='new-password'
                             value={field.value ?? ''}
-                            onChange={(event) => field.onChange(event.target.value)}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
                             name={field.name}
                             onBlur={field.onBlur}
                             ref={field.ref}
                           />
                         </FormControl>
                         <FormDescription>
-                          {t('WeChat Pay APIv3 key (leave blank unless updating)')}
+                          {t(
+                            'WeChat Pay APIv3 key (leave blank unless updating)'
+                          )}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -1754,14 +1823,18 @@ export function PaymentSettingsSection({
                             placeholder={t('https://your-domain.com')}
                             autoComplete='off'
                             value={field.value ?? ''}
-                            onChange={(event) => field.onChange(event.target.value)}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
                             name={field.name}
                             onBlur={field.onBlur}
                             ref={field.ref}
                           />
                         </FormControl>
                         <FormDescription>
-                          {t('Custom callback base URL. Leave blank to use server address')}
+                          {t(
+                            'Custom callback base URL. Leave blank to use server address'
+                          )}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -1785,7 +1858,9 @@ export function PaymentSettingsSection({
                           />
                         </FormControl>
                         <FormDescription>
-                          {t('Minutes before unpaid orders are automatically closed (default: 30)')}
+                          {t(
+                            'Minutes before unpaid orders are automatically closed (default: 30)'
+                          )}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

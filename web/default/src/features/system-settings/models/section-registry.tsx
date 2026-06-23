@@ -139,9 +139,12 @@ const MODELS_SECTIONS = [
       <CliDefaultModelSettingsCard
         defaultValues={{
           'cli_default_model.model': settings['cli_default_model.model'] ?? '',
-          'cli_default_model.haiku_model': settings['cli_default_model.haiku_model'] ?? '',
-          'cli_default_model.sonnet_model': settings['cli_default_model.sonnet_model'] ?? '',
-          'cli_default_model.opus_model': settings['cli_default_model.opus_model'] ?? '',
+          'cli_default_model.haiku_model':
+            settings['cli_default_model.haiku_model'] ?? '',
+          'cli_default_model.sonnet_model':
+            settings['cli_default_model.sonnet_model'] ?? '',
+          'cli_default_model.opus_model':
+            settings['cli_default_model.opus_model'] ?? '',
         }}
       />
     ),

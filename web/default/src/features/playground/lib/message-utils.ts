@@ -17,12 +17,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { nanoid } from 'nanoid'
+
 import { MESSAGE_ROLES, MESSAGE_STATUS, ERROR_MESSAGES } from '../constants'
 import type {
   Message,
   MessageVersion,
   ChatCompletionMessage,
   ContentPart,
+  FileAttachment,
 } from '../types'
 
 /**
@@ -59,11 +61,15 @@ export function updateCurrentVersionContent(
 /**
  * Create a user message
  */
-export function createUserMessage(content: string): Message {
+export function createUserMessage(
+  content: string,
+  attachments?: FileAttachment[]
+): Message {
   return {
     key: nanoid(),
     from: MESSAGE_ROLES.USER,
     versions: [createMessageVersion(content)],
+    attachments: attachments?.length ? attachments : undefined,
   }
 }
 
@@ -128,12 +134,54 @@ export function getTextContent(content: string | ContentPart[]): string {
 
 /**
  * Format message for API request
+ * Builds ContentPart array when message has image/file attachments.
  */
 export function formatMessageForAPI(message: Message): ChatCompletionMessage {
   const currentVersion = getCurrentVersion(message)
+  const text = currentVersion.content
+  const attachments = message.attachments || []
+
+  if (attachments.length === 0) {
+    return {
+      role: message.from,
+      content: text,
+    }
+  }
+
+  // Separate images from other file types
+  const imageAttachments = attachments.filter((a) =>
+    a.mediaType?.startsWith('image/')
+  )
+  const fileAttachments = attachments.filter(
+    (a) => !a.mediaType?.startsWith('image/')
+  )
+
+  const parts: ContentPart[] = []
+
+  if (text.trim()) {
+    parts.push({ type: 'text', text })
+  }
+
+  for (const img of imageAttachments) {
+    parts.push({
+      type: 'image_url',
+      image_url: { url: img.url },
+    })
+  }
+
+  for (const file of fileAttachments) {
+    parts.push({
+      type: 'file',
+      file: {
+        file_data: file.url,
+        filename: file.filename || 'file',
+      },
+    })
+  }
+
   return {
     role: message.from,
-    content: currentVersion.content,
+    content: parts,
   }
 }
 
@@ -147,8 +195,11 @@ export function isValidMessage(message: Message): boolean {
   const content = message.versions[0]?.content
   if (content === undefined) return false
 
+  const hasAttachments = (message.attachments?.length ?? 0) > 0
+
   // Exclude empty assistant messages (loading/streaming placeholders)
-  if (message.from === 'assistant' && !content.trim()) return false
+  if (message.from === 'assistant' && !content.trim() && !hasAttachments)
+    return false
 
   return true
 }

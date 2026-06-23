@@ -27,6 +27,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+
 import { AnimateInView } from '@/components/animate-in-view'
 
 export function Features() {
@@ -102,7 +103,9 @@ export function Features() {
             {t('Product capabilities')}
           </p>
           <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-3xl'>
-            {t('A trusted AI Hub for localization adaptation, compute access, model scheduling, routing middleware and AI resource governance.')}
+            {t(
+              'A trusted AI Hub for localization adaptation, compute access, model scheduling, routing middleware and AI resource governance.'
+            )}
           </h2>
         </AnimateInView>
 

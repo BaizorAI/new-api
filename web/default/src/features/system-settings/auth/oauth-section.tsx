@@ -16,13 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useMemo, useRef, useState } from 'react'
-import * as z from 'zod'
-import axios from 'axios'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import axios from 'axios'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import * as z from 'zod'
+
 import {
   Form,
   FormControl,
@@ -35,6 +36,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
 import {
@@ -923,8 +925,12 @@ export function OAuthSection(props: OAuthSectionProps) {
 
                 {/* WeChat Open Platform OAuth (QR connect) */}
                 <div className='col-span-full border-t pt-4'>
-                  <h4 className='text-sm font-semibold'>{t('WeChat Open Platform (QR Connect)')}</h4>
-                  <p className='text-muted-foreground text-xs'>{t('For WeChat QR code login from desktop browsers')}</p>
+                  <h4 className='text-sm font-semibold'>
+                    {t('WeChat Open Platform (QR Connect)')}
+                  </h4>
+                  <p className='text-muted-foreground text-xs'>
+                    {t('For WeChat QR code login from desktop browsers')}
+                  </p>
                 </div>
 
                 <FormField
@@ -935,7 +941,9 @@ export function OAuthSection(props: OAuthSectionProps) {
                       <SettingsSwitchContent>
                         <FormLabel>{t('Enable WeChat OAuth')}</FormLabel>
                         <FormDescription>
-                          {t('Allow users to sign in via WeChat Open Platform QR code')}
+                          {t(
+                            'Allow users to sign in via WeChat Open Platform QR code'
+                          )}
                         </FormDescription>
                       </SettingsSwitchContent>
                       <FormControl>
@@ -959,7 +967,9 @@ export function OAuthSection(props: OAuthSectionProps) {
                           placeholder='wx1bb077ee0b6e3c5e'
                           autoComplete='off'
                           value={field.value ?? ''}
-                          onChange={(event) => field.onChange(event.target.value)}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
                           name={field.name}
                           onBlur={field.onBlur}
                           ref={field.ref}
@@ -982,7 +992,9 @@ export function OAuthSection(props: OAuthSectionProps) {
                           placeholder={t('App Secret')}
                           autoComplete='new-password'
                           value={field.value ?? ''}
-                          onChange={(event) => field.onChange(event.target.value)}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
                           name={field.name}
                           onBlur={field.onBlur}
                           ref={field.ref}
@@ -995,8 +1007,14 @@ export function OAuthSection(props: OAuthSectionProps) {
 
                 {/* WeChat In-App Browser OAuth */}
                 <div className='col-span-full border-t pt-4'>
-                  <h4 className='text-sm font-semibold'>{t('WeChat In-App Browser')}</h4>
-                  <p className='text-muted-foreground text-xs'>{t('For users visiting your site inside the WeChat app browser')}</p>
+                  <h4 className='text-sm font-semibold'>
+                    {t('WeChat In-App Browser')}
+                  </h4>
+                  <p className='text-muted-foreground text-xs'>
+                    {t(
+                      'For users visiting your site inside the WeChat app browser'
+                    )}
+                  </p>
                 </div>
 
                 <FormField
@@ -1031,7 +1049,9 @@ export function OAuthSection(props: OAuthSectionProps) {
                           placeholder='wxad77fc8ee62148eb'
                           autoComplete='off'
                           value={field.value ?? ''}
-                          onChange={(event) => field.onChange(event.target.value)}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
                           name={field.name}
                           onBlur={field.onBlur}
                           ref={field.ref}
@@ -1054,7 +1074,9 @@ export function OAuthSection(props: OAuthSectionProps) {
                           placeholder={t('App Secret')}
                           autoComplete='new-password'
                           value={field.value ?? ''}
-                          onChange={(event) => field.onChange(event.target.value)}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
                           name={field.name}
                           onBlur={field.onBlur}
                           ref={field.ref}
@@ -1072,14 +1094,18 @@ export function OAuthSection(props: OAuthSectionProps) {
                     <FormItem>
                       <FormLabel>{t('Scope')}</FormLabel>
                       <FormDescription>
-                        {t('snsapi_base: silent auth only; snsapi_userinfo: get user profile')}
+                        {t(
+                          'snsapi_base: silent auth only; snsapi_userinfo: get user profile'
+                        )}
                       </FormDescription>
                       <FormControl>
                         <Input
                           placeholder='snsapi_userinfo'
                           autoComplete='off'
                           value={field.value ?? ''}
-                          onChange={(event) => field.onChange(event.target.value)}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
                           name={field.name}
                           onBlur={field.onBlur}
                           ref={field.ref}

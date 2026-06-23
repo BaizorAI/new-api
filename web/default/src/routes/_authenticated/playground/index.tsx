@@ -16,10 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { useAuthStore } from '@/stores/auth-store'
-import { isSidebarModuleEnabled } from '@/lib/nav-modules'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+
 import { Main } from '@/components/layout'
 import { Playground } from '@/features/playground'
 import {
@@ -36,6 +35,8 @@ import {
   type PlaygroundConversation,
 } from '@/features/playground/sessions'
 import type { Message } from '@/features/playground/types'
+import { isSidebarModuleEnabled } from '@/lib/nav-modules'
+import { useAuthStore } from '@/stores/auth-store'
 
 export const Route = createFileRoute('/_authenticated/playground/')({
   beforeLoad: () => {
@@ -49,8 +50,8 @@ export const Route = createFileRoute('/_authenticated/playground/')({
 function PlaygroundPage() {
   const userId = useAuthStore((s) => s.auth.user?.id)
   const baseScope = getPlaygroundBaseScope(userId)
-  const [conversations, setConversations] = useState<PlaygroundConversation[]>(() =>
-    loadPlaygroundConversations(baseScope)
+  const [conversations, setConversations] = useState<PlaygroundConversation[]>(
+    () => loadPlaygroundConversations(baseScope)
   )
   const [activeConversationId, setActiveConversationId] = useState(() =>
     loadActiveConversationId(baseScope, conversations)
@@ -63,10 +64,16 @@ function PlaygroundPage() {
   }, [baseScope])
 
   useEffect(() => {
-    window.addEventListener(PLAYGROUND_SESSIONS_CHANGED_EVENT, reloadConversations)
+    window.addEventListener(
+      PLAYGROUND_SESSIONS_CHANGED_EVENT,
+      reloadConversations
+    )
     window.addEventListener('storage', reloadConversations)
     return () => {
-      window.removeEventListener(PLAYGROUND_SESSIONS_CHANGED_EVENT, reloadConversations)
+      window.removeEventListener(
+        PLAYGROUND_SESSIONS_CHANGED_EVENT,
+        reloadConversations
+      )
       window.removeEventListener('storage', reloadConversations)
     }
   }, [reloadConversations])
@@ -160,7 +167,9 @@ function downloadJson(payload: unknown, filename: string): void {
 }
 
 function sanitizeDownloadFilename(filename: string): string {
-  const filenameWithoutPathChars = filename.trim().replaceAll(/[<>:"/\\|?*]/g, '_')
+  const filenameWithoutPathChars = filename
+    .trim()
+    .replaceAll(/[<>:"/\\|?*]/g, '_')
   const safeName = [...filenameWithoutPathChars]
     .filter((character) => character.charCodeAt(0) >= 32)
     .join('')

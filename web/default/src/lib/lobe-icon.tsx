@@ -38,7 +38,10 @@ import * as LobeIcons from '@lobehub/icons'
  * The name you choose here is what you pass to getLobeIcon(),
  * e.g. getLobeIcon("Baizor.Avatar", 24)
  */
-const CUSTOM_ICONS: Record<string, React.ComponentType<Record<string, unknown>>> = {
+const CUSTOM_ICONS: Record<
+  string,
+  React.ComponentType<Record<string, unknown>>
+> = {
   // Example:
   // "Baizor.Avatar": BaizorAvatar,
   // "MyIcon": MyIconComponent,

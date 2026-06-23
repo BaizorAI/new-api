@@ -28,6 +28,7 @@ plans
 electron/node_modules
 electron/dist
 data/
+hermes-data/
 .gomodcache/
 .gocache-temp
 .gopath
@@ -37,3 +38,4 @@ skills-lock.json
 .playwright-mcp
 .trellis
 .tmp-go-build
+.tmp

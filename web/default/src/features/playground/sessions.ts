@@ -35,7 +35,9 @@ export interface PlaygroundConversation {
 export const PLAYGROUND_SESSIONS_CHANGED_EVENT = 'playground-sessions-changed'
 export const SESSION_TOUCH_INTERVAL_MS = 5000
 
-export function getPlaygroundBaseScope(userId?: number | string | null): string {
+export function getPlaygroundBaseScope(
+  userId?: number | string | null
+): string {
   return `pg_user_${userId ?? 'anonymous'}`
 }
 
@@ -137,7 +139,10 @@ export function saveActiveConversationId(
   conversationId: string
 ): void {
   try {
-    localStorage.setItem(activeConversationStorageKey(baseScope), conversationId)
+    localStorage.setItem(
+      activeConversationStorageKey(baseScope),
+      conversationId
+    )
     notifyPlaygroundSessionsChanged()
   } catch {
     // Active conversation can fall back to the first conversation on next load.

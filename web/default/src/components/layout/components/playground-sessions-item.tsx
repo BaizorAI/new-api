@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import {
   Archive,
@@ -32,15 +31,22 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { useAuthStore } from '@/stores/auth-store'
+
+import { Button } from '@/components/ui/button'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -67,6 +73,10 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import {
+  createPlaygroundStorageKeys,
+  loadMessages,
+} from '@/features/playground/lib'
+import {
   clearConversationStorage,
   createPlaygroundConversation,
   PLAYGROUND_SESSIONS_CHANGED_EVENT,
@@ -78,7 +88,8 @@ import {
   sortConversations,
   type PlaygroundConversation,
 } from '@/features/playground/sessions'
-import { createPlaygroundStorageKeys, loadMessages } from '@/features/playground/lib'
+import { useAuthStore } from '@/stores/auth-store'
+
 import { normalizeHref } from '../lib/url-utils'
 import type { NavPlaygroundSessions } from '../types'
 
@@ -88,15 +99,19 @@ interface ConversationGroup {
   archived: PlaygroundConversation[]
 }
 
-export function PlaygroundSessionsItem({ item }: { item: NavPlaygroundSessions }) {
+export function PlaygroundSessionsItem({
+  item,
+}: {
+  item: NavPlaygroundSessions
+}) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const userId = useAuthStore((s) => s.auth.user?.id)
   const baseScope = getPlaygroundBaseScope(userId)
   const href = useLocation({ select: (location) => location.href })
   const { state, isMobile, setOpenMobile } = useSidebar()
-  const [conversations, setConversations] = useState<PlaygroundConversation[]>(() =>
-    loadPlaygroundConversations(baseScope)
+  const [conversations, setConversations] = useState<PlaygroundConversation[]>(
+    () => loadPlaygroundConversations(baseScope)
   )
   const [activeConversationId, setActiveConversationId] = useState(() =>
     loadActiveConversationId(baseScope, conversations)
@@ -112,10 +127,16 @@ export function PlaygroundSessionsItem({ item }: { item: NavPlaygroundSessions }
   }, [baseScope])
 
   useEffect(() => {
-    window.addEventListener(PLAYGROUND_SESSIONS_CHANGED_EVENT, reloadConversations)
+    window.addEventListener(
+      PLAYGROUND_SESSIONS_CHANGED_EVENT,
+      reloadConversations
+    )
     window.addEventListener('storage', reloadConversations)
     return () => {
-      window.removeEventListener(PLAYGROUND_SESSIONS_CHANGED_EVENT, reloadConversations)
+      window.removeEventListener(
+        PLAYGROUND_SESSIONS_CHANGED_EVENT,
+        reloadConversations
+      )
       window.removeEventListener('storage', reloadConversations)
     }
   }, [reloadConversations])
@@ -164,9 +185,7 @@ export function PlaygroundSessionsItem({ item }: { item: NavPlaygroundSessions }
       updater: (c: PlaygroundConversation) => PlaygroundConversation
     ) => {
       const next = conversations.map((c) =>
-        c.id === conversationId
-          ? { ...updater(c), updatedAt: Date.now() }
-          : c
+        c.id === conversationId ? { ...updater(c), updatedAt: Date.now() } : c
       )
       savePlaygroundConversations(baseScope, next)
       setConversations(next)
@@ -222,8 +241,7 @@ export function PlaygroundSessionsItem({ item }: { item: NavPlaygroundSessions }
 
       if (activeConversationId !== c.id) return
 
-      const nextActive =
-        next.find((item) => !item.archived)?.id ?? next[0]?.id
+      const nextActive = next.find((item) => !item.archived)?.id ?? next[0]?.id
       if (!nextActive) return
 
       saveActiveConversationId(baseScope, nextActive)
@@ -280,7 +298,10 @@ export function PlaygroundSessionsItem({ item }: { item: NavPlaygroundSessions }
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <SidebarMenuButton tooltip={item.title} isActive={isPlaygroundActive} />
+                <SidebarMenuButton
+                  tooltip={item.title}
+                  isActive={isPlaygroundActive}
+                />
               }
             >
               {item.icon ? (
@@ -485,7 +506,10 @@ function SidebarConversationItem(props: {
         >
           <MoreHorizontal className='size-3.5' />
         </DropdownMenuTrigger>
-        <ConversationMenu conversation={props.conversation} actions={props.actions} />
+        <ConversationMenu
+          conversation={props.conversation}
+          actions={props.actions}
+        />
       </DropdownMenu>
     </SidebarMenuSubItem>
   )
@@ -507,7 +531,9 @@ function ConversationMenu(props: {
         )}
         {props.conversation.pinned ? t('Unpin') : t('Pin')}
       </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => props.actions.copyId(props.conversation)}>
+      <DropdownMenuItem
+        onClick={() => props.actions.copyId(props.conversation)}
+      >
         <Copy className='size-4' />
         {t('Copy ID')}
       </DropdownMenuItem>
@@ -517,15 +543,21 @@ function ConversationMenu(props: {
         <ExternalLink className='size-4' />
         {t('Open in new window')}
       </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => props.actions.export(props.conversation)}>
+      <DropdownMenuItem
+        onClick={() => props.actions.export(props.conversation)}
+      >
         <Download className='size-4' />
         {t('Export')}
       </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => props.actions.rename(props.conversation)}>
+      <DropdownMenuItem
+        onClick={() => props.actions.rename(props.conversation)}
+      >
         <Pencil className='size-4' />
         {t('Rename')}
       </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => props.actions.archive(props.conversation)}>
+      <DropdownMenuItem
+        onClick={() => props.actions.archive(props.conversation)}
+      >
         {props.conversation.archived ? (
           <ArchiveRestore className='size-4' />
         ) : (
@@ -626,7 +658,9 @@ function downloadJson(payload: unknown, filename: string): void {
 }
 
 function sanitizeDownloadFilename(filename: string): string {
-  const filenameWithoutPathChars = filename.trim().replaceAll(/[<>:"/\\|?*]/g, '_')
+  const filenameWithoutPathChars = filename
+    .trim()
+    .replaceAll(/[<>:"/\\|?*]/g, '_')
   const safeName = [...filenameWithoutPathChars]
     .filter((character) => character.charCodeAt(0) >= 32)
     .join('')

@@ -16,9 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, useEffect, type ReactNode } from 'react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { ChevronRight } from 'lucide-react'
+import { useState, useEffect, type ReactNode } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import {
   Collapsible,
@@ -45,6 +46,7 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+
 import { checkIsActive } from '../lib/url-utils'
 import type {
   NavCollapsible,
@@ -88,7 +90,10 @@ export function NavGroup({ title, items }: NavGroupProps) {
 
           if (item.type === 'playground-sessions') {
             return (
-              <PlaygroundSessionsItem key={key} item={item as NavPlaygroundSessions} />
+              <PlaygroundSessionsItem
+                key={key}
+                item={item as NavPlaygroundSessions}
+              />
             )
           }
 

@@ -18,10 +18,17 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getSelf } from '@/lib/api'
+
+import { SectionPageLayout } from '@/components/layout'
+import { getSelfSubscriptionFull } from '@/features/subscriptions/api'
+import type { UserSubscriptionRecord } from '@/features/subscriptions/types'
+import { listTeams } from '@/features/teams/api'
+import type { Team } from '@/features/teams/types'
 import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
-import { SectionPageLayout } from '@/components/layout'
+import { getSelf } from '@/lib/api'
+
+import { requestWeChatPay, requestWeChatJSAPIPay } from './api'
 import { AffiliateRewardsCard } from './components/affiliate-rewards-card'
 import { BillingOwnershipCard } from './components/billing-ownership-card'
 import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
@@ -47,11 +54,6 @@ import {
   getMinTopupAmount,
   isWaffoPancakePayment,
 } from './lib'
-import { requestWeChatPay, requestWeChatJSAPIPay } from './api'
-import { listTeams } from '@/features/teams/api'
-import { getSelfSubscriptionFull } from '@/features/subscriptions/api'
-import type { UserSubscriptionRecord } from '@/features/subscriptions/types'
-import type { Team } from '@/features/teams/types'
 import type {
   UserWalletData,
   PaymentMethod,
@@ -63,7 +65,8 @@ import type {
 /** Detect whether the current browser is WeChat's built-in browser. */
 function isWeChatBrowser(): boolean {
   return (
-    typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent)
+    typeof navigator !== 'undefined' &&
+    /MicroMessenger/i.test(navigator.userAgent)
   )
 }
 
@@ -99,7 +102,9 @@ export function Wallet(props: WalletProps) {
   const [wechatPayCodeUrl, setWeChatPayCodeUrl] = useState('')
   const [wechatPayTradeNo, setWeChatPayTradeNo] = useState('')
   const [wechatPaying, setWeChatPaying] = useState(false)
-  const [wechatPayMode, setWeChatPayMode] = useState<'native' | 'jsapi'>('native')
+  const [wechatPayMode, setWeChatPayMode] = useState<'native' | 'jsapi'>(
+    'native'
+  )
   const [wechatPayJSAPIParams, setWeChatPayJSAPIParams] =
     useState<WeChatPayJSAPIParams | null>(null)
 
@@ -401,9 +406,7 @@ export function Wallet(props: WalletProps) {
                   enableWaffoPancakeTopup={
                     topupInfo?.enable_waffo_pancake_topup
                   }
-                  enableWeChatPayTopup={
-                    topupInfo?.enable_wechat_pay_topup
-                  }
+                  enableWeChatPayTopup={topupInfo?.enable_wechat_pay_topup}
                   onWeChatPaySelect={handleWeChatPaySelect}
                 />
               </div>

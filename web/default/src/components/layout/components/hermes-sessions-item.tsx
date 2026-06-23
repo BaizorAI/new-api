@@ -1,4 +1,4 @@
-/*
+﻿/*
 Copyright (C) 2023-2026 QuantumNous
 
 This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import {
   Archive,
@@ -25,6 +24,7 @@ import {
   Copy,
   Download,
   ExternalLink,
+  FileCheck2,
   MessageCircle,
   MoreHorizontal,
   Pencil,
@@ -34,16 +34,23 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { useAuthStore } from '@/stores/auth-store'
+
 import { IconHermes } from '@/assets/brand-icons'
+import { Button } from '@/components/ui/button'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -78,12 +85,18 @@ import {
   loadHermesConversations,
   requestOpenHermesCapabilities,
   requestOpenHermesMessagePlatforms,
+  requestOpenHermesResults,
   saveActiveConversationId,
   saveHermesConversations,
   sortSessions,
   type HermesConversation,
 } from '@/features/hermes-playground/sessions'
-import { createPlaygroundStorageKeys, loadMessages } from '@/features/playground/lib'
+import {
+  createPlaygroundStorageKeys,
+  loadMessages,
+} from '@/features/playground/lib'
+import { useAuthStore } from '@/stores/auth-store'
+
 import { normalizeHref } from '../lib/url-utils'
 import type { NavHermesSessions } from '../types'
 
@@ -162,6 +175,11 @@ export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
 
   const openMessagePlatforms = useCallback(() => {
     requestOpenHermesMessagePlatforms()
+    setOpenMobile(false)
+    void navigate({ to: '/hermes-playground' })
+  }, [navigate, setOpenMobile])
+  const openResults = useCallback(() => {
+    requestOpenHermesResults()
     setOpenMobile(false)
     void navigate({ to: '/hermes-playground' })
   }, [navigate, setOpenMobile])
@@ -297,7 +315,10 @@ export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <SidebarMenuButton tooltip={item.title} isActive={isHermesActive} />
+                <SidebarMenuButton
+                  tooltip={item.title}
+                  isActive={isHermesActive}
+                />
               }
             >
               {item.icon ? (
@@ -316,6 +337,10 @@ export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
               <DropdownMenuItem onClick={openCapabilities}>
                 <Sparkles className='size-4' />
                 {t('Capabilities')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={openResults}>
+                <FileCheck2 />
+                {t('Results')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={openMessagePlatforms}>
                 <MessageCircle className='size-4' />
@@ -402,6 +427,12 @@ export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
               <SidebarMenuSubButton onClick={openCapabilities}>
                 <Sparkles className='size-3.5' />
                 <span>{t('Capabilities')}</span>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+            <SidebarMenuSubItem>
+              <SidebarMenuSubButton onClick={openResults}>
+                <FileCheck2 />
+                <span>{t('Results')}</span>
               </SidebarMenuSubButton>
             </SidebarMenuSubItem>
             <SidebarMenuSubItem>
@@ -600,7 +631,9 @@ function DropdownSessionGroup(props: {
           render={
             <Link
               to='/hermes-playground'
-              className={props.activeSessionId === session.id ? 'bg-secondary' : ''}
+              className={
+                props.activeSessionId === session.id ? 'bg-secondary' : ''
+              }
               onClick={() => props.onSelect(session.id)}
             />
           }
@@ -663,7 +696,9 @@ function downloadJson(payload: unknown, filename: string): void {
 }
 
 function sanitizeDownloadFilename(filename: string): string {
-  const filenameWithoutPathChars = filename.trim().replaceAll(/[<>:"/\\|?*]/g, '_')
+  const filenameWithoutPathChars = filename
+    .trim()
+    .replaceAll(/[<>:"/\\|?*]/g, '_')
   const safeName = [...filenameWithoutPathChars]
     .filter((character) => character.charCodeAt(0) >= 32)
     .join('')

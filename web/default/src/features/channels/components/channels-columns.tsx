@@ -1112,7 +1112,6 @@ export function useChannelsColumns(): ColumnDef<Channel>[] {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-
           )
         },
         size: 120,

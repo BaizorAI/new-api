@@ -1,3 +1,12 @@
+import { useMutation, useQuery } from '@tanstack/react-query'
+import {
+  Link2OffIcon,
+  MessageCircleIcon,
+  QrCodeIcon,
+  RefreshCwIcon,
+  WrenchIcon,
+} from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -16,16 +25,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import {
-  Link2OffIcon,
-  MessageCircleIcon,
-  QrCodeIcon,
-  RefreshCwIcon,
-  WrenchIcon,
-} from 'lucide-react'
-import { QRCodeSVG } from 'qrcode.react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -94,6 +94,7 @@ export function HermesMessagePlatforms(props: HermesMessagePlatformsProps) {
 function WeixinPlatformCard(props: { open: boolean; userScope: string }) {
   const { t } = useTranslation()
   const [qrState, setQrState] = useState<HermesWeixinStatus | null>(null)
+  const completedQrRequestRef = useRef<string | null>(null)
 
   const statusQuery = useQuery({
     queryKey: ['hermes-message-platforms', props.userScope, 'weixin', 'status'],
@@ -115,16 +116,18 @@ function WeixinPlatformCard(props: { open: boolean; userScope: string }) {
     ],
     queryFn: () => getHermesWeixinQRStatus(qrState?.requestId ?? ''),
     enabled: shouldPoll,
-    refetchInterval: shouldPoll ? 3000 : false,
+    refetchInterval: shouldPoll ? 5000 : false,
   })
 
   useEffect(() => {
+    completedQrRequestRef.current = null
     setQrState(null)
   }, [props.userScope])
 
   const createQRMutation = useMutation({
     mutationFn: createHermesWeixinQR,
     onSuccess: (data) => {
+      completedQrRequestRef.current = null
       setQrState(data)
       void statusQuery.refetch()
       toast.success(t('WeChat QR code created'))
@@ -154,15 +157,22 @@ function WeixinPlatformCard(props: { open: boolean; userScope: string }) {
     const data = qrStatusQuery.data
     if (!data) return
     setQrState(data)
-    if (data.status === 'connected') {
+    const requestId = data.requestId || qrState?.requestId || ''
+    if (
+      data.status === 'connected' &&
+      requestId &&
+      completedQrRequestRef.current !== requestId
+    ) {
+      completedQrRequestRef.current = requestId
       void statusQuery.refetch()
     }
-  }, [qrStatusQuery.data, statusQuery])
+  }, [qrState?.requestId, qrStatusQuery.data, statusQuery.refetch])
 
   const current = qrState ?? statusQuery.data
   const qrValue = qrState?.qrcodeUrl || qrState?.qrcode || ''
   const isConnected = current?.status === 'connected'
-  const isDisabled = current?.status === 'disabled' || current?.enabled === false
+  const isDisabled =
+    current?.status === 'disabled' || current?.enabled === false
   const isBusy =
     createQRMutation.isPending ||
     disconnectMutation.isPending ||

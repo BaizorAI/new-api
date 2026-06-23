@@ -19,8 +19,10 @@ For commercial licensing, please contact support@quantumnous.com
 import { useEffect, useMemo, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { formatTimestampToDate, formatTokens } from '@/lib/format'
+
 import { Dialog } from '@/components/dialog'
+import { formatTimestampToDate, formatTokens } from '@/lib/format'
+
 import { getAffinityUsageCache } from './api'
 
 function formatRate(hit: number, total: number): string {
@@ -160,7 +162,9 @@ export function CacheStatsDialog(props: Props) {
             className='flex justify-between gap-4 border-b pb-1 text-sm'
           >
             <span className='text-muted-foreground'>{row.key}</span>
-            <span className='text-right font-medium break-all'>{row.value}</span>
+            <span className='text-right font-medium break-all'>
+              {row.value}
+            </span>
           </div>
         ))}
       </div>

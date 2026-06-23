@@ -16,12 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useMemo, useRef } from 'react'
-import * as z from 'zod'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect, useMemo, useRef } from 'react'
+import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import * as z from 'zod'
+
 import {
   Form,
   FormControl,
@@ -32,9 +33,8 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  SettingsForm,
-} from '../components/settings-form-layout'
+
+import { SettingsForm } from '../components/settings-form-layout'
 import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
@@ -58,7 +58,9 @@ type FlatCliDefaults = {
   'cli_default_model.opus_model': string
 }
 
-const buildFormDefaults = (defaults: FlatCliDefaults): CliDefaultModelFormInput => ({
+const buildFormDefaults = (
+  defaults: FlatCliDefaults
+): CliDefaultModelFormInput => ({
   cli_default_model: {
     model: defaults['cli_default_model.model'],
     haiku_model: defaults['cli_default_model.haiku_model'],
@@ -67,7 +69,9 @@ const buildFormDefaults = (defaults: FlatCliDefaults): CliDefaultModelFormInput 
   },
 })
 
-const normalizeFormValues = (values: CliDefaultModelFormValues): FlatCliDefaults => ({
+const normalizeFormValues = (
+  values: CliDefaultModelFormValues
+): FlatCliDefaults => ({
   'cli_default_model.model': values.cli_default_model.model,
   'cli_default_model.haiku_model': values.cli_default_model.haiku_model,
   'cli_default_model.sonnet_model': values.cli_default_model.sonnet_model,
@@ -87,7 +91,11 @@ export function CliDefaultModelSettingsCard(props: Props) {
     [props.defaultValues]
   )
 
-  const form = useForm<CliDefaultModelFormInput, unknown, CliDefaultModelFormValues>({
+  const form = useForm<
+    CliDefaultModelFormInput,
+    unknown,
+    CliDefaultModelFormValues
+  >({
     resolver: zodResolver(cliDefaultModelSchema),
     defaultValues: formDefaults,
   })

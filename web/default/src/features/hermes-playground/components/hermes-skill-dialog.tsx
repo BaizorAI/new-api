@@ -152,7 +152,11 @@ export function HermesSkillDialog(props: HermesSkillDialogProps) {
             form='hermes-skill-form'
             disabled={isSubmitting}
           >
-            {isSubmitting ? t('Saving...') : isEditing ? t('Save') : t('Add Hermes skill')}
+            {isSubmitting
+              ? t('Saving...')
+              : isEditing
+                ? t('Save')
+                : t('Add Hermes skill')}
           </Button>
         </>
       }

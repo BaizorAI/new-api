@@ -19,10 +19,12 @@ For commercial licensing, please contact support@quantumnous.com
 import { type ColumnDef } from '@tanstack/react-table'
 import { Eye, Info, Pencil, Settings2, Timer, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { formatTimestampToDate } from '@/lib/format'
-import { Button } from '@/components/ui/button'
+
 import { StatusBadge } from '@/components/status-badge'
 import { TableId } from '@/components/table-id'
+import { Button } from '@/components/ui/button'
+import { formatTimestampToDate } from '@/lib/format'
+
 import { getDeploymentStatusConfig } from '../constants'
 import {
   formatRemainingMinutes,

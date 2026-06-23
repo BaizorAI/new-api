@@ -31,6 +31,7 @@ import {
   WalletCards,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+
 import { AnimateInView } from '@/components/animate-in-view'
 import { PublicLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
@@ -142,7 +143,7 @@ function About() {
             <div className='grid grid-cols-2 gap-6 md:grid-cols-4'>
               {stats.map((stat) => (
                 <div key={stat.label} className='text-center'>
-                  <div className='text-3xl font-bold tracking-tight text-foreground'>
+                  <div className='text-foreground text-3xl font-bold tracking-tight'>
                     {stat.num}
                   </div>
                   <div className='text-muted-foreground mt-1 text-sm'>
@@ -358,7 +359,9 @@ function About() {
                 </div>
               </div>
               <div className='flex-1'>
-                <h2 className='text-xl font-bold'>{t('Contact and community')}</h2>
+                <h2 className='text-xl font-bold'>
+                  {t('Contact and community')}
+                </h2>
                 <p className='text-muted-foreground mt-2 leading-relaxed'>
                   {t(
                     'For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.'
@@ -415,7 +418,7 @@ function About() {
           </div>
         </AnimateInView>
 
-        <div className='border-border/30 mt-8 border-t pt-8 text-center text-xs text-muted-foreground/60'>
+        <div className='border-border/30 text-muted-foreground/60 mt-8 border-t pt-8 text-center text-xs'>
           <p>
             <a
               href='https://github.com/BaizorAI/new-api'
@@ -437,8 +440,8 @@ function About() {
             {t('| Based on')} {t('One API')} © 2026 {t('QiMa')}
           </p>
           <p>
-            {t('NewAPI')} © {currentYear} {t('QuantumNous')}{' '}
-            {t('| Based on')} {t('One API')} © 2023 {t('JustSong')}
+            {t('NewAPI')} © {currentYear} {t('QuantumNous')} {t('| Based on')}{' '}
+            {t('One API')} © 2023 {t('JustSong')}
           </p>
           <p className='mt-1'>
             {t('This project must be used in compliance with the')}{' '}

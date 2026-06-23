@@ -21,6 +21,12 @@ export type MessageRole = 'user' | 'assistant' | 'system'
 
 export type MessageStatus = 'loading' | 'streaming' | 'complete' | 'error'
 
+export interface FileAttachment {
+  url: string
+  mediaType?: string
+  filename?: string
+}
+
 export interface MessageVersion {
   id: string
   content: string
@@ -30,6 +36,7 @@ export interface Message {
   key: string
   from: MessageRole
   versions: MessageVersion[]
+  attachments?: FileAttachment[]
   sources?: { href: string; title: string }[]
   reasoning?: {
     content: string
@@ -49,10 +56,14 @@ export interface ChatCompletionMessage {
 }
 
 export interface ContentPart {
-  type: 'text' | 'image_url'
+  type: 'text' | 'image_url' | 'file'
   text?: string
   image_url?: {
     url: string
+  }
+  file?: {
+    file_data: string
+    filename: string
   }
 }
 

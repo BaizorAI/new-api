@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { parseCurrencyDisplayType } from '@/lib/currency'
+
 import { CheckinSettingsSection } from '../general/checkin-settings-section'
 import { PricingSection } from '../general/pricing-section'
 import { QuotaSettingsSection } from '../general/quota-settings-section'
@@ -155,7 +156,8 @@ const BILLING_SECTIONS = [
           WeChatPayKeyPath: settings.WeChatPayKeyPath ?? '',
           WeChatPayNativeCallbackURL: settings.WeChatPayNativeCallbackURL ?? '',
           WeChatPayApiV3Key: settings.WeChatPayApiV3Key ?? '',
-          WeChatPayNativeCloseOrderGap: settings.WeChatPayNativeCloseOrderGap ?? 30,
+          WeChatPayNativeCloseOrderGap:
+            settings.WeChatPayNativeCloseOrderGap ?? 30,
         }}
         waffoDefaultValues={{
           WaffoEnabled: settings.WaffoEnabled ?? false,
@@ -196,7 +198,8 @@ const BILLING_SECTIONS = [
           WeChatPayKeyPath: settings.WeChatPayKeyPath ?? '',
           WeChatPayNativeCallbackURL: settings.WeChatPayNativeCallbackURL ?? '',
           WeChatPayApiV3Key: settings.WeChatPayApiV3Key ?? '',
-          WeChatPayNativeCloseOrderGap: settings.WeChatPayNativeCloseOrderGap ?? 30,
+          WeChatPayNativeCloseOrderGap:
+            settings.WeChatPayNativeCloseOrderGap ?? 30,
         }}
       />
     ),

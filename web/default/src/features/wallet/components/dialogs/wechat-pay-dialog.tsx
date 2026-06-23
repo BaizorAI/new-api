@@ -16,10 +16,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
 import { QRCodeSVG } from 'qrcode.react'
+import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -27,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+
 import { queryWeChatPayOrder, closeWeChatPayOrder } from '../../api'
 import type { WeChatPayJSAPIParams } from '../../types'
 
@@ -79,7 +81,8 @@ export function WeChatPayDialog({
 
   // JSAPI mode: invoke WeixinJSBridge
   useEffect(() => {
-    if (mode !== 'jsapi' || !open || !jsapiParams || jsapiInvokedRef.current) return
+    if (mode !== 'jsapi' || !open || !jsapiParams || jsapiInvokedRef.current)
+      return
     jsapiInvokedRef.current = true
 
     const invokePay = () => {
@@ -215,10 +218,10 @@ export function WeChatPayDialog({
             <div className='rounded-lg border bg-white p-4'>
               <QRCodeSVG value={codeUrl} size={200} />
             </div>
-            <p className='text-muted-foreground text-sm text-center'>
+            <p className='text-muted-foreground text-center text-sm'>
               {t('Scan with WeChat to pay')} {amount}
             </p>
-            <p className='text-muted-foreground text-xs text-center flex items-center gap-1'>
+            <p className='text-muted-foreground flex items-center gap-1 text-center text-xs'>
               <Loader2 className='h-3 w-3 animate-spin' />
               {t('Waiting for payment...')}
             </p>
@@ -227,8 +230,8 @@ export function WeChatPayDialog({
 
         {paymentState === 'pending' && mode === 'jsapi' && (
           <div className='flex flex-col items-center gap-4 py-4'>
-            <Loader2 className='h-10 w-10 animate-spin text-primary' />
-            <p className='text-muted-foreground text-sm text-center'>
+            <Loader2 className='text-primary h-10 w-10 animate-spin' />
+            <p className='text-muted-foreground text-center text-sm'>
               {t('Launching WeChat Pay...')}
             </p>
           </div>
@@ -236,7 +239,7 @@ export function WeChatPayDialog({
 
         {paymentState === 'paid' && (
           <div className='flex flex-col items-center gap-4 py-4'>
-            <div className='text-green-500 text-5xl'>✓</div>
+            <div className='text-5xl text-green-500'>✓</div>
             <p className='text-lg font-semibold text-green-600'>
               {t('Payment Successful')}
             </p>
@@ -253,7 +256,7 @@ export function WeChatPayDialog({
 
         {paymentState === 'error' && errorMessage && (
           <div className='flex flex-col items-center gap-4 py-4'>
-            <p className='text-red-500 text-sm'>{errorMessage}</p>
+            <p className='text-sm text-red-500'>{errorMessage}</p>
           </div>
         )}
 

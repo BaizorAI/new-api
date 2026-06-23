@@ -16,10 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Building2Icon, SparklesIcon, WalletCardsIcon } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Main } from '@/components/layout'
@@ -32,19 +32,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import type { HermesSkill } from '@/features/hermes-playground/api'
 import { HermesCapabilityCenter } from '@/features/hermes-playground/components/hermes-capability-center'
 import { HermesMessagePlatforms } from '@/features/hermes-playground/components/hermes-message-platforms'
+import { HermesResults } from '@/features/hermes-playground/components/hermes-results'
 import { HermesSkillDialog } from '@/features/hermes-playground/components/hermes-skill-dialog'
-import type { HermesSkill } from '@/features/hermes-playground/api'
 import {
   createDefaultConversation,
   createHermesConversation,
   consumeHermesCapabilitiesOpenRequest,
   consumeHermesMessagePlatformsOpenRequest,
+  consumeHermesResultsOpenRequest,
   deriveConversationTitle,
   getHermesBaseScope,
   HERMES_CAPABILITIES_OPEN_EVENT,
   HERMES_MESSAGE_PLATFORMS_OPEN_EVENT,
+  HERMES_RESULTS_OPEN_EVENT,
   HERMES_SESSIONS_CHANGED_EVENT,
   loadActiveConversationId,
   loadHermesConversations,
@@ -57,8 +60,8 @@ import { Playground } from '@/features/playground'
 import { DEFAULT_CONFIG } from '@/features/playground/constants'
 import type { Message, ModelOption } from '@/features/playground/types'
 import { listTeams } from '@/features/teams/api'
-import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 import { formatQuota } from '@/lib/format'
+import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 import { useAuthStore } from '@/stores/auth-store'
 
 export const Route = createFileRoute('/_authenticated/hermes-playground/')({
@@ -85,6 +88,7 @@ function HermesPlaygroundPage() {
   const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false)
   const [editSkill, setEditSkill] = useState<HermesSkill | null>(null)
   const [isCapabilityCenterOpen, setIsCapabilityCenterOpen] = useState(false)
+  const [isResultsOpen, setIsResultsOpen] = useState(false)
   const [isMessagePlatformsOpen, setIsMessagePlatformsOpen] = useState(false)
   const [billingOwner, setBillingOwner] = useState('personal')
 
@@ -92,7 +96,7 @@ function HermesPlaygroundPage() {
     queryKey: ['hermes-playground', queryUserScope, 'teams'],
     queryFn: listTeams,
   })
-  const teams = teamsResponse?.success ? teamsResponse.data ?? [] : []
+  const teams = teamsResponse?.success ? (teamsResponse.data ?? []) : []
 
   const selectedTeamId = billingOwner.startsWith('team:')
     ? Number(billingOwner.slice('team:'.length))
@@ -124,16 +128,21 @@ function HermesPlaygroundPage() {
     if (consumeHermesCapabilitiesOpenRequest()) {
       setIsCapabilityCenterOpen(true)
     }
+    if (consumeHermesResultsOpenRequest()) {
+      setIsResultsOpen(true)
+    }
     if (consumeHermesMessagePlatformsOpenRequest()) {
       setIsMessagePlatformsOpen(true)
     }
 
     const openCapabilityCenter = () => setIsCapabilityCenterOpen(true)
+    const openResults = () => setIsResultsOpen(true)
     const openMessagePlatforms = () => setIsMessagePlatformsOpen(true)
     window.addEventListener(
       HERMES_CAPABILITIES_OPEN_EVENT,
       openCapabilityCenter
     )
+    window.addEventListener(HERMES_RESULTS_OPEN_EVENT, openResults)
     window.addEventListener(
       HERMES_MESSAGE_PLATFORMS_OPEN_EVENT,
       openMessagePlatforms
@@ -143,6 +152,7 @@ function HermesPlaygroundPage() {
         HERMES_CAPABILITIES_OPEN_EVENT,
         openCapabilityCenter
       )
+      window.removeEventListener(HERMES_RESULTS_OPEN_EVENT, openResults)
       window.removeEventListener(
         HERMES_MESSAGE_PLATFORMS_OPEN_EVENT,
         openMessagePlatforms
@@ -171,19 +181,16 @@ function HermesPlaygroundPage() {
     return /hermes/i.test(`${model.label} ${model.value}`)
   }, [])
 
-  const requestHeaders = useMemo(
-    () => {
-      const headers: Record<string, string> = {
-        'X-Baizor-Playground': 'hermes',
-        'X-Baizor-Hermes-Session': activeSession.hermesSessionId,
-      }
-      if (selectedTeamId > 0) {
-        headers['X-Baizor-Team-Id'] = String(selectedTeamId)
-      }
-      return headers
-    },
-    [activeSession.hermesSessionId, selectedTeamId]
-  )
+  const requestHeaders = useMemo(() => {
+    const headers: Record<string, string> = {
+      'X-Baizor-Playground': 'hermes',
+      'X-Baizor-Hermes-Session': activeSession.hermesSessionId,
+    }
+    if (selectedTeamId > 0) {
+      headers['X-Baizor-Team-Id'] = String(selectedTeamId)
+    }
+    return headers
+  }, [activeSession.hermesSessionId, selectedTeamId])
 
   const updateActiveSessionFromMessages = useCallback(
     (messages: Message[]) => {
@@ -250,7 +257,12 @@ function HermesPlaygroundPage() {
     <Main className='relative p-0'>
       <div className='absolute top-3 right-3 z-10 flex items-center gap-2'>
         {teams.length > 0 && (
-          <Select value={billingOwner} onValueChange={setBillingOwner}>
+          <Select
+            value={billingOwner}
+            onValueChange={(value) => {
+              if (value) setBillingOwner(value)
+            }}
+          >
             <SelectTrigger
               aria-label={t('Billing Ownership')}
               className='bg-background/95 h-8 max-w-[220px] shadow-sm backdrop-blur'
@@ -320,6 +332,16 @@ function HermesPlaygroundPage() {
           setIsSkillDialogOpen(true)
         }}
         onOpenChange={setIsCapabilityCenterOpen}
+      />
+      <HermesResults
+        open={isResultsOpen}
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        onOpenChange={setIsResultsOpen}
+        onSelectSession={(sessionId) => {
+          saveActiveConversationId(baseScope, sessionId)
+          setActiveSessionId(sessionId)
+        }}
       />
       <HermesMessagePlatforms
         open={isMessagePlatformsOpen}

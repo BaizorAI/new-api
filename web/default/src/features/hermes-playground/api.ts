@@ -102,7 +102,12 @@ export async function listHermesSkills(): Promise<HermesSkill[]> {
 
 export async function updateHermesSkill(
   name: string,
-  payload: { name: string; description: string; instructions: string; category?: string }
+  payload: {
+    name: string
+    description: string
+    instructions: string
+    category?: string
+  }
 ) {
   const content = buildSkillContent({
     name: payload.name,

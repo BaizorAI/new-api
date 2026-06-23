@@ -16,13 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type KeyboardEvent,
-} from 'react'
+import type { FileUIPart } from 'ai'
 import {
   PaperclipIcon,
   FileIcon,
@@ -46,30 +40,40 @@ import {
   TerminalIcon,
   WandSparklesIcon,
 } from 'lucide-react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type KeyboardEvent,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+
 import {
   PromptInput,
   PromptInputButton,
   PromptInputFooter,
   PromptInputTextarea,
   PromptInputTools,
+  usePromptInputAttachments,
   type PromptInputMessage,
 } from '@/components/ai-elements/prompt-input'
 import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion'
 import { ModelGroupSelector } from '@/components/model-group-selector'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+
 import type { ModelOption, GroupOption } from '../types'
 
 export type PlaygroundSlashAction = 'new' | 'save' | 'retry' | 'skill'
 
 interface PlaygroundInputProps {
-  onSubmit: (text: string) => void
+  onSubmit: (text: string, files?: FileUIPart[]) => void
   onStop?: () => void
   disabled?: boolean
   isGenerating?: boolean
@@ -100,7 +104,9 @@ export function PlaygroundInput({
   onSlashAction,
 }: PlaygroundInputProps) {
   const { t } = useTranslation()
+  const attachments = usePromptInputAttachments()
   const [text, setText] = useState('')
+  const [searchEnabled, setSearchEnabled] = useState(false)
   const [activeCommandIndex, setActiveCommandIndex] = useState(0)
 
   const suggestions = useMemo(
@@ -282,16 +288,24 @@ export function PlaygroundInput({
   )
 
   const handleSubmit = (message: PromptInputMessage) => {
-    if (!message.text?.trim() || disabled) return
-    onSubmit(message.text)
+    const hasText = message.text?.trim()
+    const hasFiles = (message.files?.length ?? 0) > 0
+    if ((!hasText && !hasFiles) || disabled) return
+    let finalText = hasText ? message.text : ''
+    if (searchEnabled && finalText.trim()) {
+      finalText = `${t('Search the web')}: ${finalText}`
+    }
+    onSubmit(finalText, message.files)
     setText('')
   }
 
-  const handleFileAction = (action: string) => {
-    toast.info(t('Feature in development'), {
-      description: action,
-    })
-  }
+  const handleToggleSearch = useCallback(() => {
+    setSearchEnabled((prev) => !prev)
+  }, [])
+
+  const handleUploadClick = useCallback(() => {
+    attachments.openFileDialog()
+  }, [attachments])
 
   const handleSuggestionClick = (suggestion: string) => {
     onSubmit(suggestion)
@@ -375,26 +389,30 @@ export function PlaygroundInput({
                   <span className='sr-only sm:hidden'>{t('Attach')}</span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align='start'>
-                  <DropdownMenuItem
-                    onClick={() => handleFileAction('upload-file')}
-                  >
+                  <DropdownMenuItem onClick={handleUploadClick}>
                     <FileIcon className='mr-2' size={16} />
                     {t('Upload file')}
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleFileAction('upload-photo')}
-                  >
+                  <DropdownMenuItem onClick={handleUploadClick}>
                     <ImageIcon className='mr-2' size={16} />
                     {t('Upload photo')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => handleFileAction('take-screenshot')}
+                    onClick={() =>
+                      toast.info(t('Feature in development'), {
+                        description: 'take-screenshot',
+                      })
+                    }
                   >
                     <ScreenShareIcon className='mr-2' size={16} />
                     {t('Take screenshot')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => handleFileAction('take-photo')}
+                    onClick={() =>
+                      toast.info(t('Feature in development'), {
+                        description: 'take-photo',
+                      })
+                    }
                   >
                     <CameraIcon className='mr-2' size={16} />
                     {t('Take photo')}
@@ -403,10 +421,14 @@ export function PlaygroundInput({
               </DropdownMenu>
 
               <PromptInputButton
-                className='border font-medium'
+                className={`border font-medium ${
+                  searchEnabled
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    : ''
+                }`}
                 disabled={disabled}
-                onClick={() => toast.info(t('Search feature in development'))}
-                variant='outline'
+                onClick={handleToggleSearch}
+                variant={searchEnabled ? 'default' : 'outline'}
               >
                 <GlobeIcon size={16} />
                 <span className='hidden sm:inline'>{t('Search')}</span>

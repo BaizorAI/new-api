@@ -29,6 +29,7 @@ import {
   WalletCards,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+
 import { AnimateInView } from '@/components/animate-in-view'
 import { PublicLayout } from '@/components/layout'
 
@@ -41,43 +42,71 @@ const docSections = [
     icon: <BookOpen className='size-5 text-sky-500' />,
     title: 'AI user guide',
     desc: 'Start from business scenarios, authorized applications, model use and operational visibility instead of underlying model differences.',
-    items: ['Choose business scenarios', 'Authorize applications', 'Observe AI usage'],
+    items: [
+      'Choose business scenarios',
+      'Authorize applications',
+      'Observe AI usage',
+    ],
   },
   {
     icon: <RouteIcon className='size-5 text-blue-500' />,
     title: 'Platform overview',
     desc: 'Understand how Baize AI Platform connects applications, model services, routing policy and governance in one operating layer.',
-    items: ['Platform positioning', 'Capability supply model', 'Unified governance layer'],
+    items: [
+      'Platform positioning',
+      'Capability supply model',
+      'Unified governance layer',
+    ],
   },
   {
     icon: <Settings className='size-5 text-violet-500' />,
     title: 'Localization and Xinchuang adaptation',
     desc: 'Plan private, intranet and trusted deployments for localized infrastructure and Xinchuang-oriented environments.',
-    items: ['Private and intranet deployment', 'Localized infrastructure readiness', 'Trusted operation requirements'],
+    items: [
+      'Private and intranet deployment',
+      'Localized infrastructure readiness',
+      'Trusted operation requirements',
+    ],
   },
   {
     icon: <Database className='size-5 text-emerald-500' />,
     title: 'Compute and model access',
     desc: 'Connect multi-source compute, private model services and external intelligent models through one governed capability pool.',
-    items: ['Multi-source compute access', 'Private model services', 'External intelligent models'],
+    items: [
+      'Multi-source compute access',
+      'Private model services',
+      'External intelligent models',
+    ],
   },
   {
     icon: <Bot className='size-5 text-teal-500' />,
     title: 'Hermes sidecar multi-user scenario',
     desc: 'Run Hermes in a separate container and publish it as a governed platform model for teams, applications and business users.',
-    items: ['Internal sidecar service', 'Platform model exposure', 'Team quota and audit'],
+    items: [
+      'Internal sidecar service',
+      'Platform model exposure',
+      'Team quota and audit',
+    ],
   },
   {
     icon: <BarChart3 className='size-5 text-amber-500' />,
     title: 'Model scheduling and routing middleware',
     desc: 'Configure priority, weight, tags, grouping, health checks, fallback strategy and transparent routing behavior.',
-    items: ['Model scheduling policies', 'Routing middleware strategy', 'Health and fallback controls'],
+    items: [
+      'Model scheduling policies',
+      'Routing middleware strategy',
+      'Health and fallback controls',
+    ],
   },
   {
     icon: <WalletCards className='size-5 text-cyan-500' />,
     title: 'Permission, quota and security governance',
     desc: 'Manage users, application credentials, access boundaries, quota allocation, usage records and security audit flows.',
-    items: ['User and credential management', 'Quota and usage governance', 'Security audit records'],
+    items: [
+      'User and credential management',
+      'Quota and usage governance',
+      'Security audit records',
+    ],
   },
   {
     icon: <Shield className='size-5 text-rose-500' />,
@@ -119,9 +148,7 @@ function DocsPage() {
 
         <div className='space-y-10'>
           <section>
-            <h2 className='mb-4 text-xl font-bold'>
-              {t('Platform overview')}
-            </h2>
+            <h2 className='mb-4 text-xl font-bold'>{t('Platform overview')}</h2>
             <div className='border-border/40 bg-muted/20 rounded-xl border p-6'>
               <p className='text-muted-foreground leading-relaxed'>
                 {t(
@@ -142,9 +169,7 @@ function DocsPage() {
           </section>
 
           <section>
-            <h2 className='mb-4 text-xl font-bold'>
-              {t('Documentation map')}
-            </h2>
+            <h2 className='mb-4 text-xl font-bold'>{t('Documentation map')}</h2>
             <div className='grid gap-4 md:grid-cols-2'>
               {docSections.map((section) => (
                 <div
@@ -288,7 +313,9 @@ function DocsPage() {
               <div className='grid gap-4 md:grid-cols-3'>
                 <div>
                   <KeyRound className='mb-2 size-5 text-emerald-500' />
-                  <h3 className='mb-1 font-semibold'>{t('Model service adaptation')}</h3>
+                  <h3 className='mb-1 font-semibold'>
+                    {t('Model service adaptation')}
+                  </h3>
                   <p className='text-muted-foreground text-sm leading-relaxed'>
                     {t(
                       'Add model request conversion, response handling, usage extraction and localized compute adaptation without changing business applications.'
@@ -297,7 +324,9 @@ function DocsPage() {
                 </div>
                 <div>
                   <BarChart3 className='mb-2 size-5 text-amber-500' />
-                  <h3 className='mb-1 font-semibold'>{t('Scheduling policies')}</h3>
+                  <h3 className='mb-1 font-semibold'>
+                    {t('Scheduling policies')}
+                  </h3>
                   <p className='text-muted-foreground text-sm leading-relaxed'>
                     {t(
                       'Extend priority, weight, tag, group, health and fallback rules as model service requirements evolve.'
@@ -306,7 +335,9 @@ function DocsPage() {
                 </div>
                 <div>
                   <Shield className='mb-2 size-5 text-violet-500' />
-                  <h3 className='mb-1 font-semibold'>{t('Safety boundaries')}</h3>
+                  <h3 className='mb-1 font-semibold'>
+                    {t('Safety boundaries')}
+                  </h3>
                   <p className='text-muted-foreground text-sm leading-relaxed'>
                     {t(
                       'Preserve protected project identity, keep JSON handling and database compatibility rules, and test externally visible behavior.'

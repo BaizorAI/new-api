@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   CheckCircle2Icon,
@@ -33,11 +32,26 @@ import {
   XCircleIcon,
   ArrowBigUpIcon,
 } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Empty,
   EmptyDescription,
@@ -55,20 +69,6 @@ import {
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { useAuthStore } from '@/stores/auth-store'
 
 import {
@@ -159,7 +159,9 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
       setDeletingSkill(null)
       refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('Failed to delete skill'))
+      toast.error(
+        error instanceof Error ? error.message : t('Failed to delete skill')
+      )
     }
   }
 
@@ -169,7 +171,9 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
       toast.success(t('Skill promoted'))
       refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('Failed to promote skill'))
+      toast.error(
+        error instanceof Error ? error.message : t('Failed to promote skill')
+      )
     }
   }
 
@@ -177,93 +181,97 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
 
   return (
     <>
-    <Sheet open={props.open} onOpenChange={props.onOpenChange}>
-      <SheetContent className='w-full gap-0 sm:max-w-xl' side='right'>
-        <SheetHeader className='border-b pr-12'>
-          <SheetTitle>{t('Hermes capabilities')}</SheetTitle>
-          <SheetDescription>
-            {t('Manage reusable skills and inspect available Hermes tools.')}
-          </SheetDescription>
-        </SheetHeader>
+      <Sheet open={props.open} onOpenChange={props.onOpenChange}>
+        <SheetContent className='w-full gap-0 sm:max-w-xl' side='right'>
+          <SheetHeader className='border-b pr-12'>
+            <SheetTitle>{t('Hermes capabilities')}</SheetTitle>
+            <SheetDescription>
+              {t('Manage reusable skills and inspect available Hermes tools.')}
+            </SheetDescription>
+          </SheetHeader>
 
-        <Tabs className='min-h-0 flex-1 gap-0' defaultValue='skills'>
-          <div className='flex items-center justify-between gap-2 border-b px-4 py-3'>
-            <TabsList className='w-fit'>
-              <TabsTrigger value='skills'>{t('Skills')}</TabsTrigger>
-              <TabsTrigger value='tools'>{t('Tools')}</TabsTrigger>
-            </TabsList>
+          <Tabs className='min-h-0 flex-1 gap-0' defaultValue='skills'>
+            <div className='flex items-center justify-between gap-2 border-b px-4 py-3'>
+              <TabsList className='w-fit'>
+                <TabsTrigger value='skills'>{t('Skills')}</TabsTrigger>
+                <TabsTrigger value='tools'>{t('Tools')}</TabsTrigger>
+              </TabsList>
+              <Button
+                aria-label={t('Refresh Hermes capabilities')}
+                onClick={refresh}
+                size='icon-sm'
+                type='button'
+                variant='ghost'
+              >
+                <RefreshCwIcon className='size-4' />
+              </Button>
+            </div>
+
+            <TabsContent className='min-h-0' value='skills'>
+              <SkillPanel
+                error={skillsQuery.error}
+                isLoading={skillsQuery.isLoading}
+                isAdmin={isAdmin}
+                onAddSkill={props.onAddSkill}
+                onDeleteSkill={setDeletingSkill}
+                onEditSkill={props.onEditSkill}
+                onPromoteSkill={handlePromoteSkill}
+                search={skillSearch}
+                setSearch={setSkillSearch}
+                systemSkills={systemSkills}
+                userSkills={userSkills}
+              />
+            </TabsContent>
+
+            <TabsContent className='min-h-0' value='tools'>
+              <ToolPanel
+                error={toolsetsQuery.error}
+                isLoading={toolsetsQuery.isLoading}
+                search={toolsetSearch}
+                setSearch={setToolsetSearch}
+                statusFilter={toolsetStatusFilter}
+                setStatusFilter={setToolsetStatusFilter}
+                toolsets={toolsets}
+              />
+            </TabsContent>
+          </Tabs>
+        </SheetContent>
+      </Sheet>
+
+      <Dialog
+        open={Boolean(deletingSkill)}
+        onOpenChange={(open) => {
+          if (!open) setDeletingSkill(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('Delete skill')}</DialogTitle>
+          </DialogHeader>
+          <p className='text-muted-foreground text-sm'>
+            {t('Are you sure you want to delete skill "{{name}}"?', {
+              name: deletingSkill?.name ?? '',
+            })}
+          </p>
+          <DialogFooter>
             <Button
-              aria-label={t('Refresh Hermes capabilities')}
-              onClick={refresh}
-              size='icon-sm'
               type='button'
-              variant='ghost'
+              variant='outline'
+              onClick={() => setDeletingSkill(null)}
             >
-              <RefreshCwIcon className='size-4' />
+              {t('Cancel')}
             </Button>
-          </div>
-
-          <TabsContent className='min-h-0' value='skills'>
-            <SkillPanel
-              error={skillsQuery.error}
-              isLoading={skillsQuery.isLoading}
-              isAdmin={isAdmin}
-              onAddSkill={props.onAddSkill}
-              onDeleteSkill={setDeletingSkill}
-              onEditSkill={props.onEditSkill}
-              onPromoteSkill={handlePromoteSkill}
-              search={skillSearch}
-              setSearch={setSkillSearch}
-              systemSkills={systemSkills}
-              userSkills={userSkills}
-            />
-          </TabsContent>
-
-          <TabsContent className='min-h-0' value='tools'>
-            <ToolPanel
-              error={toolsetsQuery.error}
-              isLoading={toolsetsQuery.isLoading}
-              search={toolsetSearch}
-              setSearch={setToolsetSearch}
-              statusFilter={toolsetStatusFilter}
-              setStatusFilter={setToolsetStatusFilter}
-              toolsets={toolsets}
-            />
-          </TabsContent>
-        </Tabs>
-      </SheetContent>
-    </Sheet>
-
-    <Dialog
-      open={Boolean(deletingSkill)}
-      onOpenChange={(open) => {
-        if (!open) setDeletingSkill(null)
-      }}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('Delete skill')}</DialogTitle>
-        </DialogHeader>
-        <p className='text-muted-foreground text-sm'>
-          {t('Are you sure you want to delete skill "{{name}}"?', {
-            name: deletingSkill?.name ?? '',
-          })}
-        </p>
-        <DialogFooter>
-          <Button
-            type='button'
-            variant='outline'
-            onClick={() => setDeletingSkill(null)}
-          >
-            {t('Cancel')}
-          </Button>
-          <Button type='button' variant='destructive' onClick={handleDeleteSkill}>
-            {t('Delete')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  </>
+            <Button
+              type='button'
+              variant='destructive'
+              onClick={handleDeleteSkill}
+            >
+              {t('Delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
@@ -455,9 +463,7 @@ function SkillRow(props: SkillRowProps) {
               <MoreHorizontalIcon className='size-4' />
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end' className='w-40'>
-              <DropdownMenuItem
-                onClick={() => props.onEditSkill(props.skill)}
-              >
+              <DropdownMenuItem onClick={() => props.onEditSkill(props.skill)}>
                 <PencilIcon className='size-4' />
                 {t('Edit skill')}
               </DropdownMenuItem>

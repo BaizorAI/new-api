@@ -192,6 +192,9 @@ sed -i 's|image: ccr\.ccs\.tencentyun\.com/lucky/baizor-newapi:[^[:space:]]*|ima
 sed -i 's|image: calciumion/new-api:[^[:space:]]*|image: ccr.ccs.tencentyun.com/lucky/baizor-newapi:${NEW_VERSION}|' docker-compose.yml
 
 echo "Pulling deployment images..."
+if [ "${HERMES_SIDECAR_ENABLED}" = "true" ] && [ "${HERMES_COMPOSE_OVERLAY_ENABLED}" = "true" ]; then
+  mkdir -p hermes-data
+fi
 docker compose \$COMPOSE_ARGS pull new-api
 if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
   docker compose \$COMPOSE_ARGS pull "${HERMES_SERVICE_NAME}"

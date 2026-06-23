@@ -166,13 +166,15 @@ func SetRelayRouter(router *gin.Engine) {
 			controller.Relay(c, types.RelayFormatOpenAI)
 		})
 
+		// OpenAI Files API
+		httpRouter.POST("/files", controller.RelayFilesUpload)
+		httpRouter.GET("/files", controller.RelayFilesList)
+		httpRouter.GET("/files/:id", controller.RelayFilesRetrieve)
+		httpRouter.DELETE("/files/:id", controller.RelayFilesDelete)
+		httpRouter.GET("/files/:id/content", controller.RelayFilesContent)
+
 		// not implemented
 		httpRouter.POST("/images/variations", controller.RelayNotImplemented)
-		httpRouter.GET("/files", controller.RelayNotImplemented)
-		httpRouter.POST("/files", controller.RelayNotImplemented)
-		httpRouter.DELETE("/files/:id", controller.RelayNotImplemented)
-		httpRouter.GET("/files/:id", controller.RelayNotImplemented)
-		httpRouter.GET("/files/:id/content", controller.RelayNotImplemented)
 		httpRouter.POST("/fine-tunes", controller.RelayNotImplemented)
 		httpRouter.GET("/fine-tunes", controller.RelayNotImplemented)
 		httpRouter.GET("/fine-tunes/:id", controller.RelayNotImplemented)

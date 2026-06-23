@@ -19,16 +19,12 @@ For commercial licensing, please contact support@quantumnous.com
 import { BadgeCheck, Building2, CircleSlash, WalletCards } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatQuota } from '@/lib/format'
 import type { UserSubscriptionRecord } from '@/features/subscriptions/types'
 import type { Team } from '@/features/teams/types'
+import { formatQuota } from '@/lib/format'
+
 import type { UserWalletData } from '../types'
 
 interface BillingOwnershipCardProps {
