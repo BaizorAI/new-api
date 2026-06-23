@@ -27,6 +27,11 @@ type hermesSkillCreateRequest struct {
 	Category string `json:"category,omitempty"`
 }
 
+type hermesProxyResult struct {
+	StatusCode int
+	Body       []byte
+}
+
 func Playground(c *gin.Context) {
 	var newAPIError *types.NewAPIError
 
@@ -117,6 +122,66 @@ func HermesPlaygroundToolsets(c *gin.Context) {
 	proxyHermesPlayground(c, http.MethodGet, "/v1/toolsets", nil)
 }
 
+func HermesPlaygroundWeixinStatus(c *gin.Context) {
+	if c == nil || c.Request == nil {
+		return
+	}
+
+	if c.Request.Method != http.MethodGet {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
+		return
+	}
+
+	proxyHermesPlayground(c, http.MethodGet, "/v1/platforms/weixin/status", nil)
+}
+
+func HermesPlaygroundWeixinQR(c *gin.Context) {
+	if c == nil || c.Request == nil {
+		return
+	}
+
+	if c.Request.Method != http.MethodPost {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
+		return
+	}
+
+	result := proxyHermesPlayground(c, http.MethodPost, "/v1/platforms/weixin/qr", nil)
+	recordHermesWeixinAudit(c, "hermes.weixin_qr_create", "create_qr", result)
+}
+
+func HermesPlaygroundWeixinQRStatus(c *gin.Context) {
+	if c == nil || c.Request == nil {
+		return
+	}
+
+	if c.Request.Method != http.MethodGet {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
+		return
+	}
+
+	requestID := sanitizeHermesPathSegment(c.Param("request_id"))
+	if requestID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request_id"})
+		return
+	}
+
+	proxyHermesPlayground(c, http.MethodGet, "/v1/platforms/weixin/qr/"+url.PathEscape(requestID), nil)
+}
+
+func HermesPlaygroundWeixinDisconnect(c *gin.Context) {
+	if c == nil || c.Request == nil {
+		return
+	}
+
+	if c.Request.Method != http.MethodPost {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
+		return
+	}
+
+	result := proxyHermesPlayground(c, http.MethodPost, "/v1/platforms/weixin/disconnect", nil)
+	recordHermesWeixinAudit(c, "hermes.weixin_disconnect", "disconnect", result)
+}
+
 func applyHermesPlaygroundHeaderOverride(c *gin.Context, userId int) {
 	if c == nil || c.Request == nil || !strings.HasPrefix(c.Request.URL.Path, "/pg/chat/completions") {
 		return
@@ -143,18 +208,18 @@ func applyHermesPlaygroundHeaderOverride(c *gin.Context, userId int) {
 	common.SetContextKey(c, constant.ContextKeyChannelHeaderOverride, merged)
 }
 
-func proxyHermesPlayground(c *gin.Context, method string, path string, body []byte) {
+func proxyHermesPlayground(c *gin.Context, method string, path string, body []byte) hermesProxyResult {
 	baseURL := strings.TrimRight(common.GetEnvOrDefaultString("HERMES_API_SERVER_URL", "http://baizor-hermes:8642"), "/")
 	apiKey := strings.TrimSpace(common.GetEnvOrDefaultString("HERMES_API_SERVER_KEY", ""))
 	if apiKey == "" {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "HERMES_API_SERVER_KEY is not configured"})
-		return
+		return hermesProxyResult{StatusCode: http.StatusServiceUnavailable}
 	}
 
 	parsedURL, err := url.Parse(baseURL)
 	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "HERMES_API_SERVER_URL is invalid"})
-		return
+		return hermesProxyResult{StatusCode: http.StatusServiceUnavailable}
 	}
 	parsedURL.Path = strings.TrimRight(parsedURL.Path, "/") + path
 	parsedURL.RawQuery = ""
@@ -167,7 +232,7 @@ func proxyHermesPlayground(c *gin.Context, method string, path string, body []by
 	req, err := http.NewRequestWithContext(c.Request.Context(), method, parsedURL.String(), reader)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create hermes request"})
-		return
+		return hermesProxyResult{StatusCode: http.StatusInternalServerError}
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Accept", "application/json")
@@ -187,14 +252,14 @@ func proxyHermesPlayground(c *gin.Context, method string, path string, body []by
 	resp, err := client.Do(req)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"message": "failed to reach hermes sidecar"})
-		return
+		return hermesProxyResult{StatusCode: http.StatusBadGateway}
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"message": "failed to read hermes response"})
-		return
+		return hermesProxyResult{StatusCode: http.StatusBadGateway}
 	}
 
 	contentType := resp.Header.Get("Content-Type")
@@ -202,6 +267,7 @@ func proxyHermesPlayground(c *gin.Context, method string, path string, body []by
 		contentType = "application/json"
 	}
 	c.Data(resp.StatusCode, contentType, respBody)
+	return hermesProxyResult{StatusCode: resp.StatusCode, Body: respBody}
 }
 
 func sanitizeHermesSessionID(value string) string {
@@ -227,4 +293,41 @@ func sanitizeHermesSessionID(value string) string {
 	}
 
 	return value
+}
+
+func sanitizeHermesPathSegment(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" || len(value) > 128 {
+		return ""
+	}
+
+	for _, char := range value {
+		if char >= 'a' && char <= 'z' {
+			continue
+		}
+		if char >= 'A' && char <= 'Z' {
+			continue
+		}
+		if char >= '0' && char <= '9' {
+			continue
+		}
+		if strings.ContainsRune("._-", char) {
+			continue
+		}
+		return ""
+	}
+
+	return value
+}
+
+func recordHermesWeixinAudit(c *gin.Context, successAction string, operation string, result hermesProxyResult) {
+	params := map[string]interface{}{
+		"operation":   operation,
+		"status_code": result.StatusCode,
+	}
+	if result.StatusCode >= 200 && result.StatusCode < 300 {
+		recordUserSecurityAudit(c, c.GetInt("id"), successAction, params)
+		return
+	}
+	recordUserSecurityAudit(c, c.GetInt("id"), "hermes.weixin_error", params)
 }

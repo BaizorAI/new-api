@@ -25,11 +25,13 @@ import {
   Copy,
   Download,
   ExternalLink,
+  MessageCircle,
   MoreHorizontal,
   Pencil,
   Pin,
   PinOff,
   Plus,
+  Sparkles,
   Trash2,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -74,6 +76,8 @@ import {
   getHermesBaseScope,
   loadActiveConversationId,
   loadHermesConversations,
+  requestOpenHermesCapabilities,
+  requestOpenHermesMessagePlatforms,
   saveActiveConversationId,
   saveHermesConversations,
   sortSessions,
@@ -149,6 +153,18 @@ export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
     setOpenMobile(false)
     void navigate({ to: '/hermes-playground' })
   }, [baseScope, navigate, sessions, setOpenMobile])
+
+  const openCapabilities = useCallback(() => {
+    requestOpenHermesCapabilities()
+    setOpenMobile(false)
+    void navigate({ to: '/hermes-playground' })
+  }, [navigate, setOpenMobile])
+
+  const openMessagePlatforms = useCallback(() => {
+    requestOpenHermesMessagePlatforms()
+    setOpenMobile(false)
+    void navigate({ to: '/hermes-playground' })
+  }, [navigate, setOpenMobile])
 
   const selectSession = useCallback(
     (sessionId: string) => {
@@ -297,6 +313,14 @@ export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
                 <Plus className='size-4' />
                 {t('New session')}
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={openCapabilities}>
+                <Sparkles className='size-4' />
+                {t('Capabilities')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={openMessagePlatforms}>
+                <MessageCircle className='size-4' />
+                {t('Message platforms')}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownSessionGroup
                 title={t('Pinned')}
@@ -372,6 +396,18 @@ export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
               <SidebarMenuSubButton onClick={createSession}>
                 <Plus className='size-3.5' />
                 <span>{t('New session')}</span>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+            <SidebarMenuSubItem>
+              <SidebarMenuSubButton onClick={openCapabilities}>
+                <Sparkles className='size-3.5' />
+                <span>{t('Capabilities')}</span>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+            <SidebarMenuSubItem>
+              <SidebarMenuSubButton onClick={openMessagePlatforms}>
+                <MessageCircle className='size-3.5' />
+                <span>{t('Message platforms')}</span>
               </SidebarMenuSubButton>
             </SidebarMenuSubItem>
             <SidebarSessionGroup

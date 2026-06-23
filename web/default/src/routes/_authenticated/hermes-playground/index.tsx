@@ -25,12 +25,17 @@ import { useTranslation } from 'react-i18next'
 import { Main } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { HermesCapabilityCenter } from '@/features/hermes-playground/components/hermes-capability-center'
+import { HermesMessagePlatforms } from '@/features/hermes-playground/components/hermes-message-platforms'
 import { HermesSkillDialog } from '@/features/hermes-playground/components/hermes-skill-dialog'
 import {
   createDefaultConversation,
   createHermesConversation,
+  consumeHermesCapabilitiesOpenRequest,
+  consumeHermesMessagePlatformsOpenRequest,
   deriveConversationTitle,
   getHermesBaseScope,
+  HERMES_CAPABILITIES_OPEN_EVENT,
+  HERMES_MESSAGE_PLATFORMS_OPEN_EVENT,
   HERMES_SESSIONS_CHANGED_EVENT,
   loadActiveConversationId,
   loadHermesConversations,
@@ -67,6 +72,7 @@ function HermesPlaygroundPage() {
   )
   const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false)
   const [isCapabilityCenterOpen, setIsCapabilityCenterOpen] = useState(false)
+  const [isMessagePlatformsOpen, setIsMessagePlatformsOpen] = useState(false)
 
   const reloadSessions = useCallback(() => {
     const nextSessions = loadHermesConversations(baseScope)
@@ -82,6 +88,36 @@ function HermesPlaygroundPage() {
       window.removeEventListener('storage', reloadSessions)
     }
   }, [reloadSessions])
+
+  useEffect(() => {
+    if (consumeHermesCapabilitiesOpenRequest()) {
+      setIsCapabilityCenterOpen(true)
+    }
+    if (consumeHermesMessagePlatformsOpenRequest()) {
+      setIsMessagePlatformsOpen(true)
+    }
+
+    const openCapabilityCenter = () => setIsCapabilityCenterOpen(true)
+    const openMessagePlatforms = () => setIsMessagePlatformsOpen(true)
+    window.addEventListener(
+      HERMES_CAPABILITIES_OPEN_EVENT,
+      openCapabilityCenter
+    )
+    window.addEventListener(
+      HERMES_MESSAGE_PLATFORMS_OPEN_EVENT,
+      openMessagePlatforms
+    )
+    return () => {
+      window.removeEventListener(
+        HERMES_CAPABILITIES_OPEN_EVENT,
+        openCapabilityCenter
+      )
+      window.removeEventListener(
+        HERMES_MESSAGE_PLATFORMS_OPEN_EVENT,
+        openMessagePlatforms
+      )
+    }
+  }, [])
 
   const activeSession = useMemo(
     () =>
@@ -210,6 +246,10 @@ function HermesPlaygroundPage() {
         open={isCapabilityCenterOpen}
         onAddSkill={() => setIsSkillDialogOpen(true)}
         onOpenChange={setIsCapabilityCenterOpen}
+      />
+      <HermesMessagePlatforms
+        open={isMessagePlatformsOpen}
+        onOpenChange={setIsMessagePlatformsOpen}
       />
     </Main>
   )

@@ -35,7 +35,15 @@ export interface HermesConversation {
 }
 
 export const HERMES_SESSIONS_CHANGED_EVENT = 'hermes-sessions-changed'
+export const HERMES_CAPABILITIES_OPEN_EVENT = 'hermes-capabilities-open'
+export const HERMES_MESSAGE_PLATFORMS_OPEN_EVENT =
+  'hermes-message-platforms-open'
 export const SESSION_TOUCH_INTERVAL_MS = 5000
+
+const HERMES_CAPABILITIES_OPEN_REQUEST_KEY =
+  'hermes_capabilities_open_request'
+const HERMES_MESSAGE_PLATFORMS_OPEN_REQUEST_KEY =
+  'hermes_message_platforms_open_request'
 
 export function getHermesBaseScope(userId?: number | string | null): string {
   return `hermes_user_${userId ?? 'anonymous'}`
@@ -193,6 +201,56 @@ export function notifyHermesSessionsChanged(): void {
   queueMicrotask(() => {
     window.dispatchEvent(new Event(HERMES_SESSIONS_CHANGED_EVENT))
   })
+}
+
+export function requestOpenHermesCapabilities(): void {
+  try {
+    sessionStorage.setItem(
+      HERMES_CAPABILITIES_OPEN_REQUEST_KEY,
+      String(Date.now())
+    )
+  } catch {
+    // The route listener below still handles same-page requests.
+  }
+
+  window.dispatchEvent(new Event(HERMES_CAPABILITIES_OPEN_EVENT))
+}
+
+export function consumeHermesCapabilitiesOpenRequest(): boolean {
+  try {
+    const value = sessionStorage.getItem(HERMES_CAPABILITIES_OPEN_REQUEST_KEY)
+    if (!value) return false
+    sessionStorage.removeItem(HERMES_CAPABILITIES_OPEN_REQUEST_KEY)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function requestOpenHermesMessagePlatforms(): void {
+  try {
+    sessionStorage.setItem(
+      HERMES_MESSAGE_PLATFORMS_OPEN_REQUEST_KEY,
+      String(Date.now())
+    )
+  } catch {
+    // The route listener below still handles same-page requests.
+  }
+
+  window.dispatchEvent(new Event(HERMES_MESSAGE_PLATFORMS_OPEN_EVENT))
+}
+
+export function consumeHermesMessagePlatformsOpenRequest(): boolean {
+  try {
+    const value = sessionStorage.getItem(
+      HERMES_MESSAGE_PLATFORMS_OPEN_REQUEST_KEY
+    )
+    if (!value) return false
+    sessionStorage.removeItem(HERMES_MESSAGE_PLATFORMS_OPEN_REQUEST_KEY)
+    return true
+  } catch {
+    return false
+  }
 }
 
 function createId(): string {

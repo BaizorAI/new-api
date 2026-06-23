@@ -44,6 +44,30 @@ export interface HermesToolset {
   tools: string[]
 }
 
+export type HermesWeixinStatusValue =
+  | 'disabled'
+  | 'not_connected'
+  | 'qr_ready'
+  | 'scanned'
+  | 'connected'
+  | 'expired'
+  | 'failed'
+  | 'disconnected'
+
+export interface HermesWeixinStatus {
+  platform: 'weixin'
+  status: HermesWeixinStatusValue
+  enabled: boolean
+  requestId?: string
+  qrcode?: string
+  qrcodeUrl?: string
+  expiresAt?: number
+  accountLabel?: string
+  connectedAt?: string | number
+  message?: string
+  removedAccounts?: number
+}
+
 export async function createHermesSkill(payload: CreateHermesSkillPayload) {
   const content = buildSkillContent(payload)
   try {
@@ -79,6 +103,47 @@ export async function listHermesToolsets(): Promise<HermesToolset[]> {
     skipErrorHandler: true,
   })
   return normalizeToolsetsResponse(response.data)
+}
+
+export async function getHermesWeixinStatus(): Promise<HermesWeixinStatus> {
+  const response = await api.get('/pg/hermes/platforms/weixin/status', {
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  return normalizeWeixinStatusResponse(response.data)
+}
+
+export async function createHermesWeixinQR(): Promise<HermesWeixinStatus> {
+  const response = await api.post('/pg/hermes/platforms/weixin/qr', undefined, {
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  return normalizeWeixinStatusResponse(response.data)
+}
+
+export async function getHermesWeixinQRStatus(
+  requestId: string
+): Promise<HermesWeixinStatus> {
+  const response = await api.get(
+    `/pg/hermes/platforms/weixin/qr/${encodeURIComponent(requestId)}`,
+    {
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    }
+  )
+  return normalizeWeixinStatusResponse(response.data)
+}
+
+export async function disconnectHermesWeixin(): Promise<HermesWeixinStatus> {
+  const response = await api.post(
+    '/pg/hermes/platforms/weixin/disconnect',
+    undefined,
+    {
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    }
+  )
+  return normalizeWeixinStatusResponse(response.data)
 }
 
 function buildSkillContent(payload: CreateHermesSkillPayload): string {
@@ -166,6 +231,27 @@ function normalizeToolsetsResponse(payload: unknown): HermesToolset[] {
   })
 }
 
+function normalizeWeixinStatusResponse(payload: unknown): HermesWeixinStatus {
+  const record = asRecord(payload)
+  const status = normalizeWeixinStatus(stringFromUnknown(record.status))
+  return {
+    platform: 'weixin',
+    status,
+    enabled: booleanFromUnknown(record.enabled) ?? status !== 'disabled',
+    requestId: stringFromUnknown(record.request_id) || undefined,
+    qrcode: stringFromUnknown(record.qrcode) || undefined,
+    qrcodeUrl: stringFromUnknown(record.qrcode_url) || undefined,
+    expiresAt: numberFromUnknown(record.expires_at) ?? undefined,
+    accountLabel: stringFromUnknown(record.account_label) || undefined,
+    connectedAt:
+      stringFromUnknown(record.connected_at) ||
+      numberFromUnknown(record.connected_at) ||
+      undefined,
+    message: stringFromUnknown(record.message) || undefined,
+    removedAccounts: numberFromUnknown(record.removed_accounts) ?? undefined,
+  }
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value as Record<string, unknown>
@@ -185,11 +271,31 @@ function booleanFromUnknown(value: unknown): boolean | null {
   return typeof value === 'boolean' ? value : null
 }
 
+function numberFromUnknown(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
 function normalizeSource(value: string): HermesSkill['source'] {
   if (value === 'user' || value === 'system' || value === 'external') {
     return value
   }
   return 'unknown'
+}
+
+function normalizeWeixinStatus(value: string): HermesWeixinStatusValue {
+  if (
+    value === 'disabled' ||
+    value === 'not_connected' ||
+    value === 'qr_ready' ||
+    value === 'scanned' ||
+    value === 'connected' ||
+    value === 'expired' ||
+    value === 'failed' ||
+    value === 'disconnected'
+  ) {
+    return value
+  }
+  return 'failed'
 }
 
 function normalizeOwnerScope(value: string): HermesSkill['ownerScope'] {
