@@ -8,6 +8,7 @@ REMOTE_HOST="${REMOTE_HOST:-baizor}"
 REMOTE_DIR="${REMOTE_DIR:-/lucky/NewApi}"
 HERMES_SIDECAR_ENABLED="${HERMES_SIDECAR_ENABLED:-true}"
 HERMES_COMPOSE_OVERLAY_ENABLED="${HERMES_COMPOSE_OVERLAY_ENABLED:-false}"
+SKIP_HERMES_BUILD="${SKIP_HERMES_BUILD:-false}"
 HERMES_SERVICE_NAME="${HERMES_SERVICE_NAME:-}"
 HERMES_BUILD_CONTEXT="${HERMES_BUILD_CONTEXT:-hermes-agent}"
 HERMES_DOCKERFILE="${HERMES_DOCKERFILE:-hermes-agent/gateway/platforms/Dockerfile.baizor-overlay}"
@@ -79,7 +80,9 @@ docker push "${IMAGE_NAME}:${NEW_VERSION}"
 
 if [ "$HERMES_SIDECAR_ENABLED" = "true" ]; then
   HERMES_IMAGE="${IMAGE_NAME_HERMES}:${CURRENT_HERMES_VERSION}"
-  if [ -n "$HERMES_BUILD_CONTEXT" ]; then
+  if [ "$SKIP_HERMES_BUILD" = "true" ]; then
+    echo "Skipping Hermes image build; using configured image: ${HERMES_IMAGE}"
+  elif [ -n "$HERMES_BUILD_CONTEXT" ]; then
     echo "Building Hermes image: ${HERMES_IMAGE}"
     HERMES_DOCKERFILE_ARGS=()
     if [ -n "$HERMES_DOCKERFILE" ]; then
