@@ -146,9 +146,20 @@ export function Playground(props: PlaygroundProps = {}) {
       (m) => m.value === config.model
     )
     if (availableModels.length > 0 && !isCurrentModelValid) {
-      updateConfig('model', availableModels[0].value)
+      const preferredModel = props.defaultConfig?.model
+      const fallbackModel =
+        availableModels.find((m) => m.value === preferredModel)?.value ??
+        availableModels[0].value
+      updateConfig('model', fallbackModel)
     }
-  }, [modelsData, availableModels, config.model, setModels, updateConfig])
+  }, [
+    modelsData,
+    availableModels,
+    config.model,
+    props.defaultConfig?.model,
+    setModels,
+    updateConfig,
+  ])
 
   // Update groups when data changes
   useEffect(() => {
@@ -296,7 +307,8 @@ export function Playground(props: PlaygroundProps = {}) {
 
   return (
     <div className='relative flex size-full flex-col overflow-hidden'>
-      {/* Full-width scroll container: scrolling works even over side whitespace */}
+      {/* Full-width scroll container: scrolling works even over side whitespace */
+}
       <div className='flex flex-1 flex-col overflow-hidden'>
         <PlaygroundChat
           messages={messages}

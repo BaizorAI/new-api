@@ -250,7 +250,7 @@ function AnnouncementsContent({
 
                     {absoluteTime ? (
                       <div className='text-muted-foreground text-xs'>
-                        {relativeTime ? `${relativeTime} â€¢ ` : null}
+                        {relativeTime ? `${relativeTime} â€?` : null}
                         {absoluteTime}
                       </div>
                     ) : null}

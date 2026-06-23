@@ -8,11 +8,11 @@ License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
@@ -85,7 +85,7 @@ function splitDraft(value: string): { completed: string[]; draft: string } {
   if (!COMMA_REGEX.test(value)) {
     return { completed: [], draft: value }
   }
-  const normalized = value.replaceAll('ï¼Œ', ',').replaceAll('\n', ',')
+  const normalized = value.replaceAll('ï¼?, ',').replaceAll('\n', ',')
   const parts = normalized.split(',')
   const draft = parts.at(-1) ?? ''
   const completed = parts
@@ -96,7 +96,7 @@ function splitDraft(value: string): { completed: string[]; draft: string } {
 }
 
 /**
- * MultiSelect â€” tags/chips style multi-select built on Base UI Combobox.
+ * MultiSelect â€?tags/chips style multi-select built on Base UI Combobox.
  *
  * Behaviour:
  * - Search filters built-in options (Base UI handles fuzzy filtering).

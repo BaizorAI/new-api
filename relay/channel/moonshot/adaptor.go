@@ -84,11 +84,14 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 	if info != nil && info.ChannelMeta != nil && info.UpstreamModelName != "" {
 		effectiveModel = info.UpstreamModelName
 	}
-	if request.Temperature != nil {
-		switch strings.ToLower(strings.TrimSpace(effectiveModel)) {
-		case "kimi-k2.6", "kimi-k2.7-code":
+	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(effectiveModel)), "kimi-k2") {
+		if request.Temperature != nil {
 			allowedTemperature := 1.0
 			request.Temperature = &allowedTemperature
+		}
+		if request.TopP != nil {
+			allowedTopP := 0.95
+			request.TopP = &allowedTopP
 		}
 	}
 	return request, nil

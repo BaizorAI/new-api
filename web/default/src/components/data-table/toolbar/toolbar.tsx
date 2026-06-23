@@ -70,7 +70,7 @@ export type DataTableToolbarProps<TData> = {
   filters?: FilterDef[]
   /**
    * Replaces the default search input entirely. Use when the primary
-   * "search" is something custom â€” e.g. a date-time range picker.
+   * "search" is something custom â€?e.g. a date-time range picker.
    */
   customSearch?: ReactNode
   /**
@@ -126,9 +126,9 @@ export type DataTableToolbarProps<TData> = {
   /**
    * Content rendered on the LEFT side of the secondary action row. When
    * provided the toolbar splits into two visual rows:
-   *   Row 1: search inputs / filter chips â€¦â€¦ Expand
+   *   Row 1: search inputs / filter chips â€¦â€?Expand
    *   Row 2: expanded filters
-   *   Row 3: leftActions â€¦â€¦ Reset / Search / ViewOptions
+   *   Row 3: leftActions â€¦â€?Reset / Search / ViewOptions
    */
   leftActions?: ReactNode
   /**
@@ -138,17 +138,17 @@ export type DataTableToolbarProps<TData> = {
 }
 
 /**
- * Unified data-table filter panel â€” Ant Design Pro inspired.
+ * Unified data-table filter panel â€?Ant Design Pro inspired.
  *
  * Layout (single flex-wrap row):
  * - Filters (search input + additional inputs + filter chips + expandable
  *   inputs) flow horizontally and wrap as needed.
  * - The action cluster (Reset / Search / View / Expand) hugs the right
  *   edge via `ms-auto`. When filters fill a row, the cluster naturally
- *   wraps to the next line â€” still right-aligned â€” matching the
+ *   wraps to the next line â€?still right-aligned â€?matching the
  *   collapsed/expanded states from the user's reference design.
  *
- * No background panel, no row separators â€” relies on whitespace and the
+ * No background panel, no row separators â€?relies on whitespace and the
  * adjacent table border for visual hierarchy.
  */
 export function DataTableToolbar<TData>(props: DataTableToolbarProps<TData>) {

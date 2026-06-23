@@ -9,44 +9,40 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestConvertOpenAIRequestKimiK26UsesOnlyAllowedTemperature(t *testing.T) {
-	request := &dto.GeneralOpenAIRequest{
-		Model:       "kimi-k2.6",
-		Temperature: common.GetPointer[float64](0.7),
-	}
-	info := &relaycommon.RelayInfo{
-		ChannelMeta: &relaycommon.ChannelMeta{
-			UpstreamModelName: "kimi-k2.6",
-		},
-	}
-
-	converted, err := (&Adaptor{}).ConvertOpenAIRequest(nil, info, request)
-
-	require.NoError(t, err)
-	convertedRequest, ok := converted.(*dto.GeneralOpenAIRequest)
-	require.True(t, ok)
-	require.NotNil(t, convertedRequest.Temperature)
-	require.Equal(t, 1.0, *convertedRequest.Temperature)
-}
-
-func TestConvertOpenAIRequestKimiK27CodeUsesOnlyAllowedTemperature(t *testing.T) {
-	request := &dto.GeneralOpenAIRequest{
-		Model:       "kimi-k2.7-code",
-		Temperature: common.GetPointer[float64](0.2),
-	}
-	info := &relaycommon.RelayInfo{
-		ChannelMeta: &relaycommon.ChannelMeta{
-			UpstreamModelName: "kimi-k2.7-code",
-		},
+func TestConvertOpenAIRequestKimiK2UsesOnlyAllowedSamplingParams(t *testing.T) {
+	tests := []struct {
+		name      string
+		modelName string
+	}{
+		{name: "kimi k2.5", modelName: "kimi-k2.5"},
+		{name: "kimi k2.6", modelName: "kimi-k2.6"},
+		{name: "kimi k2.7 code", modelName: "kimi-k2.7-code"},
 	}
 
-	converted, err := (&Adaptor{}).ConvertOpenAIRequest(nil, info, request)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := &dto.GeneralOpenAIRequest{
+				Model:       tt.modelName,
+				Temperature: common.GetPointer[float64](0.7),
+				TopP:        common.GetPointer[float64](1.0),
+			}
+			info := &relaycommon.RelayInfo{
+				ChannelMeta: &relaycommon.ChannelMeta{
+					UpstreamModelName: tt.modelName,
+				},
+			}
 
-	require.NoError(t, err)
-	convertedRequest, ok := converted.(*dto.GeneralOpenAIRequest)
-	require.True(t, ok)
-	require.NotNil(t, convertedRequest.Temperature)
-	require.Equal(t, 1.0, *convertedRequest.Temperature)
+			converted, err := (&Adaptor{}).ConvertOpenAIRequest(nil, info, request)
+
+			require.NoError(t, err)
+			convertedRequest, ok := converted.(*dto.GeneralOpenAIRequest)
+			require.True(t, ok)
+			require.NotNil(t, convertedRequest.Temperature)
+			require.Equal(t, 1.0, *convertedRequest.Temperature)
+			require.NotNil(t, convertedRequest.TopP)
+			require.Equal(t, 0.95, *convertedRequest.TopP)
+		})
+	}
 }
 
 func TestConvertOpenAIRequestKimiK26KeepsOmittedTemperatureOmitted(t *testing.T) {
@@ -67,14 +63,15 @@ func TestConvertOpenAIRequestKimiK26KeepsOmittedTemperatureOmitted(t *testing.T)
 	require.Nil(t, convertedRequest.Temperature)
 }
 
-func TestConvertOpenAIRequestOtherMoonshotModelKeepsTemperature(t *testing.T) {
+func TestConvertOpenAIRequestOtherMoonshotModelKeepsSamplingParams(t *testing.T) {
 	request := &dto.GeneralOpenAIRequest{
-		Model:       "kimi-k2.5",
+		Model:       "moonshot-v1-8k",
 		Temperature: common.GetPointer[float64](0.7),
+		TopP:        common.GetPointer[float64](1.0),
 	}
 	info := &relaycommon.RelayInfo{
 		ChannelMeta: &relaycommon.ChannelMeta{
-			UpstreamModelName: "kimi-k2.5",
+			UpstreamModelName: "moonshot-v1-8k",
 		},
 	}
 
@@ -85,4 +82,6 @@ func TestConvertOpenAIRequestOtherMoonshotModelKeepsTemperature(t *testing.T) {
 	require.True(t, ok)
 	require.NotNil(t, convertedRequest.Temperature)
 	require.Equal(t, 0.7, *convertedRequest.Temperature)
+	require.NotNil(t, convertedRequest.TopP)
+	require.Equal(t, 1.0, *convertedRequest.TopP)
 }

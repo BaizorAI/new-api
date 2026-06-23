@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { Main } from '@/components/layout'
 import { Playground } from '@/features/playground'
+import { DEFAULT_CONFIG } from '@/features/playground/constants'
 import {
   createDefaultConversation,
   createPlaygroundConversation,
@@ -86,6 +87,14 @@ function PlaygroundPage() {
     [activeConversationId, baseScope, conversations]
   )
 
+  const defaultConfig = useMemo(
+    () => ({
+      ...DEFAULT_CONFIG,
+      model: 'deepseek-v4-pro',
+    }),
+    []
+  )
+
   const updateActiveConversationFromMessages = useCallback(
     (messages: Message[]) => {
       setConversations((prev) => {
@@ -145,6 +154,7 @@ function PlaygroundPage() {
     <Main className='p-0'>
       <Playground
         key={activeConversation.storageScope}
+        defaultConfig={defaultConfig}
         modelCapability='chat'
         onMessagesChange={updateActiveConversationFromMessages}
         onNewSession={createSession}

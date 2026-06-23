@@ -122,7 +122,7 @@ export type TopNavLink = {
 export type SidebarViewParent = {
   /** Destination URL for the back button */
   to: LinkProps['to'] | (string & {})
-  /** Visible label, e.g. "Back to Dashboard" â€” already localized */
+  /** Visible label, e.g. "Back to Dashboard" â€?already localized */
   label: string
 }
 
@@ -152,7 +152,7 @@ export type SidebarView = {
  * - `view !== null`: nested workspace view (renders header + back button)
  */
 export type ResolvedSidebarView = {
-  /** Animation/identity key â€” falls back to a sentinel for the root view */
+  /** Animation/identity key â€?falls back to a sentinel for the root view */
   key: string
   view: SidebarView | null
   navGroups: NavGroup[]

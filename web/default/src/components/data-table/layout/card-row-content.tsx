@@ -32,13 +32,13 @@ import { getCellLabel, renderCellContent } from './card-cell-utils'
  * per-row content here guarantees the two stay visually consistent.
  *
  * Column meta extensions (see `card-cell-utils.ts`):
- * - `mobileTitle`  â€” card header (left, larger text)
- * - `mobileBadge`  â€” inline with title (right, e.g. status badge)
- * - `mobileHidden` â€” hidden in card content
+ * - `mobileTitle`  â€?card header (left, larger text)
+ * - `mobileBadge`  â€?inline with title (right, e.g. status badge)
+ * - `mobileHidden` â€?hidden in card content
  */
 
 /**
- * Compact content â€” structured layout with title header + side-by-side fields.
+ * Compact content â€?structured layout with title header + side-by-side fields.
  * Used when columns define mobileTitle or mobileBadge meta.
  *
  * Visual structure:
@@ -120,7 +120,7 @@ function CompactContent<TData>({ row }: { row: Row<TData> }) {
 }
 
 /**
- * Fallback content â€” condensed label:value pairs for tables without
+ * Fallback content â€?condensed label:value pairs for tables without
  * mobileTitle/mobileBadge. Still respects mobileHidden.
  */
 function FallbackContent<TData>({ row }: { row: Row<TData> }) {

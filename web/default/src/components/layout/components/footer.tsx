@@ -77,7 +77,7 @@ function FooterLinkItem(props: { link: FooterLink }) {
 }
 
 // Renders User Agreement / Privacy Policy links inline with the parent's
-// copyright row when either is configured in System Settings â†’ Site. Emits
+// copyright row when either is configured in System Settings â†?Site. Emits
 // fragmented siblings so the parent flex container's gap controls spacing.
 function LegalLinks(props: { leadingSeparator?: boolean }) {
   const { t } = useTranslation()
