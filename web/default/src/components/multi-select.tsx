@@ -74,19 +74,18 @@ interface MultiSelectProps {
   renderSelectedSummary?: (values: string[]) => React.ReactNode
   /**
    * When true, clicking a chip's label copies its value to the clipboard
-   * instead of being inert. The remove (¡Á) button keeps its own behaviour.
+   * instead of being inert. The remove button keeps its own behaviour.
    */
   copyChipOnClick?: boolean
 }
 
-const COMMA_REGEX = /[,£¬\n]/
+const COMMA_REGEX = /[,\uFF0C\n]/
 
 function splitDraft(value: string): { completed: string[]; draft: string } {
   if (!COMMA_REGEX.test(value)) {
     return { completed: [], draft: value }
   }
-  const normalized = value.replaceAll('??, ',').replaceAll('\n', ',')
-  const parts = normalized.split(',')
+  const parts = value.split(COMMA_REGEX)
   const draft = parts.at(-1) ?? ''
   const completed = parts
     .slice(0, -1)

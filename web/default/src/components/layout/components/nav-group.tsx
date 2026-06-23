@@ -167,10 +167,9 @@ function SidebarMenuCollapsible({
   href: string
 }) {
   const { setOpenMobile } = useSidebar()
-  // 检查当前路径是否匹配子菜单??  const isSubItemActive = checkIsActive(href, item)
-  // 使用受控状态，初始值基于当前路径是否匹??  const [isOpen, setIsOpen] = useState(() => isSubItemActive)
+  const isSubItemActive = checkIsActive(href, item)
+  const [isOpen, setIsOpen] = useState(() => isSubItemActive)
 
-  // 当路径变化时，如果匹配子菜单项，自动展开父级菜单
   useEffect(() => {
     if (isSubItemActive) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
