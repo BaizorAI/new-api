@@ -311,9 +311,9 @@ function PresetConfig() {
  *
  * Each option renders a live "Aa" preview in the font it represents.
  * `Auto` deliberately leaves `fontFamily` undefined so the preview inherits
- * the currently active body font â€?that way the user sees what `Auto` will
- * actually look like for the active preset (Anthropic â†?serif glyphs,
- * everything else â†?sans glyphs) without us having to duplicate the
+ * the currently active body font ??that way the user sees what `Auto` will
+ * actually look like for the active preset (Anthropic ??serif glyphs,
+ * everything else ??sans glyphs) without us having to duplicate the
  * preset-default mapping in the UI.
  */
 const FONT_OPTIONS: {

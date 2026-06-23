@@ -38,7 +38,7 @@ type SidebarViewHeaderProps = {
 /**
  * Header for a nested sidebar view (Vercel / Cloudflare drill-in pattern).
  *
- * Renders only the back affordance â€?workspace context is conveyed by
+ * Renders only the back affordance ??workspace context is conveyed by
  * the nav groups below, not a redundant title row.
  */
 export function SidebarViewHeader(props: SidebarViewHeaderProps) {

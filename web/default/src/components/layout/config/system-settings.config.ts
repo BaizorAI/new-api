@@ -41,7 +41,7 @@ import type { NavGroup, SidebarView } from '../types'
  * Sidebar nav groups for the System Settings nested view.
  *
  * Kept as a single group because the workspace title in the sidebar
- * header already provides top-level context â€?the inner group label
+ * header already provides top-level context ??the inner group label
  * scopes the items as "administration" actions.
  */
 function getSystemSettingsNavGroups(t: TFunction): NavGroup[] {

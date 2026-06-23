@@ -429,12 +429,12 @@ const TokensWithCost = ({
 }) => (
   <span>
     {tokens === undefined
-      ? 'â€?
+      ? '??
       : new Intl.NumberFormat('en-US', {
           notation: 'compact',
         }).format(tokens)}
     {costText ? (
-      <span className='text-muted-foreground ml-2'>â€?{costText}</span>
+      <span className='text-muted-foreground ml-2'>??{costText}</span>
     ) : null}
   </span>
 )

@@ -74,18 +74,18 @@ interface MultiSelectProps {
   renderSelectedSummary?: (values: string[]) => React.ReactNode
   /**
    * When true, clicking a chip's label copies its value to the clipboard
-   * instead of being inert. The remove (Ã—) button keeps its own behaviour.
+   * instead of being inert. The remove (¡Á) button keeps its own behaviour.
    */
   copyChipOnClick?: boolean
 }
 
-const COMMA_REGEX = /[,ï¼Œ\n]/
+const COMMA_REGEX = /[,£¬\n]/
 
 function splitDraft(value: string): { completed: string[]; draft: string } {
   if (!COMMA_REGEX.test(value)) {
     return { completed: [], draft: value }
   }
-  const normalized = value.replaceAll('ï¼?, ',').replaceAll('\n', ',')
+  const normalized = value.replaceAll('??, ',').replaceAll('\n', ',')
   const parts = normalized.split(',')
   const draft = parts.at(-1) ?? ''
   const completed = parts
@@ -96,7 +96,7 @@ function splitDraft(value: string): { completed: string[]; draft: string } {
 }
 
 /**
- * MultiSelect â€?tags/chips style multi-select built on Base UI Combobox.
+ * MultiSelect ??tags/chips style multi-select built on Base UI Combobox.
  *
  * Behaviour:
  * - Search filters built-in options (Base UI handles fuzzy filtering).

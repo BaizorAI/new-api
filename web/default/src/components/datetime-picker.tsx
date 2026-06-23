@@ -157,7 +157,7 @@ export function DateTimePicker({
           className='shrink-0'
           aria-label='Clear'
         >
-          <span aria-hidden='true'>âœ?/span>
+          <span aria-hidden='true'>??/span>
         </Button>
       )}
     </div>
