@@ -29,6 +29,26 @@ func TestConvertOpenAIRequestKimiK26UsesOnlyAllowedTemperature(t *testing.T) {
 	require.Equal(t, 1.0, *convertedRequest.Temperature)
 }
 
+func TestConvertOpenAIRequestKimiK27CodeUsesOnlyAllowedTemperature(t *testing.T) {
+	request := &dto.GeneralOpenAIRequest{
+		Model:       "kimi-k2.7-code",
+		Temperature: common.GetPointer[float64](0.2),
+	}
+	info := &relaycommon.RelayInfo{
+		ChannelMeta: &relaycommon.ChannelMeta{
+			UpstreamModelName: "kimi-k2.7-code",
+		},
+	}
+
+	converted, err := (&Adaptor{}).ConvertOpenAIRequest(nil, info, request)
+
+	require.NoError(t, err)
+	convertedRequest, ok := converted.(*dto.GeneralOpenAIRequest)
+	require.True(t, ok)
+	require.NotNil(t, convertedRequest.Temperature)
+	require.Equal(t, 1.0, *convertedRequest.Temperature)
+}
+
 func TestConvertOpenAIRequestKimiK26KeepsOmittedTemperatureOmitted(t *testing.T) {
 	request := &dto.GeneralOpenAIRequest{
 		Model: "kimi-k2.6",

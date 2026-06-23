@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	channelconstant "github.com/BaizorAI/new-api/constant"
 	"github.com/BaizorAI/new-api/dto"
@@ -79,6 +80,17 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 }
 
 func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayInfo, request *dto.GeneralOpenAIRequest) (any, error) {
+	effectiveModel := request.Model
+	if info != nil && info.ChannelMeta != nil && info.UpstreamModelName != "" {
+		effectiveModel = info.UpstreamModelName
+	}
+	if request.Temperature != nil {
+		switch strings.ToLower(strings.TrimSpace(effectiveModel)) {
+		case "kimi-k2.6", "kimi-k2.7-code":
+			allowedTemperature := 1.0
+			request.Temperature = &allowedTemperature
+		}
+	}
 	return request, nil
 }
 

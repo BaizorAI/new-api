@@ -1368,7 +1368,7 @@ func modelSupportsChatEndpoint(modelName string, endpoints []constant.EndpointTy
 	}
 
 	lowerModelName := strings.ToLower(strings.TrimSpace(modelName))
-	nonChatNameParts := []string{"embedding", "embed", "rerank", "sora", "video", "ocr"}
+	nonChatNameParts := []string{"embedding", "embed", "rerank", "sora", "video", "ocr", "codex"}
 	for _, part := range nonChatNameParts {
 		if strings.Contains(lowerModelName, part) {
 			return false

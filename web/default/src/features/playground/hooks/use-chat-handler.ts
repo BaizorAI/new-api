@@ -38,6 +38,40 @@ interface UseChatHandlerOptions {
   requestHeaders?: Record<string, string>
 }
 
+type PlaygroundErrorData = {
+  message?: string
+  error?: {
+    message?: string
+    code?: unknown
+  }
+}
+
+function extractChatError(error: unknown): {
+  message: string
+  code?: string
+} {
+  const err = error as {
+    response?: { data?: PlaygroundErrorData }
+    message?: string
+  }
+  const data = err?.response?.data
+  const errorCode = data?.error?.code
+
+  return {
+    message:
+      data?.error?.message?.trim() ||
+      data?.message?.trim() ||
+      err?.message ||
+      ERROR_MESSAGES.API_REQUEST_ERROR,
+    code:
+      typeof errorCode === 'string'
+        ? errorCode
+        : errorCode == null
+          ? undefined
+          : String(errorCode),
+  }
+}
+
 /**
  * Hook for handling chat message sending and receiving
  */
@@ -162,18 +196,8 @@ export function useChatHandler({
           }))
         )
       } catch (error: unknown) {
-        const err = error as {
-          response?: {
-            data?: { message?: string; error?: { code?: string } }
-          }
-          message?: string
-        }
-        handleStreamError(
-          err?.response?.data?.message ||
-            err?.message ||
-            ERROR_MESSAGES.API_REQUEST_ERROR,
-          err?.response?.data?.error?.code || undefined
-        )
+        const { message, code } = extractChatError(error)
+        handleStreamError(message, code)
       }
     },
     [

@@ -24,6 +24,38 @@ import { getCommonHeaders } from '@/lib/api'
 import { API_ENDPOINTS, ERROR_MESSAGES } from '../constants'
 import type { ChatCompletionRequest, ChatCompletionChunk } from '../types'
 
+type StreamErrorPayload = {
+  message?: string
+  error?: {
+    message?: string
+    code?: unknown
+  }
+}
+
+function extractStreamError(data?: string): { message: string; code?: string } {
+  const rawMessage = data?.trim()
+  if (!rawMessage) {
+    return { message: ERROR_MESSAGES.API_REQUEST_ERROR }
+  }
+
+  try {
+    const parsed = JSON.parse(rawMessage) as StreamErrorPayload
+    const errorCode = parsed?.error?.code
+    return {
+      message:
+        parsed?.error?.message?.trim() || parsed?.message?.trim() || rawMessage,
+      code:
+        typeof errorCode === 'string'
+          ? errorCode
+          : errorCode == null
+            ? undefined
+            : String(errorCode),
+    }
+  } catch {
+    return { message: rawMessage }
+  }
+}
+
 /**
  * Hook for handling streaming chat completion requests
  */
@@ -95,22 +127,8 @@ export function useStreamRequest() {
         if (source.readyState !== 2) {
           // eslint-disable-next-line no-console
           console.error('SSE Error:', e)
-          let errorMessage = e.data || ERROR_MESSAGES.API_REQUEST_ERROR
-          let errorCode: string | undefined
-          if (e.data) {
-            try {
-              const parsed = JSON.parse(e.data) as {
-                error?: { message?: string; code?: string }
-              }
-              if (parsed?.error) {
-                errorMessage = parsed.error.message || errorMessage
-                errorCode = parsed.error.code || undefined
-              }
-            } catch {
-              // not JSON, use raw string
-            }
-          }
-          handleError(errorMessage, errorCode)
+          const { message, code } = extractStreamError(e.data)
+          handleError(message, code)
         }
       })
 

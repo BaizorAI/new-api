@@ -39,6 +39,12 @@ func TestModelSupportsChatEndpoint(t *testing.T) {
 			want:      false,
 		},
 		{
+			name:      "codex models do not support chat completions",
+			modelName: "gpt-5.3-codex",
+			endpoints: []constant.EndpointType{constant.EndpointTypeOpenAI},
+			want:      false,
+		},
+		{
 			name:      "image generation models are not chat capable even when channel also exposes openai",
 			modelName: "gpt-image-1",
 			endpoints: []constant.EndpointType{constant.EndpointTypeImageGeneration, constant.EndpointTypeOpenAI},
