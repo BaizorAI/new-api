@@ -23,6 +23,7 @@ import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { SectionPageLayout } from '@/components/layout'
 import { AffiliateRewardsCard } from './components/affiliate-rewards-card'
+import { BillingOwnershipCard } from './components/billing-ownership-card'
 import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
 import { CreemConfirmDialog } from './components/dialogs/creem-confirm-dialog'
 import { PaymentConfirmDialog } from './components/dialogs/payment-confirm-dialog'
@@ -47,6 +48,10 @@ import {
   isWaffoPancakePayment,
 } from './lib'
 import { requestWeChatPay, requestWeChatJSAPIPay } from './api'
+import { listTeams } from '@/features/teams/api'
+import { getSelfSubscriptionFull } from '@/features/subscriptions/api'
+import type { UserSubscriptionRecord } from '@/features/subscriptions/types'
+import type { Team } from '@/features/teams/types'
 import type {
   UserWalletData,
   PaymentMethod,
@@ -70,6 +75,11 @@ export function Wallet(props: WalletProps) {
   const { t } = useTranslation()
   const [user, setUser] = useState<UserWalletData | null>(null)
   const [userLoading, setUserLoading] = useState(true)
+  const [teams, setTeams] = useState<Team[]>([])
+  const [activeSubscriptions, setActiveSubscriptions] = useState<
+    UserSubscriptionRecord[]
+  >([])
+  const [ownershipLoading, setOwnershipLoading] = useState(true)
   const [topupAmount, setTopupAmount] = useState(0)
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null)
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
@@ -138,9 +148,31 @@ export function Wallet(props: WalletProps) {
     }
   }, [])
 
+  const fetchBillingOwnership = useCallback(async () => {
+    try {
+      setOwnershipLoading(true)
+      const [teamsResponse, subscriptionsResponse] = await Promise.all([
+        listTeams(),
+        getSelfSubscriptionFull(),
+      ])
+      if (teamsResponse.success && teamsResponse.data) {
+        setTeams(teamsResponse.data)
+      }
+      if (subscriptionsResponse.success && subscriptionsResponse.data) {
+        setActiveSubscriptions(subscriptionsResponse.data.subscriptions ?? [])
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to fetch billing ownership:', error)
+    } finally {
+      setOwnershipLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     fetchUser()
-  }, [fetchUser])
+    fetchBillingOwnership()
+  }, [fetchBillingOwnership, fetchUser])
 
   useEffect(() => {
     if (props.initialShowHistory) {
@@ -324,6 +356,12 @@ export function Wallet(props: WalletProps) {
         <SectionPageLayout.Content>
           <div className='mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-5'>
             <WalletStatsCard user={user} loading={userLoading} />
+            <BillingOwnershipCard
+              user={user}
+              teams={teams}
+              activeSubscriptions={activeSubscriptions}
+              loading={userLoading || ownershipLoading}
+            />
 
             <div
               className={

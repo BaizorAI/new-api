@@ -8,6 +8,8 @@ type OAuthToken struct {
 	ExpiresIn    int    `json:"expires_in,omitempty"`
 	Scope        string `json:"scope,omitempty"`
 	IDToken      string `json:"id_token,omitempty"`
+	OpenID       string `json:"-"`
+	UnionID      string `json:"-"`
 }
 
 // OAuthUser represents the user info from OAuth provider

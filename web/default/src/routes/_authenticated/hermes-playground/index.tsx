@@ -17,16 +17,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { SparklesIcon } from 'lucide-react'
+import { Building2Icon, SparklesIcon, WalletCardsIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Main } from '@/components/layout'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { HermesCapabilityCenter } from '@/features/hermes-playground/components/hermes-capability-center'
 import { HermesMessagePlatforms } from '@/features/hermes-playground/components/hermes-message-platforms'
 import { HermesSkillDialog } from '@/features/hermes-playground/components/hermes-skill-dialog'
+import type { HermesSkill } from '@/features/hermes-playground/api'
 import {
   createDefaultConversation,
   createHermesConversation,
@@ -47,7 +56,9 @@ import {
 import { Playground } from '@/features/playground'
 import { DEFAULT_CONFIG } from '@/features/playground/constants'
 import type { Message, ModelOption } from '@/features/playground/types'
+import { listTeams } from '@/features/teams/api'
 import { isSidebarModuleEnabled } from '@/lib/nav-modules'
+import { formatQuota } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth-store'
 
 export const Route = createFileRoute('/_authenticated/hermes-playground/')({
@@ -64,6 +75,7 @@ function HermesPlaygroundPage() {
   const queryClient = useQueryClient()
   const userId = useAuthStore((s) => s.auth.user?.id)
   const baseScope = getHermesBaseScope(userId)
+  const queryUserScope = String(userId ?? 'anonymous')
   const [sessions, setSessions] = useState<HermesConversation[]>(() =>
     loadHermesConversations(baseScope)
   )
@@ -71,8 +83,27 @@ function HermesPlaygroundPage() {
     loadActiveConversationId(baseScope, sessions)
   )
   const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false)
+  const [editSkill, setEditSkill] = useState<HermesSkill | null>(null)
   const [isCapabilityCenterOpen, setIsCapabilityCenterOpen] = useState(false)
   const [isMessagePlatformsOpen, setIsMessagePlatformsOpen] = useState(false)
+  const [billingOwner, setBillingOwner] = useState('personal')
+
+  const { data: teamsResponse } = useQuery({
+    queryKey: ['hermes-playground', queryUserScope, 'teams'],
+    queryFn: listTeams,
+  })
+  const teams = teamsResponse?.success ? teamsResponse.data ?? [] : []
+
+  const selectedTeamId = billingOwner.startsWith('team:')
+    ? Number(billingOwner.slice('team:'.length))
+    : 0
+
+  useEffect(() => {
+    if (billingOwner === 'personal') return
+    if (!teams.some((team) => team.id === selectedTeamId)) {
+      setBillingOwner('personal')
+    }
+  }, [billingOwner, selectedTeamId, teams])
 
   const reloadSessions = useCallback(() => {
     const nextSessions = loadHermesConversations(baseScope)
@@ -141,11 +172,17 @@ function HermesPlaygroundPage() {
   }, [])
 
   const requestHeaders = useMemo(
-    () => ({
-      'X-Baizor-Playground': 'hermes',
-      'X-Baizor-Hermes-Session': activeSession.hermesSessionId,
-    }),
-    [activeSession.hermesSessionId]
+    () => {
+      const headers: Record<string, string> = {
+        'X-Baizor-Playground': 'hermes',
+        'X-Baizor-Hermes-Session': activeSession.hermesSessionId,
+      }
+      if (selectedTeamId > 0) {
+        headers['X-Baizor-Team-Id'] = String(selectedTeamId)
+      }
+      return headers
+    },
+    [activeSession.hermesSessionId, selectedTeamId]
   )
 
   const updateActiveSessionFromMessages = useCallback(
@@ -205,13 +242,40 @@ function HermesPlaygroundPage() {
 
   const handleSkillCreated = useCallback(() => {
     void queryClient.invalidateQueries({
-      queryKey: ['hermes-capabilities', 'skills'],
+      queryKey: ['hermes-capabilities', queryUserScope, 'skills'],
     })
-  }, [queryClient])
+  }, [queryClient, queryUserScope])
 
   return (
     <Main className='relative p-0'>
-      <div className='absolute top-3 right-3 z-10'>
+      <div className='absolute top-3 right-3 z-10 flex items-center gap-2'>
+        {teams.length > 0 && (
+          <Select value={billingOwner} onValueChange={setBillingOwner}>
+            <SelectTrigger
+              aria-label={t('Billing Ownership')}
+              className='bg-background/95 h-8 max-w-[220px] shadow-sm backdrop-blur'
+            >
+              <SelectValue placeholder={t('Billing Ownership')} />
+            </SelectTrigger>
+            <SelectContent align='end' alignItemWithTrigger={false}>
+              <SelectGroup>
+                <SelectItem value='personal'>
+                  <WalletCardsIcon className='size-4' />
+                  <span>{t('Personal Wallet')}</span>
+                </SelectItem>
+                {teams.map((team) => (
+                  <SelectItem key={team.id} value={`team:${team.id}`}>
+                    <Building2Icon className='size-4' />
+                    <span className='min-w-0 truncate'>{team.name}</span>
+                    <span className='text-muted-foreground text-xs'>
+                      {formatQuota(team.quota)}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        )}
         <Button
           className='bg-background/95 shadow-sm backdrop-blur'
           onClick={() => setIsCapabilityCenterOpen(true)}
@@ -239,16 +303,27 @@ function HermesPlaygroundPage() {
       />
       <HermesSkillDialog
         open={isSkillDialogOpen}
-        onOpenChange={setIsSkillDialogOpen}
+        editSkill={editSkill}
+        onOpenChange={(open) => {
+          setIsSkillDialogOpen(open)
+          if (!open) setEditSkill(null)
+        }}
         onCreated={handleSkillCreated}
       />
       <HermesCapabilityCenter
         open={isCapabilityCenterOpen}
+        userScope={queryUserScope}
         onAddSkill={() => setIsSkillDialogOpen(true)}
+        onEditSkill={(skill) => {
+          setEditSkill(skill)
+          setIsCapabilityCenterOpen(false)
+          setIsSkillDialogOpen(true)
+        }}
         onOpenChange={setIsCapabilityCenterOpen}
       />
       <HermesMessagePlatforms
         open={isMessagePlatformsOpen}
+        userScope={queryUserScope}
         onOpenChange={setIsMessagePlatformsOpen}
       />
     </Main>

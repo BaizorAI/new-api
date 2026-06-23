@@ -2,7 +2,6 @@ package oauth
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,14 +21,8 @@ func init() {
 
 // WeChatProvider implements OAuth for WeChat Open Platform (QR code login).
 // WeChat OAuth flow is unique: the access_token endpoint returns the openid
-// together with the token, so ExchangeToken stores the openid on the provider
-// temporarily for GetUserInfo to consume.
+// together with the token, so ExchangeToken carries it forward in OAuthToken.
 type WeChatProvider struct {
-	// lastOpenId is set by ExchangeToken and consumed by GetUserInfo.
-	// It is NOT goroutine-safe; the controller guarantees sequential calls
-	// per request (ExchangeToken -> GetUserInfo on the same goroutine).
-	lastOpenId  string
-	lastUnionId string
 }
 
 type wechatTokenResponse struct {
@@ -112,7 +105,7 @@ func (p *WeChatProvider) ExchangeToken(ctx context.Context, code string, c *gin.
 	defer res.Body.Close()
 
 	var tokenResp wechatTokenResponse
-	if err := json.NewDecoder(res.Body).Decode(&tokenResp); err != nil {
+	if err := common.DecodeJson(res.Body, &tokenResp); err != nil {
 		logger.LogError(ctx, fmt.Sprintf("[OAuth-WeChat] ExchangeToken decode error: %s", err.Error()))
 		return nil, err
 	}
@@ -127,10 +120,6 @@ func (p *WeChatProvider) ExchangeToken(ctx context.Context, code string, c *gin.
 		return nil, NewOAuthError(i18n.MsgOAuthTokenFailed, map[string]any{"Provider": "WeChat"})
 	}
 
-	// Store openid/unionid for GetUserInfo (called sequentially on same provider instance)
-	p.lastOpenId = tokenResp.OpenId
-	p.lastUnionId = tokenResp.UnionId
-
 	logger.LogDebug(ctx, "[OAuth-WeChat] ExchangeToken success: openid=%s, scope=%s", tokenResp.OpenId, tokenResp.Scope)
 
 	return &OAuthToken{
@@ -138,12 +127,14 @@ func (p *WeChatProvider) ExchangeToken(ctx context.Context, code string, c *gin.
 		RefreshToken: tokenResp.RefreshToken,
 		ExpiresIn:    tokenResp.ExpiresIn,
 		Scope:        tokenResp.Scope,
+		OpenID:       tokenResp.OpenId,
+		UnionID:      tokenResp.UnionId,
 	}, nil
 }
 
 func (p *WeChatProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*OAuthUser, error) {
-	openid := p.lastOpenId
-	unionid := p.lastUnionId
+	openid := token.OpenID
+	unionid := token.UnionID
 
 	if openid == "" {
 		return nil, NewOAuthError(i18n.MsgOAuthUserInfoEmpty, map[string]any{"Provider": "WeChat"})
@@ -181,7 +172,7 @@ func (p *WeChatProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*O
 	}
 
 	var userInfo wechatUserInfo
-	if err := json.NewDecoder(res.Body).Decode(&userInfo); err != nil {
+	if err := common.DecodeJson(res.Body, &userInfo); err != nil {
 		logger.LogError(ctx, fmt.Sprintf("[OAuth-WeChat] GetUserInfo decode error: %s", err.Error()))
 		return nil, err
 	}

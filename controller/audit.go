@@ -48,6 +48,7 @@ var auditContentTemplates = map[string]string{
 	"redemption.create": "Created ${count} redemption codes named ${name} (${quota} each)",
 
 	"hermes.weixin_qr_create":  "Started Hermes WeChat QR connection",
+	"hermes.weixin_connected":  "Connected Hermes WeChat account",
 	"hermes.weixin_disconnect": "Disconnected Hermes WeChat connection",
 	"hermes.weixin_error":      "Hermes WeChat connection error (${operation})",
 }

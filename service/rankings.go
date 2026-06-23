@@ -180,11 +180,11 @@ func rankingConfig(period string) (rankingPeriodConfig, error) {
 
 func buildRankingsSnapshot(config rankingPeriodConfig, now time.Time) (*RankingsResponse, error) {
 	startTime, endTime := rankingTimeRange(config, now)
-	currentTotals, err := model.GetRankingQuotaTotals(startTime, endTime)
+	currentTotals, err := model.GetRankingLogTotals(startTime, endTime)
 	if err != nil {
 		return nil, err
 	}
-	currentBuckets, err := model.GetRankingQuotaBuckets(startTime, endTime, config.bucketSize)
+	currentBuckets, err := model.GetRankingLogBuckets(startTime, endTime, config.bucketSize)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func buildRankingsSnapshot(config rankingPeriodConfig, now time.Time) (*Rankings
 	var previousTotals []model.RankingQuotaTotal
 	if config.hasPrevious {
 		previousStart, previousEnd := previousRankingTimeRange(config, startTime)
-		previousTotals, err = model.GetRankingQuotaTotals(previousStart, previousEnd)
+		previousTotals, err = model.GetRankingLogTotals(previousStart, previousEnd)
 		if err != nil {
 			return nil, err
 		}

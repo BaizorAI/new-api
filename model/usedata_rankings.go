@@ -35,7 +35,7 @@ func GetRankingQuotaBuckets(startTime int64, endTime int64, bucketSize int64) ([
 	if bucketSize <= 0 {
 		bucketSize = 3600
 	}
-	bucketExpr := rankingBucketExpr(bucketSize)
+	bucketExpr := rankingBucketExpr(bucketSize, false)
 	var rows []RankingQuotaBucket
 	query := DB.Table("quota_data").
 		Select(fmt.Sprintf("model_name, %s as bucket, sum(token_used) as tokens", bucketExpr)).
@@ -48,7 +48,46 @@ func GetRankingQuotaBuckets(startTime int64, endTime int64, bucketSize int64) ([
 	return rows, err
 }
 
-func rankingBucketExpr(bucketSize int64) string {
+func GetRankingLogTotals(startTime int64, endTime int64) ([]RankingQuotaTotal, error) {
+	var rows []RankingQuotaTotal
+	query := LOG_DB.Table("logs").
+		Select("model_name, sum(prompt_tokens + completion_tokens) as total_tokens").
+		Where("type = ? and model_name <> ''", LogTypeConsume).
+		Group("model_name").
+		Having("sum(prompt_tokens + completion_tokens) > 0").
+		Order("total_tokens DESC")
+	query = applyRankingQuotaTimeRange(query, startTime, endTime)
+	err := query.Find(&rows).Error
+	return rows, err
+}
+
+func GetRankingLogBuckets(startTime int64, endTime int64, bucketSize int64) ([]RankingQuotaBucket, error) {
+	if bucketSize <= 0 {
+		bucketSize = 3600
+	}
+	bucketExpr := rankingBucketExpr(bucketSize, true)
+	var rows []RankingQuotaBucket
+	query := LOG_DB.Table("logs").
+		Select(fmt.Sprintf("model_name, %s as bucket, sum(prompt_tokens + completion_tokens) as tokens", bucketExpr)).
+		Where("type = ? and model_name <> ''", LogTypeConsume).
+		Group(fmt.Sprintf("model_name, %s", bucketExpr)).
+		Having("sum(prompt_tokens + completion_tokens) > 0").
+		Order("bucket ASC")
+	query = applyRankingQuotaTimeRange(query, startTime, endTime)
+	err := query.Find(&rows).Error
+	return rows, err
+}
+
+func rankingBucketExpr(bucketSize int64, logDatabase bool) string {
+	if logDatabase {
+		if common.UsingLogDatabase(common.DatabaseTypeMySQL) {
+			return fmt.Sprintf("FLOOR(created_at / %d) * %d", bucketSize, bucketSize)
+		}
+		if common.UsingLogDatabase(common.DatabaseTypeClickHouse) {
+			return fmt.Sprintf("intDiv(created_at, %d) * %d", bucketSize, bucketSize)
+		}
+		return fmt.Sprintf("(created_at / %d) * %d", bucketSize, bucketSize)
+	}
 	if common.UsingMainDatabase(common.DatabaseTypeMySQL) {
 		return fmt.Sprintf("FLOOR(created_at / %d) * %d", bucketSize, bucketSize)
 	}

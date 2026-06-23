@@ -2,7 +2,6 @@ package oauth
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -27,8 +26,6 @@ func init() {
 // It follows the same pattern as WeChatProvider but uses different app
 // credentials and the snsapi_userinfo (or snsapi_base) scope.
 type WeChatInAppProvider struct {
-	lastOpenId  string
-	lastUnionId string
 }
 
 func (p *WeChatInAppProvider) GetName() string {
@@ -97,7 +94,7 @@ func (p *WeChatInAppProvider) ExchangeToken(ctx context.Context, code string, c 
 	defer res.Body.Close()
 
 	var tokenResp wechatTokenResponse
-	if err := json.NewDecoder(res.Body).Decode(&tokenResp); err != nil {
+	if err := common.DecodeJson(res.Body, &tokenResp); err != nil {
 		logger.LogError(ctx, fmt.Sprintf("[OAuth-WeChatInApp] ExchangeToken decode error: %s", err.Error()))
 		return nil, err
 	}
@@ -112,9 +109,6 @@ func (p *WeChatInAppProvider) ExchangeToken(ctx context.Context, code string, c 
 		return nil, NewOAuthError(i18n.MsgOAuthTokenFailed, map[string]any{"Provider": "WeChat"})
 	}
 
-	p.lastOpenId = tokenResp.OpenId
-	p.lastUnionId = tokenResp.UnionId
-
 	logger.LogDebug(ctx, "[OAuth-WeChatInApp] ExchangeToken success: openid=%s, scope=%s", tokenResp.OpenId, tokenResp.Scope)
 
 	return &OAuthToken{
@@ -122,12 +116,14 @@ func (p *WeChatInAppProvider) ExchangeToken(ctx context.Context, code string, c 
 		RefreshToken: tokenResp.RefreshToken,
 		ExpiresIn:    tokenResp.ExpiresIn,
 		Scope:        tokenResp.Scope,
+		OpenID:       tokenResp.OpenId,
+		UnionID:      tokenResp.UnionId,
 	}, nil
 }
 
 func (p *WeChatInAppProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*OAuthUser, error) {
-	openid := p.lastOpenId
-	unionid := p.lastUnionId
+	openid := token.OpenID
+	unionid := token.UnionID
 
 	if openid == "" {
 		return nil, NewOAuthError(i18n.MsgOAuthUserInfoEmpty, map[string]any{"Provider": "WeChat"})
@@ -181,7 +177,7 @@ func (p *WeChatInAppProvider) GetUserInfo(ctx context.Context, token *OAuthToken
 	}
 
 	var userInfo wechatUserInfo
-	if err := json.NewDecoder(res.Body).Decode(&userInfo); err != nil {
+	if err := common.DecodeJson(res.Body, &userInfo); err != nil {
 		logger.LogError(ctx, fmt.Sprintf("[OAuth-WeChatInApp] GetUserInfo decode error: %s", err.Error()))
 		return nil, err
 	}

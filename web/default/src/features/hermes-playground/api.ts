@@ -47,6 +47,7 @@ export interface HermesToolset {
 export type HermesWeixinStatusValue =
   | 'disabled'
   | 'not_connected'
+  | 'account_saved'
   | 'qr_ready'
   | 'scanned'
   | 'connected'
@@ -64,6 +65,8 @@ export interface HermesWeixinStatus {
   expiresAt?: number
   accountLabel?: string
   connectedAt?: string | number
+  listenerStatus?: 'running' | 'stopped' | 'failed'
+  listenerError?: string
   message?: string
   removedAccounts?: number
 }
@@ -95,6 +98,63 @@ export async function listHermesSkills(): Promise<HermesSkill[]> {
     skipErrorHandler: true,
   })
   return normalizeSkillsResponse(response.data)
+}
+
+export async function updateHermesSkill(
+  name: string,
+  payload: { name: string; description: string; instructions: string; category?: string }
+) {
+  const content = buildSkillContent({
+    name: payload.name,
+    description: payload.description,
+    instructions: payload.instructions,
+    category: payload.category,
+  })
+  try {
+    const response = await api.put(
+      '/pg/hermes/skills',
+      {
+        name,
+        content,
+      },
+      {
+        skipBusinessError: true,
+        skipErrorHandler: true,
+      }
+    )
+    return response.data
+  } catch (error) {
+    throw new Error(getHermesRequestErrorMessage(error))
+  }
+}
+
+export async function deleteHermesSkill(name: string) {
+  try {
+    const response = await api.delete('/pg/hermes/skills', {
+      data: { name },
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    })
+    return response.data
+  } catch (error) {
+    throw new Error(getHermesRequestErrorMessage(error))
+  }
+}
+
+export async function promoteHermesSkill(name: string) {
+  try {
+    const response = await api.post(
+      '/pg/hermes/skills/promote',
+      { name },
+      {
+        skipBusinessError: true,
+        skipErrorHandler: true,
+      }
+    )
+    return response.data
+  } catch (error) {
+    throw new Error(getHermesRequestErrorMessage(error))
+  }
 }
 
 export async function listHermesToolsets(): Promise<HermesToolset[]> {
@@ -247,6 +307,10 @@ function normalizeWeixinStatusResponse(payload: unknown): HermesWeixinStatus {
       stringFromUnknown(record.connected_at) ||
       numberFromUnknown(record.connected_at) ||
       undefined,
+    listenerStatus: normalizeWeixinListenerStatus(
+      stringFromUnknown(record.listener_status)
+    ),
+    listenerError: stringFromUnknown(record.listener_error) || undefined,
     message: stringFromUnknown(record.message) || undefined,
     removedAccounts: numberFromUnknown(record.removed_accounts) ?? undefined,
   }
@@ -286,6 +350,7 @@ function normalizeWeixinStatus(value: string): HermesWeixinStatusValue {
   if (
     value === 'disabled' ||
     value === 'not_connected' ||
+    value === 'account_saved' ||
     value === 'qr_ready' ||
     value === 'scanned' ||
     value === 'connected' ||
@@ -296,6 +361,15 @@ function normalizeWeixinStatus(value: string): HermesWeixinStatusValue {
     return value
   }
   return 'failed'
+}
+
+function normalizeWeixinListenerStatus(
+  value: string
+): HermesWeixinStatus['listenerStatus'] {
+  if (value === 'running' || value === 'stopped' || value === 'failed') {
+    return value
+  }
+  return undefined
 }
 
 function normalizeOwnerScope(value: string): HermesSkill['ownerScope'] {

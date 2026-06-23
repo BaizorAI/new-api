@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -26,12 +26,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
-import { createHermesSkill } from '../api'
+import { createHermesSkill, updateHermesSkill, type HermesSkill } from '../api'
 
 interface HermesSkillDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreated?: () => void
+  editSkill?: HermesSkill | null
 }
 
 const HERMES_SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/
@@ -43,6 +44,22 @@ export function HermesSkillDialog(props: HermesSkillDialogProps) {
   const [description, setDescription] = useState('')
   const [instructions, setInstructions] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const isEditing = Boolean(props.editSkill)
+
+  useEffect(() => {
+    if (props.open && props.editSkill) {
+      setName(props.editSkill.name)
+      setCategory(props.editSkill.category ?? '')
+      setDescription(props.editSkill.description ?? '')
+      setInstructions('')
+    } else if (props.open && !props.editSkill) {
+      setName('')
+      setCategory('')
+      setDescription('')
+      setInstructions('')
+    }
+  }, [props.open, props.editSkill])
 
   const reset = () => {
     setName('')
@@ -59,7 +76,7 @@ export function HermesSkillDialog(props: HermesSkillDialogProps) {
       )
       return
     }
-    if (!HERMES_SKILL_NAME_PATTERN.test(name.trim())) {
+    if (!isEditing && !HERMES_SKILL_NAME_PATTERN.test(name.trim())) {
       toast.error(
         t(
           'Skill name must use lowercase letters, numbers, dots, underscores, or hyphens, and start with a letter or number.'
@@ -78,13 +95,23 @@ export function HermesSkillDialog(props: HermesSkillDialogProps) {
 
     setIsSubmitting(true)
     try {
-      await createHermesSkill({
-        name,
-        category,
-        description,
-        instructions,
-      })
-      toast.success(t('Skill added'))
+      if (isEditing && props.editSkill) {
+        await updateHermesSkill(props.editSkill.name, {
+          name,
+          category,
+          description,
+          instructions,
+        })
+        toast.success(t('Skill updated'))
+      } else {
+        await createHermesSkill({
+          name,
+          category,
+          description,
+          instructions,
+        })
+        toast.success(t('Skill added'))
+      }
       reset()
       props.onCreated?.()
       props.onOpenChange(false)
@@ -104,10 +131,12 @@ export function HermesSkillDialog(props: HermesSkillDialogProps) {
         props.onOpenChange(nextOpen)
         if (!nextOpen) reset()
       }}
-      title={t('Add Hermes skill')}
-      description={t(
-        'Create a reusable Hermes skill for future conversations.'
-      )}
+      title={isEditing ? t('Edit skill') : t('Add Hermes skill')}
+      description={
+        isEditing
+          ? t('Update the skill description and instructions.')
+          : t('Create a reusable Hermes skill for future conversations.')
+      }
       footer={
         <>
           <Button
@@ -123,7 +152,7 @@ export function HermesSkillDialog(props: HermesSkillDialogProps) {
             form='hermes-skill-form'
             disabled={isSubmitting}
           >
-            {isSubmitting ? t('Saving...') : t('Add Hermes skill')}
+            {isSubmitting ? t('Saving...') : isEditing ? t('Save') : t('Add Hermes skill')}
           </Button>
         </>
       }
@@ -140,7 +169,7 @@ export function HermesSkillDialog(props: HermesSkillDialogProps) {
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder={t('e.g. project-release-review')}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isEditing}
           />
         </div>
         <div className='grid gap-1.5'>

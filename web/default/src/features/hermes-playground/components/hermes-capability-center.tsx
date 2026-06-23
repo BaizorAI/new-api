@@ -20,13 +20,18 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   CheckCircle2Icon,
+  ChevronRightIcon,
   CopyIcon,
+  MoreHorizontalIcon,
   PackagePlusIcon,
+  PencilIcon,
   RefreshCwIcon,
   SearchIcon,
   SlidersHorizontalIcon,
+  Trash2Icon,
   WrenchIcon,
   XCircleIcon,
+  ArrowBigUpIcon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -50,8 +55,25 @@ import {
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { useAuthStore } from '@/stores/auth-store'
 
 import {
+  deleteHermesSkill,
+  promoteHermesSkill,
   listHermesSkills,
   listHermesToolsets,
   type HermesSkill,
@@ -60,25 +82,39 @@ import {
 
 interface HermesCapabilityCenterProps {
   open: boolean
+  userScope: string
   onOpenChange: (open: boolean) => void
   onAddSkill: () => void
+  onEditSkill: (skill: HermesSkill) => void
 }
 
 const EMPTY_SKILLS: HermesSkill[] = []
 const EMPTY_TOOLSETS: HermesToolset[] = []
+const ADMIN_MIN_ROLE = 10
+
+type ToolsetStatusFilter =
+  | 'all'
+  | 'enabled'
+  | 'disabled'
+  | 'configured'
+  | 'unconfigured'
 
 export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
   const { t } = useTranslation()
   const [skillSearch, setSkillSearch] = useState('')
   const [toolsetSearch, setToolsetSearch] = useState('')
+  const [toolsetStatusFilter, setToolsetStatusFilter] =
+    useState<ToolsetStatusFilter>('all')
+  const [deletingSkill, setDeletingSkill] = useState<HermesSkill | null>(null)
+  const role = useAuthStore((s) => s.auth.user?.role ?? 0)
 
   const skillsQuery = useQuery({
-    queryKey: ['hermes-capabilities', 'skills'],
+    queryKey: ['hermes-capabilities', props.userScope, 'skills'],
     queryFn: listHermesSkills,
     enabled: props.open,
   })
   const toolsetsQuery = useQuery({
-    queryKey: ['hermes-capabilities', 'toolsets'],
+    queryKey: ['hermes-capabilities', props.userScope, 'toolsets'],
     queryFn: listHermesToolsets,
     enabled: props.open,
   })
@@ -101,8 +137,13 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
     [skillSearch, skills]
   )
   const toolsets = useMemo(
-    () => filterToolsets(toolsetsQuery.data ?? EMPTY_TOOLSETS, toolsetSearch),
-    [toolsetSearch, toolsetsQuery.data]
+    () =>
+      filterToolsets(
+        toolsetsQuery.data ?? EMPTY_TOOLSETS,
+        toolsetSearch,
+        toolsetStatusFilter
+      ),
+    [toolsetSearch, toolsetStatusFilter, toolsetsQuery.data]
   )
 
   const refresh = () => {
@@ -110,7 +151,32 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
     void toolsetsQuery.refetch()
   }
 
+  const handleDeleteSkill = async () => {
+    if (!deletingSkill) return
+    try {
+      await deleteHermesSkill(deletingSkill.name)
+      toast.success(t('Skill deleted'))
+      setDeletingSkill(null)
+      refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('Failed to delete skill'))
+    }
+  }
+
+  const handlePromoteSkill = async (skill: HermesSkill) => {
+    try {
+      await promoteHermesSkill(skill.name)
+      toast.success(t('Skill promoted'))
+      refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('Failed to promote skill'))
+    }
+  }
+
+  const isAdmin = role >= ADMIN_MIN_ROLE
+
   return (
+    <>
     <Sheet open={props.open} onOpenChange={props.onOpenChange}>
       <SheetContent className='w-full gap-0 sm:max-w-xl' side='right'>
         <SheetHeader className='border-b pr-12'>
@@ -141,7 +207,11 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
             <SkillPanel
               error={skillsQuery.error}
               isLoading={skillsQuery.isLoading}
+              isAdmin={isAdmin}
               onAddSkill={props.onAddSkill}
+              onDeleteSkill={setDeletingSkill}
+              onEditSkill={props.onEditSkill}
+              onPromoteSkill={handlePromoteSkill}
               search={skillSearch}
               setSearch={setSkillSearch}
               systemSkills={systemSkills}
@@ -155,12 +225,45 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
               isLoading={toolsetsQuery.isLoading}
               search={toolsetSearch}
               setSearch={setToolsetSearch}
+              statusFilter={toolsetStatusFilter}
+              setStatusFilter={setToolsetStatusFilter}
               toolsets={toolsets}
             />
           </TabsContent>
         </Tabs>
       </SheetContent>
     </Sheet>
+
+    <Dialog
+      open={Boolean(deletingSkill)}
+      onOpenChange={(open) => {
+        if (!open) setDeletingSkill(null)
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('Delete skill')}</DialogTitle>
+        </DialogHeader>
+        <p className='text-muted-foreground text-sm'>
+          {t('Are you sure you want to delete skill "{{name}}"?', {
+            name: deletingSkill?.name ?? '',
+          })}
+        </p>
+        <DialogFooter>
+          <Button
+            type='button'
+            variant='outline'
+            onClick={() => setDeletingSkill(null)}
+          >
+            {t('Cancel')}
+          </Button>
+          <Button type='button' variant='destructive' onClick={handleDeleteSkill}>
+            {t('Delete')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </>
   )
 }
 
@@ -171,7 +274,11 @@ interface SkillPanelProps {
   setSearch: (value: string) => void
   isLoading: boolean
   error: Error | null
+  isAdmin: boolean
   onAddSkill: () => void
+  onEditSkill: (skill: HermesSkill) => void
+  onDeleteSkill: (skill: HermesSkill) => void
+  onPromoteSkill: (skill: HermesSkill) => void
 }
 
 function SkillPanel(props: SkillPanelProps) {
@@ -213,6 +320,10 @@ function SkillPanel(props: SkillPanelProps) {
               <SkillSection
                 emptyDescription={t('Create a skill to make it appear here.')}
                 emptyTitle={t('No personal skills')}
+                isAdmin={props.isAdmin}
+                onDeleteSkill={props.onDeleteSkill}
+                onEditSkill={props.onEditSkill}
+                onPromoteSkill={props.onPromoteSkill}
                 skills={props.userSkills}
                 title={t('My skills')}
               />
@@ -221,6 +332,10 @@ function SkillPanel(props: SkillPanelProps) {
                   'No built-in skills match the current search.'
                 )}
                 emptyTitle={t('No system skills')}
+                isAdmin={props.isAdmin}
+                onDeleteSkill={props.onDeleteSkill}
+                onEditSkill={props.onEditSkill}
+                onPromoteSkill={props.onPromoteSkill}
                 skills={props.systemSkills}
                 title={t('Built-in skills')}
               />
@@ -237,6 +352,10 @@ interface SkillSectionProps {
   skills: HermesSkill[]
   emptyTitle: string
   emptyDescription: string
+  isAdmin: boolean
+  onEditSkill: (skill: HermesSkill) => void
+  onDeleteSkill: (skill: HermesSkill) => void
+  onPromoteSkill: (skill: HermesSkill) => void
 }
 
 function SkillSection(props: SkillSectionProps) {
@@ -260,6 +379,10 @@ function SkillSection(props: SkillSectionProps) {
           {props.skills.map((skill) => (
             <SkillRow
               key={`${skill.source}-${skill.path ?? skill.name}`}
+              isAdmin={props.isAdmin}
+              onDeleteSkill={props.onDeleteSkill}
+              onEditSkill={props.onEditSkill}
+              onPromoteSkill={props.onPromoteSkill}
               skill={skill}
             />
           ))}
@@ -269,17 +392,33 @@ function SkillSection(props: SkillSectionProps) {
   )
 }
 
-function SkillRow(props: { skill: HermesSkill }) {
+interface SkillRowProps {
+  skill: HermesSkill
+  isAdmin: boolean
+  onEditSkill: (skill: HermesSkill) => void
+  onDeleteSkill: (skill: HermesSkill) => void
+  onPromoteSkill: (skill: HermesSkill) => void
+}
+
+function SkillRow(props: SkillRowProps) {
   const { t } = useTranslation()
+  const referencePrompt = t('Use the "{{name}}" skill for this task.', {
+    name: props.skill.name,
+  })
 
   const copyName = async () => {
     await navigator.clipboard.writeText(props.skill.name)
     toast.success(t('Skill name copied'))
   }
 
+  const copyReference = async () => {
+    await navigator.clipboard.writeText(referencePrompt)
+    toast.success(t('Skill reference copied'))
+  }
+
   return (
-    <div className='rounded-lg border p-3'>
-      <div className='flex items-start justify-between gap-2'>
+    <details className='group rounded-lg border p-3'>
+      <summary className='flex cursor-pointer list-none items-start justify-between gap-2'>
         <div className='min-w-0 space-y-1'>
           <div className='flex flex-wrap items-center gap-1.5'>
             <h4 className='truncate text-sm font-medium'>{props.skill.name}</h4>
@@ -301,16 +440,102 @@ function SkillRow(props: { skill: HermesSkill }) {
             </p>
           )}
         </div>
-        <Button
-          aria-label={t('Copy skill name')}
-          onClick={copyName}
-          size='icon-sm'
-          type='button'
-          variant='ghost'
-        >
-          <CopyIcon className='size-4' />
-        </Button>
+        <div className='flex shrink-0 items-center gap-1'>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  type='button'
+                  className='text-muted-foreground hover:bg-muted flex size-6 items-center justify-center rounded-md'
+                  aria-label={t('Open menu')}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              }
+            >
+              <MoreHorizontalIcon className='size-4' />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end' className='w-40'>
+              <DropdownMenuItem
+                onClick={() => props.onEditSkill(props.skill)}
+              >
+                <PencilIcon className='size-4' />
+                {t('Edit skill')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant='destructive'
+                onClick={() => props.onDeleteSkill(props.skill)}
+              >
+                <Trash2Icon className='size-4' />
+                {t('Delete skill')}
+              </DropdownMenuItem>
+              {props.isAdmin && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => props.onPromoteSkill(props.skill)}
+                  >
+                    <ArrowBigUpIcon className='size-4' />
+                    {t('Promote to built-in')}
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <ChevronRightIcon className='text-muted-foreground mt-0.5 size-4 shrink-0 transition-transform group-open:rotate-90' />
+        </div>
+      </summary>
+      <div className='mt-3 space-y-3 border-t pt-3'>
+        <div className='grid gap-2 text-xs sm:grid-cols-2'>
+          <SkillDetailItem
+            label={t('Source')}
+            value={getSkillSourceLabel(props.skill, t)}
+          />
+          <SkillDetailItem
+            label={t('Owner scope')}
+            value={getOwnerScopeLabel(props.skill.ownerScope, t)}
+          />
+          <SkillDetailItem
+            label={t('Category')}
+            value={props.skill.category || t('None')}
+          />
+          <SkillDetailItem
+            label={t('Path')}
+            value={props.skill.path || t('None')}
+          />
+        </div>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground text-xs'>
+            {t('Reference prompt')}
+          </div>
+          <div className='bg-muted/40 rounded-md border px-2 py-1.5 font-mono text-xs break-words'>
+            {referencePrompt}
+          </div>
+        </div>
+        <div className='flex flex-wrap gap-2'>
+          <Button onClick={copyName} size='sm' type='button' variant='outline'>
+            <CopyIcon className='size-3.5' />
+            {t('Copy skill name')}
+          </Button>
+          <Button
+            onClick={copyReference}
+            size='sm'
+            type='button'
+            variant='outline'
+          >
+            <CopyIcon className='size-3.5' />
+            {t('Copy skill reference')}
+          </Button>
+        </div>
       </div>
+    </details>
+  )
+}
+
+function SkillDetailItem(props: { label: string; value: string }) {
+  return (
+    <div className='min-w-0 rounded-md border px-2 py-1.5'>
+      <div className='text-muted-foreground text-[11px]'>{props.label}</div>
+      <div className='truncate text-xs'>{props.value}</div>
     </div>
   )
 }
@@ -319,6 +544,8 @@ interface ToolPanelProps {
   toolsets: HermesToolset[]
   search: string
   setSearch: (value: string) => void
+  statusFilter: ToolsetStatusFilter
+  setStatusFilter: (value: ToolsetStatusFilter) => void
   isLoading: boolean
   error: Error | null
 }
@@ -328,7 +555,7 @@ function ToolPanel(props: ToolPanelProps) {
 
   return (
     <div className='flex h-full min-h-0 flex-col'>
-      <div className='border-b p-4'>
+      <div className='space-y-3 border-b p-4'>
         <div className='relative'>
           <SearchIcon className='text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2' />
           <Input
@@ -338,6 +565,27 @@ function ToolPanel(props: ToolPanelProps) {
             value={props.search}
           />
         </div>
+        <div className='flex flex-wrap gap-1.5'>
+          {getToolsetFilterOptions(t).map((option) => (
+            <Button
+              aria-pressed={props.statusFilter === option.value}
+              key={option.value}
+              onClick={() => props.setStatusFilter(option.value)}
+              size='xs'
+              type='button'
+              variant={
+                props.statusFilter === option.value ? 'secondary' : 'outline'
+              }
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
+        <p className='text-muted-foreground text-xs'>
+          {t(
+            'Toolsets are the capabilities currently visible from Hermes API Server, not a guarantee that every model call will use them.'
+          )}
+        </p>
       </div>
 
       <ScrollArea className='min-h-0 flex-1'>
@@ -353,7 +601,7 @@ function ToolPanel(props: ToolPanelProps) {
           {props.isLoading && <LoadingRows />}
           {!props.isLoading && !props.error && props.toolsets.length === 0 && (
             <CompactEmpty
-              description={t('No toolsets match the current search.')}
+              description={t('No toolsets match the current filters.')}
               title={t('No toolsets')}
             />
           )}
@@ -482,12 +730,15 @@ function filterSkills(skills: HermesSkill[], query: string): HermesSkill[] {
 
 function filterToolsets(
   toolsets: HermesToolset[],
-  query: string
+  query: string,
+  statusFilter: ToolsetStatusFilter
 ): HermesToolset[] {
   const normalizedQuery = query.trim().toLowerCase()
-  if (!normalizedQuery) return toolsets
 
   return toolsets.filter((toolset) => {
+    if (!matchesToolsetStatusFilter(toolset, statusFilter)) return false
+    if (!normalizedQuery) return true
+
     const haystack = [
       toolset.name,
       toolset.label,
@@ -500,6 +751,34 @@ function filterToolsets(
   })
 }
 
+function matchesToolsetStatusFilter(
+  toolset: HermesToolset,
+  statusFilter: ToolsetStatusFilter
+): boolean {
+  switch (statusFilter) {
+    case 'enabled':
+      return toolset.enabled
+    case 'disabled':
+      return !toolset.enabled
+    case 'configured':
+      return toolset.configured
+    case 'unconfigured':
+      return !toolset.configured
+    default:
+      return true
+  }
+}
+
+function getToolsetFilterOptions(t: (key: string) => string) {
+  return [
+    { value: 'all' as const, label: t('All') },
+    { value: 'enabled' as const, label: t('Enabled') },
+    { value: 'disabled' as const, label: t('Disabled') },
+    { value: 'configured' as const, label: t('Configured') },
+    { value: 'unconfigured' as const, label: t('Needs configuration') },
+  ]
+}
+
 function getSkillSourceLabel(
   skill: HermesSkill,
   t: (key: string) => string
@@ -507,6 +786,16 @@ function getSkillSourceLabel(
   if (skill.isUserCreated) return t('Mine')
   if (skill.source === 'system') return t('Built-in')
   if (skill.source === 'external') return t('External')
+  return t('Unknown')
+}
+
+function getOwnerScopeLabel(
+  ownerScope: HermesSkill['ownerScope'],
+  t: (key: string) => string
+): string {
+  if (ownerScope === 'user') return t('User')
+  if (ownerScope === 'system') return t('System')
+  if (ownerScope === 'external') return t('External')
   return t('Unknown')
 }
 

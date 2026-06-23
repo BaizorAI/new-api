@@ -73,11 +73,14 @@ func SetRelayRouter(router *gin.Engine) {
 	{
 		hermesPlaygroundRouter.GET("/skills", controller.HermesPlaygroundSkills)
 		hermesPlaygroundRouter.POST("/skills", controller.HermesPlaygroundSkills)
+		hermesPlaygroundRouter.PUT("/skills", controller.HermesPlaygroundSkills)
+		hermesPlaygroundRouter.DELETE("/skills", controller.HermesPlaygroundSkills)
+		hermesPlaygroundRouter.POST("/skills/promote", controller.HermesPromoteSkill)
 		hermesPlaygroundRouter.GET("/toolsets", controller.HermesPlaygroundToolsets)
-		hermesPlaygroundRouter.GET("/platforms/weixin/status", controller.HermesPlaygroundWeixinStatus)
-		hermesPlaygroundRouter.POST("/platforms/weixin/qr", controller.HermesPlaygroundWeixinQR)
-		hermesPlaygroundRouter.GET("/platforms/weixin/qr/:request_id", controller.HermesPlaygroundWeixinQRStatus)
-		hermesPlaygroundRouter.POST("/platforms/weixin/disconnect", controller.HermesPlaygroundWeixinDisconnect)
+		hermesPlaygroundRouter.GET("/platforms/weixin/status", middleware.HermesWeixinStatusRateLimit(), controller.HermesPlaygroundWeixinStatus)
+		hermesPlaygroundRouter.POST("/platforms/weixin/qr", middleware.HermesWeixinActionRateLimit(), controller.HermesPlaygroundWeixinQR)
+		hermesPlaygroundRouter.GET("/platforms/weixin/qr/:request_id", middleware.HermesWeixinStatusRateLimit(), controller.HermesPlaygroundWeixinQRStatus)
+		hermesPlaygroundRouter.POST("/platforms/weixin/disconnect", middleware.HermesWeixinActionRateLimit(), controller.HermesPlaygroundWeixinDisconnect)
 	}
 	relayV1Router := router.Group("/v1")
 	relayV1Router.Use(middleware.RouteTag("relay"))

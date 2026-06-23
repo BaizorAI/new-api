@@ -58,6 +58,7 @@ import {
 
 interface HermesMessagePlatformsProps {
   open: boolean
+  userScope: string
   onOpenChange: (open: boolean) => void
 }
 
@@ -76,7 +77,7 @@ export function HermesMessagePlatforms(props: HermesMessagePlatformsProps) {
 
         <ScrollArea className='min-h-0 flex-1'>
           <div className='space-y-3 p-4'>
-            <WeixinPlatformCard open={props.open} />
+            <WeixinPlatformCard open={props.open} userScope={props.userScope} />
             <CompactEmpty
               description={t(
                 'More message platforms will appear here after they are enabled.'
@@ -90,12 +91,12 @@ export function HermesMessagePlatforms(props: HermesMessagePlatformsProps) {
   )
 }
 
-function WeixinPlatformCard(props: { open: boolean }) {
+function WeixinPlatformCard(props: { open: boolean; userScope: string }) {
   const { t } = useTranslation()
   const [qrState, setQrState] = useState<HermesWeixinStatus | null>(null)
 
   const statusQuery = useQuery({
-    queryKey: ['hermes-message-platforms', 'weixin', 'status'],
+    queryKey: ['hermes-message-platforms', props.userScope, 'weixin', 'status'],
     queryFn: getHermesWeixinStatus,
     enabled: props.open,
   })
@@ -105,11 +106,21 @@ function WeixinPlatformCard(props: { open: boolean }) {
     !!qrState?.requestId &&
     (qrState.status === 'qr_ready' || qrState.status === 'scanned')
   const qrStatusQuery = useQuery({
-    queryKey: ['hermes-message-platforms', 'weixin', 'qr', qrState?.requestId],
+    queryKey: [
+      'hermes-message-platforms',
+      props.userScope,
+      'weixin',
+      'qr',
+      qrState?.requestId,
+    ],
     queryFn: () => getHermesWeixinQRStatus(qrState?.requestId ?? ''),
     enabled: shouldPoll,
     refetchInterval: shouldPoll ? 3000 : false,
   })
+
+  useEffect(() => {
+    setQrState(null)
+  }, [props.userScope])
 
   const createQRMutation = useMutation({
     mutationFn: createHermesWeixinQR,
@@ -180,6 +191,13 @@ function WeixinPlatformCard(props: { open: boolean }) {
             {current?.accountLabel && (
               <p className='text-muted-foreground text-xs'>
                 {t('Connected account')}: {current.accountLabel}
+              </p>
+            )}
+            {current?.listenerStatus && (
+              <p className='text-muted-foreground text-xs'>
+                {t('WeChat listener')}:{' '}
+                {getWeixinListenerLabel(current.listenerStatus, t)}
+                {current.listenerError ? ` (${current.listenerError})` : ''}
               </p>
             )}
           </div>
@@ -303,6 +321,8 @@ function getWeixinStatusLabel(
   switch (status) {
     case 'connected':
       return t('Connected')
+    case 'account_saved':
+      return t('Account saved')
     case 'qr_ready':
       return t('Waiting for scan')
     case 'scanned':
@@ -328,6 +348,10 @@ function getWeixinDetailText(
   switch (status) {
     case 'connected':
       return t('Incoming WeChat messages can now be handled by Hermes.')
+    case 'account_saved':
+      return t(
+        'WeChat account is saved, but the message listener is not running.'
+      )
     case 'qr_ready':
       return t('Scan the QR code with WeChat, then confirm on your phone.')
     case 'scanned':
@@ -350,6 +374,21 @@ function getWeixinBadgeVariant(status: HermesWeixinStatusValue | undefined) {
   if (status === 'connected') return 'secondary'
   if (status === 'failed' || status === 'expired') return 'destructive'
   return 'outline'
+}
+
+function getWeixinListenerLabel(
+  status: HermesWeixinStatus['listenerStatus'],
+  t: (key: string) => string
+): string {
+  switch (status) {
+    case 'running':
+      return t('Running')
+    case 'failed':
+      return t('Failed')
+    case 'stopped':
+    default:
+      return t('Stopped')
+  }
 }
 
 function isImageDataUrl(value: string): boolean {

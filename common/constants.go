@@ -234,6 +234,14 @@ var (
 	SearchRateLimitEnable         = true
 	SearchRateLimitNum            = 10
 	SearchRateLimitDuration int64 = 60
+
+	// Per-user Hermes Weixin QR management rate limits.
+	HermesWeixinActionRateLimitEnable         = true
+	HermesWeixinActionRateLimitNum            = 6
+	HermesWeixinActionRateLimitDuration int64 = 60
+	HermesWeixinStatusRateLimitEnable         = true
+	HermesWeixinStatusRateLimitNum            = 40
+	HermesWeixinStatusRateLimitDuration int64 = 60
 )
 
 var RateLimitKeyExpirationDuration = 20 * time.Minute

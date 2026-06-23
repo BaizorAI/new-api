@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/BaizorAI/new-api/common"
@@ -31,6 +32,19 @@ type hermesProxyResult struct {
 	StatusCode int
 	Body       []byte
 }
+
+type hermesWeixinStatusAuditResponse struct {
+	Status       string      `json:"status"`
+	AccountLabel string      `json:"account_label"`
+	ConnectedAt  interface{} `json:"connected_at"`
+}
+
+var (
+	hermesWeixinConnectedAuditMu   sync.Mutex
+	hermesWeixinConnectedAuditKeys = map[string]int64{}
+)
+
+const hermesWeixinConnectedAuditTTLSeconds int64 = 24 * 60 * 60
 
 func Playground(c *gin.Context) {
 	var newAPIError *types.NewAPIError
@@ -71,6 +85,10 @@ func Playground(c *gin.Context) {
 		Group:  relayInfo.UsingGroup,
 	}
 	_ = middleware.SetupContextForToken(c, tempToken)
+	if err := applyHermesRequestedBillingContext(c, userId); err != nil {
+		newAPIError = types.NewError(err, types.ErrorCodeAccessDenied, types.ErrOptionWithSkipRetry())
+		return
+	}
 	applyHermesPlaygroundHeaderOverride(c, userId)
 
 	Relay(c, types.RelayFormatOpenAI)
@@ -104,9 +122,87 @@ func HermesPlaygroundSkills(c *gin.Context) {
 			return
 		}
 		proxyHermesPlayground(c, http.MethodPost, "/v1/skills", body)
+	case http.MethodPut:
+		var request hermesSkillCreateRequest
+		if err := common.DecodeJson(c.Request.Body, &request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
+			return
+		}
+
+		request.Name = strings.TrimSpace(request.Name)
+		if request.Name == "" || strings.TrimSpace(request.Content) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "name and content are required"})
+			return
+		}
+
+		body, err := common.Marshal(request)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to encode request"})
+			return
+		}
+		proxyHermesPlayground(c, http.MethodPut, "/v1/skills", body)
+	case http.MethodDelete:
+		var request struct {
+			Name string `json:"name"`
+		}
+		if err := common.DecodeJson(c.Request.Body, &request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
+			return
+		}
+
+		request.Name = strings.TrimSpace(request.Name)
+		if request.Name == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "name is required"})
+			return
+		}
+
+		body, err := common.Marshal(request)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to encode request"})
+			return
+		}
+		proxyHermesPlayground(c, http.MethodDelete, "/v1/skills", body)
 	default:
 		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
 	}
+}
+
+func HermesPromoteSkill(c *gin.Context) {
+	if c == nil || c.Request == nil {
+		return
+	}
+
+	if c.Request.Method != http.MethodPost {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
+		return
+	}
+
+	role := c.GetInt("role")
+	if role < common.RoleAdminUser {
+		c.JSON(http.StatusForbidden, gin.H{"message": "only admin or root users can promote skills to built-in"})
+		return
+	}
+
+	var request struct {
+		Name string `json:"name"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
+		return
+	}
+
+	request.Name = strings.TrimSpace(request.Name)
+	if request.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "name is required"})
+		return
+	}
+
+	body, err := common.Marshal(request)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to encode request"})
+		return
+	}
+	proxyHermesPlayground(c, http.MethodPost, "/v1/skills/promote", body)
 }
 
 func HermesPlaygroundToolsets(c *gin.Context) {
@@ -165,7 +261,8 @@ func HermesPlaygroundWeixinQRStatus(c *gin.Context) {
 		return
 	}
 
-	proxyHermesPlayground(c, http.MethodGet, "/v1/platforms/weixin/qr/"+url.PathEscape(requestID), nil)
+	result := proxyHermesPlayground(c, http.MethodGet, "/v1/platforms/weixin/qr/"+url.PathEscape(requestID), nil)
+	recordHermesWeixinConnectedAudit(c, requestID, result)
 }
 
 func HermesPlaygroundWeixinDisconnect(c *gin.Context) {
@@ -196,16 +293,74 @@ func applyHermesPlaygroundHeaderOverride(c *gin.Context, userId int) {
 		merged[key] = value
 	}
 
-	merged["X-Hermes-User-Id"] = strconv.Itoa(userId)
-	merged["X-Hermes-Source"] = "baizor-web-playground"
-
-	sessionId := sanitizeHermesSessionID(c.GetHeader("X-Baizor-Hermes-Session"))
-	if sessionId == "" {
-		sessionId = "user-" + strconv.Itoa(userId)
+	for key, value := range buildHermesPlaygroundAttributionHeaders(c, userId) {
+		merged[key] = value
 	}
-	merged["X-Hermes-Session-Id"] = sessionId
 
 	common.SetContextKey(c, constant.ContextKeyChannelHeaderOverride, merged)
+}
+
+func buildHermesPlaygroundAttributionHeaders(c *gin.Context, userId int) map[string]string {
+	sessionID := scopedHermesSessionID(userId, c.GetHeader("X-Baizor-Hermes-Session"))
+	teamID := common.GetContextKeyInt(c, constant.ContextKeyTeamId)
+	teamName := common.GetContextKeyString(c, constant.ContextKeyTeamName)
+	billingScope := common.HermesBillingScopeUser
+	if teamID > 0 {
+		billingScope = common.HermesBillingScopeTeam
+	}
+
+	headers := map[string]string{
+		"X-Hermes-User-Id":       strconv.Itoa(userId),
+		"X-Hermes-Source":        "baizor-web-playground",
+		"X-Hermes-Session-Id":    sessionID,
+		"X-Hermes-Billing-Scope": billingScope,
+	}
+	if teamID > 0 {
+		headers["X-Hermes-Team-Id"] = strconv.Itoa(teamID)
+		if teamName != "" {
+			headers["X-Hermes-Team-Name"] = teamName
+		}
+	}
+
+	secret := common.GetEnvOrDefaultString("HERMES_API_SERVER_KEY", "")
+	delegationHeaders := common.BuildHermesDelegationHeaders(secret, common.HermesDelegationContext{
+		UserID:    userId,
+		TeamID:    teamID,
+		TeamName:  teamName,
+		Scope:     billingScope,
+		SessionID: sessionID,
+		ExpiresAt: time.Now().Add(6 * time.Hour).Unix(),
+	})
+	for key, value := range delegationHeaders {
+		headers[key] = value
+	}
+	return headers
+}
+
+func applyHermesRequestedBillingContext(c *gin.Context, userId int) error {
+	if c == nil || c.Request == nil {
+		return nil
+	}
+
+	rawTeamID := strings.TrimSpace(c.GetHeader("X-Baizor-Team-Id"))
+	if rawTeamID == "" || rawTeamID == "0" {
+		return nil
+	}
+
+	teamID, err := strconv.Atoi(rawTeamID)
+	if err != nil || teamID <= 0 {
+		return fmt.Errorf("invalid team billing account")
+	}
+
+	team, _, err := model.GetTeamForToken(teamID, userId)
+	if err != nil {
+		return fmt.Errorf("team billing account is unavailable")
+	}
+
+	common.SetContextKey(c, constant.ContextKeyTeamId, team.Id)
+	common.SetContextKey(c, constant.ContextKeyTeamName, team.Name)
+	common.SetContextKey(c, constant.ContextKeyTeamQuota, team.Quota)
+	return nil
 }
 
 func proxyHermesPlayground(c *gin.Context, method string, path string, body []byte) hermesProxyResult {
@@ -240,13 +395,13 @@ func proxyHermesPlayground(c *gin.Context, method string, path string, body []by
 		req.Header.Set("Content-Type", "application/json")
 	}
 	userId := c.GetInt("id")
-	req.Header.Set("X-Hermes-User-Id", strconv.Itoa(userId))
-	req.Header.Set("X-Hermes-Source", "baizor-web-playground")
-	sessionId := sanitizeHermesSessionID(c.GetHeader("X-Baizor-Hermes-Session"))
-	if sessionId == "" {
-		sessionId = "user-" + strconv.Itoa(userId)
+	if err := applyHermesRequestedBillingContext(c, userId); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+		return hermesProxyResult{StatusCode: http.StatusForbidden}
 	}
-	req.Header.Set("X-Hermes-Session-Id", sessionId)
+	for key, value := range buildHermesPlaygroundAttributionHeaders(c, userId) {
+		req.Header.Set(key, value)
+	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
@@ -295,6 +450,14 @@ func sanitizeHermesSessionID(value string) string {
 	return value
 }
 
+func scopedHermesSessionID(userID int, sessionID string) string {
+	cleanSessionID := sanitizeHermesSessionID(sessionID)
+	if cleanSessionID == "" {
+		return "user-" + strconv.Itoa(userID)
+	}
+	return "user-" + strconv.Itoa(userID) + "-" + cleanSessionID
+}
+
 func sanitizeHermesPathSegment(value string) string {
 	value = strings.TrimSpace(value)
 	if value == "" || len(value) > 128 {
@@ -330,4 +493,61 @@ func recordHermesWeixinAudit(c *gin.Context, successAction string, operation str
 		return
 	}
 	recordUserSecurityAudit(c, c.GetInt("id"), "hermes.weixin_error", params)
+}
+
+func recordHermesWeixinConnectedAudit(c *gin.Context, requestID string, result hermesProxyResult) {
+	if result.StatusCode < 200 || result.StatusCode >= 300 || len(result.Body) == 0 {
+		return
+	}
+
+	var response hermesWeixinStatusAuditResponse
+	if err := common.Unmarshal(result.Body, &response); err != nil {
+		return
+	}
+	if response.Status != "connected" {
+		return
+	}
+
+	userID := c.GetInt("id")
+	auditKey := fmt.Sprintf("user:%d:request:%s", userID, requestID)
+	if requestID == "" {
+		auditKey = fmt.Sprintf("user:%d:account:%s:connected:%v", userID, response.AccountLabel, response.ConnectedAt)
+	}
+	if !markHermesWeixinConnectedAuditOnce(auditKey) {
+		return
+	}
+
+	params := map[string]interface{}{
+		"operation":   "connect",
+		"status_code": result.StatusCode,
+	}
+	if requestID != "" {
+		params["request_id"] = requestID
+	}
+	if response.AccountLabel != "" {
+		params["account_label"] = response.AccountLabel
+	}
+	if response.ConnectedAt != nil {
+		params["connected_at"] = response.ConnectedAt
+	}
+	recordUserSecurityAudit(c, userID, "hermes.weixin_connected", params)
+}
+
+func markHermesWeixinConnectedAuditOnce(key string) bool {
+	now := common.GetTimestamp()
+
+	hermesWeixinConnectedAuditMu.Lock()
+	defer hermesWeixinConnectedAuditMu.Unlock()
+
+	for auditKey, timestamp := range hermesWeixinConnectedAuditKeys {
+		if now-timestamp > hermesWeixinConnectedAuditTTLSeconds {
+			delete(hermesWeixinConnectedAuditKeys, auditKey)
+		}
+	}
+
+	if _, ok := hermesWeixinConnectedAuditKeys[key]; ok {
+		return false
+	}
+	hermesWeixinConnectedAuditKeys[key] = now
+	return true
 }

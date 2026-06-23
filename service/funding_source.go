@@ -27,7 +27,7 @@ type TeamFunding struct {
 	consumed int
 }
 
-func (t *TeamFunding) Source() string { return BillingSourceWallet }
+func (t *TeamFunding) Source() string { return BillingSourceTeamWallet }
 
 func (t *TeamFunding) PreConsume(amount int) error {
 	if amount <= 0 {

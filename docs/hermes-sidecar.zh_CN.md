@@ -44,20 +44,20 @@ http://hermes:8642/v1
 
 ```ini
 image_name_hermes=ccr.ccs.tencentyun.com/lucky/baizor-hermes
-hermes_versions=1.0.4
+hermes_versions=1.0.6
 ```
 
 当前推荐镜像：
 
 ```text
-ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.4
+ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.6
 ```
 
 如需从源码构建并推送：
 
 ```bash
-docker build --pull --no-cache -t ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.4 hermes-agent
-docker push ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.4
+docker build --pull --no-cache -f hermes-agent/gateway/platforms/Dockerfile.baizor-overlay -t ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.6 hermes-agent
+docker push ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.6
 ```
 
 ## 必要环境变量
@@ -65,7 +65,7 @@ docker push ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.4
 远端 `/lucky/NewApi/.env` 至少需要：
 
 ```dotenv
-HERMES_IMAGE=ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.4
+HERMES_IMAGE=ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.6
 HERMES_API_SERVER_URL=http://baizor-hermes:8642
 HERMES_API_SERVER_KEY=replace-with-a-long-random-secret
 HERMES_API_SERVER_PORT=8642
@@ -77,6 +77,7 @@ HERMES_WEIXIN_QR_ENABLED=true
 - `HERMES_API_SERVER_KEY` 是 new-api 与 Hermes sidecar 之间的服务端密钥，只能保存在服务端环境变量或渠道密钥中。
 - `HERMES_WEIXIN_QR_ENABLED=false` 时，Hermes 会返回微信扫码能力已禁用，前端不暴露可用连接流程。
 - 镜像必须包含 Hermes weixin 适配器依赖，否则接口会返回 `disabled`。
+- 可选限流变量：`HERMES_WEIXIN_ACTION_RATE_LIMIT_ENABLE`、`HERMES_WEIXIN_ACTION_RATE_LIMIT`、`HERMES_WEIXIN_ACTION_RATE_LIMIT_DURATION` 控制创建二维码和断开连接；`HERMES_WEIXIN_STATUS_RATE_LIMIT_ENABLE`、`HERMES_WEIXIN_STATUS_RATE_LIMIT`、`HERMES_WEIXIN_STATUS_RATE_LIMIT_DURATION` 控制状态查询和二维码轮询。
 
 ## 平台渠道配置
 
@@ -127,7 +128,7 @@ POST /v1/platforms/weixin/disconnect
 
 - 前端只拿到二维码、连接状态、脱敏账号标识和提示信息。
 - Hermes API Server key、微信 bot token、iLink user id、base URL 等敏感信息不会返回给浏览器。
-- 二维码创建、断开连接、异常会写入用户安全审计日志；轮询状态不写审计，避免日志刷屏。
+- 二维码创建、扫码确认成功、断开连接、异常会写入用户安全审计日志；二维码状态轮询只在首次确认连接时记一次审计，避免日志刷屏。
 - 二维码请求按用户隔离，用户 A 不能查询或确认用户 B 的 `request_id`。
 
 ## 通过 deploy.sh 部署
@@ -141,7 +142,10 @@ HERMES_SIDECAR_ENABLED=true ./deploy.sh
 如需部署时同步构建 Hermes 镜像：
 
 ```bash
-HERMES_SIDECAR_ENABLED=true HERMES_BUILD_CONTEXT=hermes-agent ./deploy.sh
+HERMES_SIDECAR_ENABLED=true \
+HERMES_BUILD_CONTEXT=hermes-agent \
+HERMES_DOCKERFILE=hermes-agent/gateway/platforms/Dockerfile.baizor-overlay \
+./deploy.sh
 ```
 
 脚本会：
@@ -161,6 +165,6 @@ HERMES_SIDECAR_ENABLED=true HERMES_COMPOSE_OVERLAY_ENABLED=true ./deploy.sh
 - `docker compose --env-file .env -f docker-compose.yml config --quiet` 通过。
 - `docker compose --env-file .env -f docker-compose.yml ps new-api baizor-hermes` 显示服务运行。
 - new-api 容器内可访问 `http://baizor-hermes:8642/v1/models`。
-- 登录用户访问 HermesAgent 能看到“能力中心 -> 消息平台 -> 微信”。
+- 登录用户访问 HermesAgent 后，可在左侧 HermesAgent 根节点下打开“消息平台”，并看到“微信”连接卡片。
 - 点击连接微信后能显示二维码，扫码状态能从等待扫码、已扫码、已连接或过期之间正确切换。
 - 审计日志能看到微信二维码创建、断开连接或错误记录。

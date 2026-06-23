@@ -6,10 +6,11 @@ INI_FILE="version.ini"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
 REMOTE_HOST="${REMOTE_HOST:-baizor}"
 REMOTE_DIR="${REMOTE_DIR:-/lucky/NewApi}"
-HERMES_SIDECAR_ENABLED="${HERMES_SIDECAR_ENABLED:-false}"
+HERMES_SIDECAR_ENABLED="${HERMES_SIDECAR_ENABLED:-true}"
 HERMES_COMPOSE_OVERLAY_ENABLED="${HERMES_COMPOSE_OVERLAY_ENABLED:-false}"
 HERMES_SERVICE_NAME="${HERMES_SERVICE_NAME:-}"
-HERMES_BUILD_CONTEXT="${HERMES_BUILD_CONTEXT:-}"
+HERMES_BUILD_CONTEXT="${HERMES_BUILD_CONTEXT:-hermes-agent}"
+HERMES_DOCKERFILE="${HERMES_DOCKERFILE:-hermes-agent/gateway/platforms/Dockerfile.baizor-overlay}"
 HERMES_API_SERVER_PORT="${HERMES_API_SERVER_PORT:-8642}"
 HERMES_API_SERVER_PUBLISH_PORT="${HERMES_API_SERVER_PUBLISH_PORT:-$HERMES_API_SERVER_PORT}"
 HERMES_API_SERVER_BIND="${HERMES_API_SERVER_BIND:-127.0.0.1}"
@@ -80,7 +81,11 @@ if [ "$HERMES_SIDECAR_ENABLED" = "true" ]; then
   HERMES_IMAGE="${IMAGE_NAME_HERMES}:${CURRENT_HERMES_VERSION}"
   if [ -n "$HERMES_BUILD_CONTEXT" ]; then
     echo "Building Hermes image: ${HERMES_IMAGE}"
-    docker build --pull --no-cache -t "$HERMES_IMAGE" "$HERMES_BUILD_CONTEXT" || { echo "Hermes image build failed"; exit 1; }
+    HERMES_DOCKERFILE_ARGS=()
+    if [ -n "$HERMES_DOCKERFILE" ]; then
+      HERMES_DOCKERFILE_ARGS=(-f "$HERMES_DOCKERFILE")
+    fi
+    docker build --pull --no-cache "${HERMES_DOCKERFILE_ARGS[@]}" -t "$HERMES_IMAGE" "$HERMES_BUILD_CONTEXT" || { echo "Hermes image build failed"; exit 1; }
     docker push "$HERMES_IMAGE"
   else
     echo "Hermes sidecar uses configured image: ${HERMES_IMAGE}"
@@ -103,46 +108,60 @@ set -e
 cd "${REMOTE_DIR}"
 
 COMPOSE_ARGS="--env-file .env -f docker-compose.yml"
+
+set_env_var() {
+  key="\$1"
+  value="\$2"
+  touch .env
+  if grep -q "^\${key}=" .env; then
+    sed -i "s|^\${key}=.*|\${key}=\${value}|" .env
+  else
+    printf '%s=%s\n' "\$key" "\$value" >> .env
+  fi
+}
+
+ensure_new_api_env_line() {
+  line="\$1"
+  key="\$2"
+  if sed -n '/^  new-api:/,/^  [^ ].*:/p' docker-compose.yml | grep -Eq "^[[:space:]]*-[[:space:]]*\${key}="; then
+    return
+  fi
+
+  tmp_file="\$(mktemp)"
+  awk -v line="      - \${line}" '
+    BEGIN { in_new_api = 0; inserted = 0 }
+    /^  new-api:/ { in_new_api = 1 }
+    in_new_api && /^  [^ ].*:/ && \$0 !~ /^  new-api:/ { in_new_api = 0 }
+    { print }
+    in_new_api && !inserted && /^[[:space:]]*-[[:space:]]*no_proxy=/ {
+      print line
+      inserted = 1
+    }
+    in_new_api && !inserted && /^[[:space:]]*environment:[[:space:]]*$/ {
+      print line
+      inserted = 1
+    }
+  ' docker-compose.yml > "\$tmp_file"
+  mv "\$tmp_file" docker-compose.yml
+}
+
+ensure_env_secret() {
+  key="\$1"
+  current="\$(grep "^\${key}=" .env 2>/dev/null | head -n 1 | cut -d= -f2-)"
+  if [ -n "\$current" ] && [ "\$current" != "random_string" ]; then
+    return
+  fi
+  value="\$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
+  set_env_var "\$key" "\$value"
+}
+
+ensure_new_api_env_line 'SESSION_SECRET=\${SESSION_SECRET:-}' 'SESSION_SECRET'
+ensure_env_secret SESSION_SECRET
+
 if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
   if [ "${HERMES_COMPOSE_OVERLAY_ENABLED}" = "true" ]; then
     COMPOSE_ARGS="\$COMPOSE_ARGS -f docker-compose.hermes.yml"
   fi
-
-  set_env_var() {
-    key="\$1"
-    value="\$2"
-    touch .env
-    if grep -q "^\${key}=" .env; then
-      sed -i "s|^\${key}=.*|\${key}=\${value}|" .env
-    else
-      printf '%s=%s\n' "\$key" "\$value" >> .env
-    fi
-  }
-
-  ensure_new_api_env_line() {
-    line="\$1"
-    key="\$2"
-    if sed -n '/^  new-api:/,/^  [^ ].*:/p' docker-compose.yml | grep -q "\$key"; then
-      return
-    fi
-
-    tmp_file="\$(mktemp)"
-    awk -v line="      - \${line}" '
-      BEGIN { in_new_api = 0; inserted = 0 }
-      /^  new-api:/ { in_new_api = 1 }
-      in_new_api && /^  [^ ].*:/ && \$0 !~ /^  new-api:/ { in_new_api = 0 }
-      { print }
-      in_new_api && !inserted && /^[[:space:]]*-[[:space:]]*no_proxy=/ {
-        print line
-        inserted = 1
-      }
-      in_new_api && !inserted && /^[[:space:]]*environment:[[:space:]]*$/ {
-        print line
-        inserted = 1
-      }
-    ' docker-compose.yml > "\$tmp_file"
-    mv "\$tmp_file" docker-compose.yml
-  }
 
   ensure_new_api_env_line 'HERMES_API_SERVER_URL=\${HERMES_API_SERVER_URL:-http://baizor-hermes:8642}' 'HERMES_API_SERVER_URL'
   ensure_new_api_env_line 'HERMES_API_SERVER_KEY=\${HERMES_API_SERVER_KEY:-}' 'HERMES_API_SERVER_KEY'

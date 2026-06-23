@@ -8,9 +8,16 @@ docs
 .eslintcache
 .gocache
 baizor-ocr-service/
+hermes-agent/
 *.log
 /web/node_modules
 /web/default/node_modules
 /web/default/dist
 /web/node_modules
 !THIRD-PARTY-LICENSES.md
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.venv
+**/node_modules
+**/.git

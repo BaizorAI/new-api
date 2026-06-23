@@ -412,6 +412,10 @@ func TokenAuth() func(c *gin.Context) {
 		if err != nil {
 			return
 		}
+		if err := applyHermesDelegatedBillingContext(c, token); err != nil {
+			abortWithOpenAiMessage(c, http.StatusForbidden, err.Error())
+			return
+		}
 		c.Next()
 	}
 }
@@ -455,5 +459,59 @@ func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) e
 			return fmt.Errorf("普通用户不支持指定渠道")
 		}
 	}
+	return nil
+}
+
+func applyHermesDelegatedBillingContext(c *gin.Context, token *model.Token) error {
+	if c == nil || c.Request == nil || token == nil {
+		return nil
+	}
+	secret := common.GetEnvOrDefaultString("HERMES_API_SERVER_KEY", "")
+	delegation, ok, err := common.VerifyHermesDelegationHeaders(c.Request.Header, secret, common.GetTimestamp())
+	if !ok {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	userCache, err := model.GetUserCache(delegation.UserID)
+	if err != nil {
+		common.SysLog(fmt.Sprintf("Hermes delegation GetUserCache error for user %d: %v", delegation.UserID, err))
+		return fmt.Errorf("delegated user is invalid")
+	}
+	if userCache.Status != common.UserStatusEnabled {
+		return fmt.Errorf("delegated user is disabled")
+	}
+
+	userGroup := userCache.Group
+	if token.Group != "" {
+		if _, ok := service.GetUserUsableGroups(userGroup)[token.Group]; !ok {
+			return fmt.Errorf("delegated user has no permission to access %s group", token.Group)
+		}
+		if !ratio_setting.ContainsGroupRatio(token.Group) && token.Group != "auto" {
+			return fmt.Errorf("group %s is deprecated", token.Group)
+		}
+		userGroup = token.Group
+	}
+
+	c.Set("id", delegation.UserID)
+	userCache.WriteContext(c)
+	common.SetContextKey(c, constant.ContextKeyUsingGroup, userGroup)
+
+	if delegation.Scope == common.HermesBillingScopeTeam {
+		team, _, err := model.GetTeamForToken(delegation.TeamID, delegation.UserID)
+		if err != nil {
+			return fmt.Errorf("delegated team is invalid")
+		}
+		common.SetContextKey(c, constant.ContextKeyTeamId, team.Id)
+		common.SetContextKey(c, constant.ContextKeyTeamName, team.Name)
+		common.SetContextKey(c, constant.ContextKeyTeamQuota, team.Quota)
+		return nil
+	}
+
+	common.SetContextKey(c, constant.ContextKeyTeamId, 0)
+	common.SetContextKey(c, constant.ContextKeyTeamName, "")
+	common.SetContextKey(c, constant.ContextKeyTeamQuota, 0)
 	return nil
 }

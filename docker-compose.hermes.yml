@@ -16,7 +16,7 @@ version: '3.4'
 
 services:
   hermes:
-    image: ${HERMES_IMAGE:-ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.4}
+    image: ${HERMES_IMAGE:-ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.6}
     container_name: hermes
     restart: unless-stopped
     command: ["gateway", "run"]

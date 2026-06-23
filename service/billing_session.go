@@ -313,7 +313,7 @@ func (s *BillingSession) shouldTrust(c *gin.Context) bool {
 	}
 
 	switch s.funding.Source() {
-	case BillingSourceWallet:
+	case BillingSourceWallet, BillingSourceTeamWallet:
 		if s.relayInfo.TeamId > 0 {
 			return s.relayInfo.TeamQuota > trustQuota
 		}
