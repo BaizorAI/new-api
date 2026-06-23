@@ -104,7 +104,6 @@ export function PlaygroundInput({
   onSlashAction,
 }: PlaygroundInputProps) {
   const { t } = useTranslation()
-  const attachments = usePromptInputAttachments()
   const [text, setText] = useState('')
   const [searchEnabled, setSearchEnabled] = useState(false)
   const [activeCommandIndex, setActiveCommandIndex] = useState(0)
@@ -291,7 +290,7 @@ export function PlaygroundInput({
     const hasText = message.text?.trim()
     const hasFiles = (message.files?.length ?? 0) > 0
     if ((!hasText && !hasFiles) || disabled) return
-    let finalText = hasText ? message.text : ''
+    let finalText = hasText ? (message.text ?? '') : ''
     if (searchEnabled && finalText.trim()) {
       finalText = `${t('Search the web')}: ${finalText}`
     }
@@ -302,10 +301,6 @@ export function PlaygroundInput({
   const handleToggleSearch = useCallback(() => {
     setSearchEnabled((prev) => !prev)
   }, [])
-
-  const handleUploadClick = useCallback(() => {
-    attachments.openFileDialog()
-  }, [attachments])
 
   const handleSuggestionClick = (suggestion: string) => {
     onSubmit(suggestion)
@@ -374,51 +369,7 @@ export function PlaygroundInput({
 
           <PromptInputFooter className='p-2.5'>
             <PromptInputTools>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <PromptInputButton
-                      className='border font-medium'
-                      disabled={disabled}
-                      variant='outline'
-                    />
-                  }
-                >
-                  <PaperclipIcon size={16} />
-                  <span className='hidden sm:inline'>{t('Attach')}</span>
-                  <span className='sr-only sm:hidden'>{t('Attach')}</span>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align='start'>
-                  <DropdownMenuItem onClick={handleUploadClick}>
-                    <FileIcon className='mr-2' size={16} />
-                    {t('Upload file')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleUploadClick}>
-                    <ImageIcon className='mr-2' size={16} />
-                    {t('Upload photo')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() =>
-                      toast.info(t('Feature in development'), {
-                        description: 'take-screenshot',
-                      })
-                    }
-                  >
-                    <ScreenShareIcon className='mr-2' size={16} />
-                    {t('Take screenshot')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() =>
-                      toast.info(t('Feature in development'), {
-                        description: 'take-photo',
-                      })
-                    }
-                  >
-                    <CameraIcon className='mr-2' size={16} />
-                    {t('Take photo')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <AttachmentMenu disabled={disabled} />
 
               <PromptInputButton
                 className={`border font-medium ${
@@ -490,5 +441,61 @@ export function PlaygroundInput({
         ))}
       </Suggestions>
     </div>
+  )
+}
+function AttachmentMenu({ disabled }: { disabled?: boolean }) {
+  const { t } = useTranslation()
+  const attachments = usePromptInputAttachments()
+
+  const handleUploadClick = useCallback(() => {
+    attachments.openFileDialog()
+  }, [attachments])
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <PromptInputButton
+            className='border font-medium'
+            disabled={disabled}
+            variant='outline'
+          />
+        }
+      >
+        <PaperclipIcon size={16} />
+        <span className='hidden sm:inline'>{t('Attach')}</span>
+        <span className='sr-only sm:hidden'>{t('Attach')}</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align='start'>
+        <DropdownMenuItem onClick={handleUploadClick}>
+          <FileIcon className='mr-2' size={16} />
+          {t('Upload file')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleUploadClick}>
+          <ImageIcon className='mr-2' size={16} />
+          {t('Upload photo')}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() =>
+            toast.info(t('Feature in development'), {
+              description: 'take-screenshot',
+            })
+          }
+        >
+          <ScreenShareIcon className='mr-2' size={16} />
+          {t('Take screenshot')}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() =>
+            toast.info(t('Feature in development'), {
+              description: 'take-photo',
+            })
+          }
+        >
+          <CameraIcon className='mr-2' size={16} />
+          {t('Take photo')}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
