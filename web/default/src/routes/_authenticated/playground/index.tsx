@@ -145,6 +145,7 @@ function PlaygroundPage() {
     <Main className='p-0'>
       <Playground
         key={activeConversation.storageScope}
+        modelCapability='chat'
         onMessagesChange={updateActiveConversationFromMessages}
         onNewSession={createSession}
         onSaveSession={exportActiveSession}

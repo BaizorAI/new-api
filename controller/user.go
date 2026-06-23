@@ -584,10 +584,18 @@ func GetUserModels(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	capability := strings.ToLower(strings.TrimSpace(c.Query("capability")))
+	if capability == "chat" {
+		model.GetPricing()
+	}
+
 	groups := service.GetUserUsableGroups(user.Group)
 	var models []string
 	for group := range groups {
 		for _, g := range model.GetGroupEnabledModels(group) {
+			if capability == "chat" && !modelSupportsChatEndpoint(g, model.GetModelSupportEndpointTypes(g)) {
+				continue
+			}
 			if !common.StringsContains(models, g) {
 				models = append(models, g)
 			}
@@ -1352,4 +1360,29 @@ func UpdateUserSetting(c *gin.Context) {
 	}
 
 	common.ApiSuccessI18n(c, i18n.MsgSettingSaved, nil)
+}
+
+func modelSupportsChatEndpoint(modelName string, endpoints []constant.EndpointType) bool {
+	if common.IsImageGenerationModel(modelName) {
+		return false
+	}
+
+	lowerModelName := strings.ToLower(strings.TrimSpace(modelName))
+	nonChatNameParts := []string{"embedding", "embed", "rerank", "sora", "video", "ocr"}
+	for _, part := range nonChatNameParts {
+		if strings.Contains(lowerModelName, part) {
+			return false
+		}
+	}
+
+	for _, endpoint := range endpoints {
+		switch endpoint {
+		case constant.EndpointTypeOpenAI,
+			constant.EndpointTypeOpenAIResponse,
+			constant.EndpointTypeAnthropic,
+			constant.EndpointTypeGemini:
+			return true
+		}
+	}
+	return false
 }

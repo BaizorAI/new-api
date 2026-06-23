@@ -40,6 +40,7 @@ interface PlaygroundProps {
   storageScope?: string
   defaultConfig?: PlaygroundConfig
   modelFilter?: (model: ModelOption) => boolean
+  modelCapability?: 'chat'
   queryKeyPrefix?: string
   requestHeaders?: Record<string, string>
   emptyModelsMessage?: string
@@ -92,10 +93,14 @@ export function Playground(props: PlaygroundProps = {}) {
 
   // Load models
   const { data: modelsData, isLoading: isLoadingModels } = useQuery({
-    queryKey: [props.queryKeyPrefix ?? 'playground', 'models'],
+    queryKey: [
+      props.queryKeyPrefix ?? 'playground',
+      'models',
+      props.modelCapability ?? 'all',
+    ],
     queryFn: async () => {
       try {
-        return await getUserModels()
+        return await getUserModels({ capability: props.modelCapability })
       } catch (error) {
         toast.error(
           error instanceof Error
