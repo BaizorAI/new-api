@@ -8,16 +8,10 @@ import (
 	"github.com/BaizorAI/new-api/dto"
 	"github.com/BaizorAI/new-api/model"
 	"github.com/BaizorAI/new-api/relay"
-	"github.com/BaizorAI/new-api/service"
 	"github.com/BaizorAI/new-api/types"
 
 	"github.com/gin-gonic/gin"
 )
-
-// UpdateTaskBulk 薄入口，实际轮询逻辑在 service 层
-func UpdateTaskBulk() {
-	service.TaskPollingLoop()
-}
 
 func GetAllTask(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)

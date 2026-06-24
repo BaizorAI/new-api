@@ -28,10 +28,60 @@ func shouldUseSMTPLoginAuth() bool {
 }
 
 func getSMTPAuth() smtp.Auth {
-	if shouldUseSMTPLoginAuth() {
-		return LoginAuth(SMTPAccount, SMTPToken)
+	return AutoSMTPAuth(SMTPAccount, SMTPToken)
+}
+
+func shouldAuthenticateSMTP() bool {
+	return SMTPAccount != "" && SMTPToken != ""
+}
+
+func smtpTLSConfig() *tls.Config {
+	return &tls.Config{
+		ServerName:         SMTPServer,
+		InsecureSkipVerify: SMTPInsecureSkipVerify, // #nosec G402 -- admin-controlled SMTP compatibility option.
 	}
-	return smtp.PlainAuth("", SMTPAccount, SMTPToken, SMTPServer)
+}
+
+func newSMTPClient(addr string) (*smtp.Client, error) {
+	dialer := &net.Dialer{
+		Timeout: time.Duration(SMTPTimeout) * time.Second,
+	}
+	if SMTPSSLEnabled || (SMTPPort == 465 && !SMTPStartTLSEnabled) {
+		conn, err := tls.DialWithDialer(dialer, "tcp", addr, smtpTLSConfig())
+		if err != nil {
+			return nil, err
+		}
+		client, err := smtp.NewClient(conn, SMTPServer)
+		if err != nil {
+			_ = conn.Close()
+			return nil, err
+		}
+		return client, nil
+	}
+
+	conn, err := dialer.Dial("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	client, err := smtp.NewClient(conn, SMTPServer)
+	if err != nil {
+		_ = conn.Close()
+		return nil, err
+	}
+
+	if SMTPStartTLSEnabled {
+		startTLSSupported, _ := client.Extension("STARTTLS")
+		if !startTLSSupported {
+			_ = client.Close()
+			return nil, fmt.Errorf("SMTP server does not support STARTTLS")
+		}
+		if err := client.StartTLS(smtpTLSConfig()); err != nil {
+			_ = client.Close()
+			return nil, err
+		}
+	}
+
+	return client, nil
 }
 
 func SendEmail(subject string, receiver string, content string) error {
@@ -55,95 +105,38 @@ func SendEmail(subject string, receiver string, content string) error {
 		receiver, SystemName, SMTPFrom, encodedSubject, time.Now().Format(time.RFC1123Z), id, content))
 	auth := getSMTPAuth()
 	addr := fmt.Sprintf("%s:%d", SMTPServer, SMTPPort)
-	dialer := &net.Dialer{
-		Timeout: time.Duration(SMTPTimeout) * time.Second,
+	to := strings.Split(receiver, ";")
+	client, err := newSMTPClient(addr)
+	if err != nil {
+		return err
 	}
-	var err error
-	if SMTPPort == 465 || SMTPSSLEnabled {
-		tlsConfig := &tls.Config{
-			InsecureSkipVerify: true,
-			ServerName:         SMTPServer,
-		}
-		conn, err := tls.DialWithDialer(dialer, "tcp", fmt.Sprintf("%s:%d", SMTPServer, SMTPPort), tlsConfig)
-		if err != nil {
-			return err
-		}
-		client, err := smtp.NewClient(conn, SMTPServer)
-		if err != nil {
-			return err
-		}
-		defer client.Close()
+	defer client.Close()
+	if shouldAuthenticateSMTP() {
 		if err = client.Auth(auth); err != nil {
 			return err
 		}
-		if err = client.Mail(SMTPFrom); err != nil {
-			return err
-		}
-		receiverEmails := strings.Split(receiver, ";")
-		for _, receiver := range receiverEmails {
-			if err = client.Rcpt(receiver); err != nil {
-				return err
-			}
-		}
-		w, err := client.Data()
-		if err != nil {
-			return err
-		}
-		_, err = w.Write(mail)
-		if err != nil {
-			return err
-		}
-		err = w.Close()
-		if err != nil {
-			return err
-		}
-	} else {
-		conn, err := dialer.Dial("tcp", addr)
-		if err != nil {
-			return err
-		}
-		client, err := smtp.NewClient(conn, SMTPServer)
-		if err != nil {
-			return err
-		}
-		defer client.Close()
-
-		// Try STARTTLS (same behavior as smtp.SendMail but with timeout dialer)
-		tlsConfig := &tls.Config{
-			InsecureSkipVerify: true,
-			ServerName:         SMTPServer,
-		}
-		if startTLSErr := client.StartTLS(tlsConfig); startTLSErr == nil {
-			// TLS upgraded successfully, capabilities refreshed
-		}
-		// If STARTTLS is not supported or fails, proceed without TLS.
-		// PlainAuth will naturally fail on unencrypted connections, which is correct.
-
-		if err = client.Auth(auth); err != nil {
-			return err
-		}
-		if err = client.Mail(SMTPFrom); err != nil {
-			return err
-		}
-		receiverEmails := strings.Split(receiver, ";")
-		for _, receiver := range receiverEmails {
-			if err = client.Rcpt(receiver); err != nil {
-				return err
-			}
-		}
-		w, err := client.Data()
-		if err != nil {
-			return err
-		}
-		_, err = w.Write(mail)
-		if err != nil {
-			return err
-		}
-		err = w.Close()
-		if err != nil {
+	}
+	if err = client.Mail(SMTPFrom); err != nil {
+		return err
+	}
+	for _, receiver := range to {
+		if err = client.Rcpt(receiver); err != nil {
 			return err
 		}
 	}
+	w, err := client.Data()
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(mail)
+	if err != nil {
+		return err
+	}
+	err = w.Close()
+	if err != nil {
+		return err
+	}
+	err = client.Quit()
 	if err != nil {
 		SysError(fmt.Sprintf("failed to send email to %s: %v", receiver, err))
 	}
