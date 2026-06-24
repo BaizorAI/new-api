@@ -51,6 +51,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
 import { MESSAGE_ROLES } from '../constants'
+import { renderHermesDataPathsAsLinks } from '../lib/hermes-file-links'
 import { getMessageContentStyles } from '../lib/message-styles'
 import { parseThinkTags } from '../lib/message-utils'
 import type { Message as MessageType } from '../types'
@@ -179,7 +180,10 @@ export function PlaygroundChat({
 
                               // Extract visible content (remove <think> tags for assistant messages)
                               const displayContent = isAssistant
-                                ? parseThinkTags(version.content).visibleContent
+                                ? renderHermesDataPathsAsLinks(
+                                    parseThinkTags(version.content)
+                                      .visibleContent
+                                  )
                                 : version.content
 
                               const actions = (

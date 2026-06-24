@@ -177,6 +177,16 @@ export function Playground(props: PlaygroundProps = {}) {
   }, [groupsData, setGroups, config.group, updateConfig])
 
   const handleSendMessage = (text: string, files?: FileUIPart[]) => {
+    // 🔍 DIAGNOSTIC: trace file uploads
+    if (files && files.length > 0) {
+      console.log('[Playground] handleSendMessage received files:', files.map(f => ({
+        filename: f.filename,
+        mediaType: f.mediaType,
+        urlLen: f.url.length,
+        urlPrefix: f.url.substring(0, 80),
+      })))
+    }
+
     const userMessage = createUserMessage(
       text,
       files?.map((f) => ({

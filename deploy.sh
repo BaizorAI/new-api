@@ -163,6 +163,10 @@ if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
     COMPOSE_ARGS="\$COMPOSE_ARGS -f docker-compose.hermes.yml"
   fi
 
+  if grep -q './hermes_data:/opt/data' docker-compose.yml 2>/dev/null; then
+    sed -i 's|./hermes_data:/opt/data|./hermes-data:/opt/data|' docker-compose.yml
+  fi
+
   ensure_new_api_env_line 'HERMES_API_SERVER_URL=\${HERMES_API_SERVER_URL:-http://baizor-hermes:8642}' 'HERMES_API_SERVER_URL'
   ensure_new_api_env_line 'HERMES_API_SERVER_KEY=\${HERMES_API_SERVER_KEY:-}' 'HERMES_API_SERVER_KEY'
 

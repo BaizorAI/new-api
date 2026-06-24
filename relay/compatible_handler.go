@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -174,6 +175,11 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 		}
 
 		logger.LogDebug(c, "text request body: %s", jsonData)
+
+		// 🔍 DIAGNOSTIC: log when file content parts are present
+		if bytes.Contains(jsonData, []byte(`"type":"file"`)) || bytes.Contains(jsonData, []byte(`"type":"input_file"`)) {
+			logger.LogInfo(c.Request.Context(), fmt.Sprintf("TEXT_HELPER_FILE_UPLOAD: request body contains file content parts (body_len=%d)", len(jsonData)))
+		}
 
 		body, size, closer, err := relaycommon.NewOutboundJSONBody(jsonData)
 		if err != nil {

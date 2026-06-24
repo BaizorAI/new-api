@@ -13,7 +13,7 @@ import (
 func SetRelayRouter(router *gin.Engine) {
 	router.Use(middleware.CORS())
 	router.Use(middleware.DecompressRequestMiddleware())
-	router.Use(middleware.BodyStorageCleanup()) // 清理请求体存储
+	router.Use(middleware.BodyStorageCleanup()) // Clean request body storage
 	router.Use(middleware.StatsMiddleware())
 	// https://platform.openai.com/docs/api-reference/introduction
 	modelsRouter := router.Group("/v1/models")
@@ -24,7 +24,7 @@ func SetRelayRouter(router *gin.Engine) {
 			switch {
 			case c.GetHeader("x-api-key") != "" && c.GetHeader("anthropic-version") != "":
 				controller.ListModels(c, constant.ChannelTypeAnthropic)
-			case c.GetHeader("x-goog-api-key") != "" || c.Query("key") != "": // 单独的适配
+			case c.GetHeader("x-goog-api-key") != "" || c.Query("key") != "": // Gemini standalone compatibility
 				controller.RetrieveModel(c, constant.ChannelTypeGemini)
 			default:
 				controller.ListModels(c, constant.ChannelTypeOpenAI)
@@ -77,6 +77,7 @@ func SetRelayRouter(router *gin.Engine) {
 		hermesPlaygroundRouter.DELETE("/skills", controller.HermesPlaygroundSkills)
 		hermesPlaygroundRouter.POST("/skills/promote", controller.HermesPromoteSkill)
 		hermesPlaygroundRouter.GET("/toolsets", controller.HermesPlaygroundToolsets)
+		hermesPlaygroundRouter.GET("/files/*path", controller.HermesPlaygroundFile)
 		hermesPlaygroundRouter.GET("/platforms/weixin/status", middleware.HermesWeixinStatusRateLimit(), controller.HermesPlaygroundWeixinStatus)
 		hermesPlaygroundRouter.POST("/platforms/weixin/qr", middleware.HermesWeixinActionRateLimit(), controller.HermesPlaygroundWeixinQR)
 		hermesPlaygroundRouter.GET("/platforms/weixin/qr/:request_id", middleware.HermesWeixinStatusRateLimit(), controller.HermesPlaygroundWeixinQRStatus)
@@ -88,7 +89,7 @@ func SetRelayRouter(router *gin.Engine) {
 	relayV1Router.Use(middleware.TokenAuth())
 	relayV1Router.Use(middleware.ModelRequestRateLimit())
 	{
-		// WebSocket 路由（统一到 Relay）
+		// WebSocket routes use the unified Relay path.
 		wsRouter := relayV1Router.Group("")
 		wsRouter.Use(middleware.Distribute())
 		wsRouter.GET("/realtime", func(c *gin.Context) {
@@ -211,7 +212,7 @@ func SetRelayRouter(router *gin.Engine) {
 	relayGeminiRouter.Use(middleware.ModelRequestRateLimit())
 	relayGeminiRouter.Use(middleware.Distribute())
 	{
-		// Gemini API 路径格式: /v1beta/models/{model_name}:{action}
+		// Gemini API path format: /v1beta/models/{model_name}:{action}
 		relayGeminiRouter.POST("/models/*path", func(c *gin.Context) {
 			controller.Relay(c, types.RelayFormatGemini)
 		})
