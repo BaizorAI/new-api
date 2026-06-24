@@ -36,4 +36,4 @@ services:
     depends_on:
       - new-api
     networks:
-      - new-api-network
+      - ${HERMES_NETWORK:-new-api-network}

@@ -20,6 +20,7 @@ HERMES_UID="${HERMES_UID:-10000}"
 HERMES_GID="${HERMES_GID:-10000}"
 HERMES_WEIXIN_QR_ENABLED="${HERMES_WEIXIN_QR_ENABLED:-true}"
 HERMES_NO_PROXY="${HERMES_NO_PROXY:-localhost,127.0.0.1,new-api,hermes,baizor-hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}"
+HERMES_NETWORK="${HERMES_NETWORK:-}"
 
 ini_value() {
   grep -i "^$1=" "$INI_FILE" | head -n 1 | awk -F= '{print $2}'
@@ -165,7 +166,25 @@ if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
   ensure_new_api_env_line 'HERMES_API_SERVER_URL=\${HERMES_API_SERVER_URL:-http://baizor-hermes:8642}' 'HERMES_API_SERVER_URL'
   ensure_new_api_env_line 'HERMES_API_SERVER_KEY=\${HERMES_API_SERVER_KEY:-}' 'HERMES_API_SERVER_KEY'
 
+  REMOTE_HERMES_NETWORK="${HERMES_NETWORK}"
+  if [ -z "\$REMOTE_HERMES_NETWORK" ]; then
+    REMOTE_HERMES_NETWORK="\$(awk '
+      /^networks:[[:space:]]*$/ { in_networks = 1; next }
+      in_networks && /^[^[:space:]]/ { in_networks = 0 }
+      in_networks && /^[[:space:]]{2}[A-Za-z0-9_.-]+:/ {
+        name = \$1
+        sub(":$", "", name)
+        print name
+        exit
+      }
+    ' docker-compose.yml)"
+  fi
+  if [ -z "\$REMOTE_HERMES_NETWORK" ]; then
+    REMOTE_HERMES_NETWORK="new-api-network"
+  fi
+
   set_env_var HERMES_IMAGE "${HERMES_IMAGE}"
+  set_env_var HERMES_NETWORK "\$REMOTE_HERMES_NETWORK"
   set_env_var HERMES_API_SERVER_PORT "${HERMES_API_SERVER_PORT}"
   set_env_var HERMES_API_SERVER_PUBLISH_PORT "${HERMES_API_SERVER_PUBLISH_PORT}"
   set_env_var HERMES_API_SERVER_BIND "${HERMES_API_SERVER_BIND}"
