@@ -177,6 +177,61 @@ func TryUserAuth() func(c *gin.Context) {
 	}
 }
 
+func BrowserSessionAuth() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		session := sessions.Default(c)
+		username := session.Get("username")
+		role := session.Get("role")
+		id := session.Get("id")
+		status := session.Get("status")
+
+		usernameValue, usernameOK := username.(string)
+		roleValue, roleOK := role.(int)
+		idValue, idOK := id.(int)
+		statusValue, statusOK := status.(int)
+		if !usernameOK || !roleOK || !idOK || !statusOK {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgAuthNotLoggedIn),
+			})
+			c.Abort()
+			return
+		}
+		if !validUserInfo(usernameValue, roleValue) {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgAuthUserInfoInvalid),
+			})
+			c.Abort()
+			return
+		}
+		if statusValue == common.UserStatusDisabled {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgAuthUserBanned),
+			})
+			c.Abort()
+			return
+		}
+		if roleValue < common.RoleCommonUser {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgAuthInsufficientPrivilege),
+			})
+			c.Abort()
+			return
+		}
+
+		c.Header("Auth-Version", "864b7076dbcd0a3c01b5520316720ebf")
+		c.Set("username", usernameValue)
+		c.Set("role", roleValue)
+		c.Set("id", idValue)
+		c.Set("group", session.Get("group"))
+		c.Set("user_group", session.Get("group"))
+		c.Set("use_access_token", false)
+		c.Next()
+	}
+}
 func UserAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		authHelper(c, common.RoleCommonUser)

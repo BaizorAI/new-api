@@ -16,7 +16,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import {
+  CopyIcon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  FileCheck2Icon,
+  FileIcon,
+  ImageIcon,
+} from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import {
   Branch,
@@ -51,13 +61,185 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
 import { MESSAGE_ROLES } from '../constants'
-import { renderHermesDataPathsAsLinks } from '../lib/hermes-file-links'
+import {
+  extractHermesFileArtifacts,
+  renderHermesDataPathsAsLinks,
+  type HermesFileArtifact,
+} from '../lib/hermes-file-links'
 import { getMessageContentStyles } from '../lib/message-styles'
 import { parseThinkTags } from '../lib/message-utils'
 import type { Message as MessageType } from '../types'
 import { MessageActions } from './message-actions'
 import { MessageError } from './message-error'
 
+function MessageAttachments({
+  attachments,
+}: {
+  attachments: NonNullable<MessageType['attachments']>
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div className='space-y-2'>
+      <div className='text-muted-foreground text-xs font-medium'>
+        {t('Attachments')}
+      </div>
+      <div className='grid gap-2 sm:grid-cols-2'>
+        {attachments.map((attachment, index) => {
+          const isImage = attachment.mediaType?.startsWith('image/')
+          const filename = attachment.filename || t(isImage ? 'Image' : 'File')
+
+          return (
+            <FileCard
+              href={attachment.url}
+              isImage={isImage}
+              key={`${filename}-${index}`}
+              mediaType={attachment.mediaType}
+              previewUrl={isImage ? attachment.url : undefined}
+              size={attachment.size}
+              title={filename}
+              unavailableLabel={t('Preview unavailable')}
+            />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function HermesArtifactCards({
+  artifacts,
+}: {
+  artifacts: HermesFileArtifact[]
+}) {
+  const { t } = useTranslation()
+
+  if (artifacts.length === 0) return null
+
+  return (
+    <div className='space-y-2'>
+      <div className='text-muted-foreground flex items-center gap-1.5 text-xs font-medium'>
+        <FileCheck2Icon className='size-3.5' />
+        {t('Results')}
+      </div>
+      <div className='grid gap-2 sm:grid-cols-2'>
+        {artifacts.map((artifact) => (
+          <FileCard
+            href={artifact.href}
+            key={artifact.href}
+            title={artifact.filename || artifact.label}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function FileCard({
+  href,
+  isImage = false,
+  mediaType,
+  previewUrl,
+  size,
+  title,
+  unavailableLabel,
+}: {
+  href?: string
+  isImage?: boolean
+  mediaType?: string
+  previewUrl?: string
+  size?: number
+  title: string
+  unavailableLabel?: string
+}) {
+  const { t } = useTranslation()
+  const hasUrl = !!href
+  const description = [mediaType, formatFileSize(size)]
+    .filter(Boolean)
+    .join(' / ')
+
+  return (
+    <div
+      className={cn(
+        'border-border bg-background/80 flex min-w-0 items-center gap-2 rounded-md border p-2 text-xs',
+        !hasUrl && 'opacity-70'
+      )}
+    >
+      {isImage && previewUrl ? (
+        <img
+          alt={title}
+          className='size-10 shrink-0 rounded object-cover'
+          src={previewUrl}
+        />
+      ) : (
+        <div className='bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded'>
+          {isImage ? (
+            <ImageIcon className='size-4' />
+          ) : (
+            <FileIcon className='size-4' />
+          )}
+        </div>
+      )}
+      <div className='min-w-0 flex-1'>
+        <div className='truncate font-medium'>{title}</div>
+        <div className='text-muted-foreground truncate'>
+          {description || unavailableLabel || t('File')}
+        </div>
+      </div>
+      <div className='flex shrink-0 items-center gap-1'>
+        {hasUrl ? (
+          <>
+            <a
+              aria-label={t('Open')}
+              className='hover:bg-muted text-muted-foreground hover:text-foreground inline-flex size-7 items-center justify-center rounded-md transition-colors'
+              href={href}
+              rel='noreferrer'
+              target='_blank'
+            >
+              <ExternalLinkIcon className='size-3.5' />
+            </a>
+            <a
+              aria-label={t('Download')}
+              className='hover:bg-muted text-muted-foreground hover:text-foreground inline-flex size-7 items-center justify-center rounded-md transition-colors'
+              download={title}
+              href={href}
+            >
+              <DownloadIcon className='size-3.5' />
+            </a>
+            <button
+              aria-label={t('Copy link')}
+              className='hover:bg-muted text-muted-foreground hover:text-foreground inline-flex size-7 items-center justify-center rounded-md transition-colors'
+              onClick={() => copyFileLink(href, t('Copied to clipboard'))}
+              type='button'
+            >
+              <CopyIcon className='size-3.5' />
+            </button>
+          </>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function formatFileSize(size?: number): string {
+  if (!size || size <= 0) return ''
+  if (size < 1024) return `${size} B`
+  const units = ['KB', 'MB', 'GB']
+  let value = size / 1024
+  let unitIndex = 0
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024
+    unitIndex += 1
+  }
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`
+}
+
+function copyFileLink(href: string, successMessage: string) {
+  const absoluteUrl = new URL(href, window.location.origin).toString()
+  void navigator.clipboard.writeText(absoluteUrl).then(() => {
+    toast.success(successMessage)
+  })
+}
 interface PlaygroundChatProps {
   messages: MessageType[]
   onCopyMessage?: (message: MessageType) => void
@@ -167,6 +349,8 @@ export function PlaygroundChat({
                               const hasSources = !!message.sources?.length
                               const showReasoning =
                                 isAssistant && !!message.reasoning?.content
+                              const hasAttachments =
+                                (message.attachments?.length ?? 0) > 0
                               const showLoader =
                                 isAssistant &&
                                 !message.isReasoningStreaming &&
@@ -176,7 +360,7 @@ export function PlaygroundChat({
                               const showMessageContent =
                                 (message.from === MESSAGE_ROLES.USER ||
                                   !message.isReasoningStreaming) &&
-                                !!version.content
+                                (!!version.content || hasAttachments)
 
                               // Extract visible content (remove <think> tags for assistant messages)
                               const displayContent = isAssistant
@@ -185,6 +369,9 @@ export function PlaygroundChat({
                                       .visibleContent
                                   )
                                 : version.content
+                              const artifacts = isAssistant
+                                ? extractHermesFileArtifacts(displayContent)
+                                : []
 
                               const actions = (
                                 <MessageActions
@@ -262,7 +449,21 @@ export function PlaygroundChat({
                                             getMessageContentStyles()
                                           )}
                                         >
-                                          <Response>{displayContent}</Response>
+                                          {displayContent ? (
+                                            <Response>
+                                              {displayContent}
+                                            </Response>
+                                          ) : null}
+                                          {message.attachments?.length ? (
+                                            <MessageAttachments
+                                              attachments={message.attachments}
+                                            />
+                                          ) : null}
+                                          {artifacts.length ? (
+                                            <HermesArtifactCards
+                                              artifacts={artifacts}
+                                            />
+                                          ) : null}
                                         </MessageContent>
                                         {actions}
                                       </>

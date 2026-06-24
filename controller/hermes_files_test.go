@@ -66,10 +66,31 @@ func TestHermesPlaygroundFileServesCurrentUserArtifact(t *testing.T) {
 	assert.Equal(t, "report", recorder.Body.String())
 }
 
+func TestHermesPlaygroundFileServesRootLevelResultFile(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	root := t.TempDir()
+	reportName := "report_20260624.md"
+	require.NoError(t, os.WriteFile(filepath.Join(root, reportName), []byte("report"), 0o644))
+	t.Setenv("HERMES_DATA_DIR", root)
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/files/"+reportName, nil)
+	c.Params = gin.Params{{Key: "path", Value: "/" + reportName}}
+	c.Set("id", 42)
+
+	HermesPlaygroundFile(c)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "report", recorder.Body.String())
+}
+
 func TestHermesPlaygroundFileRejectsSensitiveAndOtherUserPaths(t *testing.T) {
 	for _, path := range []string{
 		"/config.yaml",
 		"/state.db",
+		"/gateway.lock",
+		"/unknown.bin",
 		"/logs/agent.log",
 		"/skills/test/SKILL.md",
 		"/baizor-users/43/workspace/report.md",

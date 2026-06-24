@@ -14,4 +14,5 @@ RUN set -eu; \
       /opt/hermes/hermes_cli/commands.py \
       /opt/hermes/gateway/slash_commands.py \
       /opt/hermes/gateway/run.py \
-      /opt/hermes/gateway/platforms/api_server.py
+      /opt/hermes/gateway/platforms/api_server.py \
+      /opt/hermes/tools/approval.py

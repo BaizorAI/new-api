@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { FileUIPart } from 'ai'
 import {
   PaperclipIcon,
   FileIcon,
@@ -52,12 +51,15 @@ import { toast } from 'sonner'
 
 import {
   PromptInput,
+  PromptInputAttachment,
+  PromptInputAttachments,
   PromptInputButton,
   PromptInputFooter,
   PromptInputTextarea,
   PromptInputTools,
   usePromptInputAttachments,
   type PromptInputMessage,
+  type PromptInputSubmittedFile,
 } from '@/components/ai-elements/prompt-input'
 import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion'
 import { ModelGroupSelector } from '@/components/model-group-selector'
@@ -73,7 +75,7 @@ import type { ModelOption, GroupOption } from '../types'
 export type PlaygroundSlashAction = 'new' | 'save' | 'retry' | 'skill'
 
 interface PlaygroundInputProps {
-  onSubmit: (text: string, files?: FileUIPart[]) => void
+  onSubmit: (text: string, files?: PromptInputSubmittedFile[]) => void
   onStop?: () => void
   disabled?: boolean
   isGenerating?: boolean
@@ -353,7 +355,14 @@ export function PlaygroundInput({
           </div>
         )}
 
-        <PromptInput groupClassName='rounded-xl' onSubmit={handleSubmit}>
+        <PromptInput
+          groupClassName='rounded-xl'
+          maxFileSize={50_000_000}
+          maxFiles={10}
+          multiple
+          onError={(error) => toast.error(error.message)}
+          onSubmit={handleSubmit}
+        >
           <PromptInputTextarea
             autoComplete='off'
             autoCorrect='off'
@@ -366,6 +375,8 @@ export function PlaygroundInput({
             placeholder={t('Ask anything')}
             value={text}
           />
+
+          <AttachmentPreviewBar maxFiles={10} />
 
           <PromptInputFooter className='p-2.5'>
             <PromptInputTools>
@@ -409,16 +420,7 @@ export function PlaygroundInput({
                   <span className='sr-only sm:hidden'>{t('Stop')}</span>
                 </PromptInputButton>
               ) : (
-                <PromptInputButton
-                  className='text-foreground font-medium'
-                  disabled={disabled || !text.trim()}
-                  type='submit'
-                  variant='secondary'
-                >
-                  <SendIcon size={16} />
-                  <span className='hidden sm:inline'>{t('Send')}</span>
-                  <span className='sr-only sm:hidden'>{t('Send')}</span>
-                </PromptInputButton>
+                <SubmitButton disabled={disabled} text={text} />
               )}
             </div>
           </PromptInputFooter>
@@ -443,6 +445,57 @@ export function PlaygroundInput({
     </div>
   )
 }
+
+function AttachmentPreviewBar({ maxFiles }: { maxFiles: number }) {
+  const { t } = useTranslation()
+  const attachments = usePromptInputAttachments()
+
+  if (attachments.files.length === 0) return null
+
+  return (
+    <div className='border-border/70 space-y-2 border-t px-3 py-2.5'>
+      <div className='text-muted-foreground flex items-center justify-between gap-2 text-xs'>
+        <span>{t('Attached files')}</span>
+        <span>
+          {t('{{count}}/{{max}} files', {
+            count: attachments.files.length,
+            max: maxFiles,
+          })}
+        </span>
+      </div>
+      <div className='flex flex-wrap gap-2'>
+        <PromptInputAttachments>
+          {(attachment) => <PromptInputAttachment data={attachment} />}
+        </PromptInputAttachments>
+      </div>
+    </div>
+  )
+}
+function SubmitButton({
+  disabled,
+  text,
+}: {
+  disabled?: boolean
+  text: string
+}) {
+  const { t } = useTranslation()
+  const attachments = usePromptInputAttachments()
+  const hasFiles = attachments.files.length > 0
+
+  return (
+    <PromptInputButton
+      className='text-foreground font-medium'
+      disabled={disabled || (!text.trim() && !hasFiles)}
+      type='submit'
+      variant='secondary'
+    >
+      <SendIcon size={16} />
+      <span className='hidden sm:inline'>{t('Send')}</span>
+      <span className='sr-only sm:hidden'>{t('Send')}</span>
+    </PromptInputButton>
+  )
+}
+
 function AttachmentMenu({ disabled }: { disabled?: boolean }) {
   const { t } = useTranslation()
   const attachments = usePromptInputAttachments()

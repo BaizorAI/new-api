@@ -95,8 +95,11 @@ import { cn } from '@/lib/utils'
 // Provider Context & Types
 // ============================================================================
 
+type PromptInputFile = FileUIPart & { id: string; size?: number }
+export type PromptInputSubmittedFile = FileUIPart & { size?: number }
+
 export type AttachmentsContext = {
-  files: (FileUIPart & { id: string })[]
+  files: PromptInputFile[]
   add: (files: File[] | FileList) => void
   remove: (id: string) => void
   clear: () => void
@@ -170,9 +173,7 @@ export function PromptInputProvider({
   const clearInput = useCallback(() => setTextInput(''), [])
 
   // ----- attachments state (global when wrapped)
-  const [attachements, setAttachements] = useState<
-    (FileUIPart & { id: string })[]
-  >([])
+  const [attachements, setAttachements] = useState<PromptInputFile[]>([])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const openRef = useRef<() => void>(() => {})
 
@@ -188,6 +189,7 @@ export function PromptInputProvider({
         url: URL.createObjectURL(file),
         mediaType: file.type,
         filename: file.name,
+        size: file.size,
       })),
     ])
   }, [])
@@ -273,7 +275,7 @@ export const usePromptInputAttachments = () => {
 }
 
 export type PromptInputAttachmentProps = HTMLAttributes<HTMLDivElement> & {
-  data: FileUIPart & { id: string }
+  data: PromptInputFile
   className?: string
 }
 
@@ -358,9 +360,11 @@ export function PromptInputAttachment({
               <h4 className='truncate text-sm leading-none font-semibold'>
                 {filename || (isImage ? 'Image' : 'Attachment')}
               </h4>
-              {data.mediaType && (
+              {(data.mediaType || data.size) && (
                 <p className='text-muted-foreground truncate font-mono text-xs'>
-                  {data.mediaType}
+                  {[data.mediaType, formatAttachmentSize(data.size)]
+                    .filter(Boolean)
+                    .join(' / ')}
                 </p>
               )}
             </div>
@@ -371,11 +375,23 @@ export function PromptInputAttachment({
   )
 }
 
+function formatAttachmentSize(size?: number): string {
+  if (!size || size <= 0) return ''
+  if (size < 1024) return `${size} B`
+  const units = ['KB', 'MB', 'GB']
+  let value = size / 1024
+  let unitIndex = 0
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024
+    unitIndex += 1
+  }
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`
+}
 export type PromptInputAttachmentsProps = Omit<
   HTMLAttributes<HTMLDivElement>,
   'children'
 > & {
-  children: (attachment: FileUIPart & { id: string }) => ReactNode
+  children: (attachment: PromptInputFile) => ReactNode
 }
 
 export function PromptInputAttachments({
@@ -421,7 +437,7 @@ export const PromptInputActionAddAttachments = ({
 
 export type PromptInputMessage = {
   text?: string
-  files?: FileUIPart[]
+  files?: PromptInputSubmittedFile[]
 }
 
 export type PromptInputProps = Omit<
@@ -485,7 +501,7 @@ export const PromptInput = ({
   }, [])
 
   // ----- Local attachments (only used when no provider)
-  const [items, setItems] = useState<(FileUIPart & { id: string })[]>([])
+  const [items, setItems] = useState<PromptInputFile[]>([])
   const files = usingProvider ? controller.attachments.files : items
 
   const openFileDialogLocal = useCallback(() => {
@@ -541,7 +557,7 @@ export const PromptInput = ({
             message: t('Too many files. Some were not added.'),
           })
         }
-        const next: (FileUIPart & { id: string })[] = []
+        const next: PromptInputFile[] = []
         for (const file of capped) {
           next.push({
             id: nanoid(),
@@ -549,6 +565,7 @@ export const PromptInput = ({
             url: URL.createObjectURL(file),
             mediaType: file.type,
             filename: file.name,
+            size: file.size,
           })
         }
         return [...prev, ...next]
@@ -737,7 +754,7 @@ export const PromptInput = ({
         return item
       })
     )
-      .then((convertedFiles: FileUIPart[]) => {
+      .then((convertedFiles: PromptInputSubmittedFile[]) => {
         try {
           const result = onSubmit({ text, files: convertedFiles }, event)
 

@@ -37,19 +37,6 @@ export function buildChatCompletionPayload(
     .filter(isValidMessage)
     .map(formatMessageForAPI)
 
-  // 🔍 DIAGNOSTIC
-  const filesInPayload = processedMessages.flatMap(m => {
-    if (Array.isArray(m.content)) return m.content.filter((p: any) => p.type === 'file' || p.type === 'image_url')
-    return []
-  })
-  if (filesInPayload.length > 0) {
-    console.log('[PayloadBuilder] files in payload:', filesInPayload.map((p: any) => ({
-      type: p.type,
-      filename: p.file?.filename || p.image_url?.url?.substring(0, 50),
-      dataLen: p.file?.file_data?.length || p.image_url?.url?.length,
-    })))
-  }
-
   // Prepend system prompt if configured
   if (config.systemPrompt?.trim()) {
     processedMessages.unshift({

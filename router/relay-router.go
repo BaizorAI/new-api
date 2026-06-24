@@ -66,6 +66,13 @@ func SetRelayRouter(router *gin.Engine) {
 	{
 		playgroundRouter.POST("/chat/completions", controller.Playground)
 	}
+	hermesFileRouter := router.Group("/pg/hermes")
+	hermesFileRouter.Use(middleware.RouteTag("relay"))
+	hermesFileRouter.Use(middleware.SystemPerformanceCheck())
+	hermesFileRouter.Use(middleware.BrowserSessionAuth())
+	{
+		hermesFileRouter.GET("/files/*path", controller.HermesPlaygroundFile)
+	}
 	hermesPlaygroundRouter := router.Group("/pg/hermes")
 	hermesPlaygroundRouter.Use(middleware.RouteTag("relay"))
 	hermesPlaygroundRouter.Use(middleware.SystemPerformanceCheck())
@@ -77,7 +84,6 @@ func SetRelayRouter(router *gin.Engine) {
 		hermesPlaygroundRouter.DELETE("/skills", controller.HermesPlaygroundSkills)
 		hermesPlaygroundRouter.POST("/skills/promote", controller.HermesPromoteSkill)
 		hermesPlaygroundRouter.GET("/toolsets", controller.HermesPlaygroundToolsets)
-		hermesPlaygroundRouter.GET("/files/*path", controller.HermesPlaygroundFile)
 		hermesPlaygroundRouter.GET("/platforms/weixin/status", middleware.HermesWeixinStatusRateLimit(), controller.HermesPlaygroundWeixinStatus)
 		hermesPlaygroundRouter.POST("/platforms/weixin/qr", middleware.HermesWeixinActionRateLimit(), controller.HermesPlaygroundWeixinQR)
 		hermesPlaygroundRouter.GET("/platforms/weixin/qr/:request_id", middleware.HermesWeixinStatusRateLimit(), controller.HermesPlaygroundWeixinQRStatus)

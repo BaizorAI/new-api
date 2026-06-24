@@ -132,6 +132,10 @@ export function getTextContent(content: string | ContentPart[]): string {
   return ''
 }
 
+function hasAttachmentContent(attachment: FileAttachment): boolean {
+  return typeof attachment.url === 'string' && attachment.url.trim() !== ''
+}
+
 /**
  * Format message for API request
  * Builds ContentPart array when message has image/file attachments.
@@ -139,7 +143,7 @@ export function getTextContent(content: string | ContentPart[]): string {
 export function formatMessageForAPI(message: Message): ChatCompletionMessage {
   const currentVersion = getCurrentVersion(message)
   const text = currentVersion.content
-  const attachments = message.attachments || []
+  const attachments = (message.attachments || []).filter(hasAttachmentContent)
 
   if (attachments.length === 0) {
     return {
@@ -195,7 +199,7 @@ export function isValidMessage(message: Message): boolean {
   const content = message.versions[0]?.content
   if (content === undefined) return false
 
-  const hasAttachments = (message.attachments?.length ?? 0) > 0
+  const hasAttachments = (message.attachments ?? []).some(hasAttachmentContent)
 
   // Exclude empty assistant messages (loading/streaming placeholders)
   if (message.from === 'assistant' && !content.trim() && !hasAttachments)

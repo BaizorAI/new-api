@@ -17,10 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import type { FileUIPart } from 'ai'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+
+import type { PromptInputSubmittedFile } from '@/components/ai-elements/prompt-input'
 
 import { getUserModels, getUserGroups } from './api'
 import { PlaygroundChat } from './components/playground-chat'
@@ -176,23 +177,17 @@ export function Playground(props: PlaygroundProps = {}) {
     }
   }, [groupsData, setGroups, config.group, updateConfig])
 
-  const handleSendMessage = (text: string, files?: FileUIPart[]) => {
-    // 🔍 DIAGNOSTIC: trace file uploads
-    if (files && files.length > 0) {
-      console.log('[Playground] handleSendMessage received files:', files.map(f => ({
-        filename: f.filename,
-        mediaType: f.mediaType,
-        urlLen: f.url.length,
-        urlPrefix: f.url.substring(0, 80),
-      })))
-    }
-
+  const handleSendMessage = (
+    text: string,
+    files?: PromptInputSubmittedFile[]
+  ) => {
     const userMessage = createUserMessage(
       text,
       files?.map((f) => ({
         url: f.url,
         mediaType: f.mediaType,
         filename: f.filename,
+        size: f.size,
       }))
     )
     const assistantMessage = createLoadingAssistantMessage()
@@ -317,8 +312,7 @@ export function Playground(props: PlaygroundProps = {}) {
 
   return (
     <div className='relative flex size-full flex-col overflow-hidden'>
-      {/* Full-width scroll container: scrolling works even over side whitespace */
-}
+      {/* Full-width scroll container: scrolling works even over side whitespace */}
       <div className='flex flex-1 flex-col overflow-hidden'>
         <PlaygroundChat
           messages={messages}

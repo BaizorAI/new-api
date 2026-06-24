@@ -58,6 +58,24 @@ var hermesAllowedTopLevelDirs = map[string]struct{}{
 	"workspace":      {},
 }
 
+var hermesAllowedRootFileExtensions = map[string]struct{}{
+	".csv":  {},
+	".doc":  {},
+	".docx": {},
+	".gif":  {},
+	".jpeg": {},
+	".jpg":  {},
+	".json": {},
+	".md":   {},
+	".pdf":  {},
+	".png":  {},
+	".ppt":  {},
+	".pptx": {},
+	".txt":  {},
+	".xlsx": {},
+	".zip":  {},
+}
+
 func HermesPlaygroundFile(c *gin.Context) {
 	relativePath, ok := normalizeHermesDataPath(c.Param("path"))
 	if !ok {
@@ -133,6 +151,11 @@ func isHermesDataPathAllowed(relativePath string, userID int) bool {
 			return false
 		}
 		_, ok := hermesAllowedTopLevelDirs[parts[2]]
+		return ok
+	}
+
+	if len(parts) == 1 {
+		_, ok := hermesAllowedRootFileExtensions[strings.ToLower(filepath.Ext(parts[0]))]
 		return ok
 	}
 

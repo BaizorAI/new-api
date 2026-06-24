@@ -137,6 +137,21 @@ export function loadMessages(
   return null
 }
 
+function stripMessageAttachmentDataUrls(messages: Message[]): Message[] {
+  return messages.map((message) => {
+    if (!message.attachments?.length) return message
+
+    return {
+      ...message,
+      attachments: message.attachments.map((attachment) =>
+        attachment.url?.startsWith('data:')
+          ? { ...attachment, url: '' }
+          : attachment
+      ),
+    }
+  })
+}
+
 /**
  * Save messages to localStorage
  */
@@ -145,7 +160,10 @@ export function saveMessages(
   keys: PlaygroundStorageKeys = STORAGE_KEYS
 ): void {
   try {
-    localStorage.setItem(keys.MESSAGES, JSON.stringify(messages))
+    localStorage.setItem(
+      keys.MESSAGES,
+      JSON.stringify(stripMessageAttachmentDataUrls(messages))
+    )
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to save messages:', error)

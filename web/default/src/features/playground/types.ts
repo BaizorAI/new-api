@@ -25,6 +25,7 @@ export interface FileAttachment {
   url: string
   mediaType?: string
   filename?: string
+  size?: number
 }
 
 export interface MessageVersion {
