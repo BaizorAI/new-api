@@ -1,0 +1,17 @@
+FROM ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.9
+
+WORKDIR /opt/hermes
+
+# Baizor builds against the latest hermes-agent source. Copy the full tree
+# instead of patching a handful of files so newly introduced modules stay in
+# sync with gateway/run.py, api_server.py, skills, and relay changes.
+COPY . /opt/hermes
+
+RUN set -eu; \
+    chmod +x /opt/hermes/hermes || true; \
+    find /opt/hermes/docker -type f \( -name '*.sh' -o -path '*/run' -o -path '*/finish' \) -exec chmod +x {} +; \
+    python -m py_compile \
+      /opt/hermes/hermes_cli/commands.py \
+      /opt/hermes/gateway/slash_commands.py \
+      /opt/hermes/gateway/run.py \
+      /opt/hermes/gateway/platforms/api_server.py
