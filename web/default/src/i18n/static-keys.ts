@@ -525,4 +525,21 @@ export const STATIC_I18N_KEYS = [
   'Failed to load',
   'Expired at',
   'Cancelled at',
+  // HermesAgent home section (dynamic keys passed to t at runtime)
+  'New — HermesAgent',
+  'Meet HermesAgent, the self-improving AI agent',
+  'Deploy a personal autonomous agent that learns from experience, connects 20+ messaging platforms, runs 70+ tools, and keeps working across sessions — all governed through Baize AI Platform.',
+  'Self-improving learning loop with memory and skills',
+  '70+ tools across 28+ toolsets',
+  '20+ messaging platforms in one gateway',
+  'Multi-interface: CLI, TUI, desktop, API and editors',
+  'Model freedom: OpenAI, Claude, Gemini, DeepSeek and more',
+  'Try HermesAgent',
+  'HermesAgent',
+  'Self-improving AI agent',
+  'Agent tools',
+  'Messaging platforms',
+  'Terminal backends',
+  'The only agent with a built-in learning loop: it creates skills from experience, improves them during use, and remembers context across sessions.',
+
 ] as const
