@@ -22,6 +22,7 @@ HERMES_WEIXIN_QR_ENABLED="${HERMES_WEIXIN_QR_ENABLED:-true}"
 HERMES_EXECUTE_CODE_AUTO_APPROVE="${HERMES_EXECUTE_CODE_AUTO_APPROVE:-true}"
 HERMES_NO_PROXY="${HERMES_NO_PROXY:-localhost,127.0.0.1,new-api,hermes,baizor-hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}"
 HERMES_NETWORK="${HERMES_NETWORK:-}"
+HERMES_MIGRATE_TEST_SKILL="${HERMES_MIGRATE_TEST_SKILL:-true}"
 
 ini_value() {
   grep -i "^$1=" "$INI_FILE" | head -n 1 | awk -F= '{print $2}'
@@ -158,7 +159,50 @@ ensure_env_secret() {
 
 ensure_new_api_env_line 'SESSION_SECRET=\${SESSION_SECRET:-}' 'SESSION_SECRET'
 ensure_env_secret SESSION_SECRET
+migrate_test_skill_to_baizor_skills() {
+  if [ "${HERMES_MIGRATE_TEST_SKILL}" != "true" ]; then
+    return
+  fi
 
+  data_dir="hermes-data"
+  target_dir="\${data_dir}/baizor-skills/test"
+  if [ -f "\${target_dir}/SKILL.md" ]; then
+    echo "Baizor Skills test skill already exists; migration skipped."
+    return
+  fi
+
+  source_dir=""
+  for candidate in \
+    "\${data_dir}/skills/test" \
+    "\${data_dir}/baizor-users/1/skills/test" \
+    "\${data_dir}/baizor-users/1/skills/test/test"
+  do
+    if [ -f "\${candidate}/SKILL.md" ]; then
+      source_dir="\${candidate}"
+      break
+    fi
+  done
+
+  if [ -z "\${source_dir}" ] && [ -d "\${data_dir}/baizor-users" ]; then
+    source_file="\$(find "\${data_dir}/baizor-users" -path '*/skills/test/SKILL.md' -print -quit 2>/dev/null || true)"
+    if [ -z "\${source_file}" ]; then
+      source_file="\$(find "\${data_dir}/baizor-users" -path '*/skills/*/test/SKILL.md' -print -quit 2>/dev/null || true)"
+    fi
+    if [ -n "\${source_file}" ]; then
+      source_dir="\$(dirname "\${source_file}")"
+    fi
+  fi
+
+  if [ -z "\${source_dir}" ]; then
+    echo "No existing test skill found to migrate into Baizor Skills."
+    return
+  fi
+
+  echo "Migrating test skill to Baizor Skills from \${source_dir}..."
+  mkdir -p "\$(dirname "\${target_dir}")"
+  cp -a "\${source_dir}" "\${target_dir}"
+  chown -R "${HERMES_UID}:${HERMES_GID}" "\${target_dir}" 2>/dev/null || true
+}
 if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
   if [ "${HERMES_COMPOSE_OVERLAY_ENABLED}" = "true" ]; then
     COMPOSE_ARGS="\$COMPOSE_ARGS -f docker-compose.hermes.yml"
@@ -217,7 +261,8 @@ sed -i 's|image: calciumion/new-api:[^[:space:]]*|image: ccr.ccs.tencentyun.com/
 
 echo "Pulling deployment images..."
 if [ "${HERMES_SIDECAR_ENABLED}" = "true" ] && [ "${HERMES_COMPOSE_OVERLAY_ENABLED}" = "true" ]; then
-  mkdir -p hermes-data
+  mkdir -p hermes-data hermes-data/baizor-skills
+  migrate_test_skill_to_baizor_skills
 fi
 docker compose \$COMPOSE_ARGS pull new-api
 if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
