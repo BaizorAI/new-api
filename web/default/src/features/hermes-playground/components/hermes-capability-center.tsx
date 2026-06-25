@@ -32,7 +32,7 @@ import {
   XCircleIcon,
   ArrowBigUpIcon,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -63,6 +63,13 @@ import {
 } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Sheet,
   SheetContent,
@@ -118,17 +125,41 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
   const [toolsetStatusFilter, setToolsetStatusFilter] =
     useState<ToolsetStatusFilter>('all')
   const [deletingSkill, setDeletingSkill] = useState<HermesSkill | null>(null)
+  const [activeTeamId, setActiveTeamId] = useState(() =>
+    props.selectedTeamId || props.teams[0]?.id || 0
+  )
   const role = useAuthStore((s) => s.auth.user?.role ?? 0)
+
+  useEffect(() => {
+    const selectedTeamExists = props.teams.some(
+      (team) => team.id === props.selectedTeamId
+    )
+    if (
+      props.selectedTeamId > 0 &&
+      selectedTeamExists &&
+      activeTeamId !== props.selectedTeamId
+    ) {
+      setActiveTeamId(props.selectedTeamId)
+      return
+    }
+
+    const activeTeamExists = props.teams.some((team) => team.id === activeTeamId)
+    if (activeTeamId > 0 && activeTeamExists) return
+
+    const fallbackTeamId = props.teams[0]?.id || 0
+    if (activeTeamId !== fallbackTeamId) {
+      setActiveTeamId(fallbackTeamId)
+    }
+  }, [activeTeamId, props.selectedTeamId, props.teams])
 
   const skillsQuery = useQuery({
     queryKey: [
       'hermes-capabilities',
       props.userScope,
       'skills',
-      props.selectedTeamId,
+      activeTeamId,
     ],
-    queryFn: () =>
-      listHermesSkills({ teamId: props.selectedTeamId || undefined }),
+    queryFn: () => listHermesSkills({ teamId: activeTeamId || undefined }),
     enabled: props.open,
   })
   const toolsetsQuery = useQuery({
@@ -226,6 +257,9 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
   ) => {
     try {
       await promoteHermesSkill(skill.name, options)
+      if (options.target === 'team' && options.teamId) {
+        setActiveTeamId(options.teamId)
+      }
       toast.success(t('Skill published'))
       refresh()
     } catch (error) {
@@ -274,7 +308,10 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
                 onDeleteSkill={setDeletingSkill}
                 onEditSkill={props.onEditSkill}
                 manageableTeams={manageableTeams}
-                selectedTeamId={props.selectedTeamId}
+                teams={props.teams}
+                activeTeamId={activeTeamId}
+                onActiveTeamChange={setActiveTeamId}
+                selectedTeamId={activeTeamId}
                 onPublishSkill={handlePublishSkill}
                 search={skillSearch}
                 setSearch={setSkillSearch}
@@ -351,6 +388,9 @@ interface SkillPanelProps {
   onEditSkill: (skill: HermesSkill) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
+  teams: Team[]
+  activeTeamId: number
+  onActiveTeamChange: (teamId: number) => void
   selectedTeamId: number
   onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }
@@ -376,6 +416,33 @@ function SkillPanel(props: SkillPanelProps) {
             {t('Add skill')}
           </Button>
         </div>
+        {props.teams.length > 0 && (
+          <div className='flex items-center gap-2'>
+            <span className='text-muted-foreground shrink-0 text-xs'>
+              {t('Team context')}
+            </span>
+            <Select
+              value={String(props.activeTeamId || props.teams[0]?.id || 0)}
+              onValueChange={(value) => {
+                props.onActiveTeamChange(Number(value) || 0)
+              }}
+            >
+              <SelectTrigger
+                aria-label={t('Team context')}
+                className='h-8 min-w-0 flex-1 sm:max-w-[260px]'
+              >
+                <SelectValue placeholder={t('Select team')} />
+              </SelectTrigger>
+              <SelectContent align='start'>
+                {props.teams.map((team) => (
+                  <SelectItem key={team.id} value={String(team.id)}>
+                    <span className='min-w-0 truncate'>{team.name}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <ScrollArea className='min-h-0 flex-1'>
@@ -462,6 +529,9 @@ interface SkillSectionProps {
   onEditSkill: (skill: HermesSkill) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
+  teams: Team[]
+  activeTeamId: number
+  onActiveTeamChange: (teamId: number) => void
   selectedTeamId: number
   onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }
@@ -508,6 +578,9 @@ interface SkillRowProps {
   onEditSkill: (skill: HermesSkill) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
+  teams: Team[]
+  activeTeamId: number
+  onActiveTeamChange: (teamId: number) => void
   selectedTeamId: number
   onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }
