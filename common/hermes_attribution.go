@@ -119,7 +119,6 @@ func signHermesDelegation(secret string, ctx HermesDelegationContext) string {
 	message := strings.Join([]string{
 		strconv.Itoa(ctx.UserID),
 		strconv.Itoa(ctx.TeamID),
-		ctx.TeamName,
 		NormalizeHermesBillingScope(ctx.Scope, ctx.TeamID),
 		ctx.SessionID,
 		strconv.FormatInt(ctx.ExpiresAt, 10),

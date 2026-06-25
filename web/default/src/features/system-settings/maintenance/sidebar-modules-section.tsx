@@ -66,12 +66,12 @@ export function SidebarModulesSection({
 
   const sectionMeta: Record<string, { title: string; description: string }> = {
     chat: {
-      title: t('Chat area'),
-      description: t('Playground experiments and live conversations.'),
+      title: t('Workspaces'),
+      description: t('Team, personal, and AI workspaces.'),
     },
     console: {
-      title: t('Console area'),
-      description: t('Dashboards, tokens, and usage analytics.'),
+      title: t('Management Backend'),
+      description: t('Access keys, usage records, and management overview.'),
     },
     personal: {
       title: t('Personal area'),
@@ -89,8 +89,8 @@ export function SidebarModulesSection({
   > = {
     chat: {
       playground: {
-        title: t('Playground'),
-        description: t('Experiment with prompts and models in real time.'),
+        title: t('Model Playground'),
+        description: t('Try models and prompts in a dedicated test workspace.'),
       },
       hermes_playground: {
         title: t('HermesAgent'),
@@ -111,24 +111,24 @@ export function SidebarModulesSection({
     },
     console: {
       detail: {
-        title: t('Dashboard'),
-        description: t('Aggregated usage metrics and trend charts.'),
+        title: t('Data Dashboard'),
+        description: t('Usage metrics and trend charts.'),
       },
       token: {
-        title: t('Token management'),
-        description: t('Create, revoke, and audit API tokens.'),
+        title: t('Access Keys'),
+        description: t('Create and manage integration keys.'),
       },
       log: {
-        title: t('Usage logs'),
-        description: t('Detailed request logs for investigations.'),
+        title: t('Usage Details'),
+        description: t('Detailed request records for review.'),
       },
       midjourney: {
         title: t('Drawing logs'),
         description: t('History of MjProxy-style image tasks.'),
       },
       task: {
-        title: t('Task logs'),
-        description: t('Background job tracker for queued work.'),
+        title: t('Task Records'),
+        description: t('Background task records.'),
       },
     },
     personal: {
@@ -143,11 +143,11 @@ export function SidebarModulesSection({
     },
     admin: {
       channel: {
-        title: t('Channels'),
+        title: t('Model Channels'),
         description: t('Configure upstream providers and routing.'),
       },
       models: {
-        title: t('Models'),
+        title: t('Model Management'),
         description: t('Manage catalog visibility and pricing.'),
       },
       redemption: {
@@ -159,7 +159,7 @@ export function SidebarModulesSection({
         description: t('Administer user accounts and roles.'),
       },
       setting: {
-        title: t('System settings'),
+        title: t('System Settings'),
         description: t('Advanced platform configuration.'),
       },
       subscription: {

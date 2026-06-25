@@ -75,7 +75,7 @@ export function useSidebarData(): SidebarData {
             type: 'hermes-sessions',
           },
           {
-            title: t('Playground'),
+            title: t('Model Playground'),
             icon: FlaskConical,
             type: 'playground-sessions',
           },
@@ -88,20 +88,20 @@ export function useSidebarData(): SidebarData {
       },
       {
         id: 'general',
-        title: t('General'),
+        title: t('Management Backend'),
         items: [
           {
-            title: t('Overview'),
+            title: t('Platform Overview'),
             url: '/dashboard/overview',
             icon: Activity,
           },
           {
-            title: t('Dashboard'),
+            title: t('Data Dashboard'),
             url: '/dashboard/models',
             icon: LayoutDashboard,
           },
           {
-            title: t('API Keys'),
+            title: t('Access Keys'),
             url: '/keys',
             icon: Key,
           },
@@ -111,12 +111,12 @@ export function useSidebarData(): SidebarData {
             icon: Users,
           },
           {
-            title: t('Usage Logs'),
+            title: t('Usage Details'),
             url: '/usage-logs/common',
             icon: FileText,
           },
           {
-            title: t('Task Logs'),
+            title: t('Task Records'),
             url: '/usage-logs/task',
             activeUrls: ['/usage-logs/drawing'],
             configUrls: ['/usage-logs/drawing', '/usage-logs/task'],
@@ -142,15 +142,15 @@ export function useSidebarData(): SidebarData {
       },
       {
         id: 'admin',
-        title: t('Admin'),
+        title: t('Advanced Settings'),
         items: [
           {
-            title: t('Channels'),
+            title: t('Model Channels'),
             url: '/channels',
             icon: Radio,
           },
           {
-            title: t('Models'),
+            title: t('Model Management'),
             url: '/models/metadata',
             icon: Box,
           },
@@ -160,12 +160,12 @@ export function useSidebarData(): SidebarData {
             icon: Users,
           },
           {
-            title: t('Redemption Codes'),
+            title: t('Redeem Codes'),
             url: '/redemption-codes',
             icon: Ticket,
           },
           {
-            title: t('Subscriptions'),
+            title: t('Subscription Management'),
             url: '/subscriptions',
             icon: CreditCard,
           },

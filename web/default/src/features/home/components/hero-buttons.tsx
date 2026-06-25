@@ -33,8 +33,8 @@ export function HeroButtons({ isAuthenticated }: HeroButtonsProps) {
   const { t } = useTranslation()
   if (isAuthenticated) {
     return (
-      <Button size='lg' render={<Link to='/dashboard' />}>
-        {t('Go to Dashboard')} <ArrowRight className='ml-2 h-5 w-5' />
+      <Button size='lg' render={<Link to='/team-workspace' />}>
+        {t('Go to Workspace')} <ArrowRight className='ml-2 h-5 w-5' />
       </Button>
     )
   }

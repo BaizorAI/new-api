@@ -139,7 +139,7 @@ export type TopNavLink = {
 export type SidebarViewParent = {
   /** Destination URL for the back button */
   to: LinkProps['to'] | (string & {})
-  /** Visible label, e.g. "Back to Dashboard" ??already localized */
+  /** Visible label, e.g. "Back to Workspace" ??already localized */
   label: string
 }
 

@@ -160,8 +160,8 @@ export function HeaderNavigationSection({
     },
     {
       key: 'console',
-      title: t('Console'),
-      description: t('User dashboard and quota controls.'),
+      title: t('Workspace'),
+      description: t('Authenticated entry for team and personal workspaces.'),
     },
     {
       key: 'docs',

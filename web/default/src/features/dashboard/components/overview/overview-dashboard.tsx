@@ -526,20 +526,20 @@ export function OverviewDashboard() {
   const quickActions = useMemo<QuickAction[]>(
     () => [
       {
-        title: t('API Keys'),
+        title: t('Access Keys'),
         description: t('Create a key for your app or service'),
         to: '/keys',
         icon: KeyRound,
       },
       {
-        title: t('Channels'),
+        title: t('Model Channels'),
         description: t('Configure upstream providers and routing.'),
         to: '/channels',
         icon: RadioTower,
         adminOnly: true,
       },
       {
-        title: t('Usage Logs'),
+        title: t('Usage Details'),
         description: t('Inspect requests, errors, and billing details'),
         to: '/usage-logs',
         icon: FileText,

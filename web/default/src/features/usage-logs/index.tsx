@@ -43,13 +43,13 @@ const TASK_LOG_SECTIONS = ['drawing', 'task'] as const
 
 const SECTION_META: Record<UsageLogsSectionId, { titleKey: string }> = {
   common: {
-    titleKey: 'Common Logs',
+    titleKey: 'Usage Details',
   },
   drawing: {
-    titleKey: 'Drawing Logs',
+    titleKey: 'Drawing Records',
   },
   task: {
-    titleKey: 'Task Logs',
+    titleKey: 'Task Records',
   },
 }
 
@@ -72,7 +72,7 @@ function UsageLogsContent() {
   const tabNavGroups = useMemo<NavGroup[]>(
     () => [
       {
-        title: 'Task Logs',
+        title: 'Task Records',
         items: TASK_LOG_SECTIONS.map((section) => ({
           title: SECTION_META[section].titleKey,
           url: `/usage-logs/${section}`,

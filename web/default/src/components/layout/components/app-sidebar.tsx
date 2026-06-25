@@ -31,7 +31,7 @@ import { SidebarViewHeader } from './sidebar-view-header'
  *
  * Adopts the Vercel / Cloudflare "drill-in" pattern: the URL drives
  * which sidebar *view* is rendered. Clicking a top-level entry like
- * `System Settings` swaps the sidebar to a contextual workspace ?? * with a `??Back to Dashboard` affordance ??instead of stacking the
+ * `System Settings` swaps the sidebar to a contextual workspace ?? * with a `??Back to Workspace` affordance ??instead of stacking the
  * sub-navigation inside the root tree.
  *
  * Architecture:

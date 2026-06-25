@@ -57,13 +57,13 @@ export function SidebarModulesCard() {
   const sectionDefs: SectionDef[] = [
     {
       key: 'chat',
-      title: t('Chat Area'),
-      description: t('Playground and chat functions'),
+      title: t('Workspaces'),
+      description: t('Team, personal, and AI workspaces.'),
       modules: [
         {
           key: 'playground',
-          title: t('Playground'),
-          description: t('AI model testing environment'),
+          title: t('Model Playground'),
+          description: t('Try models and prompts in a dedicated test workspace.'),
         },
         {
           key: 'hermes_playground',
@@ -89,33 +89,33 @@ export function SidebarModulesCard() {
     },
     {
       key: 'console',
-      title: t('Console Area'),
-      description: t('Data management and log viewing'),
+      title: t('Management Backend'),
+      description: t('Access keys, usage records, and management overview.'),
       modules: [
         {
           key: 'detail',
-          title: t('Dashboard'),
-          description: t('System data statistics'),
+          title: t('Data Dashboard'),
+          description: t('Usage metrics and trend charts.'),
         },
         {
           key: 'token',
-          title: t('Token Management'),
-          description: t('API token management'),
+          title: t('Access Keys'),
+          description: t('Create and manage integration keys.'),
         },
         {
           key: 'log',
-          title: t('Usage Logs'),
-          description: t('API usage records'),
+          title: t('Usage Details'),
+          description: t('Detailed request records for review.'),
         },
         {
           key: 'midjourney',
-          title: t('Drawing Logs'),
+          title: t('Drawing Records'),
           description: t('Drawing task records'),
         },
         {
           key: 'task',
-          title: t('Task Logs'),
-          description: t('System task records'),
+          title: t('Task Records'),
+          description: t('Background task records.'),
         },
       ],
     },
