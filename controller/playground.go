@@ -329,8 +329,12 @@ func applyHermesPlaygroundHeaderOverride(c *gin.Context, userId int) {
 }
 
 func buildHermesPlaygroundAttributionHeaders(c *gin.Context, userId int) map[string]string {
-	sessionID := scopedHermesSessionID(userId, c.GetHeader("X-Baizor-Hermes-Session"))
 	teamID := common.GetContextKeyInt(c, constant.ContextKeyTeamId)
+	workspace := strings.ToLower(strings.TrimSpace(c.GetHeader("X-Baizor-Hermes-Workspace")))
+	sessionID := scopedHermesSessionID(userId, c.GetHeader("X-Baizor-Hermes-Session"))
+	if teamID > 0 && workspace == "team_workspace" {
+		sessionID = scopedHermesTeamSessionID(teamID, c.GetHeader("X-Baizor-Hermes-Session"))
+	}
 	teamName := common.GetContextKeyString(c, constant.ContextKeyTeamName)
 	billingScope := common.HermesBillingScopeUser
 	if teamID > 0 {
@@ -484,6 +488,14 @@ func scopedHermesSessionID(userID int, sessionID string) string {
 		return "user-" + strconv.Itoa(userID)
 	}
 	return "user-" + strconv.Itoa(userID) + "-" + cleanSessionID
+}
+
+func scopedHermesTeamSessionID(teamID int, sessionID string) string {
+	cleanSessionID := sanitizeHermesSessionID(sessionID)
+	if cleanSessionID == "" {
+		return "team-" + strconv.Itoa(teamID)
+	}
+	return "team-" + strconv.Itoa(teamID) + "-" + cleanSessionID
 }
 
 func sanitizeHermesPathSegment(value string) string {

@@ -1,0 +1,95 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+
+import {
+  HermesAgentWorkspace,
+  type HermesPromptSuggestion,
+} from '@/features/hermes-playground/components/hermes-agent-workspace'
+import { isSidebarModuleEnabled } from '@/lib/nav-modules'
+
+export const Route = createFileRoute('/_authenticated/team-workspace/')({
+  beforeLoad: () => {
+    if (!isSidebarModuleEnabled('chat', 'team_workspace')) {
+      throw redirect({ to: '/dashboard' })
+    }
+  },
+  component: TeamWorkspacePage,
+})
+
+function TeamWorkspacePage() {
+  const { t } = useTranslation()
+
+  const suggestedPrompts = useMemo<HermesPromptSuggestion[]>(
+    () => [
+      {
+        label: t('Team Daily Plan'),
+        prompt: t(
+          'Create a concise team work plan for today. Include shared priorities, owners, risks, required inputs and next actions.'
+        ),
+      },
+      {
+        label: t('Project Brief'),
+        prompt: t(
+          'Turn this discussion into a project brief. Include goal, scope, roles, milestones, deliverables, risks and acceptance criteria.'
+        ),
+      },
+      {
+        label: t('Meeting Summary'),
+        prompt: t(
+          'Summarize this team discussion into decisions, open questions, action items, owners and due dates.'
+        ),
+      },
+      {
+        label: t('Task Breakdown'),
+        prompt: t(
+          'Break this team objective into executable tasks. Include owners, dependencies, estimated effort, priority and definition of done.'
+        ),
+      },
+      {
+        label: t('Delivery Review'),
+        prompt: t(
+          'Review current project delivery. Identify progress, blockers, quality risks, customer-facing updates and next actions.'
+        ),
+      },
+      {
+        label: t('Knowledge Base'),
+        prompt: t(
+          'Organize this conversation into reusable team knowledge. Include background, process, templates, examples and follow-up items.'
+        ),
+      },
+    ],
+    [t]
+  )
+
+  return (
+    <HermesAgentWorkspace
+      baseScopePrefix='team_workspace'
+      defaultSystemPrompt={t(
+        'You are a team collaboration assistant. Use Chinese by default. Help team members complete shared work through skills, tools, structured documents, task breakdowns, project plans, meeting summaries and delivery reviews. Keep outputs practical, traceable and suitable for team reuse.'
+      )}
+      emptyModelsMessage={t('No Hermes models available')}
+      queryKeyPrefix='team-workspace'
+      suggestedPrompts={suggestedPrompts}
+      workspaceMode='team'
+    />
+  )
+}

@@ -100,6 +100,10 @@ export function SidebarModulesSection({
         title: t('My One-Person Company'),
         description: t('Run a Hermes-powered operating workspace for solo business work.'),
       },
+      team_workspace: {
+        title: t('My Teams'),
+        description: t('Team collaboration workspace'),
+      },
       chat: {
         title: t('Chat'),
         description: t('Access previous conversations and start new ones.'),

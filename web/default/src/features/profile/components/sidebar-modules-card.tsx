@@ -76,6 +76,11 @@ export function SidebarModulesCard() {
           description: t('Hermes-powered solo business workspace'),
         },
         {
+          key: 'team_workspace',
+          title: t('My Teams'),
+          description: t('Team collaboration workspace'),
+        },
+        {
           key: 'chat',
           title: t('Chat'),
           description: t('Chat session management'),

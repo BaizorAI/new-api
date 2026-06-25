@@ -73,28 +73,25 @@ interface HermesAgentWorkspaceProps {
   emptyModelsMessage: string
   queryKeyPrefix: string
   suggestedPrompts?: HermesPromptSuggestion[]
+  workspaceMode?: 'personal' | 'team'
 }
 
 export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const userId = useAuthStore((s) => s.auth.user?.id)
-  const baseScope = getHermesBaseScope(userId, props.baseScopePrefix)
+  const isTeamWorkspace = props.workspaceMode === 'team'
   const queryUserScope = String(userId ?? 'anonymous')
-  const [sessions, setSessions] = useState<HermesConversation[]>(() =>
-    loadHermesConversations(baseScope)
-  )
-  const [activeSessionId, setActiveSessionId] = useState(() =>
-    loadActiveConversationId(baseScope, sessions)
+  const [billingOwner, setBillingOwner] = useState(() =>
+    isTeamWorkspace ? '' : 'personal'
   )
   const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false)
   const [editSkill, setEditSkill] = useState<HermesSkill | null>(null)
   const [isCapabilityCenterOpen, setIsCapabilityCenterOpen] = useState(false)
   const [isResultsOpen, setIsResultsOpen] = useState(false)
   const [isMessagePlatformsOpen, setIsMessagePlatformsOpen] = useState(false)
-  const [billingOwner, setBillingOwner] = useState('personal')
 
-  const { data: teamsResponse } = useQuery({
+  const { data: teamsResponse, isLoading: isTeamsLoading } = useQuery({
     queryKey: [props.queryKeyPrefix, queryUserScope, 'teams'],
     queryFn: listTeams,
   })
@@ -107,12 +104,43 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     ? Number(billingOwner.slice('team:'.length))
     : 0
 
+  const baseScope = useMemo(() => {
+    if (isTeamWorkspace) {
+      return selectedTeamId > 0
+        ? `team_workspace_team_${selectedTeamId}`
+        : 'team_workspace_pending'
+    }
+    return getHermesBaseScope(userId, props.baseScopePrefix)
+  }, [isTeamWorkspace, props.baseScopePrefix, selectedTeamId, userId])
+
+  const [sessions, setSessions] = useState<HermesConversation[]>(() =>
+    loadHermesConversations(baseScope)
+  )
+  const [activeSessionId, setActiveSessionId] = useState(() =>
+    loadActiveConversationId(baseScope, sessions)
+  )
+
   useEffect(() => {
+    if (isTeamWorkspace) {
+      const fallbackTeam = teams[0]
+      if (!fallbackTeam) return
+      if (!teams.some((team) => team.id === selectedTeamId)) {
+        setBillingOwner(`team:${fallbackTeam.id}`)
+      }
+      return
+    }
+
     if (billingOwner === 'personal') return
     if (!teams.some((team) => team.id === selectedTeamId)) {
       setBillingOwner('personal')
     }
-  }, [billingOwner, selectedTeamId, teams])
+  }, [billingOwner, isTeamWorkspace, selectedTeamId, teams])
+
+  useEffect(() => {
+    const nextSessions = loadHermesConversations(baseScope)
+    setSessions(nextSessions)
+    setActiveSessionId(loadActiveConversationId(baseScope, nextSessions))
+  }, [baseScope])
 
   const reloadSessions = useCallback(() => {
     const nextSessions = loadHermesConversations(baseScope)
@@ -187,9 +215,12 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   }, [])
 
   const requestHeaders = useMemo(() => {
+    const hermesSessionId = isTeamWorkspace
+      ? `team_workspace_${selectedTeamId || 0}_${activeSession.id}`
+      : activeSession.hermesSessionId
     const headers: Record<string, string> = {
       'X-Baizor-Playground': 'hermes',
-      'X-Baizor-Hermes-Session': activeSession.hermesSessionId,
+      'X-Baizor-Hermes-Session': hermesSessionId,
     }
     if (props.baseScopePrefix) {
       headers['X-Baizor-Hermes-Workspace'] = props.baseScopePrefix
@@ -198,7 +229,13 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       headers['X-Baizor-Team-Id'] = String(selectedTeamId)
     }
     return headers
-  }, [activeSession.hermesSessionId, props.baseScopePrefix, selectedTeamId])
+  }, [
+    activeSession.hermesSessionId,
+    activeSession.id,
+    isTeamWorkspace,
+    props.baseScopePrefix,
+    selectedTeamId,
+  ])
 
   const updateActiveSessionFromMessages = useCallback(
     (messages: Message[]) => {
@@ -261,6 +298,22 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     })
   }, [queryClient, queryUserScope])
 
+  if (isTeamWorkspace && selectedTeamId <= 0) {
+    return (
+      <Main className='flex min-h-[calc(100vh-var(--app-header-height,0px))] items-center justify-center p-6'>
+        <div className='text-center'>
+          <Building2Icon className='text-muted-foreground mx-auto mb-3 size-8' />
+          <h2 className='text-lg font-semibold'>{t('My Teams')}</h2>
+          <p className='text-muted-foreground mt-1 text-sm'>
+            {isTeamsLoading
+              ? t('Loading teams...')
+              : t('Create or join a team to use the team workspace.')}
+          </p>
+        </div>
+      </Main>
+    )
+  }
+
   return (
     <Main className='relative p-0'>
       <div className='absolute top-3 right-3 z-10 flex items-center gap-2'>
@@ -279,10 +332,12 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
             </SelectTrigger>
             <SelectContent align='end' alignItemWithTrigger={false}>
               <SelectGroup>
-                <SelectItem value='personal'>
-                  <WalletCardsIcon className='size-4' />
-                  <span>{t('Personal Wallet')}</span>
-                </SelectItem>
+                {!isTeamWorkspace && (
+                  <SelectItem value='personal'>
+                    <WalletCardsIcon className='size-4' />
+                    <span>{t('Personal Wallet')}</span>
+                  </SelectItem>
+                )}
                 {teams.map((team) => (
                   <SelectItem key={team.id} value={`team:${team.id}`}>
                     <Building2Icon className='size-4' />

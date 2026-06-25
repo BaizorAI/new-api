@@ -59,6 +59,7 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
     playground: true,
     hermes_playground: true,
     one_person_company: true,
+    team_workspace: true,
     chat: true,
   },
   console: {

@@ -41,6 +41,7 @@ import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
 import { Route as AuthenticatedUsageLogsIndexRouteImport } from './routes/_authenticated/usage-logs/index'
 import { Route as AuthenticatedTeamsIndexRouteImport } from './routes/_authenticated/teams/index'
+import { Route as AuthenticatedTeamWorkspaceIndexRouteImport } from './routes/_authenticated/team-workspace/index'
 import { Route as AuthenticatedSystemSettingsIndexRouteImport } from './routes/_authenticated/system-settings/index'
 import { Route as AuthenticatedSystemInfoIndexRouteImport } from './routes/_authenticated/system-info/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
@@ -235,6 +236,12 @@ const AuthenticatedTeamsIndexRoute = AuthenticatedTeamsIndexRouteImport.update({
   path: '/teams/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTeamWorkspaceIndexRoute =
+  AuthenticatedTeamWorkspaceIndexRouteImport.update({
+    id: '/team-workspace/',
+    path: '/team-workspace/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSystemSettingsIndexRoute =
   AuthenticatedSystemSettingsIndexRouteImport.update({
     id: '/',
@@ -469,6 +476,7 @@ export interface FileRoutesByFullPath {
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
+  '/team-workspace/': typeof AuthenticatedTeamWorkspaceIndexRoute
   '/teams/': typeof AuthenticatedTeamsIndexRoute
   '/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
@@ -532,6 +540,7 @@ export interface FileRoutesByTo {
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings': typeof AuthenticatedSystemSettingsIndexRoute
+  '/team-workspace': typeof AuthenticatedTeamWorkspaceIndexRoute
   '/teams': typeof AuthenticatedTeamsIndexRoute
   '/usage-logs': typeof AuthenticatedUsageLogsIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
@@ -599,6 +608,7 @@ export interface FileRoutesById {
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/_authenticated/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/_authenticated/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
+  '/_authenticated/team-workspace/': typeof AuthenticatedTeamWorkspaceIndexRoute
   '/_authenticated/teams/': typeof AuthenticatedTeamsIndexRoute
   '/_authenticated/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
@@ -665,6 +675,7 @@ export interface FileRouteTypes {
     | '/subscriptions/'
     | '/system-info/'
     | '/system-settings/'
+    | '/team-workspace/'
     | '/teams/'
     | '/usage-logs/'
     | '/users/'
@@ -728,6 +739,7 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/system-info'
     | '/system-settings'
+    | '/team-workspace'
     | '/teams'
     | '/usage-logs'
     | '/users'
@@ -794,6 +806,7 @@ export interface FileRouteTypes {
     | '/_authenticated/subscriptions/'
     | '/_authenticated/system-info/'
     | '/_authenticated/system-settings/'
+    | '/_authenticated/team-workspace/'
     | '/_authenticated/teams/'
     | '/_authenticated/usage-logs/'
     | '/_authenticated/users/'
@@ -1061,6 +1074,13 @@ declare module '@tanstack/react-router' {
       path: '/teams'
       fullPath: '/teams/'
       preLoaderRoute: typeof AuthenticatedTeamsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/team-workspace/': {
+      id: '/_authenticated/team-workspace/'
+      path: '/team-workspace'
+      fullPath: '/team-workspace/'
+      preLoaderRoute: typeof AuthenticatedTeamWorkspaceIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/system-settings/': {
@@ -1392,6 +1412,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
   AuthenticatedSubscriptionsIndexRoute: typeof AuthenticatedSubscriptionsIndexRoute
   AuthenticatedSystemInfoIndexRoute: typeof AuthenticatedSystemInfoIndexRoute
+  AuthenticatedTeamWorkspaceIndexRoute: typeof AuthenticatedTeamWorkspaceIndexRoute
   AuthenticatedTeamsIndexRoute: typeof AuthenticatedTeamsIndexRoute
   AuthenticatedUsageLogsIndexRoute: typeof AuthenticatedUsageLogsIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
@@ -1421,6 +1442,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedRedemptionCodesIndexRoute,
   AuthenticatedSubscriptionsIndexRoute: AuthenticatedSubscriptionsIndexRoute,
   AuthenticatedSystemInfoIndexRoute: AuthenticatedSystemInfoIndexRoute,
+  AuthenticatedTeamWorkspaceIndexRoute: AuthenticatedTeamWorkspaceIndexRoute,
   AuthenticatedTeamsIndexRoute: AuthenticatedTeamsIndexRoute,
   AuthenticatedUsageLogsIndexRoute: AuthenticatedUsageLogsIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,

@@ -83,6 +83,26 @@ func TestApplyHermesPlaygroundHeaderOverrideAddsTeamAttribution(t *testing.T) {
 	assert.Equal(t, "user-42-session_team", delegation.SessionID)
 }
 
+func TestApplyHermesPlaygroundHeaderOverrideUsesTeamScopedSessionForTeamWorkspace(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	t.Setenv("HERMES_API_SERVER_KEY", "test-secret")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/pg/chat/completions", nil)
+	c.Request.Header.Set("X-Baizor-Playground", "hermes")
+	c.Request.Header.Set("X-Baizor-Hermes-Workspace", "team_workspace")
+	c.Request.Header.Set("X-Baizor-Hermes-Session", "team_workspace_7_default")
+	common.SetContextKey(c, constant.ContextKeyTeamId, 7)
+
+	applyHermesPlaygroundHeaderOverride(c, 42)
+
+	headers := common.GetContextKeyStringMap(c, constant.ContextKeyChannelHeaderOverride)
+	require.NotNil(t, headers)
+	assert.Equal(t, "team-7-team_workspace_7_default", headers["X-Hermes-Session-Id"])
+	assert.Equal(t, "team-7-team_workspace_7_default", headers[common.HermesDelegatedSessionIDHeader])
+}
+
 func TestApplyHermesRequestedBillingContextValidatesTeamMembership(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := setupModelListControllerTestDB(t)

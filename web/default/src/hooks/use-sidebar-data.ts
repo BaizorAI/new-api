@@ -54,17 +54,25 @@ export function useSidebarData(): SidebarData {
     navGroups: [
       {
         id: 'chat',
-        title: t('Chat'),
+        title: t('Workspaces'),
         items: [
           {
             title: t('HermesAgent'),
+            description: t('Personal AI workspace'),
             icon: IconHermes,
             type: 'hermes-sessions',
           },
           {
             title: t('My One-Person Company'),
+            description: t('Personal business and project workspace'),
             url: '/one-person-company',
             icon: BriefcaseBusiness,
+          },
+          {
+            title: t('My Teams'),
+            description: t('Team collaboration workspace'),
+            url: '/team-workspace',
+            icon: Users,
           },
           {
             title: t('Playground'),
@@ -98,7 +106,7 @@ export function useSidebarData(): SidebarData {
             icon: Key,
           },
           {
-            title: t('Teams'),
+            title: t('Team Management'),
             url: '/teams',
             icon: Users,
           },

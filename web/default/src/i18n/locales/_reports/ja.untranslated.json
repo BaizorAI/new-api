@@ -201,5 +201,21 @@
   "WeChat Pay merchant account with Native payment enabled": "WeChat Pay merchant account with Native payment enabled",
   "WeChat Pay merchant AppID (from WeChat Pay merchant platform)": "WeChat Pay merchant AppID (from WeChat Pay merchant platform)",
   "WeChat Pay merchant ID (mchid)": "WeChat Pay merchant ID (mchid)",
-  "WeChat Pay Native": "WeChat Pay Native"
+  "WeChat Pay Native": "WeChat Pay Native",
+  "Workspaces": "Workspaces",
+  "Team Daily Plan": "Team Daily Plan",
+  "Create a concise team work plan for today. Include shared priorities, owners, risks, required inputs and next actions.": "Create a concise team work plan for today. Include shared priorities, owners, risks, required inputs and next actions.",
+  "Project Brief": "Project Brief",
+  "Turn this discussion into a project brief. Include goal, scope, roles, milestones, deliverables, risks and acceptance criteria.": "Turn this discussion into a project brief. Include goal, scope, roles, milestones, deliverables, risks and acceptance criteria.",
+  "Meeting Summary": "Meeting Summary",
+  "Summarize this team discussion into decisions, open questions, action items, owners and due dates.": "Summarize this team discussion into decisions, open questions, action items, owners and due dates.",
+  "Task Breakdown": "Task Breakdown",
+  "Break this team objective into executable tasks. Include owners, dependencies, estimated effort, priority and definition of done.": "Break this team objective into executable tasks. Include owners, dependencies, estimated effort, priority and definition of done.",
+  "Delivery Review": "Delivery Review",
+  "Review current project delivery. Identify progress, blockers, quality risks, customer-facing updates and next actions.": "Review current project delivery. Identify progress, blockers, quality risks, customer-facing updates and next actions.",
+  "Knowledge Base": "Knowledge Base",
+  "Organize this conversation into reusable team knowledge. Include background, process, templates, examples and follow-up items.": "Organize this conversation into reusable team knowledge. Include background, process, templates, examples and follow-up items.",
+  "You are a team collaboration assistant. Use Chinese by default. Help team members complete shared work through skills, tools, structured documents, task breakdowns, project plans, meeting summaries and delivery reviews. Keep outputs practical, traceable and suitable for team reuse.": "You are a team collaboration assistant. Use Chinese by default. Help team members complete shared work through skills, tools, structured documents, task breakdowns, project plans, meeting summaries and delivery reviews. Keep outputs practical, traceable and suitable for team reuse.",
+  "Loading teams...": "Loading teams...",
+  "Create or join a team to use the team workspace.": "Create or join a team to use the team workspace."
 }

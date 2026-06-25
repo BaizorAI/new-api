@@ -316,7 +316,8 @@ export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
             <DropdownMenuTrigger
               render={
                 <SidebarMenuButton
-                  tooltip={item.title}
+                  title={item.description ?? item.title}
+                  tooltip={item.description ?? item.title}
                   isActive={isHermesActive}
                 />
               }
@@ -393,7 +394,13 @@ export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
       >
         <CollapsibleTrigger
           className='group/collapsible-trigger'
-          render={<SidebarMenuButton isActive={isHermesActive} />}
+          render={
+            <SidebarMenuButton
+              title={item.description ?? item.title}
+              tooltip={item.description ?? item.title}
+              isActive={isHermesActive}
+            />
+          }
         >
           {item.icon ? (
             <item.icon className='shrink-0' />
