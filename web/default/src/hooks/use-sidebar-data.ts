@@ -71,8 +71,8 @@ export function useSidebarData(): SidebarData {
           {
             title: t('My Teams'),
             description: t('Team collaboration workspace'),
-            url: '/team-workspace',
             icon: Users,
+            type: 'team-workspaces',
           },
           {
             title: t('Playground'),
@@ -186,3 +186,4 @@ export function useSidebarData(): SidebarData {
     ],
   }
 }
+

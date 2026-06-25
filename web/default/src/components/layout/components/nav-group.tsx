@@ -53,12 +53,14 @@ import type {
   NavChatPresets,
   NavHermesSessions,
   NavPlaygroundSessions,
+  NavTeamWorkspaces,
   NavLink,
   NavGroup as NavGroupProps,
 } from '../types'
 import { ChatPresetsItem } from './chat-presets-item'
 import { HermesSessionsItem } from './hermes-sessions-item'
 import { PlaygroundSessionsItem } from './playground-sessions-item'
+import { TeamWorkspacesItem } from './team-workspaces-item'
 
 /**
  * Sidebar navigation group component
@@ -94,6 +96,12 @@ export function NavGroup({ title, items }: NavGroupProps) {
                 key={key}
                 item={item as NavPlaygroundSessions}
               />
+            )
+          }
+
+          if (item.type === 'team-workspaces') {
+            return (
+              <TeamWorkspacesItem key={key} item={item as NavTeamWorkspaces} />
             )
           }
 
@@ -278,3 +286,5 @@ function SidebarMenuCollapsedDropdown({
     </SidebarMenuItem>
   )
 }
+
+

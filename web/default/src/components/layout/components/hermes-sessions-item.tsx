@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (C) 2023-2026 QuantumNous
 
 This program is free software: you can redistribute it and/or modify
@@ -388,7 +388,7 @@ export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
   return (
     <>
       <Collapsible
-        defaultOpen={isHermesActive}
+        defaultOpen
         className='group/collapsible'
         render={<SidebarMenuItem />}
       >
@@ -711,3 +711,4 @@ function sanitizeDownloadFilename(filename: string): string {
     .join('')
   return safeName || 'hermes-session.json'
 }
+

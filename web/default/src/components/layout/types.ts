@@ -74,6 +74,15 @@ export type NavHermesSessions = BaseNavItem & {
 }
 
 /**
+ * Dynamic team workspaces type - current user's team workspace list.
+ */
+export type NavTeamWorkspaces = BaseNavItem & {
+  type: 'team-workspaces'
+  url?: never
+  items?: never
+}
+
+/**
  * Dynamic Playground conversations type - locally persisted conversation tree.
  */
 export type NavPlaygroundSessions = BaseNavItem & {
@@ -90,6 +99,7 @@ export type NavItem =
   | NavLink
   | NavChatPresets
   | NavHermesSessions
+  | NavTeamWorkspaces
   | NavPlaygroundSessions
 
 /**

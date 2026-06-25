@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useMemo } from 'react'
+import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -26,7 +27,13 @@ import {
 } from '@/features/hermes-playground/components/hermes-agent-workspace'
 import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 
+const teamWorkspaceSearchSchema = z.object({
+  team_id: z.coerce.number().int().positive().optional().catch(undefined),
+  panel: z.enum(['sessions', 'results', 'skills']).optional().catch(undefined),
+})
+
 export const Route = createFileRoute('/_authenticated/team-workspace/')({
+  validateSearch: teamWorkspaceSearchSchema,
   beforeLoad: () => {
     if (!isSidebarModuleEnabled('chat', 'team_workspace')) {
       throw redirect({ to: '/dashboard' })
@@ -37,6 +44,7 @@ export const Route = createFileRoute('/_authenticated/team-workspace/')({
 
 function TeamWorkspacePage() {
   const { t } = useTranslation()
+  const { panel, team_id } = Route.useSearch()
 
   const suggestedPrompts = useMemo<HermesPromptSuggestion[]>(
     () => [
@@ -87,6 +95,8 @@ function TeamWorkspacePage() {
         'You are a team collaboration assistant. Use Chinese by default. Help team members complete shared work through skills, tools, structured documents, task breakdowns, project plans, meeting summaries and delivery reviews. Keep outputs practical, traceable and suitable for team reuse.'
       )}
       emptyModelsMessage={t('No Hermes models available')}
+      initialPanel={panel}
+      initialTeamId={team_id}
       queryKeyPrefix='team-workspace'
       suggestedPrompts={suggestedPrompts}
       workspaceMode='team'

@@ -71,6 +71,7 @@ interface HermesAgentWorkspaceProps {
   baseScopePrefix?: string
   defaultSystemPrompt: string
   emptyModelsMessage: string
+  initialTeamId?: number
   queryKeyPrefix: string
   suggestedPrompts?: HermesPromptSuggestion[]
   workspaceMode?: 'personal' | 'team'
@@ -82,9 +83,12 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const userId = useAuthStore((s) => s.auth.user?.id)
   const isTeamWorkspace = props.workspaceMode === 'team'
   const queryUserScope = String(userId ?? 'anonymous')
-  const [billingOwner, setBillingOwner] = useState(() =>
-    isTeamWorkspace ? '' : 'personal'
-  )
+  const [billingOwner, setBillingOwner] = useState(() => {
+    if (isTeamWorkspace && props.initialTeamId) {
+      return `team:${props.initialTeamId}`
+    }
+    return isTeamWorkspace ? '' : 'personal'
+  })
   const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false)
   const [editSkill, setEditSkill] = useState<HermesSkill | null>(null)
   const [isCapabilityCenterOpen, setIsCapabilityCenterOpen] = useState(false)
@@ -119,6 +123,12 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const [activeSessionId, setActiveSessionId] = useState(() =>
     loadActiveConversationId(baseScope, sessions)
   )
+
+  useEffect(() => {
+    if (isTeamWorkspace && props.initialTeamId) {
+      setBillingOwner(`team:${props.initialTeamId}`)
+    }
+  }, [isTeamWorkspace, props.initialTeamId])
 
   useEffect(() => {
     if (isTeamWorkspace) {
@@ -439,3 +449,4 @@ function sanitizeDownloadFilename(filename: string): string {
     .join('')
   return safeName || 'hermes-session.json'
 }
+

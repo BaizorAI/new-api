@@ -18,6 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
 
+import type { Message } from '@/features/playground/types'
+import type { HermesConversation } from './sessions'
+
 export interface CreateHermesSkillPayload {
   name: string
   description: string
@@ -69,6 +72,62 @@ export interface HermesWeixinStatus {
   listenerError?: string
   message?: string
   removedAccounts?: number
+}
+
+export interface HermesTeamConversationRecord extends HermesConversation {
+  messages: Message[]
+  createdBy?: number
+  updatedBy?: number
+}
+
+export async function listTeamHermesConversations(
+  teamId: number
+): Promise<HermesTeamConversationRecord[]> {
+  const response = await api.get(
+    `/api/team/${teamId}/hermes/conversations`,
+    {
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    }
+  )
+  return normalizeTeamConversationsResponse(response.data)
+}
+
+export async function upsertTeamHermesConversation(
+  teamId: number,
+  conversation: HermesTeamConversationRecord
+) {
+  const response = await api.put(
+    `/api/team/${teamId}/hermes/conversations/${encodeURIComponent(conversation.id)}`,
+    {
+      id: conversation.id,
+      title: conversation.title,
+      storage_scope: conversation.storageScope,
+      hermes_session_id: conversation.hermesSessionId,
+      pinned: Boolean(conversation.pinned),
+      archived: Boolean(conversation.archived),
+      messages: conversation.messages,
+    },
+    {
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    }
+  )
+  return response.data
+}
+
+export async function deleteTeamHermesConversation(
+  teamId: number,
+  conversationId: string
+) {
+  const response = await api.delete(
+    `/api/team/${teamId}/hermes/conversations/${encodeURIComponent(conversationId)}`,
+    {
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    }
+  )
+  return response.data
 }
 
 export async function createHermesSkill(payload: CreateHermesSkillPayload) {
@@ -266,6 +325,31 @@ function getHermesRequestErrorMessage(error: unknown): string {
   if (fallback) return fallback
 
   return 'Failed to add skill'
+}
+
+function normalizeTeamConversationsResponse(
+  payload: unknown
+): HermesTeamConversationRecord[] {
+  const record = asRecord(payload)
+  const rawConversations = arrayFromUnknown(record.data)
+  if (!rawConversations) return []
+
+  return rawConversations.map((item) => {
+    const conversation = asRecord(item)
+    return {
+      id: stringFromUnknown(conversation.id),
+      title: stringFromUnknown(conversation.title),
+      storageScope: stringFromUnknown(conversation.storage_scope),
+      hermesSessionId: stringFromUnknown(conversation.hermes_session_id),
+      createdAt: numberFromUnknown(conversation.created_at) ?? Date.now(),
+      updatedAt: numberFromUnknown(conversation.updated_at) ?? Date.now(),
+      pinned: booleanFromUnknown(conversation.pinned) ?? false,
+      archived: booleanFromUnknown(conversation.archived) ?? false,
+      createdBy: numberFromUnknown(conversation.created_by) ?? undefined,
+      updatedBy: numberFromUnknown(conversation.updated_by) ?? undefined,
+      messages: (arrayFromUnknown(conversation.messages) ?? []) as Message[],
+    }
+  })
 }
 
 function normalizeSkillsResponse(payload: unknown): HermesSkill[] {
