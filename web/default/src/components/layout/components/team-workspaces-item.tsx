@@ -18,8 +18,15 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from '@tanstack/react-router'
-import { Building2, ChevronRight, Users } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import {
+  Building2,
+  ChevronRight,
+  FileCheck2,
+  MessageSquare,
+  Sparkles,
+  Users,
+} from 'lucide-react'
+import { useEffect, useMemo, useState, type ElementType } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -175,6 +182,8 @@ export function TeamWorkspacesItem({ item }: { item: NavTeamWorkspaces }) {
   )
 }
 
+type TeamWorkspacePanel = 'sessions' | 'results' | 'skills'
+
 function SidebarTeamItems(props: {
   href: string
   isLoading: boolean
@@ -203,7 +212,7 @@ function SidebarTeamItems(props: {
     )
   }
 
-  return props.teams.map((team) => (
+  return props.teams.flatMap((team) => [
     <SidebarMenuSubItem key={team.id}>
       <SidebarMenuSubButton
         isActive={isTeamUrlActive(props.href, team.id)}
@@ -218,8 +227,63 @@ function SidebarTeamItems(props: {
         <Building2 className='size-3.5' />
         <span>{team.name}</span>
       </SidebarMenuSubButton>
+    </SidebarMenuSubItem>,
+    <SidebarTeamPanelItem
+      key={team.id + '-sessions'}
+      href={props.href}
+      team={team}
+      panel='sessions'
+      title={t('Team sessions')}
+      icon={MessageSquare}
+      onNavigate={props.onNavigate}
+    />,
+    <SidebarTeamPanelItem
+      key={team.id + '-results'}
+      href={props.href}
+      team={team}
+      panel='results'
+      title={t('Team results')}
+      icon={FileCheck2}
+      onNavigate={props.onNavigate}
+    />,
+    <SidebarTeamPanelItem
+      key={team.id + '-skills'}
+      href={props.href}
+      team={team}
+      panel='skills'
+      title={t('Team skills')}
+      icon={Sparkles}
+      onNavigate={props.onNavigate}
+    />,
+  ])
+}
+
+function SidebarTeamPanelItem(props: {
+  href: string
+  team: Team
+  panel: TeamWorkspacePanel
+  title: string
+  icon: ElementType
+  onNavigate: () => void
+}) {
+  return (
+    <SidebarMenuSubItem>
+      <SidebarMenuSubButton
+        className='pl-7'
+        isActive={isTeamUrlActive(props.href, props.team.id, props.panel)}
+        render={
+          <Link
+            to='/team-workspace'
+            search={{ team_id: props.team.id, panel: props.panel }}
+            onClick={props.onNavigate}
+          />
+        }
+      >
+        <props.icon className='size-3.5' />
+        <span>{props.title}</span>
+      </SidebarMenuSubButton>
     </SidebarMenuSubItem>
-  ))
+  )
 }
 
 function DropdownTeamItems(props: {
@@ -246,31 +310,84 @@ function DropdownTeamItems(props: {
     )
   }
 
-  return props.teams.map((team) => (
+  return props.teams.flatMap((team) => [
+    <DropdownMenuLabel key={team.id + '-label'}>
+      {team.name}
+    </DropdownMenuLabel>,
+    <DropdownTeamPanelItem
+      key={team.id + '-sessions'}
+      href={props.href}
+      team={team}
+      panel='sessions'
+      title={t('Team sessions')}
+      icon={MessageSquare}
+      onNavigate={props.onNavigate}
+    />,
+    <DropdownTeamPanelItem
+      key={team.id + '-results'}
+      href={props.href}
+      team={team}
+      panel='results'
+      title={t('Team results')}
+      icon={FileCheck2}
+      onNavigate={props.onNavigate}
+    />,
+    <DropdownTeamPanelItem
+      key={team.id + '-skills'}
+      href={props.href}
+      team={team}
+      panel='skills'
+      title={t('Team skills')}
+      icon={Sparkles}
+      onNavigate={props.onNavigate}
+    />,
+  ])
+}
+
+function DropdownTeamPanelItem(props: {
+  href: string
+  team: Team
+  panel: TeamWorkspacePanel
+  title: string
+  icon: ElementType
+  onNavigate: () => void
+}) {
+  return (
     <DropdownMenuItem
-      key={team.id}
       render={
         <Link
           to='/team-workspace'
-          search={{ team_id: team.id }}
-          className={isTeamUrlActive(props.href, team.id) ? 'bg-secondary' : ''}
+          search={{ team_id: props.team.id, panel: props.panel }}
+          className={
+            isTeamUrlActive(props.href, props.team.id, props.panel)
+              ? 'bg-secondary'
+              : ''
+          }
           onClick={props.onNavigate}
         />
       }
     >
-      <Building2 className='size-4' />
-      <span className='max-w-52 text-wrap'>{team.name}</span>
+      <props.icon className='size-4' />
+      <span className='max-w-52 text-wrap'>{props.title}</span>
     </DropdownMenuItem>
-  ))
+  )
 }
 
-function isTeamUrlActive(href: string, teamId?: number): boolean {
+function isTeamUrlActive(
+  href: string,
+  teamId?: number,
+  panel?: TeamWorkspacePanel
+): boolean {
   if (normalizeHref(href) !== '/team-workspace') return false
 
   const search = href.split('?')[1] ?? ''
-  const activeTeamId = new URLSearchParams(search).get('team_id')
+  const params = new URLSearchParams(search)
+  const activeTeamId = params.get('team_id')
+  const activePanel = params.get('panel')
   if (teamId === undefined) return !activeTeamId
-  return activeTeamId === String(teamId)
+  if (activeTeamId !== String(teamId)) return false
+  if (panel === undefined) return !activePanel
+  return activePanel === panel
 }
 
 

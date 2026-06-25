@@ -107,6 +107,20 @@ func UpdatePendingTopUpStatus(tradeNo string, expectedPaymentProvider string, ta
 	})
 }
 
+func syncUserQuotaCacheFromDB(userId int) {
+	if userId <= 0 {
+		return
+	}
+	quota, err := GetUserQuota(userId, true)
+	if err != nil {
+		common.SysLog(fmt.Sprintf("failed to refresh user quota cache after topup: user_id=%d, error=%s", userId, err.Error()))
+		return
+	}
+	if err := updateUserQuotaCache(userId, quota); err != nil {
+		common.SysLog(fmt.Sprintf("failed to update user quota cache after topup: user_id=%d, error=%s", userId, err.Error()))
+	}
+}
+
 func Recharge(referenceId string, customerId string, callerIp string) (err error) {
 	if referenceId == "" {
 		return errors.New("未提供支付单号")
@@ -154,6 +168,8 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 		common.SysError("topup failed: " + err.Error())
 		return errors.New("充值失败，请稍后重试")
 	}
+
+	syncUserQuotaCacheFromDB(topUp.UserId)
 
 	RecordTopupLog(topUp.UserId, fmt.Sprintf("使用在线充值成功，充值金额: %v，支付金额：%d", logger.FormatQuota(int(quota)), topUp.Amount), callerIp, topUp.PaymentMethod, PaymentMethodStripe)
 
@@ -387,6 +403,8 @@ func ManualCompleteTopUp(tradeNo string, callerIp string) error {
 	}
 
 	// 事务外记录日志，避免阻塞
+	syncUserQuotaCacheFromDB(userId)
+
 	RecordTopupLog(userId, fmt.Sprintf("管理员补单成功，充值金额: %v，支付金额：%f", logger.FormatQuota(quotaToAdd), payMoney), callerIp, paymentMethod, "admin")
 	return nil
 }
@@ -460,6 +478,8 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 		return errors.New("充值失败，请稍后重试")
 	}
 
+	syncUserQuotaCacheFromDB(topUp.UserId)
+
 	RecordTopupLog(topUp.UserId, fmt.Sprintf("使用Creem充值成功，充值额度: %v，支付金额：%.2f", quota, topUp.Money), callerIp, topUp.PaymentMethod, PaymentMethodCreem)
 
 	return nil
@@ -521,6 +541,8 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 		return errors.New("充值失败，请稍后重试")
 	}
 
+	syncUserQuotaCacheFromDB(topUp.UserId)
+
 	if quotaToAdd > 0 {
 		RecordTopupLog(topUp.UserId, fmt.Sprintf("Waffo充值成功，充值额度: %v，支付金额: %.2f", logger.FormatQuota(quotaToAdd), topUp.Money), callerIp, topUp.PaymentMethod, PaymentMethodWaffo)
 	}
@@ -581,6 +603,8 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 		common.SysError("waffo pancake topup failed: " + err.Error())
 		return errors.New("充值失败，请稍后重试")
 	}
+
+	syncUserQuotaCacheFromDB(topUp.UserId)
 
 	if quotaToAdd > 0 {
 		RecordLog(topUp.UserId, LogTypeTopup, fmt.Sprintf("Waffo Pancake充值成功，充值额度: %v，支付金额: %.2f", logger.FormatQuota(quotaToAdd), topUp.Money))
@@ -646,6 +670,8 @@ func RechargeWeChatPay(tradeNo string, wechatTransactionId string, callerIp stri
 		common.SysError("wechat pay topup failed: " + err.Error())
 		return errors.New("充值失败，请稍后重试")
 	}
+
+	syncUserQuotaCacheFromDB(topUp.UserId)
 
 	if quotaToAdd > 0 {
 		_ = wechatTransactionId

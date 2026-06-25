@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Building2Icon, SparklesIcon, WalletCardsIcon } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Main } from '@/components/layout'
@@ -31,7 +31,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { HermesSkill } from '@/features/hermes-playground/api'
+import {
+  listTeamHermesConversations,
+  upsertTeamHermesConversation,
+  type HermesSkill,
+  type HermesTeamConversationRecord,
+} from '@/features/hermes-playground/api'
 import { HermesCapabilityCenter } from '@/features/hermes-playground/components/hermes-capability-center'
 import { HermesMessagePlatforms } from '@/features/hermes-playground/components/hermes-message-platforms'
 import { HermesResults } from '@/features/hermes-playground/components/hermes-results'
@@ -57,6 +62,10 @@ import {
 } from '@/features/hermes-playground/sessions'
 import { Playground } from '@/features/playground'
 import { DEFAULT_CONFIG } from '@/features/playground/constants'
+import {
+  createPlaygroundStorageKeys,
+  saveMessages,
+} from '@/features/playground/lib'
 import type { Message, ModelOption } from '@/features/playground/types'
 import { listTeams } from '@/features/teams/api'
 import { formatQuota } from '@/lib/format'
@@ -71,6 +80,7 @@ interface HermesAgentWorkspaceProps {
   baseScopePrefix?: string
   defaultSystemPrompt: string
   emptyModelsMessage: string
+  initialPanel?: 'sessions' | 'results' | 'skills'
   initialTeamId?: number
   queryKeyPrefix: string
   suggestedPrompts?: HermesPromptSuggestion[]
@@ -94,6 +104,9 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const [isCapabilityCenterOpen, setIsCapabilityCenterOpen] = useState(false)
   const [isResultsOpen, setIsResultsOpen] = useState(false)
   const [isMessagePlatformsOpen, setIsMessagePlatformsOpen] = useState(false)
+  const teamPersistTimerRef = useRef<number | null>(
+    null
+  )
 
   const { data: teamsResponse, isLoading: isTeamsLoading } = useQuery({
     queryKey: [props.queryKeyPrefix, queryUserScope, 'teams'],
@@ -107,6 +120,17 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const selectedTeamId = billingOwner.startsWith('team:')
     ? Number(billingOwner.slice('team:'.length))
     : 0
+
+  const teamConversationsQuery = useQuery({
+    queryKey: [
+      props.queryKeyPrefix,
+      queryUserScope,
+      'team-conversations',
+      selectedTeamId,
+    ],
+    queryFn: () => listTeamHermesConversations(selectedTeamId),
+    enabled: isTeamWorkspace && selectedTeamId > 0,
+  })
 
   const baseScope = useMemo(() => {
     if (isTeamWorkspace) {
@@ -152,6 +176,29 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     setActiveSessionId(loadActiveConversationId(baseScope, nextSessions))
   }, [baseScope])
 
+  useEffect(() => {
+    if (!isTeamWorkspace || selectedTeamId <= 0) return
+    if (!teamConversationsQuery.data) return
+    if (teamConversationsQuery.data.length === 0) return
+
+    const nextSessions = teamConversationsQuery.data.map((conversation) => {
+      const session = normalizePersistedConversation(conversation, baseScope)
+      saveMessages(
+        conversation.messages,
+        createPlaygroundStorageKeys(session.storageScope)
+      )
+      return session
+    })
+    saveHermesConversations(baseScope, nextSessions)
+    setSessions(nextSessions)
+    setActiveSessionId(loadActiveConversationId(baseScope, nextSessions))
+  }, [
+    baseScope,
+    isTeamWorkspace,
+    selectedTeamId,
+    teamConversationsQuery.data,
+  ])
+
   const reloadSessions = useCallback(() => {
     const nextSessions = loadHermesConversations(baseScope)
     setSessions(nextSessions)
@@ -166,6 +213,17 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       window.removeEventListener('storage', reloadSessions)
     }
   }, [reloadSessions])
+
+  useEffect(() => {
+    if (isTeamWorkspace && selectedTeamId > 0) {
+      if (props.initialPanel === 'skills') {
+        setIsCapabilityCenterOpen(true)
+      }
+      if (props.initialPanel === 'results') {
+        setIsResultsOpen(true)
+      }
+    }
+  }, [isTeamWorkspace, props.initialPanel, selectedTeamId])
 
   useEffect(() => {
     if (consumeHermesCapabilitiesOpenRequest()) {
@@ -247,15 +305,46 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     selectedTeamId,
   ])
 
+  const persistTeamConversation = useCallback(
+    (session: HermesConversation, messages: Message[]) => {
+      if (!isTeamWorkspace || selectedTeamId <= 0) return
+      if (teamPersistTimerRef.current) {
+        window.clearTimeout(teamPersistTimerRef.current)
+      }
+      teamPersistTimerRef.current = window.setTimeout(() => {
+        const payload: HermesTeamConversationRecord = {
+          ...session,
+          messages,
+        }
+        void upsertTeamHermesConversation(selectedTeamId, payload)
+      }, 800)
+    },
+    [isTeamWorkspace, selectedTeamId]
+  )
+
+  useEffect(() => {
+    return () => {
+      if (teamPersistTimerRef.current) {
+        window.clearTimeout(teamPersistTimerRef.current)
+      }
+    }
+  }, [])
+
   const updateActiveSessionFromMessages = useCallback(
     (messages: Message[]) => {
+      const now = Date.now()
+      const title = deriveConversationTitle(messages) ?? activeSession.title
+      const sessionToPersist = {
+        ...activeSession,
+        title,
+        updatedAt: now,
+      }
+      persistTeamConversation(sessionToPersist, messages)
+
       setSessions((prev) => {
-        const now = Date.now()
         let changed = false
         const next = prev.map((session) => {
           if (session.id !== activeSession.id) return session
-
-          const title = deriveConversationTitle(messages) ?? session.title
           if (
             session.title === title &&
             now - session.updatedAt < SESSION_TOUCH_INTERVAL_MS
@@ -264,11 +353,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
           }
 
           changed = true
-          return {
-            ...session,
-            title,
-            updatedAt: now,
-          }
+          return sessionToPersist
         })
 
         if (!changed) return prev
@@ -276,7 +361,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         return next
       })
     },
-    [activeSession.id, baseScope]
+    [activeSession, baseScope, persistTeamConversation]
   )
 
   const createSession = useCallback(() => {
@@ -286,7 +371,8 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     saveActiveConversationId(baseScope, nextSession.id)
     setSessions(nextSessions)
     setActiveSessionId(nextSession.id)
-  }, [baseScope, sessions])
+    persistTeamConversation(nextSession, [])
+  }, [baseScope, persistTeamConversation, sessions])
 
   const exportActiveSession = useCallback(
     (messages: Message[]) => {
@@ -428,6 +514,23 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   )
 }
 
+function normalizePersistedConversation(
+  conversation: HermesTeamConversationRecord,
+  baseScope: string
+): HermesConversation {
+  return {
+    id: conversation.id,
+    title: conversation.title,
+    storageScope:
+      conversation.storageScope || baseScope + '_session_' + conversation.id,
+    hermesSessionId: conversation.hermesSessionId || conversation.id,
+    createdAt: conversation.createdAt,
+    updatedAt: conversation.updatedAt,
+    pinned: conversation.pinned,
+    archived: conversation.archived,
+  }
+}
+
 function downloadJson(payload: unknown, filename: string): void {
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: 'application/json',
@@ -449,4 +552,5 @@ function sanitizeDownloadFilename(filename: string): string {
     .join('')
   return safeName || 'hermes-session.json'
 }
+
 
