@@ -106,7 +106,7 @@ function LegalLinks(props: { leadingSeparator?: boolean }) {
         <Fragment key={item.key}>
           {(props.leadingSeparator || index > 0) && (
             <span aria-hidden='true' className='text-muted-foreground/30'>
-              ¡¤
+              {'\u00b7'}
             </span>
           )}
           <Link

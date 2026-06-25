@@ -126,9 +126,9 @@ export type DataTableToolbarProps<TData> = {
   /**
    * Content rendered on the LEFT side of the secondary action row. When
    * provided the toolbar splits into two visual rows:
-   *   Row 1: search inputs / filter chips бн??Expand
+   *   Row 1: search inputs / filter chips -> Expand
    *   Row 2: expanded filters
-   *   Row 3: leftActions бн??Reset / Search / ViewOptions
+   *   Row 3: leftActions -> Reset / Search / ViewOptions
    */
   leftActions?: ReactNode
   /**

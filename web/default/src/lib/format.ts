@@ -236,8 +236,12 @@ function trimFixed(value: number, digits: number): string {
 }
 
 function formatChineseTokens(tokens: number): string {
-  if (tokens >= 100_000_000) return `${trimFixed(tokens / 100_000_000, 2)}亿`
-  if (tokens >= 10_000) return `${trimFixed(tokens / 10_000, 2)}万`
+  if (tokens >= 100_000_000) {
+    return `${trimFixed(tokens / 100_000_000, 2)}亿`
+  }
+  if (tokens >= 10_000) {
+    return `${trimFixed(tokens / 10_000, 2)}万`
+  }
   return `${Math.round(tokens).toLocaleString('zh-CN')}个`
 }
 

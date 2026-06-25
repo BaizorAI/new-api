@@ -25,20 +25,21 @@ import {
 } from '@/components/ui/popover'
 
 interface MaskedValueDisplayProps {
-  /** 弹层内标题，??"Full API Key" / "Full Code" */
+  /** Popover title, e.g. "Full API Key" / "Full Code" */
   label: string
-  /** 完整值，??Popover 内完整展??*/
+  /** Full value shown inside the popover */
   fullValue: string
-  /** 表格内显示的脱敏??*/
+  /** Masked value shown in the table */
   maskedValue: string
-  /** 复制按钮??tooltip */
+  /** Copy button tooltip */
   copyTooltip: string
-  /** 复制按钮??aria-label */
+  /** Copy button aria-label */
   copyAriaLabel: string
 }
 
 /**
- * 用于在表格中展示脱敏密钥/兑换码：点击显示完整内容（文本块完整显示，非 Input），支持一键复制?? */
+ * Displays a masked value in tables while exposing the full value in a popover.
+ */
 export function MaskedValueDisplay(props: MaskedValueDisplayProps) {
   return (
     <div className='flex max-w-full min-w-0 items-center'>
