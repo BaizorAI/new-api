@@ -160,7 +160,7 @@ export function useSidebarData(): SidebarData {
             icon: Users,
           },
           {
-            title: t('Redeem Codes'),
+            title: t('Redeem codes'),
             url: '/redemption-codes',
             icon: Ticket,
           },
