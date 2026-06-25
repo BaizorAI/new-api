@@ -72,9 +72,21 @@ export function buildLinuxDOOAuthUrl(clientId: string, state: string): string {
 /**
  * Build WeChat Open Platform OAuth URL
  */
-export function buildWeChatOpenOAuthUrl(appId: string, state: string): string {
+function getOAuthRedirectOrigin(serverAddress?: string): string {
+  const configuredAddress = serverAddress?.trim()
+  if (configuredAddress) {
+    return configuredAddress.replace(/\/+$/, '')
+  }
+  return window.location.origin
+}
+
+export function buildWeChatOpenOAuthUrl(
+  appId: string,
+  state: string,
+  serverAddress?: string
+): string {
   const redirectUri = encodeURIComponent(
-    `${window.location.origin}/oauth/wechat_open`
+    `${getOAuthRedirectOrigin(serverAddress)}/oauth/wechat_open`
   )
   return `https://open.weixin.qq.com/connect/qrconnect?appid=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=snsapi_login&state=${encodeURIComponent(state)}#wechat_redirect`
 }
@@ -83,9 +95,13 @@ export function buildWeChatOpenOAuthUrl(appId: string, state: string): string {
  * Build WeChat In-App Browser OAuth URL
  * Uses Official Account OAuth (snsapi_userinfo) for WeChat's built-in browser
  */
-export function buildWeChatInAppOAuthUrl(appId: string, state: string): string {
+export function buildWeChatInAppOAuthUrl(
+  appId: string,
+  state: string,
+  serverAddress?: string
+): string {
   const redirectUri = encodeURIComponent(
-    `${window.location.origin}/oauth/wechat_inapp`
+    `${getOAuthRedirectOrigin(serverAddress)}/oauth/wechat_inapp`
   )
   return `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=snsapi_userinfo&state=${encodeURIComponent(state)}#wechat_redirect`
 }

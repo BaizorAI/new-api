@@ -237,7 +237,11 @@ export function useOAuthLogin(status: SystemStatus | null) {
         return
       }
 
-      const url = buildWeChatOpenOAuthUrl(status.wechat_oauth_appid, state)
+      const url = buildWeChatOpenOAuthUrl(
+        status.wechat_oauth_appid,
+        state,
+        status.server_address
+      )
       window.open(url, '_self')
     } catch (_error) {
       toast.error(t('Failed to start WeChat login'))
@@ -258,7 +262,11 @@ export function useOAuthLogin(status: SystemStatus | null) {
         return
       }
 
-      const url = buildWeChatInAppOAuthUrl(status.wechat_inapp_appid, state)
+      const url = buildWeChatInAppOAuthUrl(
+        status.wechat_inapp_appid,
+        state,
+        status.server_address
+      )
       window.open(url, '_self')
     } catch (_error) {
       toast.error(t('Failed to start WeChat login'))

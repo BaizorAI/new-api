@@ -115,6 +115,7 @@ export interface SystemStatus {
     wechat_inapp_oauth_enabled?: boolean
     wechat_inapp_appid?: string
     wechat_pay_native_enabled?: boolean
+    server_address?: string
     turnstile_check?: boolean
     turnstile_site_key?: string
     email_verification?: boolean
@@ -158,6 +159,7 @@ export interface SystemStatus {
   wechat_qr_code_image_url?: string
   wechat_account_qrcode_image_url?: string
   WeChatAccountQRCodeImageURL?: string
+  server_address?: string
   turnstile_check?: boolean
   turnstile_site_key?: string
   email_verification?: boolean
