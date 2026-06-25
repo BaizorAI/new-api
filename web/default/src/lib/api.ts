@@ -178,10 +178,11 @@ api.interceptors.request.use((config) => {
 // ----------------------------------------------------------------------------
 
 // Get current user info
-export async function getSelf() {
+export async function getSelf(options?: { silent?: boolean }) {
   const res = await api.get('/api/user/self', {
     // Avoid global 401 toast during guards/preloads
     skipErrorHandler: true,
+    skipBusinessError: options?.silent,
   })
   return res.data
 }

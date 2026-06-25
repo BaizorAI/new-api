@@ -33,6 +33,49 @@ func validUserInfo(username string, role int) bool {
 	return true
 }
 
+type browserSessionUser struct {
+	Id       int
+	Username string
+	Role     int
+	Status   int
+	Group    string
+}
+
+func refreshBrowserSessionUser(session sessions.Session, userId int) (browserSessionUser, error) {
+	if model.DB == nil {
+		username, _ := session.Get("username").(string)
+		role, _ := session.Get("role").(int)
+		status, _ := session.Get("status").(int)
+		group, _ := session.Get("group").(string)
+		return browserSessionUser{Id: userId, Username: username, Role: role, Status: status, Group: group}, nil
+	}
+	userCache, err := model.GetUserCache(userId)
+	if err != nil {
+		return browserSessionUser{}, err
+	}
+	user := browserSessionUser{
+		Id:       userCache.Id,
+		Username: userCache.Username,
+		Role:     userCache.Role,
+		Status:   userCache.Status,
+		Group:    userCache.Group,
+	}
+	changed := session.Get("username") != user.Username ||
+		session.Get("role") != user.Role ||
+		session.Get("status") != user.Status ||
+		session.Get("group") != user.Group
+	if changed {
+		session.Set("username", user.Username)
+		session.Set("role", user.Role)
+		session.Set("status", user.Status)
+		session.Set("group", user.Group)
+		if err := session.Save(); err != nil {
+			return browserSessionUser{}, err
+		}
+	}
+	return user, nil
+}
+
 func authHelper(c *gin.Context, minRole int) {
 	session := sessions.Default(c)
 	username := session.Get("username")
@@ -120,6 +163,22 @@ func authHelper(c *gin.Context, minRole int) {
 		c.Abort()
 		return
 	}
+	if !useAccessToken {
+		refreshedUser, err := refreshBrowserSessionUser(session, apiUserId)
+		if err != nil {
+			common.SysLog(fmt.Sprintf("failed to refresh browser session user %d: %s", apiUserId, err.Error()))
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgDatabaseError),
+			})
+			c.Abort()
+			return
+		}
+		username = refreshedUser.Username
+		role = refreshedUser.Role
+		id = refreshedUser.Id
+		status = refreshedUser.Status
+	}
 	if status.(int) == common.UserStatusDisabled {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -197,6 +256,19 @@ func BrowserSessionAuth() func(c *gin.Context) {
 			c.Abort()
 			return
 		}
+		refreshedUser, err := refreshBrowserSessionUser(session, idValue)
+		if err != nil {
+			common.SysLog(fmt.Sprintf("failed to refresh browser session user %d: %s", idValue, err.Error()))
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgDatabaseError),
+			})
+			c.Abort()
+			return
+		}
+		usernameValue = refreshedUser.Username
+		roleValue = refreshedUser.Role
+		statusValue = refreshedUser.Status
 		if !validUserInfo(usernameValue, roleValue) {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,

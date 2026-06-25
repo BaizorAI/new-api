@@ -20,7 +20,14 @@ import { PublicLayout } from '@/components/layout'
 import { Footer } from '@/components/layout/components/footer'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { CTA, Features, HeroCarousel, HowItWorks, Stats } from './components'
+import {
+  CTA,
+  Features,
+  HermesAgent,
+  Hero,
+  HowItWorks,
+  Stats,
+} from './components'
 
 export function Home() {
   const { auth } = useAuthStore()
@@ -28,9 +35,10 @@ export function Home() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <HeroCarousel isAuthenticated={isAuthenticated} />
+      <Hero isAuthenticated={isAuthenticated} />
       <Stats />
       <Features />
+      <HermesAgent />
       <HowItWorks />
       <CTA isAuthenticated={isAuthenticated} />
       <Footer />

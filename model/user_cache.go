@@ -16,6 +16,7 @@ import (
 // UserBase struct remains the same as it represents the cached data structure
 type UserBase struct {
 	Id       int    `json:"id"`
+	Role     int    `json:"role"`
 	Group    string `json:"group"`
 	Email    string `json:"email"`
 	Quota    int    `json:"quota"`
@@ -51,7 +52,7 @@ func getUserCacheKey(userId int) string {
 
 // invalidateUserCache clears user cache
 func invalidateUserCache(userId int) error {
-	if !common.RedisEnabled {
+	if !common.RedisEnabled || common.RDB == nil {
 		return nil
 	}
 	return common.RedisDelKey(getUserCacheKey(userId))
@@ -65,7 +66,7 @@ func InvalidateUserCache(userId int) error {
 
 // updateUserCache updates all user cache fields using hash
 func updateUserCache(user User) error {
-	if !common.RedisEnabled {
+	if !common.RedisEnabled || common.RDB == nil {
 		return nil
 	}
 
@@ -93,7 +94,7 @@ func GetUserCache(userId int) (userCache *UserBase, err error) {
 
 	// Try getting from Redis first
 	userCache, err = cacheGetUserBase(userId)
-	if err == nil {
+	if err == nil && userCache.Role != 0 {
 		return userCache, nil
 	}
 
@@ -107,6 +108,7 @@ func GetUserCache(userId int) (userCache *UserBase, err error) {
 	// Create cache object from user data
 	userCache = &UserBase{
 		Id:       user.Id,
+		Role:     user.Role,
 		Group:    user.Group,
 		Quota:    user.Quota,
 		Status:   user.Status,
@@ -119,7 +121,7 @@ func GetUserCache(userId int) (userCache *UserBase, err error) {
 }
 
 func cacheGetUserBase(userId int) (*UserBase, error) {
-	if !common.RedisEnabled {
+	if !common.RedisEnabled || common.RDB == nil {
 		return nil, fmt.Errorf("redis is not enabled")
 	}
 	var userCache UserBase

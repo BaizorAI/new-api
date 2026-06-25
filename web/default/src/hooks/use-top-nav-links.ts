@@ -48,45 +48,24 @@ export function useTopNavLinks(): TopNavLink[] {
   const { status } = useStatus()
   const { auth } = useAuthStore()
 
-  // Parse HeaderNavModules
   const modules = useMemo(() => {
     return parseHeaderNavModulesFromStatus(
       status as Record<string, unknown> | null
     )
   }, [status])
 
-  // Documentation link (may be external)
   const docsLink: string | undefined = status?.docs_link as string | undefined
-
   const isAuthed = !!auth?.user
-
   const links: TopNavLink[] = []
 
-  // Home
   if (modules?.home !== false) {
     links.push({ title: t('Home'), href: '/' })
   }
 
-  // Workspace entry keeps the legacy `console` toggle for compatibility.
   if (modules?.console !== false) {
     links.push({ title: t('Workspace'), href: '/team-workspace' })
   }
 
-  // Pricing
-  const pricing = modules?.pricing
-  if (pricing && typeof pricing === 'object' && pricing.enabled) {
-    const requiresAuth = pricing.requireAuth && !isAuthed
-    links.push({ title: t('Model Square'), href: '/pricing', requiresAuth })
-  }
-
-  // Rankings
-  const rankings = modules?.rankings
-  if (rankings && typeof rankings === 'object' && rankings.enabled) {
-    const requiresAuth = rankings.requireAuth && !isAuthed
-    links.push({ title: t('Rankings'), href: '/rankings', requiresAuth })
-  }
-
-  // Docs (supports external links)
   if (modules?.docs !== false) {
     if (docsLink && docsLink.startsWith('http')) {
       links.push({ title: t('Docs'), href: docsLink, external: true })
@@ -95,9 +74,20 @@ export function useTopNavLinks(): TopNavLink[] {
     }
   }
 
-  // About
   if (modules?.about !== false) {
     links.push({ title: t('About'), href: '/about' })
+  }
+
+  const pricing = modules?.pricing
+  if (pricing && typeof pricing === 'object' && pricing.enabled) {
+    const requiresAuth = pricing.requireAuth && !isAuthed
+    links.push({ title: t('Model Square'), href: '/pricing', requiresAuth })
+  }
+
+  const rankings = modules?.rankings
+  if (rankings && typeof rankings === 'object' && rankings.enabled) {
+    const requiresAuth = rankings.requireAuth && !isAuthed
+    links.push({ title: t('Rankings'), href: '/rankings', requiresAuth })
   }
 
   return links

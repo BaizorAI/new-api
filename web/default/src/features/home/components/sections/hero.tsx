@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useStatus } from '@/hooks/use-status'
 
-import { HeroTerminalDemo } from '../hero-terminal-demo'
+import { WorkbenchPreview } from '../workbench-preview'
 
 interface HeroProps {
   className?: string
@@ -191,7 +191,7 @@ export function Hero(props: HeroProps) {
           className='landing-animate-fade-up flex w-full justify-center opacity-0 lg:col-span-6'
           style={{ animationDelay: '320ms' }}
         >
-          <HeroTerminalDemo className='mt-8 lg:mt-0' />
+          <WorkbenchPreview className='mt-8 lg:mt-0' />
         </div>
       </div>
     </section>
