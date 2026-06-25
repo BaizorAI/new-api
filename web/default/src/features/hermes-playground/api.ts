@@ -30,8 +30,8 @@ export interface HermesSkill {
   description: string
   category?: string
   path?: string
-  source: 'user' | 'system' | 'external' | 'unknown'
-  ownerScope: 'user' | 'system' | 'external' | 'unknown'
+  source: 'user' | 'team' | 'baizor' | 'system' | 'external' | 'unknown'
+  ownerScope: 'user' | 'team' | 'baizor' | 'system' | 'external' | 'unknown'
   isUserCreated: boolean
 }
 
@@ -92,8 +92,11 @@ export async function createHermesSkill(payload: CreateHermesSkillPayload) {
   }
 }
 
-export async function listHermesSkills(): Promise<HermesSkill[]> {
+export async function listHermesSkills(options?: {
+  teamId?: number
+}): Promise<HermesSkill[]> {
   const response = await api.get('/pg/hermes/skills', {
+    headers: buildHermesTeamHeaders(options?.teamId),
     skipBusinessError: true,
     skipErrorHandler: true,
   })
@@ -146,12 +149,24 @@ export async function deleteHermesSkill(name: string) {
   }
 }
 
-export async function promoteHermesSkill(name: string) {
+export async function promoteHermesSkill(
+  name: string,
+  options?: {
+    target?: 'baizor' | 'team' | 'system'
+    sourceScope?: 'user' | 'team' | 'baizor'
+    teamId?: number
+  }
+) {
   try {
     const response = await api.post(
       '/pg/hermes/skills/promote',
-      { name },
       {
+        name,
+        target: options?.target,
+        source_scope: options?.sourceScope,
+      },
+      {
+        headers: buildHermesTeamHeaders(options?.teamId),
         skipBusinessError: true,
         skipErrorHandler: true,
       }
@@ -209,6 +224,12 @@ export async function disconnectHermesWeixin(): Promise<HermesWeixinStatus> {
     }
   )
   return normalizeWeixinStatusResponse(response.data)
+}
+
+
+function buildHermesTeamHeaders(teamId: number | undefined) {
+  if (!teamId || teamId <= 0) return undefined
+  return { 'X-Baizor-Team-Id': String(teamId) }
 }
 
 function buildSkillContent(payload: CreateHermesSkillPayload): string {
@@ -345,7 +366,13 @@ function numberFromUnknown(value: unknown): number | null {
 }
 
 function normalizeSource(value: string): HermesSkill['source'] {
-  if (value === 'user' || value === 'system' || value === 'external') {
+  if (
+    value === 'user' ||
+    value === 'team' ||
+    value === 'baizor' ||
+    value === 'system' ||
+    value === 'external'
+  ) {
     return value
   }
   return 'unknown'
@@ -378,7 +405,13 @@ function normalizeWeixinListenerStatus(
 }
 
 function normalizeOwnerScope(value: string): HermesSkill['ownerScope'] {
-  if (value === 'user' || value === 'system' || value === 'external') {
+  if (
+    value === 'user' ||
+    value === 'team' ||
+    value === 'baizor' ||
+    value === 'system' ||
+    value === 'external'
+  ) {
     return value
   }
   return 'unknown'

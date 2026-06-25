@@ -334,6 +334,8 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       <HermesCapabilityCenter
         open={isCapabilityCenterOpen}
         userScope={queryUserScope}
+        selectedTeamId={selectedTeamId}
+        teams={teams}
         onAddSkill={() => setIsSkillDialogOpen(true)}
         onEditSkill={(skill) => {
           setEditSkill(skill)

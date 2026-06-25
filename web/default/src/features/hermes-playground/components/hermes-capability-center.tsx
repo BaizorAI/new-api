@@ -50,6 +50,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -69,6 +72,7 @@ import {
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { Team } from '@/features/teams/types'
 import { useAuthStore } from '@/stores/auth-store'
 
 import {
@@ -83,6 +87,8 @@ import {
 interface HermesCapabilityCenterProps {
   open: boolean
   userScope: string
+  selectedTeamId: number
+  teams: Team[]
   onOpenChange: (open: boolean) => void
   onAddSkill: () => void
   onEditSkill: (skill: HermesSkill) => void
@@ -91,6 +97,12 @@ interface HermesCapabilityCenterProps {
 const EMPTY_SKILLS: HermesSkill[] = []
 const EMPTY_TOOLSETS: HermesToolset[] = []
 const ADMIN_MIN_ROLE = 10
+
+type SkillPublishOptions = {
+  target: 'baizor' | 'team' | 'system'
+  sourceScope: 'user' | 'team' | 'baizor'
+  teamId?: number
+}
 
 type ToolsetStatusFilter =
   | 'all'
@@ -109,8 +121,14 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
   const role = useAuthStore((s) => s.auth.user?.role ?? 0)
 
   const skillsQuery = useQuery({
-    queryKey: ['hermes-capabilities', props.userScope, 'skills'],
-    queryFn: listHermesSkills,
+    queryKey: [
+      'hermes-capabilities',
+      props.userScope,
+      'skills',
+      props.selectedTeamId,
+    ],
+    queryFn: () =>
+      listHermesSkills({ teamId: props.selectedTeamId || undefined }),
     enabled: props.open,
   })
   const toolsetsQuery = useQuery({
@@ -123,7 +141,32 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
   const userSkills = useMemo(
     () =>
       filterSkills(
-        skills.filter((skill) => skill.isUserCreated),
+        skills.filter(
+          (skill) =>
+            skill.isUserCreated ||
+            skill.source === 'user' ||
+            skill.ownerScope === 'user'
+        ),
+        skillSearch
+      ),
+    [skillSearch, skills]
+  )
+  const teamSkills = useMemo(
+    () =>
+      filterSkills(
+        skills.filter(
+          (skill) => skill.source === 'team' || skill.ownerScope === 'team'
+        ),
+        skillSearch
+      ),
+    [skillSearch, skills]
+  )
+  const baizorSkills = useMemo(
+    () =>
+      filterSkills(
+        skills.filter(
+          (skill) => skill.source === 'baizor' || skill.ownerScope === 'baizor'
+        ),
         skillSearch
       ),
     [skillSearch, skills]
@@ -131,7 +174,15 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
   const systemSkills = useMemo(
     () =>
       filterSkills(
-        skills.filter((skill) => !skill.isUserCreated),
+        skills.filter(
+          (skill) =>
+            skill.source !== 'user' &&
+            skill.source !== 'team' &&
+            skill.source !== 'baizor' &&
+            skill.ownerScope !== 'user' &&
+            skill.ownerScope !== 'team' &&
+            skill.ownerScope !== 'baizor'
+        ),
         skillSearch
       ),
     [skillSearch, skills]
@@ -144,6 +195,10 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
         toolsetStatusFilter
       ),
     [toolsetSearch, toolsetStatusFilter, toolsetsQuery.data]
+  )
+  const manageableTeams = useMemo(
+    () => props.teams.filter((team) => canManageTeam(team.role)),
+    [props.teams]
   )
 
   const refresh = () => {
@@ -165,14 +220,17 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
     }
   }
 
-  const handlePromoteSkill = async (skill: HermesSkill) => {
+  const handlePublishSkill = async (
+    skill: HermesSkill,
+    options: SkillPublishOptions
+  ) => {
     try {
-      await promoteHermesSkill(skill.name)
-      toast.success(t('Skill promoted'))
+      await promoteHermesSkill(skill.name, options)
+      toast.success(t('Skill published'))
       refresh()
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : t('Failed to promote skill')
+        error instanceof Error ? error.message : t('Failed to publish skill')
       )
     }
   }
@@ -215,10 +273,14 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
                 onAddSkill={props.onAddSkill}
                 onDeleteSkill={setDeletingSkill}
                 onEditSkill={props.onEditSkill}
-                onPromoteSkill={handlePromoteSkill}
+                manageableTeams={manageableTeams}
+                selectedTeamId={props.selectedTeamId}
+                onPublishSkill={handlePublishSkill}
                 search={skillSearch}
                 setSearch={setSkillSearch}
+                baizorSkills={baizorSkills}
                 systemSkills={systemSkills}
+                teamSkills={teamSkills}
                 userSkills={userSkills}
               />
             </TabsContent>
@@ -277,6 +339,8 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
 
 interface SkillPanelProps {
   userSkills: HermesSkill[]
+  teamSkills: HermesSkill[]
+  baizorSkills: HermesSkill[]
   systemSkills: HermesSkill[]
   search: string
   setSearch: (value: string) => void
@@ -286,7 +350,9 @@ interface SkillPanelProps {
   onAddSkill: () => void
   onEditSkill: (skill: HermesSkill) => void
   onDeleteSkill: (skill: HermesSkill) => void
-  onPromoteSkill: (skill: HermesSkill) => void
+  manageableTeams: Team[]
+  selectedTeamId: number
+  onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }
 
 function SkillPanel(props: SkillPanelProps) {
@@ -331,9 +397,39 @@ function SkillPanel(props: SkillPanelProps) {
                 isAdmin={props.isAdmin}
                 onDeleteSkill={props.onDeleteSkill}
                 onEditSkill={props.onEditSkill}
-                onPromoteSkill={props.onPromoteSkill}
+                manageableTeams={props.manageableTeams}
+                selectedTeamId={props.selectedTeamId}
+                onPublishSkill={props.onPublishSkill}
                 skills={props.userSkills}
                 title={t('My skills')}
+              />
+              <SkillSection
+                emptyDescription={t(
+                  'No team skills match the current search.'
+                )}
+                emptyTitle={t('No team skills')}
+                isAdmin={props.isAdmin}
+                onDeleteSkill={props.onDeleteSkill}
+                onEditSkill={props.onEditSkill}
+                manageableTeams={props.manageableTeams}
+                selectedTeamId={props.selectedTeamId}
+                onPublishSkill={props.onPublishSkill}
+                skills={props.teamSkills}
+                title={t('Team skills')}
+              />
+              <SkillSection
+                emptyDescription={t(
+                  'No Baizor Skills match the current search.'
+                )}
+                emptyTitle={t('No Baizor Skills')}
+                isAdmin={props.isAdmin}
+                onDeleteSkill={props.onDeleteSkill}
+                onEditSkill={props.onEditSkill}
+                manageableTeams={props.manageableTeams}
+                selectedTeamId={props.selectedTeamId}
+                onPublishSkill={props.onPublishSkill}
+                skills={props.baizorSkills}
+                title={t('Baizor Skills')}
               />
               <SkillSection
                 emptyDescription={t(
@@ -343,7 +439,9 @@ function SkillPanel(props: SkillPanelProps) {
                 isAdmin={props.isAdmin}
                 onDeleteSkill={props.onDeleteSkill}
                 onEditSkill={props.onEditSkill}
-                onPromoteSkill={props.onPromoteSkill}
+                manageableTeams={props.manageableTeams}
+                selectedTeamId={props.selectedTeamId}
+                onPublishSkill={props.onPublishSkill}
                 skills={props.systemSkills}
                 title={t('Built-in skills')}
               />
@@ -363,7 +461,9 @@ interface SkillSectionProps {
   isAdmin: boolean
   onEditSkill: (skill: HermesSkill) => void
   onDeleteSkill: (skill: HermesSkill) => void
-  onPromoteSkill: (skill: HermesSkill) => void
+  manageableTeams: Team[]
+  selectedTeamId: number
+  onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }
 
 function SkillSection(props: SkillSectionProps) {
@@ -390,7 +490,9 @@ function SkillSection(props: SkillSectionProps) {
               isAdmin={props.isAdmin}
               onDeleteSkill={props.onDeleteSkill}
               onEditSkill={props.onEditSkill}
-              onPromoteSkill={props.onPromoteSkill}
+              manageableTeams={props.manageableTeams}
+              selectedTeamId={props.selectedTeamId}
+              onPublishSkill={props.onPublishSkill}
               skill={skill}
             />
           ))}
@@ -405,7 +507,9 @@ interface SkillRowProps {
   isAdmin: boolean
   onEditSkill: (skill: HermesSkill) => void
   onDeleteSkill: (skill: HermesSkill) => void
-  onPromoteSkill: (skill: HermesSkill) => void
+  manageableTeams: Team[]
+  selectedTeamId: number
+  onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }
 
 function SkillRow(props: SkillRowProps) {
@@ -423,6 +527,13 @@ function SkillRow(props: SkillRowProps) {
     await navigator.clipboard.writeText(referencePrompt)
     toast.success(t('Skill reference copied'))
   }
+
+  const skillScope = getSkillScope(props.skill)
+  const canPublishToBaizor =
+    props.isAdmin &&
+    (skillScope === 'user' ||
+      (skillScope === 'team' && props.selectedTeamId > 0))
+  const canPublishToTeam = skillScope === 'user'
 
   return (
     <details className='group rounded-lg border p-3'>
@@ -462,7 +573,7 @@ function SkillRow(props: SkillRowProps) {
             >
               <MoreHorizontalIcon className='size-4' />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align='end' className='w-40'>
+            <DropdownMenuContent align='end' className='w-52'>
               <DropdownMenuItem onClick={() => props.onEditSkill(props.skill)}>
                 <PencilIcon className='size-4' />
                 {t('Edit skill')}
@@ -474,15 +585,56 @@ function SkillRow(props: SkillRowProps) {
                 <Trash2Icon className='size-4' />
                 {t('Delete skill')}
               </DropdownMenuItem>
-              {props.isAdmin && (
+              {(canPublishToBaizor || canPublishToTeam) && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => props.onPromoteSkill(props.skill)}
-                  >
-                    <ArrowBigUpIcon className='size-4' />
-                    {t('Promote to built-in')}
-                  </DropdownMenuItem>
+                  {canPublishToBaizor && (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        props.onPublishSkill(props.skill, {
+                          target: 'baizor',
+                          sourceScope: skillScope === 'team' ? 'team' : 'user',
+                          teamId:
+                            skillScope === 'team'
+                              ? props.selectedTeamId
+                              : undefined,
+                        })
+                      }
+                    >
+                      <ArrowBigUpIcon className='size-4' />
+                      {t('Publish to Baizor Skills')}
+                    </DropdownMenuItem>
+                  )}
+                  {canPublishToTeam && (
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <ArrowBigUpIcon className='size-4' />
+                        {t('Publish to team')}
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className='w-48'>
+                        {props.manageableTeams.length === 0 ? (
+                          <DropdownMenuItem disabled>
+                            {t('No manageable teams')}
+                          </DropdownMenuItem>
+                        ) : (
+                          props.manageableTeams.map((team) => (
+                            <DropdownMenuItem
+                              key={team.id}
+                              onClick={() =>
+                                props.onPublishSkill(props.skill, {
+                                  target: 'team',
+                                  sourceScope: 'user',
+                                  teamId: team.id,
+                                })
+                              }
+                            >
+                              {t('Publish to {{team}}', { team: team.name })}
+                            </DropdownMenuItem>
+                          ))
+                        )}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  )}
                 </>
               )}
             </DropdownMenuContent>
@@ -734,6 +886,16 @@ function filterSkills(skills: HermesSkill[], query: string): HermesSkill[] {
   })
 }
 
+function canManageTeam(role: Team['role']): boolean {
+  return role === 'owner' || role === 'admin'
+}
+
+function getSkillScope(skill: HermesSkill): HermesSkill['source'] {
+  if (skill.isUserCreated) return 'user'
+  if (skill.source !== 'unknown') return skill.source
+  return skill.ownerScope
+}
+
 function filterToolsets(
   toolsets: HermesToolset[],
   query: string,
@@ -790,6 +952,8 @@ function getSkillSourceLabel(
   t: (key: string) => string
 ): string {
   if (skill.isUserCreated) return t('Mine')
+  if (skill.source === 'team') return t('Team')
+  if (skill.source === 'baizor') return t('Baizor Skills')
   if (skill.source === 'system') return t('Built-in')
   if (skill.source === 'external') return t('External')
   return t('Unknown')
@@ -800,6 +964,8 @@ function getOwnerScopeLabel(
   t: (key: string) => string
 ): string {
   if (ownerScope === 'user') return t('User')
+  if (ownerScope === 'team') return t('Team')
+  if (ownerScope === 'baizor') return t('Baizor')
   if (ownerScope === 'system') return t('System')
   if (ownerScope === 'external') return t('External')
   return t('Unknown')

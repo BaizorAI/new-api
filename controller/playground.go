@@ -177,14 +177,10 @@ func HermesPromoteSkill(c *gin.Context) {
 		return
 	}
 
-	role := c.GetInt("role")
-	if role < common.RoleAdminUser {
-		c.JSON(http.StatusForbidden, gin.H{"message": "only admin or root users can promote skills to built-in"})
-		return
-	}
-
 	var request struct {
-		Name string `json:"name"`
+		Name        string `json:"name"`
+		Target      string `json:"target,omitempty"`
+		SourceScope string `json:"source_scope,omitempty"`
 	}
 	if err := common.DecodeJson(c.Request.Body, &request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
@@ -192,8 +188,41 @@ func HermesPromoteSkill(c *gin.Context) {
 	}
 
 	request.Name = strings.TrimSpace(request.Name)
+	request.Target = strings.ToLower(strings.TrimSpace(request.Target))
+	request.SourceScope = strings.ToLower(strings.TrimSpace(request.SourceScope))
+	if request.Target == "" {
+		request.Target = "baizor"
+	}
+	if request.SourceScope == "" {
+		request.SourceScope = "user"
+	}
+	if request.Target != "baizor" && request.Target != "team" && request.Target != "system" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid promote target"})
+		return
+	}
+	if request.SourceScope != "user" && request.SourceScope != "team" && request.SourceScope != "baizor" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid source scope"})
+		return
+	}
 	if request.Name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "name is required"})
+		return
+	}
+
+	if request.Target == "team" || request.SourceScope == "team" {
+		teamID, err := strconv.Atoi(strings.TrimSpace(c.GetHeader("X-Baizor-Team-Id")))
+		if err != nil || teamID <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "team context is required"})
+			return
+		}
+		team, err := model.GetTeamByIdForUser(teamID, c.GetInt("id"))
+		if err != nil || !model.CanManageTeamRole(team.Role) {
+			c.JSON(http.StatusForbidden, gin.H{"message": "no permission to publish skills for this team"})
+			return
+		}
+	}
+	if request.Target != "team" && c.GetInt("role") < common.RoleAdminUser {
+		c.JSON(http.StatusForbidden, gin.H{"message": "only admin or root users can publish skills to Baizor or system skills"})
 		return
 	}
 
@@ -204,7 +233,6 @@ func HermesPromoteSkill(c *gin.Context) {
 	}
 	proxyHermesPlayground(c, http.MethodPost, "/v1/skills/promote", body)
 }
-
 func HermesPlaygroundToolsets(c *gin.Context) {
 	if c == nil || c.Request == nil {
 		return
