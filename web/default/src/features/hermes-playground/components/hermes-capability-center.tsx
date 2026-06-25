@@ -529,9 +529,6 @@ interface SkillSectionProps {
   onEditSkill: (skill: HermesSkill) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
-  teams: Team[]
-  activeTeamId: number
-  onActiveTeamChange: (teamId: number) => void
   selectedTeamId: number
   onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }
@@ -578,9 +575,6 @@ interface SkillRowProps {
   onEditSkill: (skill: HermesSkill) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
-  teams: Team[]
-  activeTeamId: number
-  onActiveTeamChange: (teamId: number) => void
   selectedTeamId: number
   onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }

@@ -57,10 +57,10 @@ export function useSidebarData(): SidebarData {
         title: t('Workspaces'),
         items: [
           {
-            title: t('HermesAgent'),
-            description: t('Personal AI workspace'),
-            icon: IconHermes,
-            type: 'hermes-sessions',
+            title: t('My Teams'),
+            description: t('Team collaboration workspace'),
+            icon: Users,
+            type: 'team-workspaces',
           },
           {
             title: t('My One-Person Company'),
@@ -69,10 +69,10 @@ export function useSidebarData(): SidebarData {
             icon: BriefcaseBusiness,
           },
           {
-            title: t('My Teams'),
-            description: t('Team collaboration workspace'),
-            icon: Users,
-            type: 'team-workspaces',
+            title: t('HermesAgent'),
+            description: t('Personal AI workspace'),
+            icon: IconHermes,
+            type: 'hermes-sessions',
           },
           {
             title: t('Playground'),

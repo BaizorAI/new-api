@@ -17,9 +17,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Building2Icon, SparklesIcon, WalletCardsIcon } from 'lucide-react'
+import {
+  Building2Icon,
+  FileCheck2Icon,
+  MessageSquareIcon,
+  SparklesIcon,
+  WalletCardsIcon,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { Main } from '@/components/layout'
 import { Button } from '@/components/ui/button'
@@ -32,6 +39,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  deleteTeamHermesConversation,
   listTeamHermesConversations,
   upsertTeamHermesConversation,
   type HermesSkill,
@@ -40,8 +48,10 @@ import {
 import { HermesCapabilityCenter } from '@/features/hermes-playground/components/hermes-capability-center'
 import { HermesMessagePlatforms } from '@/features/hermes-playground/components/hermes-message-platforms'
 import { HermesResults } from '@/features/hermes-playground/components/hermes-results'
+import { HermesSessionsSheet } from '@/features/hermes-playground/components/hermes-sessions-sheet'
 import { HermesSkillDialog } from '@/features/hermes-playground/components/hermes-skill-dialog'
 import {
+  clearConversationStorage,
   createDefaultConversation,
   createHermesConversation,
   consumeHermesCapabilitiesOpenRequest,
@@ -64,6 +74,7 @@ import { Playground } from '@/features/playground'
 import { DEFAULT_CONFIG } from '@/features/playground/constants'
 import {
   createPlaygroundStorageKeys,
+  loadMessages,
   saveMessages,
 } from '@/features/playground/lib'
 import type { Message, ModelOption } from '@/features/playground/types'
@@ -101,6 +112,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   })
   const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false)
   const [editSkill, setEditSkill] = useState<HermesSkill | null>(null)
+  const [isSessionsOpen, setIsSessionsOpen] = useState(false)
   const [isCapabilityCenterOpen, setIsCapabilityCenterOpen] = useState(false)
   const [isResultsOpen, setIsResultsOpen] = useState(false)
   const [isMessagePlatformsOpen, setIsMessagePlatformsOpen] = useState(false)
@@ -120,6 +132,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const selectedTeamId = billingOwner.startsWith('team:')
     ? Number(billingOwner.slice('team:'.length))
     : 0
+  const selectedTeam = teams.find((team) => team.id === selectedTeamId)
 
   const teamConversationsQuery = useQuery({
     queryKey: [
@@ -216,6 +229,9 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
 
   useEffect(() => {
     if (isTeamWorkspace && selectedTeamId > 0) {
+      if (props.initialPanel === 'sessions') {
+        setIsSessionsOpen(true)
+      }
       if (props.initialPanel === 'skills') {
         setIsCapabilityCenterOpen(true)
       }
@@ -322,6 +338,21 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     [isTeamWorkspace, selectedTeamId]
   )
 
+  const persistTeamConversationNow = useCallback(
+    async (session: HermesConversation) => {
+      if (!isTeamWorkspace || selectedTeamId <= 0) return
+      const messages =
+        loadMessages(createPlaygroundStorageKeys(session.storageScope)) ?? []
+      const payload: HermesTeamConversationRecord = {
+        ...session,
+        messages,
+      }
+      await upsertTeamHermesConversation(selectedTeamId, payload)
+      void teamConversationsQuery.refetch()
+    },
+    [isTeamWorkspace, selectedTeamId, teamConversationsQuery]
+  )
+
   useEffect(() => {
     return () => {
       if (teamPersistTimerRef.current) {
@@ -374,6 +405,109 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     persistTeamConversation(nextSession, [])
   }, [baseScope, persistTeamConversation, sessions])
 
+  const selectSession = useCallback(
+    (sessionId: string) => {
+      saveActiveConversationId(baseScope, sessionId)
+      setActiveSessionId(sessionId)
+    },
+    [baseScope]
+  )
+
+  const updateSession = useCallback(
+    (
+      sessionId: string,
+      updater: (session: HermesConversation) => HermesConversation
+    ) => {
+      let updatedSession: HermesConversation | null = null
+      const nextSessions = sessions.map((session) => {
+        if (session.id !== sessionId) return session
+        updatedSession = { ...updater(session), updatedAt: Date.now() }
+        return updatedSession
+      })
+      if (!updatedSession) return
+
+      saveHermesConversations(baseScope, nextSessions)
+      setSessions(nextSessions)
+      void persistTeamConversationNow(updatedSession).catch(() => {
+        toast.error(t('Failed to save session'))
+      })
+    },
+    [baseScope, persistTeamConversationNow, sessions, t]
+  )
+
+  const deleteSession = useCallback(
+    (session: HermesConversation) => {
+      clearConversationStorage(session)
+
+      const nextSessions = sessions.filter((item) => item.id !== session.id)
+      if (nextSessions.length === 0) {
+        const nextSession = createHermesConversation(baseScope)
+        saveHermesConversations(baseScope, [nextSession])
+        saveActiveConversationId(baseScope, nextSession.id)
+        setSessions([nextSession])
+        setActiveSessionId(nextSession.id)
+        persistTeamConversation(nextSession, [])
+      } else {
+        saveHermesConversations(baseScope, nextSessions)
+        setSessions(nextSessions)
+
+        if (activeSessionId === session.id) {
+          const nextActive =
+            nextSessions.find((item) => !item.archived)?.id ??
+            nextSessions[0]?.id
+          if (nextActive) {
+            saveActiveConversationId(baseScope, nextActive)
+            setActiveSessionId(nextActive)
+          }
+        }
+      }
+
+      if (isTeamWorkspace && selectedTeamId > 0) {
+        void deleteTeamHermesConversation(selectedTeamId, session.id)
+          .then(() => teamConversationsQuery.refetch())
+          .catch(() => toast.error(t('Failed to delete session')))
+      }
+    },
+    [
+      activeSessionId,
+      baseScope,
+      isTeamWorkspace,
+      persistTeamConversation,
+      selectedTeamId,
+      sessions,
+      t,
+      teamConversationsQuery,
+    ]
+  )
+
+  const exportSession = useCallback(
+    (session: HermesConversation) => {
+      const messages =
+        loadMessages(createPlaygroundStorageKeys(session.storageScope)) ?? []
+      downloadJson(
+        {
+          exportedAt: new Date().toISOString(),
+          session,
+          messages,
+        },
+        `${session.title || session.id}.json`
+      )
+      toast.success(t('Exported'))
+    },
+    [t]
+  )
+
+  const openSessionInNewWindow = useCallback(
+    (session: HermesConversation) => {
+      saveActiveConversationId(baseScope, session.id)
+      const target = isTeamWorkspace
+        ? `/team-workspace?team_id=${selectedTeamId}&panel=sessions`
+        : '/hermes-playground'
+      window.open(target, '_blank', 'noopener,noreferrer')
+    },
+    [baseScope, isTeamWorkspace, selectedTeamId]
+  )
+
   const exportActiveSession = useCallback(
     (messages: Message[]) => {
       downloadJson(
@@ -412,7 +546,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
 
   return (
     <Main className='relative p-0'>
-      <div className='absolute top-3 right-3 z-10 flex items-center gap-2'>
+      <div className='absolute top-3 right-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center justify-end gap-2'>
         {teams.length > 0 && (
           <Select
             value={billingOwner}
@@ -447,16 +581,51 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
             </SelectContent>
           </Select>
         )}
-        <Button
-          className='bg-background/95 shadow-sm backdrop-blur'
-          onClick={() => setIsCapabilityCenterOpen(true)}
-          size='sm'
-          type='button'
-          variant='outline'
-        >
-          <SparklesIcon className='size-4' />
-          {t('Capabilities')}
-        </Button>
+        {isTeamWorkspace ? (
+          <>
+            <Button
+              className='bg-background/95 shadow-sm backdrop-blur'
+              onClick={() => setIsSessionsOpen(true)}
+              size='sm'
+              type='button'
+              variant='outline'
+            >
+              <MessageSquareIcon className='size-4' />
+              <span className='hidden sm:inline'>{t('Team sessions')}</span>
+            </Button>
+            <Button
+              className='bg-background/95 shadow-sm backdrop-blur'
+              onClick={() => setIsResultsOpen(true)}
+              size='sm'
+              type='button'
+              variant='outline'
+            >
+              <FileCheck2Icon className='size-4' />
+              <span className='hidden sm:inline'>{t('Team results')}</span>
+            </Button>
+            <Button
+              className='bg-background/95 shadow-sm backdrop-blur'
+              onClick={() => setIsCapabilityCenterOpen(true)}
+              size='sm'
+              type='button'
+              variant='outline'
+            >
+              <SparklesIcon className='size-4' />
+              <span className='hidden sm:inline'>{t('Team skills')}</span>
+            </Button>
+          </>
+        ) : (
+          <Button
+            className='bg-background/95 shadow-sm backdrop-blur'
+            onClick={() => setIsCapabilityCenterOpen(true)}
+            size='sm'
+            type='button'
+            variant='outline'
+          >
+            <SparklesIcon className='size-4' />
+            {t('Capabilities')}
+          </Button>
+        )}
       </div>
       <Playground
         key={activeSession.storageScope}
@@ -494,6 +663,27 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
           setIsSkillDialogOpen(true)
         }}
         onOpenChange={setIsCapabilityCenterOpen}
+      />
+      <HermesSessionsSheet
+        open={isSessionsOpen}
+        activeSessionId={activeSessionId}
+        description={
+          selectedTeam
+            ? t('Manage shared sessions for {{team}}.', {
+                team: selectedTeam.name,
+              })
+            : t('Manage shared team sessions.')
+        }
+        isLoading={teamConversationsQuery.isLoading}
+        sessions={sessions}
+        title={t('Team sessions')}
+        onCreateSession={createSession}
+        onDeleteSession={deleteSession}
+        onExportSession={exportSession}
+        onOpenChange={setIsSessionsOpen}
+        onOpenSessionInNewWindow={openSessionInNewWindow}
+        onSelectSession={selectSession}
+        onUpdateSession={updateSession}
       />
       <HermesResults
         open={isResultsOpen}
