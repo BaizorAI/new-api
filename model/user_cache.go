@@ -203,6 +203,20 @@ func updateUserQuotaCache(userId int, quota int) error {
 	return common.RedisHSetField(getUserCacheKey(userId), "Quota", fmt.Sprintf("%d", quota))
 }
 
+func syncUserQuotaCacheFromDB(userId int) {
+	if userId <= 0 {
+		return
+	}
+	quota, err := GetUserQuota(userId, true)
+	if err != nil {
+		common.SysLog(fmt.Sprintf("failed to refresh user quota cache: user_id=%d, error=%s", userId, err.Error()))
+		return
+	}
+	if err := updateUserQuotaCache(userId, quota); err != nil {
+		common.SysLog(fmt.Sprintf("failed to update user quota cache: user_id=%d, error=%s", userId, err.Error()))
+	}
+}
+
 func updateUserGroupCache(userId int, group string) error {
 	if !common.RedisEnabled {
 		return nil

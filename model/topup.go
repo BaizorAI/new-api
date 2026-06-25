@@ -107,20 +107,6 @@ func UpdatePendingTopUpStatus(tradeNo string, expectedPaymentProvider string, ta
 	})
 }
 
-func syncUserQuotaCacheFromDB(userId int) {
-	if userId <= 0 {
-		return
-	}
-	quota, err := GetUserQuota(userId, true)
-	if err != nil {
-		common.SysLog(fmt.Sprintf("failed to refresh user quota cache after topup: user_id=%d, error=%s", userId, err.Error()))
-		return
-	}
-	if err := updateUserQuotaCache(userId, quota); err != nil {
-		common.SysLog(fmt.Sprintf("failed to update user quota cache after topup: user_id=%d, error=%s", userId, err.Error()))
-	}
-}
-
 func Recharge(referenceId string, customerId string, callerIp string) (err error) {
 	if referenceId == "" {
 		return errors.New("未提供支付单号")
