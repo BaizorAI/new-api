@@ -40,88 +40,48 @@ export const Route = createFileRoute('/docs/')({
 const docSections = [
   {
     icon: <BookOpen className='size-5 text-sky-500' />,
-    title: 'AI user guide',
-    desc: 'Start from business scenarios, authorized applications, model use and operational visibility instead of underlying model differences.',
-    items: [
-      'Choose business scenarios',
-      'Authorize applications',
-      'Observe AI usage',
-    ],
-  },
-  {
-    icon: <RouteIcon className='size-5 text-blue-500' />,
-    title: 'Platform overview',
-    desc: 'Understand how Baize AI Platform connects applications, model services, routing policy and governance in one operating layer.',
-    items: [
-      'Platform positioning',
-      'Capability supply model',
-      'Unified governance layer',
-    ],
-  },
-  {
-    icon: <Settings className='size-5 text-violet-500' />,
-    title: 'Localization and Xinchuang adaptation',
-    desc: 'Plan private, intranet and trusted deployments for localized infrastructure and Xinchuang-oriented environments.',
-    items: [
-      'Private and intranet deployment',
-      'Localized infrastructure readiness',
-      'Trusted operation requirements',
-    ],
-  },
-  {
-    icon: <Database className='size-5 text-emerald-500' />,
-    title: 'Compute and model access',
-    desc: 'Connect multi-source compute, private model services and external intelligent models through one governed capability pool.',
-    items: [
-      'Multi-source compute access',
-      'Private model services',
-      'External intelligent models',
-    ],
+    title: 'Start with workspaces',
+    desc: 'Choose the place where work happens first: personal work, team collaboration or HermesAgent sessions.',
+    items: ['My Teams', 'My One-Person Company', 'HermesAgent'],
   },
   {
     icon: <Bot className='size-5 text-teal-500' />,
-    title: 'Hermes sidecar multi-user scenario',
-    desc: 'Run Hermes in a separate container and publish it as a governed platform model for teams, applications and business users.',
-    items: [
-      'Internal sidecar service',
-      'Platform model exposure',
-      'Team quota and audit',
-    ],
+    title: 'Use skills to repeat good work',
+    desc: 'Skills turn repeated prompts, procedures and domain experience into reusable capability for yourself or a team.',
+    items: ['My skills', 'Team skills', 'Baizor Skills'],
   },
   {
-    icon: <BarChart3 className='size-5 text-amber-500' />,
-    title: 'Model scheduling and routing middleware',
-    desc: 'Configure priority, weight, tags, grouping, health checks, fallback strategy and transparent routing behavior.',
-    items: [
-      'Model scheduling policies',
-      'Routing middleware strategy',
-      'Health and fallback controls',
-    ],
+    icon: <Database className='size-5 text-emerald-500' />,
+    title: 'Keep results with the conversation',
+    desc: 'Uploaded files, generated documents, exported outputs and conversation context should stay connected to the work that produced them.',
+    items: ['Uploaded files', 'Result files', 'Session history'],
   },
   {
-    icon: <WalletCards className='size-5 text-cyan-500' />,
-    title: 'Permission, quota and security governance',
-    desc: 'Manage users, application credentials, access boundaries, quota allocation, usage records and security audit flows.',
-    items: [
-      'User and credential management',
-      'Quota and usage governance',
-      'Security audit records',
-    ],
+    icon: <KeyRound className='size-5 text-violet-500' />,
+    title: 'Collaborate as a team',
+    desc: 'Team members share sessions, skills and results while owners manage members, roles and team-level permissions.',
+    items: ['Shared sessions', 'Team members', 'Team roles'],
   },
   {
-    icon: <Shield className='size-5 text-rose-500' />,
-    title: 'Private deployment capability',
-    desc: 'Use Baize AI Platform online, or deploy it privately inside the organization so data, permissions, model resources and operational signals stay within a controlled boundary.',
-    items: ['Online use', 'Private deployment', 'Digital employee foundation'],
+    icon: <RouteIcon className='size-5 text-blue-500' />,
+    title: 'Models stay in the background',
+    desc: 'Users call workspaces and skills. Administrators manage model channels, access keys, quotas and audit controls in management areas.',
+    items: ['Model permissions', 'Quota governance', 'Usage audit'],
+  },
+  {
+    icon: <Settings className='size-5 text-amber-500' />,
+    title: 'Private deployment when needed',
+    desc: 'Use the online service for fast adoption, then deploy privately when data, network, compliance or dedicated compute boundaries require it.',
+    items: ['Online use', 'Private deployment', 'Controlled boundary'],
   },
 ] as const
 
 const privateDeploymentHighlights = [
   'Online service fits quick evaluation, lightweight team use and cross-organization collaboration.',
   'Private deployment fits data-sensitive, intranet, Xinchuang and dedicated compute scenarios where organizations need controllable AI capability boundaries.',
-  'Hermes sidecar fits private agent runtime scenarios where users should access agent capabilities through platform credentials, model permissions, quotas and logs.',
-  'A digital employee is not a single chatbot. It is an AI work unit composed of models, knowledge, tools, permissions, workflows, memory, audit records and operational policies.',
-  'Baize AI Platform provides the AI Hub layer for digital employees: connect compute and models, govern access, dispatch the right capability, observe usage and keep business execution traceable.',
+  'Users still enter through the same workspaces, skills and results even when the deployment moves from online service to private environment.',
+  'Administrators keep model resources, permissions, quota, audit records and operation signals inside the controlled boundary.',
+  'Hermes sidecar fits private agent runtime scenarios where users access agent capabilities through platform workspaces instead of direct service endpoints.',
 ] as const
 
 function DocsPage() {
@@ -137,39 +97,39 @@ function DocsPage() {
             </div>
           </div>
           <h1 className='text-3xl font-bold tracking-tight md:text-4xl'>
-            {t('Baize AI Platform documentation')}
+            {t('How to work with Baize AI Platform')}
           </h1>
           <p className='text-muted-foreground mx-auto mt-4 max-w-2xl text-base'>
             {t(
-              'A practical guide for AI users to use Baize AI Platform across trusted operations, localization adaptation, model scheduling, unified compute access and intelligent routing governance.'
+              'Start from the work users care about: create workspaces, run skills, share sessions, keep results, then let administrators handle models, quota and deployment controls behind the scenes.'
             )}
           </p>
         </AnimateInView>
 
         <div className='space-y-10'>
           <section>
-            <h2 className='mb-4 text-xl font-bold'>{t('Platform overview')}</h2>
+            <h2 className='mb-4 text-xl font-bold'>{t('Start from user workflows')}</h2>
             <div className='border-border/40 bg-muted/20 rounded-xl border p-6'>
               <p className='text-muted-foreground leading-relaxed'>
                 {t(
-                  'Baize AI Platform supports both online access and private deployment. Online access is suitable for evaluation, lightweight team use and cross-organization collaboration.'
+                  'Baize AI Platform is organized around workspaces. A user starts in personal work, team collaboration or HermesAgent, then uses skills and files to finish actual tasks.'
                 )}
               </p>
               <p className='text-muted-foreground mt-4 leading-relaxed'>
                 {t(
-                  'Private deployment is designed for organizations that need data, permissions, model resources and operational records to remain inside their own controlled boundary.'
+                  'Teams can share conversations, promote useful skills, and keep generated results attached to the work context so knowledge does not disappear in one-off chats.'
                 )}
               </p>
               <p className='text-muted-foreground mt-4 leading-relaxed'>
                 {t(
-                  'The same control plane manages model access, routing, quotas, audit logs and operational visibility, so teams can move from trial use to private deployment without changing core workflows.'
+                  'Administrators still manage model access, routing, quota, audit and private deployment, but these controls should support the user workflow instead of becoming the first thing users see.'
                 )}
               </p>
             </div>
           </section>
 
           <section>
-            <h2 className='mb-4 text-xl font-bold'>{t('Documentation map')}</h2>
+            <h2 className='mb-4 text-xl font-bold'>{t('What to learn first')}</h2>
             <div className='grid gap-4 md:grid-cols-2'>
               {docSections.map((section) => (
                 <div
@@ -197,48 +157,48 @@ function DocsPage() {
 
           <section>
             <h2 className='mb-4 text-xl font-bold'>
-              {t('Private deployment and onboarding flow')}
+              {t('Recommended user onboarding flow')}
             </h2>
             <div className='border-border/40 bg-muted/20 rounded-xl border p-6'>
               <ol className='text-muted-foreground list-decimal space-y-3 pl-5 leading-relaxed'>
                 <li>
                   <strong className='text-foreground'>
-                    {t('Confirm deployment baseline')}:&nbsp;
+                    {t('Create your workspace')}:&nbsp;
                   </strong>
                   {t(
-                    'Choose private, intranet or public-facing deployment mode, then configure database, cache and health-check settings.'
+                    'Start with My Teams, My One-Person Company or HermesAgent depending on whether the work is shared, personal or agent-driven.'
                   )}
                 </li>
                 <li>
                   <strong className='text-foreground'>
-                    {t('Connect compute and model services')}:&nbsp;
+                    {t('Run a real task')}:&nbsp;
                   </strong>
                   {t(
-                    'Add localized compute, private models and external intelligent models, then organize them by business scope and capability type.'
+                    'Upload relevant files, ask the agent to produce a result, and keep the output attached to the session.'
                   )}
                 </li>
                 <li>
                   <strong className='text-foreground'>
-                    {t('Configure scheduling middleware')}:&nbsp;
+                    {t('Turn repeated work into a skill')}:&nbsp;
                   </strong>
                   {t(
-                    'Set model priorities, weights, tags, groups, health rules and fallback strategies for reliable model dispatch.'
+                    'When a prompt or workflow works well, save it as a personal skill and refine it through reuse.'
                   )}
                 </li>
                 <li>
                   <strong className='text-foreground'>
-                    {t('Set governance rules')}:&nbsp;
+                    {t('Share with a team')}:&nbsp;
                   </strong>
                   {t(
-                    'Create users and application credentials with quota boundaries, model permissions, access policies and audit requirements.'
+                    'Promote useful skills to team skills, pin important team sessions, and let members reuse proven workflows.'
                   )}
                 </li>
                 <li>
                   <strong className='text-foreground'>
-                    {t('Monitor operations')}:&nbsp;
+                    {t('Let administrators govern safely')}:&nbsp;
                   </strong>
                   {t(
-                    'Review usage data, request logs, model service health, performance metrics, cache state and security audit records.'
+                    'Use management areas for members, roles, model channels, quota, access keys, billing and audit when operational control is needed.'
                   )}
                 </li>
               </ol>
@@ -247,34 +207,34 @@ function DocsPage() {
 
           <section>
             <h2 className='mb-4 text-xl font-bold'>
-              {t('Hermes sidecar multi-user scenario')}
+              {t('HermesAgent in team work')}
             </h2>
             <div className='border-border/40 bg-muted/20 rounded-xl border p-6'>
               <div className='mb-4 flex items-center gap-2'>
                 <Bot className='size-5 text-teal-500' />
                 <h3 className='font-semibold'>
-                  {t('Use Hermes through platform models')}
+                  {t('Use HermesAgent through platform workspaces')}
                 </h3>
               </div>
               <p className='text-muted-foreground mb-4 leading-relaxed'>
                 {t(
-                  'Hermes can run as an internal sidecar container and be added to the platform as an OpenAI-compatible model service. Users call the platform model, while the Hermes service remains inside the Docker network.'
+                  'HermesAgent should feel like a workbench, not a raw service endpoint. Users create sessions, call skills, attach files, produce results and share reusable workflows through the platform.'
                 )}
               </p>
               <ul className='text-muted-foreground list-disc space-y-2 pl-5 leading-relaxed'>
                 <li>
                   {t(
-                    'Expose Hermes only to the internal Docker network, then configure a platform channel with the base URL http://hermes:8642/v1.'
+                    'For users, the entry is HermesAgent or a team workspace; for operators, Hermes can still run as a sidecar behind the platform.'
                   )}
                 </li>
                 <li>
                   {t(
-                    'Give users and teams access through platform keys, model permissions, quotas, IP restrictions and audit logs.'
+                    'Team usage should inherit platform membership, roles, quotas and audit records.'
                   )}
                 </li>
                 <li>
                   {t(
-                    'When Hermes needs a foundation model, configure it to call the platform endpoint with a dedicated service account or team key.'
+                    'When an agent workflow becomes repeatable, save it as a skill and decide whether it belongs to personal, team or Baizor shared skills.'
                   )}
                 </li>
               </ul>
@@ -283,18 +243,18 @@ function DocsPage() {
 
           <section>
             <h2 className='mb-4 text-xl font-bold'>
-              {t('Private deployment as a product capability')}
+              {t('Private deployment as a continuation of the same workflow')}
             </h2>
             <div className='border-border/40 bg-muted/20 rounded-xl border p-6'>
               <div className='mb-4 flex items-center gap-2'>
                 <Database className='size-5 text-blue-500' />
                 <h3 className='font-semibold'>
-                  {t('Online use and private deployment')}
+                  {t('Online first, private when required')}
                 </h3>
               </div>
               <p className='text-muted-foreground mb-4 leading-relaxed'>
                 {t(
-                  'Private deployment is a product feature, not only an operations choice. It lets organizations build digital employees on a controlled AI Hub while keeping data, permissions, model resources and operational evidence inside their own governance boundary.'
+                  'Private deployment should not change how users work. The same workspaces, sessions, skills and results remain the front door; the deployment only changes where data, model resources and governance records live.'
                 )}
               </p>
               <ul className='text-muted-foreground list-disc space-y-2 pl-5 leading-relaxed'>
@@ -307,40 +267,40 @@ function DocsPage() {
 
           <section>
             <h2 className='mb-4 text-xl font-bold'>
-              {t('Implementation extension points')}
+              {t('For administrators and builders')}
             </h2>
             <div className='border-border/40 bg-muted/20 rounded-xl border p-6'>
               <div className='grid gap-4 md:grid-cols-3'>
                 <div>
                   <KeyRound className='mb-2 size-5 text-emerald-500' />
                   <h3 className='mb-1 font-semibold'>
-                    {t('Model service adaptation')}
+                    {t('Model and channel management')}
                   </h3>
                   <p className='text-muted-foreground text-sm leading-relaxed'>
                     {t(
-                      'Add model request conversion, response handling, usage extraction and localized compute adaptation without changing business applications.'
+                      'Configure model channels, permissions, quotas and routing only after the user-facing workspace flow is clear.'
                     )}
                   </p>
                 </div>
                 <div>
                   <BarChart3 className='mb-2 size-5 text-amber-500' />
                   <h3 className='mb-1 font-semibold'>
-                    {t('Scheduling policies')}
+                    {t('Skill and workflow operations')}
                   </h3>
                   <p className='text-muted-foreground text-sm leading-relaxed'>
                     {t(
-                      'Extend priority, weight, tag, group, health and fallback rules as model service requirements evolve.'
+                      'Maintain personal, team and Baizor shared skills so useful work patterns stay reusable.'
                     )}
                   </p>
                 </div>
                 <div>
                   <Shield className='mb-2 size-5 text-violet-500' />
                   <h3 className='mb-1 font-semibold'>
-                    {t('Safety boundaries')}
+                    {t('Governance boundaries')}
                   </h3>
                   <p className='text-muted-foreground text-sm leading-relaxed'>
                     {t(
-                      'Preserve protected project identity, keep JSON handling and database compatibility rules, and test externally visible behavior.'
+                      'Keep account security, billing, model access, audit and deployment controls in management areas where operators expect them.'
                     )}
                   </p>
                 </div>

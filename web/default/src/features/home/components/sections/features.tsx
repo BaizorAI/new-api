@@ -35,63 +35,63 @@ export function Features() {
 
   const features = [
     {
-      id: 'relay',
+      id: 'team-workspace',
       num: '01',
-      title: 'Unified compute access',
-      desc: 'Connect multi-source compute and intelligent model services into one AI Hub, giving business systems a stable and governed capability entry.',
+      title: 'Team workspace',
+      desc: 'Create team workspaces where conversations, skills and result files are shared by the people doing the work.',
       span: 'md:col-span-2',
       icon: <Route className='size-4 text-blue-400' />,
-      visual: ['Local models', 'OpenAI', 'Claude', 'Gemini', 'DeepSeek'],
+      visual: ['Team sessions', 'Shared context', 'Results', 'Members', 'Roles'],
     },
     {
-      id: 'routing',
+      id: 'skills',
       num: '02',
-      title: 'Model scheduling and routing middleware',
-      desc: 'Set model scheduling, routing middleware, access permissions, quota boundaries and audit policies for different business scenarios.',
+      title: 'Skill improvement loop',
+      desc: 'Turn repeated prompts, workflows and domain know-how into reusable skills that teams can improve over time.',
       span: 'md:col-span-1',
       icon: <Zap className='size-4 text-violet-400' />,
-      visual: ['Scheduling', 'Routing', 'Policy'],
+      visual: ['Create', 'Improve', 'Share'],
     },
     {
-      id: 'billing',
+      id: 'results',
       num: '03',
-      title: 'Private deployment capability',
-      desc: 'Private deployment fits data-sensitive, intranet, Xinchuang, dedicated compute and Hermes sidecar scenarios where organizations need controllable AI capability boundaries.',
+      title: 'Results that stay with the work',
+      desc: 'Keep uploaded files, generated documents and conversation outcomes visible from the workspace instead of scattering them across chats.',
       span: 'md:col-span-1',
       icon: <WalletCards className='size-4 text-emerald-400' />,
-      visual: ['Intranet', 'Xinchuang', 'Hermes sidecar', 'Dedicated compute'],
+      visual: ['Uploads', 'Documents', 'Exports', 'History'],
     },
     {
       id: 'governance',
       num: '04',
-      title: 'Quota and usage governance',
-      desc: 'Apply routing strategies, access boundaries, quota controls, usage records and security audit policies from the platform layer.',
+      title: 'Models and costs stay governed',
+      desc: 'Administrators can still control model access, quota, billing and audit while ordinary users stay focused on tasks.',
       span: 'md:col-span-2',
       icon: <Shield className='size-4 text-amber-400' />,
-      visual: ['Access', 'Quota', 'Audit', 'Logs'],
+      visual: ['Permissions', 'Quota', 'Audit', 'Usage'],
     },
   ]
 
   const additionalFeatures = [
     {
       icon: <BarChart3 className='size-5' strokeWidth={1.5} />,
-      title: 'Localization and Xinchuang adaptation',
-      desc: 'Add model request conversion, response handling, usage extraction and localized compute adaptation without changing business applications.',
+      title: 'Personal AI workbench',
+      desc: 'Use a personal workspace for drafts, research, experiments and skills before sharing work with a team.',
     },
     {
       icon: <Database className='size-5' strokeWidth={1.5} />,
-      title: 'AI resource governance',
-      desc: 'Manage users, application credentials, access boundaries, quota allocation, usage records and security audit flows.',
+      title: 'Team skill collection',
+      desc: 'Promote useful personal skills into team or Baizor shared skills so good practice becomes reusable capability.',
     },
     {
       icon: <Gauge className='size-5' strokeWidth={1.5} />,
-      title: 'Operational visibility',
-      desc: 'Track request IDs, usage logs, performance metrics, cache state and channel health from the control plane.',
+      title: 'Outcome-centered records',
+      desc: 'Review shared sessions, files, skill changes and usage records around the work that produced them.',
     },
     {
       icon: <HeartHandshake className='size-5' strokeWidth={1.5} />,
-      title: 'Connect compute and models',
-      desc: 'Bring multi-source compute, private model services, Hermes sidecars and external intelligent models into one governed AI Hub capability pool.',
+      title: 'Private deployment when needed',
+      desc: 'Use the online service for fast adoption, then deploy privately when data, network or governance boundaries require it.',
     },
   ]
 
@@ -100,11 +100,11 @@ export function Features() {
       <div className='mx-auto max-w-6xl'>
         <AnimateInView className='mb-16 max-w-xl'>
           <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
-            {t('Product capabilities')}
+            {t('User-first workspaces')}
           </p>
           <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-3xl'>
             {t(
-              'A trusted AI Hub for localization adaptation, compute access, model scheduling, routing middleware and AI resource governance.'
+              'Put team work, reusable skills and final results first; keep technical operations in management areas.'
             )}
           </h2>
         </AnimateInView>

@@ -53,16 +53,16 @@ export function CTA(props: CTAProps) {
         animation='scale-in'
       >
         <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-4xl'>
-          {t('Ready to use a trusted AI Hub?')}
+          {t('Ready to build your AI workbench?')}
         </h2>
         <p className='text-muted-foreground/80 mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
           {t(
-            'Use Baize AI Platform online, or deploy it privately inside the organization so data, permissions, model resources and operational signals stay within a controlled boundary.'
+            'Create a workspace, invite teammates, use skills, and keep conversations plus results together from the first day.'
           )}
         </p>
         <div className='mt-8 flex flex-wrap items-center justify-center gap-3'>
           <Button className='group rounded-lg' render={<Link to='/sign-up' />}>
-            {t('Create account')}
+            {t('Start working with AI')}
             <ArrowRight className='ml-1 size-3.5 transition-transform duration-200 group-hover:translate-x-0.5' />
           </Button>
           <Button
@@ -70,7 +70,7 @@ export function CTA(props: CTAProps) {
             className='border-border/50 hover:border-border hover:bg-muted/50 rounded-lg'
             render={<Link to='/docs' />}
           >
-            {t('Read docs')}
+            {t('See how it works')}
           </Button>
           <Button
             variant='outline'

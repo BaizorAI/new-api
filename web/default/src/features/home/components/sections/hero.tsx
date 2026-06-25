@@ -31,10 +31,10 @@ interface HeroProps {
 }
 
 const capabilityKeys = [
-  'Localization and Xinchuang readiness',
-  'Unified compute access',
-  'Intelligent model scheduling',
-  'Private deployment',
+  'Team collaboration',
+  'Reusable skills',
+  'Shared results',
+  'Governed model access',
 ] as const
 
 export function Hero(props: HeroProps) {
@@ -102,7 +102,7 @@ export function Hero(props: HeroProps) {
               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75' />
               <span className='relative inline-flex size-1.5 rounded-full bg-blue-500 dark:bg-blue-400' />
             </span>
-            <span>{t('AI Hub for organizations')}</span>
+            <span>{t('AI workbench for teams')}</span>
           </div>
 
           <h1
@@ -112,7 +112,7 @@ export function Hero(props: HeroProps) {
             {t('Baize AI Platform')}
             <br />
             <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-              {t('Know all things, perceive wisdom')}
+              {t('Turn shared skills into everyday productivity')}
             </span>
           </h1>
           <p
@@ -120,7 +120,7 @@ export function Hero(props: HeroProps) {
             style={{ animationDelay: '120ms' }}
           >
             {t(
-              'Baize AI Platform serves organizational AI adoption and operation. It connects compute, intelligent models and business applications, then provides model scheduling, routing middleware, access control, usage governance, security audit and operational visibility from the AI Hub layer.'
+              'Baize AI Platform helps individuals and teams work with AI through workspaces, reusable skills, shared conversations and result files. Technical model access, quotas and audit stay in the background so users can focus on getting work done.'
             )}
           </p>
 
@@ -145,7 +145,7 @@ export function Hero(props: HeroProps) {
                   className='group h-11 rounded-lg px-5 text-sm font-medium'
                   render={<Link to='/sign-up' />}
                 >
-                  {t('Create account')}
+                  {t('Start working with AI')}
                   <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
                 </Button>
                 {renderDocsButton()}
@@ -166,11 +166,11 @@ export function Hero(props: HeroProps) {
           >
             <div className='mb-4 flex flex-col gap-1'>
               <span className='text-muted-foreground/50 text-[10px] font-bold tracking-[0.15em] uppercase'>
-                {t('Core capabilities')}
+                {t('What users get first')}
               </span>
               <p className='text-muted-foreground/60 text-xs leading-relaxed'>
                 {t(
-                  'Use Baize AI Platform online, or deploy it privately inside the organization so data, permissions, model resources and operational signals stay within a controlled boundary.'
+                  'Start from work, not from model settings: create a workspace, use or improve skills, share sessions with teammates and keep final outputs easy to find.'
                 )}
               </p>
             </div>

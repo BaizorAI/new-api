@@ -40,65 +40,60 @@ import { useStatus } from '@/hooks/use-status'
 const capabilities = [
   {
     icon: <Route className='size-5 text-blue-500' />,
-    title: 'Localization and Xinchuang readiness',
-    desc: 'Support private, intranet and trusted deployment needs for localized infrastructure and Xinchuang-oriented environments.',
+    title: 'Workspaces for real work',
+    desc: 'Personal, team and HermesAgent workspaces keep conversations, files, skills and results connected to the task.',
   },
   {
     icon: <GitBranch className='size-5 text-violet-500' />,
-    title: 'Unified compute access',
-    desc: 'Bring multi-source compute, private model services and external intelligent models into one governed AI Hub capability pool.',
+    title: 'Skills that teams can improve',
+    desc: 'Useful workflows can move from personal practice to team skills or Baizor shared skills, turning experience into reusable capability.',
   },
   {
     icon: <WalletCards className='size-5 text-emerald-500' />,
-    title: 'Intelligent model scheduling',
-    desc: 'Coordinate model selection, priority, weight, tags, groups, health signals and fallback strategies for different business scenarios.',
+    title: 'Shared sessions and results',
+    desc: 'Team members can collaborate around shared conversations, generated documents, uploaded files and exported outcomes.',
   },
   {
     icon: <Shield className='size-5 text-amber-500' />,
-    title: 'Routing middleware',
-    desc: 'Provide transparent routing, exception handling, access control and policy distribution from the platform layer.',
+    title: 'Governance behind the scenes',
+    desc: 'Model channels, quota, billing, access keys, roles and audit records stay available for administrators without overwhelming ordinary users.',
   },
   {
     icon: <Database className='size-5 text-cyan-500' />,
-    title: 'AI resource governance',
-    desc: 'Control users, application credentials, model permissions, quota boundaries, request logs and security audit records.',
+    title: 'Private deployment path',
+    desc: 'Organizations can start online and move to private deployment when data, network, compliance or dedicated compute boundaries require it.',
   },
   {
     icon: <Bot className='size-5 text-teal-500' />,
-    title: 'Hermes sidecar agent runtime',
-    desc: 'Operate Hermes as an internal sidecar while users access it through platform models, teams, quotas and audit logs.',
-  },
-  {
-    icon: <BarChart3 className='size-5 text-rose-500' />,
-    title: 'Flexible deployment',
-    desc: 'Run with SQLite, MySQL or PostgreSQL, optionally enable Redis, and deploy as a single Go service or separated frontend topology.',
+    title: 'HermesAgent work partner',
+    desc: 'HermesAgent helps users run repeatable work, refine skills and keep agent sessions available across personal and team workspaces.',
   },
 ] as const
 
 const audiences = [
   {
-    title: 'Government and enterprise teams',
-    desc: 'Build a unified, trusted and auditable AI capability foundation under localization and Xinchuang requirements.',
+    title: 'People doing daily knowledge work',
+    desc: 'Research, write, summarize, compare, generate documents and keep useful workflows as skills for next time.',
   },
   {
-    title: 'AI platform operators',
-    desc: 'Manage models, compute, users, applications, quotas, logs and security policies from one AI platform.',
+    title: 'Teams that need shared AI capability',
+    desc: 'Collaborate through team sessions, shared results and team skills instead of isolated one-off chats.',
   },
   {
-    title: 'Operations and infrastructure teams',
-    desc: 'Bring multi-source compute, local models and external model services into a unified operating system.',
+    title: 'Operators and administrators',
+    desc: 'Keep model access, quota, billing, users, roles, audit and deployment controls in management areas.',
   },
   {
-    title: 'Business application teams',
-    desc: 'Use stable, governed intelligent capabilities without repeatedly handling model access, scheduling and audit concerns.',
+    title: 'Organizations with private deployment needs',
+    desc: 'Keep the same user workflow while moving data, model resources and operational records into a controlled boundary.',
   },
 ] as const
 
 const stats = [
-  { num: '40+', label: 'model service adaptors' },
-  { num: '10+', label: 'model access protocol families' },
-  { num: '3', label: 'platform distribution capabilities' },
-  { num: '6', label: 'console languages' },
+  { num: '3', label: 'workspace modes' },
+  { num: '4', label: 'shared skill workflows' },
+  { num: '3', label: 'result-centered views' },
+  { num: '4', label: 'management safeguards' },
 ] as const
 
 function About() {
@@ -120,12 +115,12 @@ function About() {
           </h1>
           <p className='text-muted-foreground mx-auto mt-4 max-w-2xl text-lg leading-relaxed'>
             {t(
-              'Baize AI Platform connects model services, applications and governance capabilities so organizations can use AI through a stable, controllable and observable operating layer.'
+              'Baize AI Platform helps people and teams work with AI through workspaces, reusable skills, shared sessions and result files, while model access and governance stay controlled in the background.'
             )}
           </p>
           <div className='mt-8 flex flex-wrap items-center justify-center gap-3'>
             <Button className='group rounded-lg' render={<Link to='/docs' />}>
-              {t('Read docs')}
+              {t('See how it works')}
               <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
             </Button>
             <Button
@@ -164,21 +159,21 @@ function About() {
                 </div>
               </div>
               <div className='flex-1'>
-                <h2 className='text-xl font-bold'>{t('Service modes')}</h2>
+                <h2 className='text-xl font-bold'>{t('How people use it')}</h2>
                 <div className='text-muted-foreground mt-2 space-y-3 leading-relaxed'>
                   <p>
                     {t(
-                      'Baize AI Platform supports both online access and private deployment. Online access is suitable for evaluation, lightweight team use and cross-organization collaboration.'
+                      'Users should not have to start from channels, keys or routing rules. They start from a workspace: personal work, team work or HermesAgent.'
                     )}
                   </p>
                   <p>
                     {t(
-                      'Private deployment is designed for organizations that need data, permissions, model resources and operational records to remain inside their own controlled boundary.'
+                      'Inside a workspace, conversations, attachments, reusable skills and final outputs stay connected to the task so good work can be repeated and shared.'
                     )}
                   </p>
                   <p>
                     {t(
-                      'The same control plane manages model access, routing, quotas, audit logs and operational visibility, so teams can move from trial use to private deployment without changing core workflows.'
+                      'When governance is required, administrators manage members, roles, model access, quota, billing and audit from management areas.'
                     )}
                   </p>
                 </div>
@@ -197,17 +192,17 @@ function About() {
               </div>
               <div className='flex-1'>
                 <h2 className='text-xl font-bold'>
-                  {t('Hermes sidecar scenario')}
+                  {t('HermesAgent in the product experience')}
                 </h2>
                 <div className='text-muted-foreground mt-2 space-y-3 leading-relaxed'>
                   <p>
                     {t(
-                      'Hermes can run in a separate sidecar container and be exposed to users as a platform-governed model capability instead of a standalone service.'
+                      'HermesAgent is presented as a work partner inside the platform: users create sessions, attach files, call skills, produce results and keep improving useful workflows.'
                     )}
                   </p>
                   <p>
                     {t(
-                      'This lets multiple users and teams use Hermes through platform credentials, model permissions, quota allocation, usage logs and security audit policies.'
+                      'For operators, Hermes can still run as a sidecar and use platform-governed model access, quotas and audit records. For users, the entry stays simple.'
                     )}
                   </p>
                 </div>
@@ -236,7 +231,7 @@ function About() {
                 <h2 className='text-xl font-bold'>{t('Product mission')}</h2>
                 <p className='text-muted-foreground mt-2 leading-relaxed'>
                   {t(
-                    'Connect compute, models and business scenarios through a trusted AI Hub, so organizations can use artificial intelligence safely, efficiently and controllably under localization and Xinchuang systems.'
+                    'Make AI work reusable: help individuals finish tasks, help teams share and improve skills, and help organizations keep governance under control.'
                   )}
                 </p>
               </div>
@@ -252,7 +247,7 @@ function About() {
               </div>
               <div>
                 <h2 className='text-xl font-bold'>
-                  {t('The legend and meaning of Baize')}
+                  {t('Why Baize')}
                 </h2>
                 <p className='text-muted-foreground text-sm'>
                   {t('Know all things, perceive wisdom')}
@@ -272,12 +267,12 @@ function About() {
               </p>
               <p>
                 {t(
-                  'Today, the name Baize is given to the AI platform to carry the meaning of knowing all things and perceiving wisdom. The platform gathers multi-source compute and intelligent models, adapts to localization and Xinchuang environments, and provides model scheduling plus intelligent routing so complex model access, compute allocation, permission control and usage governance become clear and controllable.'
+                  'Today, the name Baize is given to the AI platform to carry the meaning of knowing all things and perceiving wisdom. The platform gathers models, tools, skills and workspaces so complex AI capability becomes usable, shareable and governable.'
                 )}
               </p>
               <p>
                 {t(
-                  'Baize AI Platform aims to be the AI Hub foundation for organizations: gather compute, schedule models and connect intelligence, making every AI capability call safe, stable, trusted and well governed.'
+                  'Baize AI Platform aims to become the workbench where people collaborate with AI, improve skills together and turn successful work into reusable team capability.'
                 )}
               </p>
             </div>
@@ -287,11 +282,11 @@ function About() {
         <section>
           <AnimateInView className='mb-10 text-center'>
             <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
-              {t('Core capabilities')}
+              {t('What the platform foregrounds')}
             </h2>
             <p className='text-muted-foreground mt-2'>
               {t(
-                'A trusted AI Hub for localization adaptation, compute access, model scheduling, routing middleware and AI resource governance.'
+                'Workspaces, skills, shared sessions and results are first. Technical controls are still available, but they live where operators expect them.'
               )}
             </p>
           </AnimateInView>
@@ -325,7 +320,7 @@ function About() {
             </h2>
             <p className='text-muted-foreground mt-2'>
               {t(
-                'Baize AI Platform is designed for organizational AI adoption and operation scenarios where localization, trust, controllability and reliability matter.'
+                'Baize AI Platform is designed for users who need useful AI work today and teams that need those workflows to become shared capability tomorrow.'
               )}
             </p>
           </AnimateInView>
@@ -364,7 +359,7 @@ function About() {
                 </h2>
                 <p className='text-muted-foreground mt-2 leading-relaxed'>
                   {t(
-                    'For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.'
+                    'For workspace adoption, private deployment, HermesAgent integration, model governance or community support, use the project repository and organization channels.'
                   )}
                 </p>
                 <div className='mt-4 flex flex-wrap gap-4 text-sm'>
@@ -395,16 +390,16 @@ function About() {
           <div className='border-border/40 bg-muted/20 rounded-2xl border p-10'>
             <BarChart3 className='text-muted-foreground/50 mx-auto size-10' />
             <h2 className='mt-4 text-2xl font-bold'>
-              {t('Use AI capabilities through one trusted AI Hub')}
+              {t('Build shared AI capability from everyday work')}
             </h2>
             <p className='text-muted-foreground mx-auto mt-3 max-w-lg'>
               {t(
-                'Connect compute, schedule models, govern usage and provide stable intelligent capabilities for every business scenario.'
+                'Start with one useful result, save the repeatable method as a skill, and let the team improve it together.'
               )}
             </p>
             <div className='mt-6 flex flex-wrap items-center justify-center gap-3'>
               <Button className='group rounded-lg' render={<Link to='/docs' />}>
-                {t('Read docs')}
+                {t('See how it works')}
                 <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
               </Button>
               <Button
@@ -428,7 +423,7 @@ function About() {
             >
               {t('Baizor API')}
             </a>{' '}
-            © {currentYear}{' '}
+            {'\u00a9'} {currentYear}{' '}
             <a
               href='https://github.com/BaizorAI'
               target='_blank'
@@ -437,11 +432,11 @@ function About() {
             >
               {t('BaizorAI')}
             </a>{' '}
-            {t('| Based on')} {t('One API')} © 2026 {t('QiMa')}
+            {t('| Based on')} {t('One API')} {'\u00a9'} 2026 {t('QiMa')}
           </p>
           <p>
-            {t('NewAPI')} © {currentYear} {t('QuantumNous')} {t('| Based on')}{' '}
-            {t('One API')} © 2023 {t('JustSong')}
+            {t('NewAPI')} {'\u00a9'} {currentYear} {t('QuantumNous')} {t('| Based on')}{' '}
+            {t('One API')} {'\u00a9'} 2023 {t('JustSong')}
           </p>
           <p className='mt-1'>
             {t('This project must be used in compliance with the')}{' '}

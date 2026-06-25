@@ -27,20 +27,20 @@ export function HowItWorks() {
   const steps = [
     {
       num: '1',
-      title: 'Connect compute and models',
-      desc: 'Bring multi-source compute, private model services and external intelligent models into one governed AI Hub capability pool.',
+      title: 'Start from a workspace',
+      desc: 'Choose personal work, a team workspace or HermesAgent, then keep conversations, files and results in the same place.',
       icon: <Settings className='size-6' strokeWidth={1.5} />,
     },
     {
       num: '2',
-      title: 'Model scheduling and routing middleware',
-      desc: 'Set model scheduling, routing middleware, access permissions, quota boundaries and audit policies for different business scenarios.',
+      title: 'Use and improve skills',
+      desc: 'Call existing skills, refine them during real work, and promote reliable skills for your team to reuse.',
       icon: <KeyRound className='size-6' strokeWidth={1.5} />,
     },
     {
       num: '3',
-      title: 'Quota and usage governance',
-      desc: 'Review usage data, request logs, model service health, performance metrics, cache state and security audit records.',
+      title: 'Share results with confidence',
+      desc: 'Team members can see shared sessions, outputs and skill context while administrators keep model access and quota governed.',
       icon: <BarChart3 className='size-6' strokeWidth={1.5} />,
     },
   ]
@@ -50,10 +50,10 @@ export function HowItWorks() {
       <div className='mx-auto max-w-6xl'>
         <AnimateInView className='mb-16 text-center md:mb-20'>
           <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
-            {t('Private deployment and onboarding flow')}
+            {t('How users get value')}
           </p>
           <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
-            {t('Use AI capabilities through one trusted AI Hub')}
+            {t('From one useful result to a reusable team capability')}
           </h2>
         </AnimateInView>
 

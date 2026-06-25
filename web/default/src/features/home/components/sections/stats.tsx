@@ -97,10 +97,10 @@ export function Stats(_props: StatsProps) {
   const { t } = useTranslation()
 
   const stats: StatItem[] = [
-    { end: 40, suffix: '+', label: 'model service adaptors' },
-    { end: 10, suffix: '+', label: 'model access protocol families' },
-    { end: 3, suffix: '', label: 'platform distribution capabilities' },
-    { end: 6, suffix: '', label: 'console languages' },
+    { end: 3, suffix: '', label: 'workspace modes' },
+    { end: 4, suffix: '', label: 'shared skill workflows' },
+    { end: 3, suffix: '', label: 'result-centered views' },
+    { end: 4, suffix: '', label: 'management safeguards' },
   ]
 
   return (

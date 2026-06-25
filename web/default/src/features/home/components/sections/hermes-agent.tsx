@@ -37,23 +37,23 @@ export function HermesAgent() {
   const highlights = [
     {
       icon: <Sparkles className='size-4 text-amber-400' />,
-      text: 'Self-improving learning loop with memory and skills',
+      text: 'Reusable skills that improve through real work',
     },
     {
       icon: <Wrench className='size-4 text-amber-400' />,
-      text: '70+ tools across 28+ toolsets',
+      text: 'Tools for research, writing, files and automation',
     },
     {
       icon: <MessageCircle className='size-4 text-amber-400' />,
-      text: '20+ messaging platforms in one gateway',
+      text: 'Message platform access, starting with WeChat',
     },
     {
       icon: <Bot className='size-4 text-amber-400' />,
-      text: 'Multi-interface: CLI, TUI, desktop, API and editors',
+      text: 'Web workspace with sessions, results and skills',
     },
     {
       icon: <Cpu className='size-4 text-amber-400' />,
-      text: 'Model freedom: OpenAI, Claude, Gemini, DeepSeek and more',
+      text: 'Uses platform-governed models and quotas',
     },
   ]
 
@@ -107,15 +107,15 @@ export function HermesAgent() {
                   <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75' />
                   <span className='relative inline-flex size-1.5 rounded-full bg-amber-500' />
                 </span>
-                <span>{t('New — HermesAgent')}</span>
+                <span>{t('AI agent workspace')}</span>
               </div>
 
               <h2 className='text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-bold tracking-tight'>
-                {t('Meet HermesAgent, the self-improving AI agent')}
+                {t('Meet HermesAgent, your skill-based AI work partner')}
               </h2>
               <p className='text-muted-foreground mt-4 max-w-xl leading-relaxed'>
                 {t(
-                  'Deploy a personal autonomous agent that learns from experience, connects 20+ messaging platforms, runs 70+ tools, and keeps working across sessions — all governed through Baize AI Platform.'
+                  'Use HermesAgent to turn repeatable work into skills, keep sessions and results together, and let teams reuse proven workflows under platform governance.'
                 )}
               </p>
 
@@ -136,7 +136,7 @@ export function HermesAgent() {
                   className='group rounded-lg bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-500'
                   render={<Link to='/hermes-playground' />}
                 >
-                  {t('Try HermesAgent')}
+                  {t('Open HermesAgent')}
                   <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
                 </Button>
                 <Button
@@ -162,7 +162,7 @@ export function HermesAgent() {
                   <div>
                     <h3 className='font-semibold'>{t('HermesAgent')}</h3>
                     <p className='text-muted-foreground text-xs'>
-                      {t('Self-improving AI agent')}
+                      {t('Skill-based AI work partner')}
                     </p>
                   </div>
                 </div>
@@ -173,7 +173,7 @@ export function HermesAgent() {
                       70+
                     </div>
                     <div className='text-muted-foreground text-xs'>
-                      {t('Agent tools')}
+                      {t('Work tools')}
                     </div>
                   </div>
                   <div className='bg-background/80 dark:bg-background/60 rounded-lg border border-border/40 p-4 text-center'>
@@ -181,7 +181,7 @@ export function HermesAgent() {
                       20+
                     </div>
                     <div className='text-muted-foreground text-xs'>
-                      {t('Messaging platforms')}
+                      {t('Message access')}
                     </div>
                   </div>
                   <div className='bg-background/80 dark:bg-background/60 rounded-lg border border-border/40 p-4 text-center'>
@@ -189,7 +189,7 @@ export function HermesAgent() {
                       6
                     </div>
                     <div className='text-muted-foreground text-xs'>
-                      {t('Terminal backends')}
+                      {t('Work modes')}
                     </div>
                   </div>
                 </div>
@@ -209,7 +209,7 @@ export function HermesAgent() {
                   <CheckCircle2 className='mt-0.5 size-4 shrink-0' />
                   <p>
                     {t(
-                      'The only agent with a built-in learning loop: it creates skills from experience, improves them during use, and remembers context across sessions.'
+                      'HermesAgent is most useful when it becomes part of daily work: create a session, use a skill, produce a result, then improve the skill for next time.'
                     )}
                   </p>
                 </div>
