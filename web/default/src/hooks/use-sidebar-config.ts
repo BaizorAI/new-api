@@ -41,6 +41,7 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
     enabled: true,
     playground: true,
     hermes_playground: true,
+    one_person_company: true,
     chat: true,
   },
   console: {
@@ -98,6 +99,7 @@ const mergeWithDefaultSidebarModules = (
 const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
   '/playground': { section: 'chat', module: 'playground' },
   '/hermes-playground': { section: 'chat', module: 'hermes_playground' },
+  '/one-person-company': { section: 'chat', module: 'one_person_company' },
   '/dashboard': { section: 'console', module: 'detail' },
   '/dashboard/overview': { section: 'console', module: 'detail' },
   '/dashboard/models': { section: 'console', module: 'detail' },

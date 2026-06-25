@@ -46,8 +46,11 @@ const HERMES_RESULTS_OPEN_REQUEST_KEY = 'hermes_results_open_request'
 const HERMES_MESSAGE_PLATFORMS_OPEN_REQUEST_KEY =
   'hermes_message_platforms_open_request'
 
-export function getHermesBaseScope(userId?: number | string | null): string {
-  return `hermes_user_${userId ?? 'anonymous'}`
+export function getHermesBaseScope(
+  userId?: number | string | null,
+  prefix = 'hermes'
+): string {
+  return `${safeStorageScope(prefix)}_user_${userId ?? 'anonymous'}`
 }
 
 export function safeStorageScope(scope: string): string {

@@ -1,4 +1,5 @@
 {
+  "HermesAgent": "HermesAgent",
   "Realtime": "Realtime",
   "Rerank": "Rerank",
   "Responses": "Responses",

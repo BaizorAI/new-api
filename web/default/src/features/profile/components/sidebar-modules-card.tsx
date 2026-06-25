@@ -71,6 +71,11 @@ export function SidebarModulesCard() {
           description: t('Hermes agent testing environment'),
         },
         {
+          key: 'one_person_company',
+          title: t('My One-Person Company'),
+          description: t('Hermes-powered solo business workspace'),
+        },
+        {
           key: 'chat',
           title: t('Chat'),
           description: t('Chat session management'),

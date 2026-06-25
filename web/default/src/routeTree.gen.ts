@@ -47,6 +47,7 @@ import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
 import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authenticated/profile/index'
 import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_authenticated/playground/index'
+import { Route as AuthenticatedOnePersonCompanyIndexRouteImport } from './routes/_authenticated/one-person-company/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
 import { Route as AuthenticatedHermesPlaygroundIndexRouteImport } from './routes/_authenticated/hermes-playground/index'
@@ -270,6 +271,12 @@ const AuthenticatedPlaygroundIndexRoute =
     path: '/playground/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOnePersonCompanyIndexRoute =
+  AuthenticatedOnePersonCompanyIndexRouteImport.update({
+    id: '/one-person-company/',
+    path: '/one-person-company/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedModelsIndexRoute =
   AuthenticatedModelsIndexRouteImport.update({
     id: '/models/',
@@ -455,6 +462,7 @@ export interface FileRoutesByFullPath {
   '/hermes-playground/': typeof AuthenticatedHermesPlaygroundIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
+  '/one-person-company/': typeof AuthenticatedOnePersonCompanyIndexRoute
   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/profile/': typeof AuthenticatedProfileIndexRoute
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
@@ -517,6 +525,7 @@ export interface FileRoutesByTo {
   '/hermes-playground': typeof AuthenticatedHermesPlaygroundIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
+  '/one-person-company': typeof AuthenticatedOnePersonCompanyIndexRoute
   '/playground': typeof AuthenticatedPlaygroundIndexRoute
   '/profile': typeof AuthenticatedProfileIndexRoute
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
@@ -583,6 +592,7 @@ export interface FileRoutesById {
   '/_authenticated/hermes-playground/': typeof AuthenticatedHermesPlaygroundIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
+  '/_authenticated/one-person-company/': typeof AuthenticatedOnePersonCompanyIndexRoute
   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/_authenticated/profile/': typeof AuthenticatedProfileIndexRoute
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
@@ -648,6 +658,7 @@ export interface FileRouteTypes {
     | '/hermes-playground/'
     | '/keys/'
     | '/models/'
+    | '/one-person-company/'
     | '/playground/'
     | '/profile/'
     | '/redemption-codes/'
@@ -710,6 +721,7 @@ export interface FileRouteTypes {
     | '/hermes-playground'
     | '/keys'
     | '/models'
+    | '/one-person-company'
     | '/playground'
     | '/profile'
     | '/redemption-codes'
@@ -775,6 +787,7 @@ export interface FileRouteTypes {
     | '/_authenticated/hermes-playground/'
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
+    | '/_authenticated/one-person-company/'
     | '/_authenticated/playground/'
     | '/_authenticated/profile/'
     | '/_authenticated/redemption-codes/'
@@ -1092,6 +1105,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPlaygroundIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/one-person-company/': {
+      id: '/_authenticated/one-person-company/'
+      path: '/one-person-company'
+      fullPath: '/one-person-company/'
+      preLoaderRoute: typeof AuthenticatedOnePersonCompanyIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/models/': {
       id: '/_authenticated/models/'
       path: '/models'
@@ -1366,6 +1386,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHermesPlaygroundIndexRoute: typeof AuthenticatedHermesPlaygroundIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
+  AuthenticatedOnePersonCompanyIndexRoute: typeof AuthenticatedOnePersonCompanyIndexRoute
   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
   AuthenticatedProfileIndexRoute: typeof AuthenticatedProfileIndexRoute
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
@@ -1392,6 +1413,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedHermesPlaygroundIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
+  AuthenticatedOnePersonCompanyIndexRoute:
+    AuthenticatedOnePersonCompanyIndexRoute,
   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,
   AuthenticatedProfileIndexRoute: AuthenticatedProfileIndexRoute,
   AuthenticatedRedemptionCodesIndexRoute:

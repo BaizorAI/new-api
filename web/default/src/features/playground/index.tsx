@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import type { PromptInputSubmittedFile } from '@/components/ai-elements/prompt-input'
+import { Button } from '@/components/ui/button'
 
 import { getUserModels, getUserGroups } from './api'
 import { PlaygroundChat } from './components/playground-chat'
@@ -50,6 +51,7 @@ interface PlaygroundProps {
   onNewSession?: () => void
   onSaveSession?: (messages: MessageType[]) => void
   onAddSkill?: () => void
+  suggestedPrompts?: { label: string; prompt: string }[]
 }
 
 export function Playground(props: PlaygroundProps = {}) {
@@ -330,6 +332,22 @@ export function Playground(props: PlaygroundProps = {}) {
 
       {/* Input area: center content and constrain to the same container width */}
       <div className='mx-auto w-full max-w-4xl'>
+        {props.suggestedPrompts && props.suggestedPrompts.length > 0 && (
+          <div className='mx-1 mb-3 flex flex-wrap gap-2'>
+            {props.suggestedPrompts.map((item) => (
+              <Button
+                key={item.label}
+                disabled={isGenerating || modelUnavailable}
+                onClick={() => handleSendMessage(item.prompt)}
+                size='sm'
+                type='button'
+                variant='outline'
+              >
+                {item.label}
+              </Button>
+            ))}
+          </div>
+        )}
         {modelUnavailable && (
           <div className='text-muted-foreground mx-1 mb-3 rounded-lg border px-3 py-2 text-sm'>
             {props.emptyModelsMessage ?? t('No available models')}

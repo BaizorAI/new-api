@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import {
   Activity,
   Box,
+  BriefcaseBusiness,
   CreditCard,
   FileText,
   FlaskConical,
@@ -56,14 +57,19 @@ export function useSidebarData(): SidebarData {
         title: t('Chat'),
         items: [
           {
-            title: t('Playground'),
-            icon: FlaskConical,
-            type: 'playground-sessions',
-          },
-          {
             title: t('HermesAgent'),
             icon: IconHermes,
             type: 'hermes-sessions',
+          },
+          {
+            title: t('My One-Person Company'),
+            url: '/one-person-company',
+            icon: BriefcaseBusiness,
+          },
+          {
+            title: t('Playground'),
+            icon: FlaskConical,
+            type: 'playground-sessions',
           },
           {
             title: t('Chat'),
