@@ -17,11 +17,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Building2Icon,
   FileCheck2Icon,
   MessageSquareIcon,
   SparklesIcon,
+  UsersIcon,
   WalletCardsIcon,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -100,6 +102,7 @@ interface HermesAgentWorkspaceProps {
 
 export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const userId = useAuthStore((s) => s.auth.user?.id)
   const isTeamWorkspace = props.workspaceMode === 'team'
@@ -112,6 +115,9 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   })
   const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false)
   const [editSkill, setEditSkill] = useState<HermesSkill | null>(null)
+  const [skillDialogTeamId, setSkillDialogTeamId] = useState<
+    number | undefined
+  >()
   const [isSessionsOpen, setIsSessionsOpen] = useState(false)
   const [isCapabilityCenterOpen, setIsCapabilityCenterOpen] = useState(false)
   const [isResultsOpen, setIsResultsOpen] = useState(false)
@@ -133,6 +139,26 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     ? Number(billingOwner.slice('team:'.length))
     : 0
   const selectedTeam = teams.find((team) => team.id === selectedTeamId)
+
+  const selectBillingOwner = useCallback(
+    (value: string | null) => {
+      if (!value) return
+      setBillingOwner(value)
+      if (!isTeamWorkspace || !value.startsWith('team:')) return
+
+      const teamId = Number(value.slice('team:'.length))
+      if (!Number.isFinite(teamId) || teamId <= 0) return
+
+      void navigate({
+        to: '/team-workspace',
+        search: {
+          team_id: teamId,
+          panel: props.initialPanel,
+        },
+      })
+    },
+    [isTeamWorkspace, navigate, props.initialPanel]
+  )
 
   const teamConversationsQuery = useQuery({
     queryKey: [
@@ -522,6 +548,15 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     [activeSession]
   )
 
+  const openSkillDialog = useCallback(
+    (teamId?: number) => {
+      setEditSkill(null)
+      setSkillDialogTeamId(teamId)
+      setIsSkillDialogOpen(true)
+    },
+    []
+  )
+
   const handleSkillCreated = useCallback(() => {
     void queryClient.invalidateQueries({
       queryKey: ['hermes-capabilities', queryUserScope, 'skills'],
@@ -539,6 +574,12 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
               ? t('Loading teams...')
               : t('Create or join a team to use the team workspace.')}
           </p>
+          {!isTeamsLoading && (
+            <Button className='mt-4' render={<Link to='/teams' />}>
+              <UsersIcon className='size-4' />
+              {t('Team management')}
+            </Button>
+          )}
         </div>
       </Main>
     )
@@ -550,9 +591,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         {teams.length > 0 && (
           <Select
             value={billingOwner}
-            onValueChange={(value) => {
-              if (value) setBillingOwner(value)
-            }}
+            onValueChange={selectBillingOwner}
           >
             <SelectTrigger
               aria-label={t('Billing Ownership')}
@@ -583,6 +622,16 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         )}
         {isTeamWorkspace ? (
           <>
+            <Button
+              className='bg-background/95 shadow-sm backdrop-blur'
+              render={<Link to='/teams' />}
+              size='sm'
+              type='button'
+              variant='outline'
+            >
+              <UsersIcon className='size-4' />
+              <span className='hidden sm:inline'>{t('Team management')}</span>
+            </Button>
             <Button
               className='bg-background/95 shadow-sm backdrop-blur'
               onClick={() => setIsSessionsOpen(true)}
@@ -633,7 +682,9 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         enableSlashCommands
         emptyModelsMessage={props.emptyModelsMessage}
         modelFilter={modelFilter}
-        onAddSkill={() => setIsSkillDialogOpen(true)}
+        onAddSkill={() =>
+          openSkillDialog(isTeamWorkspace ? selectedTeamId : undefined)
+        }
         onMessagesChange={updateActiveSessionFromMessages}
         onNewSession={createSession}
         onSaveSession={exportActiveSession}
@@ -647,18 +698,25 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         editSkill={editSkill}
         onOpenChange={(open) => {
           setIsSkillDialogOpen(open)
-          if (!open) setEditSkill(null)
+          if (!open) {
+            setEditSkill(null)
+            setSkillDialogTeamId(undefined)
+          }
         }}
         onCreated={handleSkillCreated}
+        teamId={skillDialogTeamId}
       />
       <HermesCapabilityCenter
         open={isCapabilityCenterOpen}
         userScope={queryUserScope}
         selectedTeamId={selectedTeamId}
         teams={teams}
-        onAddSkill={() => setIsSkillDialogOpen(true)}
-        onEditSkill={(skill) => {
+        onAddSkill={() =>
+          openSkillDialog(isTeamWorkspace ? selectedTeamId : undefined)
+        }
+        onEditSkill={(skill, teamId) => {
           setEditSkill(skill)
+          setSkillDialogTeamId(teamId)
           setIsCapabilityCenterOpen(false)
           setIsSkillDialogOpen(true)
         }}
@@ -689,6 +747,22 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         open={isResultsOpen}
         sessions={sessions}
         activeSessionId={activeSessionId}
+        title={isTeamWorkspace ? t('Team results') : undefined}
+        description={
+          selectedTeam
+            ? t('Review shared outputs and files for {{team}}.', {
+                team: selectedTeam.name,
+              })
+            : undefined
+        }
+        emptyTitle={isTeamWorkspace ? t('No team results yet') : undefined}
+        emptyDescription={
+          isTeamWorkspace
+            ? t(
+                'Ask Hermes to produce team reports, documents or analysis results, then review and export them here.'
+              )
+            : undefined
+        }
         onOpenChange={setIsResultsOpen}
         onSelectSession={(sessionId) => {
           saveActiveConversationId(baseScope, sessionId)

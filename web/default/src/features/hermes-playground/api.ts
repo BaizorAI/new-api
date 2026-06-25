@@ -130,7 +130,10 @@ export async function deleteTeamHermesConversation(
   return response.data
 }
 
-export async function createHermesSkill(payload: CreateHermesSkillPayload) {
+export async function createHermesSkill(
+  payload: CreateHermesSkillPayload,
+  options?: { teamId?: number }
+) {
   const content = buildSkillContent(payload)
   try {
     const response = await api.post(
@@ -141,6 +144,7 @@ export async function createHermesSkill(payload: CreateHermesSkillPayload) {
         content,
       },
       {
+        headers: buildHermesTeamHeaders(options?.teamId),
         skipBusinessError: true,
         skipErrorHandler: true,
       }
@@ -169,7 +173,8 @@ export async function updateHermesSkill(
     description: string
     instructions: string
     category?: string
-  }
+  },
+  options?: { teamId?: number }
 ) {
   const content = buildSkillContent({
     name: payload.name,
@@ -185,6 +190,7 @@ export async function updateHermesSkill(
         content,
       },
       {
+        headers: buildHermesTeamHeaders(options?.teamId),
         skipBusinessError: true,
         skipErrorHandler: true,
       }
@@ -195,10 +201,14 @@ export async function updateHermesSkill(
   }
 }
 
-export async function deleteHermesSkill(name: string) {
+export async function deleteHermesSkill(
+  name: string,
+  options?: { teamId?: number }
+) {
   try {
     const response = await api.delete('/pg/hermes/skills', {
       data: { name },
+      headers: buildHermesTeamHeaders(options?.teamId),
       skipBusinessError: true,
       skipErrorHandler: true,
     })

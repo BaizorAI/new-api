@@ -26,7 +26,6 @@ import {
   Route as RouteIcon,
   Settings,
   Shield,
-  WalletCards,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 

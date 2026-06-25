@@ -58,6 +58,10 @@ interface HermesResultsProps {
   open: boolean
   sessions: HermesConversation[]
   activeSessionId: string
+  title?: string
+  description?: string
+  emptyTitle?: string
+  emptyDescription?: string
   onOpenChange: (open: boolean) => void
   onSelectSession: (sessionId: string) => void
 }
@@ -109,9 +113,10 @@ export function HermesResults(props: HermesResultsProps) {
     <Sheet open={props.open} onOpenChange={props.onOpenChange}>
       <SheetContent className='w-full gap-0 sm:max-w-xl' side='right'>
         <SheetHeader className='border-b pr-12'>
-          <SheetTitle>{t('Hermes results')}</SheetTitle>
+          <SheetTitle>{props.title ?? t('Hermes results')}</SheetTitle>
           <SheetDescription>
-            {t('Review reusable outputs from Hermes conversations.')}
+            {props.description ??
+              t('Review reusable outputs from Hermes conversations.')}
           </SheetDescription>
         </SheetHeader>
 
@@ -122,11 +127,12 @@ export function HermesResults(props: HermesResultsProps) {
                 <EmptyMedia variant='icon'>
                   <FileCheck2Icon />
                 </EmptyMedia>
-                <EmptyTitle>{t('No results yet')}</EmptyTitle>
+                <EmptyTitle>{props.emptyTitle ?? t('No results yet')}</EmptyTitle>
                 <EmptyDescription>
-                  {t(
-                    'Ask Hermes to produce a report, file, skill or analysis result, then export it here.'
-                  )}
+                  {props.emptyDescription ??
+                    t(
+                      'Ask Hermes to produce a report, file, skill or analysis result, then export it here.'
+                    )}
                 </EmptyDescription>
               </Empty>
             ) : (

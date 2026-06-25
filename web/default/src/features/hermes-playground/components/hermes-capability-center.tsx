@@ -98,7 +98,7 @@ interface HermesCapabilityCenterProps {
   teams: Team[]
   onOpenChange: (open: boolean) => void
   onAddSkill: () => void
-  onEditSkill: (skill: HermesSkill) => void
+  onEditSkill: (skill: HermesSkill, teamId?: number) => void
 }
 
 const EMPTY_SKILLS: HermesSkill[] = []
@@ -240,7 +240,9 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
   const handleDeleteSkill = async () => {
     if (!deletingSkill) return
     try {
-      await deleteHermesSkill(deletingSkill.name)
+      await deleteHermesSkill(deletingSkill.name, {
+        teamId: getSkillTeamId(deletingSkill, activeTeamId),
+      })
       toast.success(t('Skill deleted'))
       setDeletingSkill(null)
       refresh()
@@ -385,7 +387,7 @@ interface SkillPanelProps {
   error: Error | null
   isAdmin: boolean
   onAddSkill: () => void
-  onEditSkill: (skill: HermesSkill) => void
+  onEditSkill: (skill: HermesSkill, teamId?: number) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
   teams: Team[]
@@ -526,7 +528,7 @@ interface SkillSectionProps {
   emptyTitle: string
   emptyDescription: string
   isAdmin: boolean
-  onEditSkill: (skill: HermesSkill) => void
+  onEditSkill: (skill: HermesSkill, teamId?: number) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
   selectedTeamId: number
@@ -572,7 +574,7 @@ function SkillSection(props: SkillSectionProps) {
 interface SkillRowProps {
   skill: HermesSkill
   isAdmin: boolean
-  onEditSkill: (skill: HermesSkill) => void
+  onEditSkill: (skill: HermesSkill, teamId?: number) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
   selectedTeamId: number
@@ -641,7 +643,14 @@ function SkillRow(props: SkillRowProps) {
               <MoreHorizontalIcon className='size-4' />
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end' className='w-52'>
-              <DropdownMenuItem onClick={() => props.onEditSkill(props.skill)}>
+              <DropdownMenuItem
+                onClick={() =>
+                  props.onEditSkill(
+                    props.skill,
+                    getSkillTeamId(props.skill, props.selectedTeamId)
+                  )
+                }
+              >
                 <PencilIcon className='size-4' />
                 {t('Edit skill')}
               </DropdownMenuItem>
@@ -961,6 +970,14 @@ function getSkillScope(skill: HermesSkill): HermesSkill['source'] {
   if (skill.isUserCreated) return 'user'
   if (skill.source !== 'unknown') return skill.source
   return skill.ownerScope
+}
+
+function getSkillTeamId(
+  skill: HermesSkill,
+  selectedTeamId: number
+): number | undefined {
+  const scope = getSkillScope(skill)
+  return scope === 'team' && selectedTeamId > 0 ? selectedTeamId : undefined
 }
 
 function filterToolsets(

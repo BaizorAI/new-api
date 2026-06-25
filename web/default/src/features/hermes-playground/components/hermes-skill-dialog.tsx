@@ -33,6 +33,7 @@ interface HermesSkillDialogProps {
   onOpenChange: (open: boolean) => void
   onCreated?: () => void
   editSkill?: HermesSkill | null
+  teamId?: number
 }
 
 const HERMES_SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/
@@ -96,20 +97,27 @@ export function HermesSkillDialog(props: HermesSkillDialogProps) {
     setIsSubmitting(true)
     try {
       if (isEditing && props.editSkill) {
-        await updateHermesSkill(props.editSkill.name, {
-          name,
-          category,
-          description,
-          instructions,
-        })
+        await updateHermesSkill(
+          props.editSkill.name,
+          {
+            name,
+            category,
+            description,
+            instructions,
+          },
+          { teamId: props.teamId }
+        )
         toast.success(t('Skill updated'))
       } else {
-        await createHermesSkill({
-          name,
-          category,
-          description,
-          instructions,
-        })
+        await createHermesSkill(
+          {
+            name,
+            category,
+            description,
+            instructions,
+          },
+          { teamId: props.teamId }
+        )
         toast.success(t('Skill added'))
       }
       reset()
@@ -133,9 +141,11 @@ export function HermesSkillDialog(props: HermesSkillDialogProps) {
       }}
       title={isEditing ? t('Edit skill') : t('Add Hermes skill')}
       description={
-        isEditing
-          ? t('Update the skill description and instructions.')
-          : t('Create a reusable Hermes skill for future conversations.')
+        props.teamId
+          ? t('This skill will be saved in the selected team workspace.')
+          : isEditing
+            ? t('Update the skill description and instructions.')
+            : t('Create a reusable Hermes skill for future conversations.')
       }
       footer={
         <>
