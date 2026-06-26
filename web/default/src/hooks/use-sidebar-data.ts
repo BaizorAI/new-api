@@ -53,14 +53,26 @@ export function useSidebarData(): SidebarData {
   return {
     navGroups: [
       {
-        id: 'chat',
-        title: t('Workspaces'),
+        id: 'team-workspace',
+        title: t('Overview'),
         items: [
           {
-            title: t('My Teams'),
-            description: t('Team collaboration workspace'),
+            title: t('HermesAgent (Collaboration)'),
+            description: t('Shared team AI workspace'),
             icon: Users,
             type: 'team-workspaces',
+          },
+        ],
+      },
+      {
+        id: 'personal-workspace',
+        title: t('Personal Workspace'),
+        items: [
+          {
+            title: t('HermesAgent'),
+            description: t('Personal AI workspace'),
+            icon: IconHermes,
+            type: 'hermes-sessions',
           },
           {
             title: t('My One-Person Company'),
@@ -68,12 +80,12 @@ export function useSidebarData(): SidebarData {
             url: '/one-person-company',
             icon: BriefcaseBusiness,
           },
-          {
-            title: t('HermesAgent'),
-            description: t('Personal AI workspace'),
-            icon: IconHermes,
-            type: 'hermes-sessions',
-          },
+        ],
+      },
+      {
+        id: 'model-experience',
+        title: t('Model Experience'),
+        items: [
           {
             title: t('Model Playground'),
             icon: FlaskConical,

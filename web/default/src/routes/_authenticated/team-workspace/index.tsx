@@ -27,6 +27,8 @@ import {
 } from '@/features/hermes-playground/components/hermes-agent-workspace'
 import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 
+import { WorkspaceHome } from './-workspace-home'
+
 const teamWorkspaceSearchSchema = z.object({
   team_id: z.coerce.number().int().positive().optional().catch(undefined),
   panel: z.enum(['sessions', 'results', 'skills']).optional().catch(undefined),
@@ -87,6 +89,10 @@ function TeamWorkspacePage() {
     ],
     [t]
   )
+
+  if (!team_id && !panel) {
+    return <WorkspaceHome />
+  }
 
   return (
     <HermesAgentWorkspace

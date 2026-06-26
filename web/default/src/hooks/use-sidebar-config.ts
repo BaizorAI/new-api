@@ -98,6 +98,7 @@ const mergeWithDefaultSidebarModules = (
  * Mapping from URL to configuration keys
  */
 const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
+  '/chat': { section: 'chat', module: 'chat' },
   '/playground': { section: 'chat', module: 'playground' },
   '/hermes-playground': { section: 'chat', module: 'hermes_playground' },
   '/one-person-company': { section: 'chat', module: 'one_person_company' },
@@ -122,6 +123,19 @@ const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
   '/subscriptions': { section: 'admin', module: 'subscription' },
   '/system-settings': { section: 'admin', module: 'setting' },
   '/system-settings/site': { section: 'admin', module: 'setting' },
+}
+
+type DynamicNavType =
+  | 'chat-presets'
+  | 'hermes-sessions'
+  | 'team-workspaces'
+  | 'playground-sessions'
+
+const DYNAMIC_TYPE_TO_CONFIG_URL: Record<DynamicNavType, string> = {
+  'chat-presets': '/chat',
+  'hermes-sessions': '/hermes-playground',
+  'team-workspaces': '/team-workspace',
+  'playground-sessions': '/playground',
 }
 
 /**
@@ -205,16 +219,9 @@ function isNavItemVisible(
   adminConfig: SidebarModulesAdminConfig,
   userConfig: SidebarModulesUserConfig
 ): boolean {
-  // Handle dynamic chat presets type — also runs the admin × user AND gate
-  if ('type' in item && item.type === 'chat-presets') {
-    const adminChat = adminConfig.chat
-    const adminAllowed = Boolean(adminChat?.enabled && adminChat.chat === true)
-    if (!adminAllowed) return false
-    if (!userConfig) return true
-    const userChat = userConfig.chat
-    if (!userChat) return true
-    if (userChat.enabled === false) return false
-    return userChat.chat !== false
+  if ('type' in item && item.type) {
+    const configUrl = DYNAMIC_TYPE_TO_CONFIG_URL[item.type]
+    return isModuleEnabled(configUrl, adminConfig, userConfig)
   }
 
   // Handle direct link type

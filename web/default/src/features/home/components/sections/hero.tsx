@@ -31,10 +31,10 @@ interface HeroProps {
 }
 
 const capabilityKeys = [
-  'Team collaboration',
+  'Personal Workspace',
+  'Team Workspace',
+  'Model Experience',
   'Reusable skills',
-  'Shared results',
-  'Governed model access',
 ] as const
 
 export function Hero(props: HeroProps) {
@@ -102,17 +102,17 @@ export function Hero(props: HeroProps) {
               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75' />
               <span className='relative inline-flex size-1.5 rounded-full bg-blue-500 dark:bg-blue-400' />
             </span>
-            <span>{t('AI workbench for teams')}</span>
+            <span>{t('Workspace-first AI workbench')}</span>
           </div>
 
           <h1
             className='landing-animate-fade-up text-[clamp(2.25rem,4.5vw,3.25rem)] leading-[1.15] font-bold tracking-tight'
             style={{ animationDelay: '60ms' }}
           >
-            {t('Baize AI Platform')}
+            {t('Baizor AI Platform')}
             <br />
             <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-              {t('Turn shared skills into everyday productivity')}
+              {t('Start from workspaces, not model settings')}
             </span>
           </h1>
           <p
@@ -120,7 +120,7 @@ export function Hero(props: HeroProps) {
             style={{ animationDelay: '120ms' }}
           >
             {t(
-              'Baize AI Platform helps individuals and teams work with AI through workspaces, reusable skills, shared conversations and result files. Technical model access, quotas and audit stay in the background so users can focus on getting work done.'
+              'Baizor AI Platform starts from the way people actually work: personal workspace, team workspace and model experience. Use HermesAgent, skills, files and conversations to finish tasks without starting from model settings.'
             )}
           </p>
 
@@ -170,7 +170,7 @@ export function Hero(props: HeroProps) {
               </span>
               <p className='text-muted-foreground/60 text-xs leading-relaxed'>
                 {t(
-                  'Start from work, not from model settings: create a workspace, use or improve skills, share sessions with teammates and keep final outputs easy to find.'
+                  'Use the personal workspace for your own tasks, the team workspace for shared sessions and skills, and model experience when you only need to try models or start a simple AI conversation.'
                 )}
               </p>
             </div>

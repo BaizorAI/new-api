@@ -64,7 +64,7 @@ const docSections = [
   {
     icon: <RouteIcon className='size-5 text-blue-500' />,
     title: 'Models stay in the background',
-    desc: 'Users call workspaces and skills. Administrators manage model channels, access keys, quotas and audit controls in management areas.',
+    desc: 'People work through workspaces and skills. Model permissions, quota and audit stay available when the work needs governance.',
     items: ['Model permissions', 'Quota governance', 'Usage audit'],
   },
   {
@@ -79,7 +79,7 @@ const privateDeploymentHighlights = [
   'Online service fits quick evaluation, lightweight team use and cross-organization collaboration.',
   'Private deployment fits data-sensitive, intranet, Xinchuang and dedicated compute scenarios where organizations need controllable AI capability boundaries.',
   'Users still enter through the same workspaces, skills and results even when the deployment moves from online service to private environment.',
-  'Administrators keep model resources, permissions, quota, audit records and operation signals inside the controlled boundary.',
+  'Private deployment keeps model resources, permissions, quota, audit records and operation signals inside the controlled boundary.',
   'Hermes sidecar fits private agent runtime scenarios where users access agent capabilities through platform workspaces instead of direct service endpoints.',
 ] as const
 
@@ -96,11 +96,11 @@ function DocsPage() {
             </div>
           </div>
           <h1 className='text-3xl font-bold tracking-tight md:text-4xl'>
-            {t('How to work with Baize AI Platform')}
+            {t('How to work with Baizor AI Platform')}
           </h1>
           <p className='text-muted-foreground mx-auto mt-4 max-w-2xl text-base'>
             {t(
-              'Start from the work users care about: create workspaces, run skills, share sessions, keep results, then let administrators handle models, quota and deployment controls behind the scenes.'
+              'Start from the work you care about: choose a workspace, run skills, share sessions and keep results where the work continues.'
             )}
           </p>
         </AnimateInView>
@@ -111,7 +111,7 @@ function DocsPage() {
             <div className='border-border/40 bg-muted/20 rounded-xl border p-6'>
               <p className='text-muted-foreground leading-relaxed'>
                 {t(
-                  'Baize AI Platform is organized around workspaces. A user starts in personal work, team collaboration or HermesAgent, then uses skills and files to finish actual tasks.'
+                  'Baizor AI Platform is organized around workspaces. A user starts in personal work, team collaboration or HermesAgent, then uses skills and files to finish actual tasks.'
                 )}
               </p>
               <p className='text-muted-foreground mt-4 leading-relaxed'>
@@ -121,7 +121,7 @@ function DocsPage() {
               </p>
               <p className='text-muted-foreground mt-4 leading-relaxed'>
                 {t(
-                  'Administrators still manage model access, routing, quota, audit and private deployment, but these controls should support the user workflow instead of becoming the first thing users see.'
+                  'Workspace tasks stay first; model access, quota, audit and private deployment support the work when stronger boundaries are needed.'
                 )}
               </p>
             </div>
@@ -194,10 +194,10 @@ function DocsPage() {
                 </li>
                 <li>
                   <strong className='text-foreground'>
-                    {t('Let administrators govern safely')}:&nbsp;
+                    {t('Keep team boundaries clear when needed')}:&nbsp;
                   </strong>
                   {t(
-                    'Use management areas for members, roles, model channels, quota, access keys, billing and audit when operational control is needed.'
+                    'Set members, roles, model access and cost policies when the work needs them, then keep the day-to-day flow centered on shared sessions, skills and results.'
                   )}
                 </li>
               </ol>
@@ -223,12 +223,12 @@ function DocsPage() {
               <ul className='text-muted-foreground list-disc space-y-2 pl-5 leading-relaxed'>
                 <li>
                   {t(
-                    'For users, the entry is HermesAgent or a team workspace; for operators, Hermes can still run as a sidecar behind the platform.'
+                    'In the product, HermesAgent appears inside personal and team workspaces so people can start from sessions, skills, files and results.'
                   )}
                 </li>
                 <li>
                   {t(
-                    'Team usage should inherit platform membership, roles, quotas and audit records.'
+                    'Team sessions should follow team membership, roles, quota boundaries and audit requirements.'
                   )}
                 </li>
                 <li>
@@ -266,18 +266,18 @@ function DocsPage() {
 
           <section>
             <h2 className='mb-4 text-xl font-bold'>
-              {t('For administrators and builders')}
+              {t('For team setup and governance')}
             </h2>
             <div className='border-border/40 bg-muted/20 rounded-xl border p-6'>
               <div className='grid gap-4 md:grid-cols-3'>
                 <div>
                   <KeyRound className='mb-2 size-5 text-emerald-500' />
                   <h3 className='mb-1 font-semibold'>
-                    {t('Model and channel management')}
+                    {t('Model access setup')}
                   </h3>
                   <p className='text-muted-foreground text-sm leading-relaxed'>
                     {t(
-                      'Configure model channels, permissions, quotas and routing only after the user-facing workspace flow is clear.'
+                      'Connect the model capabilities your teams need after the workspace flow is clear.'
                     )}
                   </p>
                 </div>
@@ -295,11 +295,11 @@ function DocsPage() {
                 <div>
                   <Shield className='mb-2 size-5 text-violet-500' />
                   <h3 className='mb-1 font-semibold'>
-                    {t('Governance boundaries')}
+                    {t('Collaboration boundaries')}
                   </h3>
                   <p className='text-muted-foreground text-sm leading-relaxed'>
                     {t(
-                      'Keep account security, billing, model access, audit and deployment controls in management areas where operators expect them.'
+                      'Apply account security, billing, model access, audit or deployment controls when a team needs stronger boundaries.'
                     )}
                   </p>
                 </div>
@@ -314,7 +314,7 @@ function DocsPage() {
                   'Need the product-level requirements? Read the PRD in the repository docs directory for scope, user stories, implementation decisions and testing decisions.'
                 )}{' '}
                 <Link to='/about' className='text-primary hover:underline'>
-                  {t('About Baize AI Platform')}
+                  {t('About Baizor AI Platform')}
                 </Link>
               </p>
             </div>

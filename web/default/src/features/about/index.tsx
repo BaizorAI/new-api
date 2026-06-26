@@ -56,7 +56,7 @@ const capabilities = [
   {
     icon: <Shield className='size-5 text-amber-500' />,
     title: 'Governance behind the scenes',
-    desc: 'Model channels, quota, billing, access keys, roles and audit records stay available for administrators without overwhelming ordinary users.',
+    desc: 'Model access, quota, billing, roles and audit records stay available when a team needs governance, without making every user start there.',
   },
   {
     icon: <Database className='size-5 text-cyan-500' />,
@@ -80,8 +80,8 @@ const audiences = [
     desc: 'Collaborate through team sessions, shared results and team skills instead of isolated one-off chats.',
   },
   {
-    title: 'Operators and administrators',
-    desc: 'Keep model access, quota, billing, users, roles, audit and deployment controls in management areas.',
+    title: 'Teams with governance needs',
+    desc: 'Keep permissions, costs and audit boundaries clear while day-to-day work still starts from shared sessions, skills and results.',
   },
   {
     title: 'Organizations with private deployment needs',
@@ -111,11 +111,11 @@ function About() {
             </div>
           </div>
           <h1 className='text-4xl font-bold tracking-tight md:text-5xl'>
-            {t('About Baize AI Platform')}
+            {t('About Baizor AI Platform')}
           </h1>
           <p className='text-muted-foreground mx-auto mt-4 max-w-2xl text-lg leading-relaxed'>
             {t(
-              'Baize AI Platform helps people and teams work with AI through workspaces, reusable skills, shared sessions and result files, while model access and governance stay controlled in the background.'
+              'Baizor AI Platform helps people and teams start from workspaces, use reusable skills, continue shared sessions and keep result files with the task.'
             )}
           </p>
           <div className='mt-8 flex flex-wrap items-center justify-center gap-3'>
@@ -163,7 +163,7 @@ function About() {
                 <div className='text-muted-foreground mt-2 space-y-3 leading-relaxed'>
                   <p>
                     {t(
-                      'Users should not have to start from channels, keys or routing rules. They start from a workspace: personal work, team work or HermesAgent.'
+                      'Most users begin where the work happens: a personal workspace, a team workspace or an HermesAgent session.'
                     )}
                   </p>
                   <p>
@@ -173,7 +173,7 @@ function About() {
                   </p>
                   <p>
                     {t(
-                      'When governance is required, administrators manage members, roles, model access, quota, billing and audit from management areas.'
+                      'Teams that need approval, cost boundaries or audit trails can keep those safeguards in place while members keep working from shared sessions and skills.'
                     )}
                   </p>
                 </div>
@@ -202,7 +202,7 @@ function About() {
                   </p>
                   <p>
                     {t(
-                      'For operators, Hermes can still run as a sidecar and use platform-governed model access, quotas and audit records. For users, the entry stays simple.'
+                      'Open a personal or team workspace, start an HermesAgent session, use skills, attach files and keep results with the task. The entry stays focused on getting work done.'
                     )}
                   </p>
                 </div>
@@ -247,7 +247,7 @@ function About() {
               </div>
               <div>
                 <h2 className='text-xl font-bold'>
-                  {t('Why Baize')}
+                  {t('Why Baizor')}
                 </h2>
                 <p className='text-muted-foreground text-sm'>
                   {t('Know all things, perceive wisdom')}
@@ -257,22 +257,22 @@ function About() {
             <div className='text-muted-foreground space-y-4 leading-relaxed'>
               <p>
                 {t(
-                  'In ancient Chinese mythology, Baize is an auspicious divine beast of high status. It is said to understand all things under heaven, speak human language, and know the names, forms and ways to subdue spirits and strange beings. The Yellow Emperor once consulted Baize and recorded its knowledge as the Baize Tu, using it to understand the world, avoid misfortune and protect the people.'
+                  'In ancient Chinese mythology, Baizor is an auspicious divine beast of high status. It is said to understand all things under heaven, speak human language, and know the names, forms and ways to subdue spirits and strange beings. The Yellow Emperor once consulted Baizor and recorded its knowledge as the Baizor Tu, using it to understand the world, avoid misfortune and protect the people.'
                 )}
               </p>
               <p>
                 {t(
-                  'Baize symbolizes universal knowledge, wise insight, turning danger into safety and protective auspiciousness. It appears only under enlightened rule and is regarded as a sign of order, wisdom and peace.'
+                  'Baizor symbolizes universal knowledge, wise insight, turning danger into safety and protective auspiciousness. It appears only under enlightened rule and is regarded as a sign of order, wisdom and peace.'
                 )}
               </p>
               <p>
                 {t(
-                  'Today, the name Baize is given to the AI platform to carry the meaning of knowing all things and perceiving wisdom. The platform gathers models, tools, skills and workspaces so complex AI capability becomes usable, shareable and governable.'
+                  'Today, Baizor carries the meaning of knowing all things and perceiving wisdom. The platform gathers models, tools, skills and workspaces so complex AI capability becomes usable, shareable and governable.'
                 )}
               </p>
               <p>
                 {t(
-                  'Baize AI Platform aims to become the workbench where people collaborate with AI, improve skills together and turn successful work into reusable team capability.'
+                  'Baizor AI Platform aims to become the workbench where people collaborate with AI, improve skills together and turn successful work into reusable team capability.'
                 )}
               </p>
             </div>
@@ -282,11 +282,11 @@ function About() {
         <section>
           <AnimateInView className='mb-10 text-center'>
             <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
-              {t('What the platform foregrounds')}
+              {t('What you can do here')}
             </h2>
             <p className='text-muted-foreground mt-2'>
               {t(
-                'Workspaces, skills, shared sessions and results are first. Technical controls are still available, but they live where operators expect them.'
+                'Enter a personal or team workspace, use skills to finish real tasks, and keep conversations, files and results together so good work can continue.'
               )}
             </p>
           </AnimateInView>
@@ -320,7 +320,7 @@ function About() {
             </h2>
             <p className='text-muted-foreground mt-2'>
               {t(
-                'Baize AI Platform is designed for users who need useful AI work today and teams that need those workflows to become shared capability tomorrow.'
+                'Baizor AI Platform is designed for users who need useful AI work today and teams that need those workflows to become shared capability tomorrow.'
               )}
             </p>
           </AnimateInView>

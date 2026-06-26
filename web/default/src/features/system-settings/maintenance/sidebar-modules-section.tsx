@@ -66,8 +66,8 @@ export function SidebarModulesSection({
 
   const sectionMeta: Record<string, { title: string; description: string }> = {
     chat: {
-      title: t('Workspaces'),
-      description: t('Team, personal, and AI workspaces.'),
+      title: t('Workspace Navigation'),
+      description: t('Choose which workspace entries appear in the sidebar.'),
     },
     console: {
       title: t('Management Backend'),
@@ -88,10 +88,6 @@ export function SidebarModulesSection({
     Record<string, { title: string; description: string }>
   > = {
     chat: {
-      playground: {
-        title: t('Model Playground'),
-        description: t('Try models and prompts in a dedicated test workspace.'),
-      },
       hermes_playground: {
         title: t('HermesAgent'),
         description: t('Run isolated Hermes agent sessions in the browser.'),
@@ -101,8 +97,12 @@ export function SidebarModulesSection({
         description: t('Run a Hermes-powered operating workspace for solo business work.'),
       },
       team_workspace: {
-        title: t('My Teams'),
-        description: t('Team collaboration workspace'),
+        title: t('HermesAgent (Collaboration)'),
+        description: t('Shared team AI workspace'),
+      },
+      playground: {
+        title: t('Model Playground'),
+        description: t('Try models and prompts in a dedicated test workspace.'),
       },
       chat: {
         title: t('Chat'),

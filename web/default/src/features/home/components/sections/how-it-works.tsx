@@ -40,7 +40,7 @@ export function HowItWorks() {
     {
       num: '3',
       title: 'Share results with confidence',
-      desc: 'Team members can see shared sessions, outputs and skill context while administrators keep model access and quota governed.',
+      desc: 'Team members can continue from shared sessions, outputs and skill context, with model access and quota handled when needed.',
       icon: <BarChart3 className='size-6' strokeWidth={1.5} />,
     },
   ]

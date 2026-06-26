@@ -64,8 +64,8 @@ export function Features() {
     {
       id: 'governance',
       num: '04',
-      title: 'Models and costs stay governed',
-      desc: 'Administrators can still control model access, quota, billing and audit while ordinary users stay focused on tasks.',
+      title: 'Use the right models within clear cost boundaries',
+      desc: 'Set model access, quota and cost boundaries once, then let workspaces use the right capability without extra setup.',
       span: 'md:col-span-2',
       icon: <Shield className='size-4 text-amber-400' />,
       visual: ['Permissions', 'Quota', 'Audit', 'Usage'],
@@ -104,7 +104,7 @@ export function Features() {
           </p>
           <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-3xl'>
             {t(
-              'Put team work, reusable skills and final results first; keep technical operations in management areas.'
+              'Start in a workspace and keep conversations, skills and results tied to the same task.'
             )}
           </h2>
         </AnimateInView>

@@ -57,18 +57,13 @@ export function SidebarModulesCard() {
   const sectionDefs: SectionDef[] = [
     {
       key: 'chat',
-      title: t('Workspaces'),
-      description: t('Team, personal, and AI workspaces.'),
+      title: t('Workspace Navigation'),
+      description: t('Choose which workspace entries appear in the sidebar.'),
       modules: [
-        {
-          key: 'playground',
-          title: t('Model Playground'),
-          description: t('Try models and prompts in a dedicated test workspace.'),
-        },
         {
           key: 'hermes_playground',
           title: t('HermesAgent'),
-          description: t('Hermes agent testing environment'),
+          description: t('Personal AI workspace'),
         },
         {
           key: 'one_person_company',
@@ -77,8 +72,13 @@ export function SidebarModulesCard() {
         },
         {
           key: 'team_workspace',
-          title: t('My Teams'),
-          description: t('Team collaboration workspace'),
+          title: t('HermesAgent (Collaboration)'),
+          description: t('Shared team AI workspace'),
+        },
+        {
+          key: 'playground',
+          title: t('Model Playground'),
+          description: t('Try models and prompts in a dedicated test workspace.'),
         },
         {
           key: 'chat',

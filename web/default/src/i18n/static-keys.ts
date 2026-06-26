@@ -528,7 +528,7 @@ export const STATIC_I18N_KEYS = [
   // HermesAgent home section (dynamic keys passed to t at runtime)
   'New — HermesAgent',
   'Meet HermesAgent, the self-improving AI agent',
-  'Deploy a personal autonomous agent that learns from experience, connects 20+ messaging platforms, runs 70+ tools, and keeps working across sessions — all governed through Baize AI Platform.',
+  'Deploy a personal autonomous agent that learns from experience, connects 20+ messaging platforms, runs 70+ tools, and keeps working across sessions — all governed through Baizor AI Platform.',
   'Self-improving learning loop with memory and skills',
   '70+ tools across 28+ toolsets',
   '20+ messaging platforms in one gateway',
