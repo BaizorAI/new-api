@@ -78,7 +78,9 @@ export function SidebarModulesCard() {
         {
           key: 'playground',
           title: t('Model Playground'),
-          description: t('Try models and prompts in a dedicated test workspace.'),
+          description: t(
+            'Try models and prompts in a dedicated test workspace.'
+          ),
         },
         {
           key: 'chat',

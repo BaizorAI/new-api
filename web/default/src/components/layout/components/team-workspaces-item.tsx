@@ -20,33 +20,20 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from '@tanstack/react-router'
 import {
   Building2,
-  ChevronRight,
   FileCheck2,
   MessageSquare,
   Sparkles,
   Users,
 } from 'lucide-react'
-import { useEffect, useMemo, useState, type ElementType } from 'react'
+import { useMemo, type ElementType } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   useSidebar,
@@ -56,11 +43,11 @@ import type { Team } from '@/features/teams/types'
 
 import { normalizeHref } from '../lib/url-utils'
 import type { NavTeamWorkspaces } from '../types'
+import { SidebarCollapsibleShell } from './sidebar-collapsible-shell'
 
 export function TeamWorkspacesItem({ item }: { item: NavTeamWorkspaces }) {
-  const { t } = useTranslation()
   const href = useLocation({ select: (location) => location.href })
-  const { state, isMobile, setOpenMobile } = useSidebar()
+  const { setOpenMobile } = useSidebar()
   const { data: teamsResponse, isLoading } = useQuery({
     queryKey: ['sidebar', 'team-workspaces'],
     queryFn: listTeams,
@@ -72,113 +59,33 @@ export function TeamWorkspacesItem({ item }: { item: NavTeamWorkspaces }) {
   }, [teamsResponse])
 
   const isActive = normalizeHref(href).startsWith('/team-workspace')
-  const [isOpen, setIsOpen] = useState(() => isActive)
-
-  useEffect(() => {
-    if (isActive) setIsOpen(true)
-  }, [isActive])
-
-  if (state === 'collapsed' && !isMobile) {
-    return (
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className='group/dropdown-trigger'
-            render={
-              <SidebarMenuButton
-                title={item.description ?? item.title}
-                tooltip={item.description ?? item.title}
-                isActive={isActive}
-              />
-            }
-          >
-            {item.icon ? (
-              <item.icon className='shrink-0' />
-            ) : (
-              <Users className='shrink-0' />
-            )}
-            <span className='min-w-0 flex-1 truncate'>{item.title}</span>
-            <ChevronRight className='ms-auto size-4 shrink-0 transition-transform duration-200 group-data-[popup-open]/dropdown-trigger:rotate-90' />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side='right' align='start' sideOffset={4}>
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                render={
-                  <Link
-                    to='/team-workspace'
-                    className={isTeamUrlActive(href) ? 'bg-secondary' : ''}
-                    onClick={() => setOpenMobile(false)}
-                  />
-                }
-              >
-                <Users className='size-4' />
-                {t('Team workspace')}
-              </DropdownMenuItem>
-              <DropdownTeamItems
-                href={href}
-                isLoading={isLoading}
-                teams={teams}
-                onNavigate={() => setOpenMobile(false)}
-              />
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    )
-  }
+  const handleNavigate = () => setOpenMobile(false)
 
   return (
-    <Collapsible
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      className='group/collapsible'
-      render={<SidebarMenuItem />}
-    >
-      <CollapsibleTrigger
-        className='group/collapsible-trigger'
-        render={
-          <SidebarMenuButton
-            title={item.description ?? item.title}
-            tooltip={item.description ?? item.title}
-            isActive={isActive}
-          />
-        }
-      >
-        {item.icon ? (
-          <item.icon className='shrink-0' />
-        ) : (
-          <Users className='shrink-0' />
-        )}
-        <span className='min-w-0 flex-1 truncate'>{item.title}</span>
-        <ChevronRight className='ms-auto size-4 shrink-0 transition-transform duration-200 group-data-[panel-open]/collapsible-trigger:rotate-90' />
-      </CollapsibleTrigger>
-      <CollapsibleContent className='CollapsibleContent'>
-        <SidebarMenuSub>
-          <SidebarMenuSubItem>
-            <SidebarMenuSubButton
-              isActive={isTeamUrlActive(href)}
-              render={
-                <Link
-                  to='/team-workspace'
-                  onClick={() => setOpenMobile(false)}
-                />
-              }
-            >
-              <Users className='size-3.5' />
-              <span>{t('Team workspace')}</span>
-            </SidebarMenuSubButton>
-          </SidebarMenuSubItem>
-          <SidebarTeamItems
-            href={href}
-            isLoading={isLoading}
-            teams={teams}
-            onNavigate={() => setOpenMobile(false)}
-          />
-        </SidebarMenuSub>
-      </CollapsibleContent>
-    </Collapsible>
+    <SidebarCollapsibleShell
+      id={`team-workspaces-${item.title}`}
+      title={item.title}
+      icon={item.icon ?? Users}
+      description={item.description}
+      isActive={isActive}
+      defaultOpen={isActive}
+      expandedContent={
+        <SidebarTeamItems
+          href={href}
+          isLoading={isLoading}
+          teams={teams}
+          onNavigate={handleNavigate}
+        />
+      }
+      collapsedContent={
+        <CollapsedTeamItems
+          href={href}
+          isLoading={isLoading}
+          teams={teams}
+          onNavigate={handleNavigate}
+        />
+      }
+    />
   )
 }
 
@@ -224,12 +131,12 @@ function SidebarTeamItems(props: {
           />
         }
       >
-        <Building2 className='size-3.5' />
+        <Building2 className='size-3.5' aria-hidden='true' />
         <span>{team.name}</span>
       </SidebarMenuSubButton>
     </SidebarMenuSubItem>,
     <SidebarTeamPanelItem
-      key={team.id + '-sessions'}
+      key={`${team.id}-sessions`}
       href={props.href}
       team={team}
       panel='sessions'
@@ -238,7 +145,7 @@ function SidebarTeamItems(props: {
       onNavigate={props.onNavigate}
     />,
     <SidebarTeamPanelItem
-      key={team.id + '-results'}
+      key={`${team.id}-results`}
       href={props.href}
       team={team}
       panel='results'
@@ -247,7 +154,7 @@ function SidebarTeamItems(props: {
       onNavigate={props.onNavigate}
     />,
     <SidebarTeamPanelItem
-      key={team.id + '-skills'}
+      key={`${team.id}-skills`}
       href={props.href}
       team={team}
       panel='skills'
@@ -279,14 +186,42 @@ function SidebarTeamPanelItem(props: {
           />
         }
       >
-        <props.icon className='size-3.5' />
+        <props.icon className='size-3.5' aria-hidden='true' />
         <span>{props.title}</span>
       </SidebarMenuSubButton>
     </SidebarMenuSubItem>
   )
 }
 
-function DropdownTeamItems(props: {
+function CollapsedTeamItems(props: {
+  href: string
+  isLoading: boolean
+  teams: Team[]
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <>
+      <DropdownMenuItem
+        render={
+          <Link
+            to='/team-workspace'
+            className={isTeamUrlActive(props.href) ? 'bg-secondary' : ''}
+            onClick={props.onNavigate}
+          />
+        }
+      >
+        <Users className='size-4' aria-hidden='true' />
+        {t('Team workspace')}
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <CollapsedTeamList {...props} />
+    </>
+  )
+}
+
+function CollapsedTeamList(props: {
   href: string
   isLoading: boolean
   teams: Team[]
@@ -311,11 +246,9 @@ function DropdownTeamItems(props: {
   }
 
   return props.teams.flatMap((team) => [
-    <DropdownMenuLabel key={team.id + '-label'}>
-      {team.name}
-    </DropdownMenuLabel>,
-    <DropdownTeamPanelItem
-      key={team.id + '-sessions'}
+    <DropdownMenuLabel key={`${team.id}-label`}>{team.name}</DropdownMenuLabel>,
+    <CollapsedTeamPanelItem
+      key={`${team.id}-sessions`}
       href={props.href}
       team={team}
       panel='sessions'
@@ -323,8 +256,8 @@ function DropdownTeamItems(props: {
       icon={MessageSquare}
       onNavigate={props.onNavigate}
     />,
-    <DropdownTeamPanelItem
-      key={team.id + '-results'}
+    <CollapsedTeamPanelItem
+      key={`${team.id}-results`}
       href={props.href}
       team={team}
       panel='results'
@@ -332,8 +265,8 @@ function DropdownTeamItems(props: {
       icon={FileCheck2}
       onNavigate={props.onNavigate}
     />,
-    <DropdownTeamPanelItem
-      key={team.id + '-skills'}
+    <CollapsedTeamPanelItem
+      key={`${team.id}-skills`}
       href={props.href}
       team={team}
       panel='skills'
@@ -344,7 +277,7 @@ function DropdownTeamItems(props: {
   ])
 }
 
-function DropdownTeamPanelItem(props: {
+function CollapsedTeamPanelItem(props: {
   href: string
   team: Team
   panel: TeamWorkspacePanel
@@ -367,7 +300,7 @@ function DropdownTeamPanelItem(props: {
         />
       }
     >
-      <props.icon className='size-4' />
+      <props.icon className='size-4' aria-hidden='true' />
       <span className='max-w-52 text-wrap'>{props.title}</span>
     </DropdownMenuItem>
   )
@@ -389,5 +322,3 @@ function isTeamUrlActive(
   if (panel === undefined) return !activePanel
   return activePanel === panel
 }
-
-

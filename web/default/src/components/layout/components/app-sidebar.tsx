@@ -21,7 +21,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Sidebar, SidebarContent, SidebarRail } from '@/components/ui/sidebar'
 import { useLayout } from '@/context/layout-provider'
 import { useSidebarView } from '@/hooks/use-sidebar-view'
-import { MOTION_TRANSITION, MOTION_VARIANTS } from '@/lib/motion'
+import { MOTION_TRANSITION } from '@/lib/motion'
 
 import { NavGroup } from './nav-group'
 import { SidebarViewHeader } from './sidebar-view-header'
@@ -55,11 +55,9 @@ export function AppSidebar() {
         <AnimatePresence mode='wait' initial={false}>
           <motion.div
             key={key}
-            initial={
-              shouldReduce ? false : MOTION_VARIANTS.sidebarSlide.initial
-            }
-            animate={MOTION_VARIANTS.sidebarSlide.animate}
-            exit={shouldReduce ? undefined : MOTION_VARIANTS.sidebarSlide.exit}
+            initial={shouldReduce ? false : { opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={shouldReduce ? undefined : { opacity: 0 }}
             transition={MOTION_TRANSITION.fast}
             className='flex flex-col'
           >

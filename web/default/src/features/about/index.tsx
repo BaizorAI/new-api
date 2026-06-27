@@ -246,9 +246,7 @@ function About() {
                 <Sparkles className='size-6 text-blue-500' />
               </div>
               <div>
-                <h2 className='text-xl font-bold'>
-                  {t('Why Baizor')}
-                </h2>
+                <h2 className='text-xl font-bold'>{t('Why Baizor')}</h2>
                 <p className='text-muted-foreground text-sm'>
                   {t('Know all things, perceive wisdom')}
                 </p>
@@ -435,8 +433,8 @@ function About() {
             {t('| Based on')} {t('One API')} {'\u00a9'} 2026 {t('QiMa')}
           </p>
           <p>
-            {t('NewAPI')} {'\u00a9'} {currentYear} {t('QuantumNous')} {t('| Based on')}{' '}
-            {t('One API')} {'\u00a9'} 2023 {t('JustSong')}
+            {t('NewAPI')} {'\u00a9'} {currentYear} {t('QuantumNous')}{' '}
+            {t('| Based on')} {t('One API')} {'\u00a9'} 2023 {t('JustSong')}
           </p>
           <p className='mt-1'>
             {t('This project must be used in compliance with the')}{' '}

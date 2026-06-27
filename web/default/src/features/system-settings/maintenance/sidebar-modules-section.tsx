@@ -94,7 +94,9 @@ export function SidebarModulesSection({
       },
       one_person_company: {
         title: t('My One-Person Company'),
-        description: t('Run a Hermes-powered operating workspace for solo business work.'),
+        description: t(
+          'Run a Hermes-powered operating workspace for solo business work.'
+        ),
       },
       team_workspace: {
         title: t('HermesAgent (Collaboration)'),

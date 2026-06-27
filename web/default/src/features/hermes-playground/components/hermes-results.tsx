@@ -127,7 +127,9 @@ export function HermesResults(props: HermesResultsProps) {
                 <EmptyMedia variant='icon'>
                   <FileCheck2Icon />
                 </EmptyMedia>
-                <EmptyTitle>{props.emptyTitle ?? t('No results yet')}</EmptyTitle>
+                <EmptyTitle>
+                  {props.emptyTitle ?? t('No results yet')}
+                </EmptyTitle>
                 <EmptyDescription>
                   {props.emptyDescription ??
                     t(

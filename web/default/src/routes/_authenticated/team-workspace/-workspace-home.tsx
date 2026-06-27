@@ -35,11 +35,6 @@ import { SectionPageLayout } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  createPlaygroundStorageKeys,
-  loadMessages,
-} from '@/features/playground/lib'
-import type { Message } from '@/features/playground/types'
-import {
   listHermesSkills,
   listTeamHermesConversations,
   type HermesSkill,
@@ -52,6 +47,11 @@ import {
   sortSessions,
   type HermesConversation,
 } from '@/features/hermes-playground/sessions'
+import {
+  createPlaygroundStorageKeys,
+  loadMessages,
+} from '@/features/playground/lib'
+import type { Message } from '@/features/playground/types'
 import { listTeams } from '@/features/teams/api'
 import type { Team } from '@/features/teams/types'
 import { getSelf } from '@/lib/api'
@@ -140,7 +140,10 @@ export function WorkspaceHome() {
     const hermesBase = getHermesBaseScope(userId, 'hermes')
     const companyBase = getHermesBaseScope(userId, 'one_person_company')
     return [
-      ...toSessionItems(loadHermesConversations(hermesBase), '/hermes-playground'),
+      ...toSessionItems(
+        loadHermesConversations(hermesBase),
+        '/hermes-playground'
+      ),
       ...toSessionItems(
         loadHermesConversations(companyBase),
         '/one-person-company'
@@ -160,9 +163,7 @@ export function WorkspaceHome() {
     )
     .slice(0, 4)
   const teamSkills = useMemo(() => {
-    return dedupeSkills(
-      teamSkillQueries.flatMap((query) => query.data ?? [])
-    )
+    return dedupeSkills(teamSkillQueries.flatMap((query) => query.data ?? []))
       .filter((skill) => skill.ownerScope === 'team' || skill.source === 'team')
       .slice(0, 4)
   }, [teamSkillQueries])
@@ -216,7 +217,7 @@ export function WorkspaceHome() {
       </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
         <div className='mx-auto max-w-7xl space-y-4'>
-          <section className='rounded-xl border bg-muted/20 p-4 sm:p-5'>
+          <section className='bg-muted/20 rounded-xl border p-4 sm:p-5'>
             <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
               <div>
                 <h1 className='text-xl font-semibold tracking-tight'>
@@ -250,7 +251,9 @@ export function WorkspaceHome() {
               <Panel
                 icon={<MessageSquare className='size-4' />}
                 title={t('Continue work')}
-                description={t('Pick up recent team or personal conversations.')}
+                description={t(
+                  'Pick up recent team or personal conversations.'
+                )}
               >
                 <div className='grid gap-3 md:grid-cols-2'>
                   <SessionList
@@ -269,7 +272,9 @@ export function WorkspaceHome() {
               <Panel
                 icon={<Sparkles className='size-4' />}
                 title={t('Common skills')}
-                description={t('Reuse useful methods instead of starting over.')}
+                description={t(
+                  'Reuse useful methods instead of starting over.'
+                )}
               >
                 <div className='grid gap-3 md:grid-cols-3'>
                   <SkillList
@@ -315,11 +320,13 @@ export function WorkspaceHome() {
               >
                 <div className='space-y-2'>
                   {teams.length > 0 ? (
-                    teams.slice(0, 6).map((team) => (
-                      <TeamCard key={team.id} team={team} />
-                    ))
+                    teams
+                      .slice(0, 6)
+                      .map((team) => <TeamCard key={team.id} team={team} />)
                   ) : (
-                    <EmptyLine text={t('Create or join a team to collaborate')} />
+                    <EmptyLine
+                      text={t('Create or join a team to collaborate')}
+                    />
                   )}
                 </div>
               </Panel>
@@ -330,7 +337,7 @@ export function WorkspaceHome() {
                 description={t('Only show whether work can continue today.')}
               >
                 <div className='space-y-3'>
-                  <div className='rounded-lg border bg-background p-3'>
+                  <div className='bg-background rounded-lg border p-3'>
                     <div className='flex items-center justify-between gap-3'>
                       <div>
                         <div className='text-sm font-medium'>
@@ -345,7 +352,7 @@ export function WorkspaceHome() {
                       </Badge>
                     </div>
                   </div>
-                  <div className='text-muted-foreground rounded-lg border bg-muted/20 p-3 text-sm leading-relaxed'>
+                  <div className='text-muted-foreground bg-muted/20 rounded-lg border p-3 text-sm leading-relaxed'>
                     <p>{t('Current work is paid by your personal wallet.')}</p>
                     <p className='mt-1'>
                       {t('Team work is paid by the selected team.')}
@@ -372,7 +379,7 @@ function Panel(props: {
   children: React.ReactNode
 }) {
   return (
-    <section className='rounded-xl border bg-background p-4 shadow-xs'>
+    <section className='bg-background rounded-xl border p-4 shadow-xs'>
       <div className='mb-4 flex items-start gap-3'>
         <div className='bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg'>
           {props.icon}
@@ -395,7 +402,7 @@ function SessionList(props: {
   emptyText: string
 }) {
   return (
-    <div className='rounded-lg border bg-muted/10 p-3'>
+    <div className='bg-muted/10 rounded-lg border p-3'>
       <div className='mb-2 text-sm font-medium'>{props.title}</div>
       <div className='space-y-2'>
         {props.items.length > 0 ? (
@@ -415,7 +422,7 @@ function SessionCard(props: { item: SessionItem }) {
     <Link
       to={props.item.href}
       search={props.item.search}
-      className='block rounded-lg border bg-background p-3 transition-colors hover:bg-muted/30'
+      className='bg-background hover:bg-muted/30 block rounded-lg border p-3 transition-colors'
     >
       <div className='flex items-start justify-between gap-3'>
         <div className='min-w-0'>
@@ -440,12 +447,15 @@ function SkillList(props: {
   emptyText: string
 }) {
   return (
-    <div className='rounded-lg border bg-muted/10 p-3'>
+    <div className='bg-muted/10 rounded-lg border p-3'>
       <div className='mb-2 text-sm font-medium'>{props.title}</div>
       <div className='space-y-2'>
         {props.skills.length > 0 ? (
           props.skills.map((skill) => (
-            <div key={`${skill.ownerScope}-${skill.name}`} className='rounded-lg border bg-background p-3'>
+            <div
+              key={`${skill.ownerScope}-${skill.name}`}
+              className='bg-background rounded-lg border p-3'
+            >
               <div className='truncate text-sm font-medium'>{skill.name}</div>
               {skill.description ? (
                 <div className='text-muted-foreground mt-1 line-clamp-2 text-xs'>
@@ -469,7 +479,7 @@ function TeamCard(props: { team: Team }) {
     <Link
       to='/team-workspace'
       search={{ team_id: props.team.id }}
-      className='block rounded-lg border bg-background p-3 transition-colors hover:bg-muted/30'
+      className='bg-background hover:bg-muted/30 block rounded-lg border p-3 transition-colors'
     >
       <div className='flex items-center justify-between gap-3'>
         <div className='min-w-0'>
@@ -490,7 +500,7 @@ function ResultCard(props: { item: ResultItem }) {
     <Link
       to={props.item.href}
       search={props.item.search}
-      className='block rounded-lg border bg-background p-3 transition-colors hover:bg-muted/30'
+      className='bg-background hover:bg-muted/30 block rounded-lg border p-3 transition-colors'
     >
       <div className='flex items-start gap-3'>
         <div className='bg-muted text-muted-foreground mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg'>
@@ -514,7 +524,7 @@ function ResultCard(props: { item: ResultItem }) {
 
 function EmptyLine(props: { text: string }) {
   return (
-    <div className='text-muted-foreground rounded-lg border border-dashed bg-muted/10 p-3 text-sm'>
+    <div className='text-muted-foreground bg-muted/10 rounded-lg border border-dashed p-3 text-sm'>
       {props.text}
     </div>
   )

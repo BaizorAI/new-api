@@ -30,6 +30,10 @@ export const STATIC_I18N_KEYS = [
   // Sidebar views (drill-in workspaces)
   'System Settings',
   'Back to Workspace',
+  'AI Workspaces',
+  'Administration',
+  'New Hermes Session',
+  'New Playground Session',
   'Auto-disable rules',
   'Channel health checks',
   'Request retry',
@@ -541,5 +545,4 @@ export const STATIC_I18N_KEYS = [
   'Messaging platforms',
   'Terminal backends',
   'The only agent with a built-in learning loop: it creates skills from experience, improves them during use, and remembers context across sessions.',
-
 ] as const

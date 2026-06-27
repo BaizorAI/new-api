@@ -41,7 +41,13 @@ export function Features() {
       desc: 'Create team workspaces where conversations, skills and result files are shared by the people doing the work.',
       span: 'md:col-span-2',
       icon: <Route className='size-4 text-blue-400' />,
-      visual: ['Team sessions', 'Shared context', 'Results', 'Members', 'Roles'],
+      visual: [
+        'Team sessions',
+        'Shared context',
+        'Results',
+        'Members',
+        'Roles',
+      ],
     },
     {
       id: 'skills',

@@ -23,6 +23,7 @@ import type { User } from '@/features/users/types'
 import { getSelf } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { normalizeLocalRedirect } from '../lib/redirect'
 import { saveUserId } from '../lib/storage'
 
 function getSavedLanguage(user: User): string | undefined {
@@ -88,8 +89,8 @@ export function useAuthRedirect() {
     }
 
     // Navigate to target page
-    const targetPath = redirectTo || '/team-workspace'
-    navigate({ to: targetPath, replace: true })
+    const targetPath = normalizeLocalRedirect(redirectTo)
+    navigate({ href: targetPath, replace: true })
   }
 
   /**

@@ -57,7 +57,10 @@ export function useAuthSessionRefresh() {
       }
       const nextUser = res.data as AuthUser
       if (currentUser?.id !== nextUser.id) return
-      const shouldInvalidate = hasPermissionSurfaceChanged(currentUser, nextUser)
+      const shouldInvalidate = hasPermissionSurfaceChanged(
+        currentUser,
+        nextUser
+      )
       auth.setUser(nextUser)
       if (shouldInvalidate) {
         await router.invalidate()

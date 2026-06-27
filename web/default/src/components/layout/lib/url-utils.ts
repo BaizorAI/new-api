@@ -39,17 +39,25 @@ function urlToString(url: LinkProps['to'] | (string & {})): string | null {
 }
 
 /**
- * Normalize URL by removing query parameters and trailing slashes
+ * Normalize URL by removing query parameters and trailing slashes.
+ * Keeps the root `/` intact.
  */
 export function normalizeHref(href: string): string {
-  const withoutQuery = href.split('?')[0]
+  const withoutQuery = href.split('?')[0] ?? ''
   return withoutQuery.length > 1
     ? withoutQuery.replace(/\/+$/, '')
     : withoutQuery
 }
 
 /**
- * Check if a navigation item is active
+ * Check whether two normalized pathnames match.
+ */
+function pathsMatch(a: string, b: string): boolean {
+  return normalizeHref(a) === normalizeHref(b)
+}
+
+/**
+ * Check if a navigation item is active.
  * @param href - Current URL
  * @param item - Navigation item
  * @param mainNav - Whether this is a main navigation item (matches first-level path)
@@ -59,63 +67,49 @@ export function checkIsActive(
   item: NavItem,
   mainNav = false
 ): boolean {
-  const hrefWithoutQuery = href.split('?')[0]
+  const normalizedHref = normalizeHref(href)
 
-  if (item.activeUrls?.some((url) => urlToString(url) === hrefWithoutQuery)) {
+  // Explicit active URL overrides (e.g. task records covering drawing logs).
+  if (
+    item.activeUrls?.some((url) => {
+      const urlStr = urlToString(url)
+      return urlStr ? pathsMatch(urlStr, href) : false
+    })
+  ) {
     return true
   }
 
-  // For collapsible items (NavCollapsible), check sub-items first
+  // For collapsible items, check if any sub-item matches.
   if ('items' in item && item.items) {
     const collapsibleItem = item as NavCollapsible
-    const items = collapsibleItem.items
-
-    // Check if any sub-item matches
     if (
-      items.some((i) => {
-        if (!i?.url) return false
-        const subItemUrl = urlToString(i.url)
-        if (!subItemUrl) return false
-        if (href === subItemUrl) return true
-        const subItemUrlWithoutQuery = subItemUrl.split('?')[0]
-        const subItemUrlHasQuery = subItemUrl.includes('?')
-        if (subItemUrlWithoutQuery === hrefWithoutQuery) {
-          // If sub-item URL has no query params, pathname match is enough (href may have query params)
-          if (!subItemUrlHasQuery) return true
-          // If sub-item URL has query params, they must match exactly
-          if (subItemUrlHasQuery && href === subItemUrl) return true
-        }
-        return false
+      collapsibleItem.items.some((sub) => {
+        if (!sub.url) return false
+        const subUrl = urlToString(sub.url)
+        return subUrl ? pathsMatch(subUrl, href) : false
       })
-    )
+    ) {
       return true
+    }
   }
 
-  // For regular link items, check the item's URL
+  // For regular link items, check the item's URL.
   if (!item.url) return false
 
   const itemUrl = urlToString(item.url)
   if (!itemUrl) return false
 
-  // Exact match
-  if (href === itemUrl) return true
-
-  const itemUrlWithoutQuery = itemUrl.split('?')[0]
-  const itemUrlHasQuery = itemUrl.includes('?')
-
-  // If both URLs have the same base path
-  if (hrefWithoutQuery === itemUrlWithoutQuery) {
-    // If item.url has no query params, pathname match is enough (current URL may have query params)
-    if (!itemUrlHasQuery) return true
-    // If item.url has query params, they must match exactly
-    if (itemUrlHasQuery && href === itemUrl) return true
+  if (pathsMatch(itemUrl, href)) {
+    return true
   }
 
-  // Main navigation match (matches first-level path)
-  if (mainNav && href.split('/')[1] && itemUrl) {
-    const hrefFirstPath = href.split('/')[1]
-    const itemFirstPath = itemUrl.split('/')[1]
-    return hrefFirstPath === itemFirstPath
+  // Main navigation match: first path segment only.
+  if (mainNav) {
+    const hrefFirstPath = normalizedHref.split('/')[1]
+    const itemFirstPath = normalizeHref(itemUrl).split('/')[1]
+    if (hrefFirstPath && itemFirstPath) {
+      return hrefFirstPath === itemFirstPath
+    }
   }
 
   return false

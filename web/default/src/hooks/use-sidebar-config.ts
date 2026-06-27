@@ -94,35 +94,117 @@ const mergeWithDefaultSidebarModules = (
   return merged
 }
 
+type ModuleMatcher =
+  | { type: 'exact'; path: string; section: string; module: string }
+  | { type: 'prefix'; prefix: string; section: string; module: string }
+
 /**
- * Mapping from URL to configuration keys
+ * Mapping from URL to sidebar module configuration keys.
+ *
+ * Match priority is array order; exact matches are listed before prefix
+ * matches so that specific paths (e.g. `/usage-logs/drawing`) can override
+ * the broader prefix rule (`/usage-logs`).
  */
-const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
-  '/chat': { section: 'chat', module: 'chat' },
-  '/playground': { section: 'chat', module: 'playground' },
-  '/hermes-playground': { section: 'chat', module: 'hermes_playground' },
-  '/one-person-company': { section: 'chat', module: 'one_person_company' },
-  '/team-workspace': { section: 'chat', module: 'team_workspace' },
-  '/dashboard': { section: 'console', module: 'detail' },
-  '/dashboard/overview': { section: 'console', module: 'detail' },
-  '/dashboard/models': { section: 'console', module: 'detail' },
-  '/dashboard/users': { section: 'console', module: 'detail' },
-  '/keys': { section: 'console', module: 'token' },
-  '/usage-logs': { section: 'console', module: 'log' },
-  '/usage-logs/common': { section: 'console', module: 'log' },
-  '/usage-logs/drawing': { section: 'console', module: 'midjourney' },
-  '/usage-logs/task': { section: 'console', module: 'task' },
-  '/wallet': { section: 'personal', module: 'topup' },
-  '/profile': { section: 'personal', module: 'personal' },
-  '/channels': { section: 'admin', module: 'channel' },
-  '/models': { section: 'admin', module: 'models' },
-  '/models/metadata': { section: 'admin', module: 'models' },
-  '/models/deployments': { section: 'admin', module: 'models' },
-  '/users': { section: 'admin', module: 'user' },
-  '/redemption-codes': { section: 'admin', module: 'redemption' },
-  '/subscriptions': { section: 'admin', module: 'subscription' },
-  '/system-settings': { section: 'admin', module: 'setting' },
-  '/system-settings/site': { section: 'admin', module: 'setting' },
+const MODULE_MATCHERS: ModuleMatcher[] = [
+  // Chat / workspace
+  { type: 'exact', path: '/chat', section: 'chat', module: 'chat' },
+  { type: 'exact', path: '/playground', section: 'chat', module: 'playground' },
+  {
+    type: 'exact',
+    path: '/hermes-playground',
+    section: 'chat',
+    module: 'hermes_playground',
+  },
+  {
+    type: 'exact',
+    path: '/one-person-company',
+    section: 'chat',
+    module: 'one_person_company',
+  },
+  {
+    type: 'exact',
+    path: '/team-workspace',
+    section: 'chat',
+    module: 'team_workspace',
+  },
+
+  // Console
+  {
+    type: 'prefix',
+    prefix: '/dashboard',
+    section: 'console',
+    module: 'detail',
+  },
+  { type: 'exact', path: '/keys', section: 'console', module: 'token' },
+  {
+    type: 'exact',
+    path: '/usage-logs/common',
+    section: 'console',
+    module: 'log',
+  },
+  {
+    type: 'exact',
+    path: '/usage-logs/drawing',
+    section: 'console',
+    module: 'midjourney',
+  },
+  {
+    type: 'exact',
+    path: '/usage-logs/task',
+    section: 'console',
+    module: 'task',
+  },
+  { type: 'prefix', prefix: '/usage-logs', section: 'console', module: 'log' },
+
+  // Personal
+  { type: 'exact', path: '/wallet', section: 'personal', module: 'topup' },
+  { type: 'exact', path: '/profile', section: 'personal', module: 'personal' },
+
+  // Admin
+  { type: 'exact', path: '/channels', section: 'admin', module: 'channel' },
+  { type: 'prefix', prefix: '/models', section: 'admin', module: 'models' },
+  { type: 'exact', path: '/users', section: 'admin', module: 'user' },
+  {
+    type: 'exact',
+    path: '/redemption-codes',
+    section: 'admin',
+    module: 'redemption',
+  },
+  {
+    type: 'exact',
+    path: '/subscriptions',
+    section: 'admin',
+    module: 'subscription',
+  },
+  {
+    type: 'prefix',
+    prefix: '/system-settings',
+    section: 'admin',
+    module: 'setting',
+  },
+]
+
+/**
+ * Find the sidebar module configuration for a given path.
+ * Returns null when no matcher applies; callers treat null as "visible".
+ */
+function findModuleConfig(
+  path: string
+): { section: string; module: string } | null {
+  for (const matcher of MODULE_MATCHERS) {
+    if (matcher.type === 'exact') {
+      if (path === matcher.path) {
+        return { section: matcher.section, module: matcher.module }
+      }
+      continue
+    }
+
+    if (path === matcher.prefix || path.startsWith(`${matcher.prefix}/`)) {
+      return { section: matcher.section, module: matcher.module }
+    }
+  }
+
+  return null
 }
 
 type DynamicNavType =
@@ -190,9 +272,9 @@ function isModuleEnabled(
   adminConfig: SidebarModulesAdminConfig,
   userConfig: SidebarModulesUserConfig
 ): boolean {
-  const mapping = URL_TO_CONFIG_MAP[url]
+  const mapping = findModuleConfig(url)
   if (!mapping) {
-    // No mapping config, default to visible (e.g. system settings and new features)
+    // No matcher applies, default to visible (e.g. system-info and future routes)
     return true
   }
 

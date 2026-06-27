@@ -70,7 +70,7 @@ export function WorkbenchPreview(props: WorkbenchPreviewProps) {
               {t('Workspaces for real work')}
             </h3>
           </div>
-          <div className='bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full px-2.5 py-1 text-xs font-medium'>
+          <div className='rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400'>
             {t('Ready')}
           </div>
         </div>

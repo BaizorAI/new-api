@@ -108,7 +108,9 @@ export function HermesSessionsSheet(props: HermesSessionsSheetProps) {
       {
         title: t('Pinned'),
         sessions: sortSessions(
-          props.sessions.filter((session) => session.pinned && !session.archived)
+          props.sessions.filter(
+            (session) => session.pinned && !session.archived
+          )
         ),
         visible: props.sessions.some(
           (session) => session.pinned && !session.archived
@@ -213,9 +215,7 @@ export function HermesSessionsSheet(props: HermesSessionsSheetProps) {
                   </EmptyMedia>
                   <EmptyTitle>{t('No team sessions yet')}</EmptyTitle>
                   <EmptyDescription>
-                    {t(
-                      'Create a shared team session to start collaborating.'
-                    )}
+                    {t('Create a shared team session to start collaborating.')}
                   </EmptyDescription>
                 </Empty>
               ) : (

@@ -25,8 +25,8 @@ import {
   type CarouselApi,
 } from '@/components/ui/carousel'
 
-import { Hero } from './hero'
 import { HermesAgent } from './hermes-agent'
+import { Hero } from './hero'
 
 interface HeroCarouselProps {
   isAuthenticated?: boolean
@@ -37,7 +37,9 @@ export function HeroCarousel(props: HeroCarouselProps) {
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
   const autoplayRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const firstScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const firstScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
   const resumeTimeRef = useRef<number>(Date.now())
 
   useEffect(() => {

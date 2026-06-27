@@ -16,9 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import type { Message } from '@/features/playground/types'
 import { api } from '@/lib/api'
 
-import type { Message } from '@/features/playground/types'
 import type { HermesConversation } from './sessions'
 
 export interface CreateHermesSkillPayload {
@@ -83,13 +83,10 @@ export interface HermesTeamConversationRecord extends HermesConversation {
 export async function listTeamHermesConversations(
   teamId: number
 ): Promise<HermesTeamConversationRecord[]> {
-  const response = await api.get(
-    `/api/team/${teamId}/hermes/conversations`,
-    {
-      skipBusinessError: true,
-      skipErrorHandler: true,
-    }
-  )
+  const response = await api.get(`/api/team/${teamId}/hermes/conversations`, {
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
   return normalizeTeamConversationsResponse(response.data)
 }
 
@@ -132,7 +129,7 @@ export async function deleteTeamHermesConversation(
 
 export async function createHermesSkill(
   payload: CreateHermesSkillPayload,
-  options?: { teamId?: number }
+  options?: { teamId?: number; teamName?: string }
 ) {
   const content = buildSkillContent(payload)
   try {
@@ -144,7 +141,7 @@ export async function createHermesSkill(
         content,
       },
       {
-        headers: buildHermesTeamHeaders(options?.teamId),
+        headers: buildHermesTeamHeaders(options?.teamId, options?.teamName),
         skipBusinessError: true,
         skipErrorHandler: true,
       }
@@ -157,9 +154,10 @@ export async function createHermesSkill(
 
 export async function listHermesSkills(options?: {
   teamId?: number
+  teamName?: string
 }): Promise<HermesSkill[]> {
   const response = await api.get('/pg/hermes/skills', {
-    headers: buildHermesTeamHeaders(options?.teamId),
+    headers: buildHermesTeamHeaders(options?.teamId, options?.teamName),
     skipBusinessError: true,
     skipErrorHandler: true,
   })
@@ -174,7 +172,7 @@ export async function updateHermesSkill(
     instructions: string
     category?: string
   },
-  options?: { teamId?: number }
+  options?: { teamId?: number; teamName?: string }
 ) {
   const content = buildSkillContent({
     name: payload.name,
@@ -190,7 +188,7 @@ export async function updateHermesSkill(
         content,
       },
       {
-        headers: buildHermesTeamHeaders(options?.teamId),
+        headers: buildHermesTeamHeaders(options?.teamId, options?.teamName),
         skipBusinessError: true,
         skipErrorHandler: true,
       }
@@ -203,12 +201,12 @@ export async function updateHermesSkill(
 
 export async function deleteHermesSkill(
   name: string,
-  options?: { teamId?: number }
+  options?: { teamId?: number; teamName?: string }
 ) {
   try {
     const response = await api.delete('/pg/hermes/skills', {
       data: { name },
-      headers: buildHermesTeamHeaders(options?.teamId),
+      headers: buildHermesTeamHeaders(options?.teamId, options?.teamName),
       skipBusinessError: true,
       skipErrorHandler: true,
     })
@@ -224,6 +222,7 @@ export async function promoteHermesSkill(
     target?: 'baizor' | 'team' | 'system'
     sourceScope?: 'user' | 'team' | 'baizor'
     teamId?: number
+    teamName?: string
   }
 ) {
   try {
@@ -235,7 +234,7 @@ export async function promoteHermesSkill(
         source_scope: options?.sourceScope,
       },
       {
-        headers: buildHermesTeamHeaders(options?.teamId),
+        headers: buildHermesTeamHeaders(options?.teamId, options?.teamName),
         skipBusinessError: true,
         skipErrorHandler: true,
       }
@@ -295,10 +294,19 @@ export async function disconnectHermesWeixin(): Promise<HermesWeixinStatus> {
   return normalizeWeixinStatusResponse(response.data)
 }
 
-
-function buildHermesTeamHeaders(teamId: number | undefined) {
+function buildHermesTeamHeaders(teamId: number | undefined, teamName?: string) {
   if (!teamId || teamId <= 0) return undefined
-  return { 'X-Baizor-Team-Id': String(teamId) }
+  const headers: Record<string, string> = { 'X-Baizor-Team-Id': String(teamId) }
+  const cleanTeamName = teamName?.trim()
+  if (
+    cleanTeamName &&
+    !cleanTeamName.includes('\r') &&
+    !cleanTeamName.includes('\n') &&
+    !cleanTeamName.includes(String.fromCharCode(0))
+  ) {
+    headers['X-Baizor-Team-Name'] = cleanTeamName
+  }
+  return headers
 }
 
 function buildSkillContent(payload: CreateHermesSkillPayload): string {

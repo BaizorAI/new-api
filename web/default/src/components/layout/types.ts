@@ -109,6 +109,16 @@ export type NavGroup = {
   id?: string
   title: string
   items: NavItem[]
+  /**
+   * Minimum role required to see this group. When set, the entire group
+   * is hidden for users whose role is below the threshold.
+   */
+  requiredRole?: number
+  /**
+   * Whether the group should be open by default when it contains collapsible
+   * or dynamic items. User interactions are persisted separately.
+   */
+  defaultOpen?: boolean
 }
 
 /**

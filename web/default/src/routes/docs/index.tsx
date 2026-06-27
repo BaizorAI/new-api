@@ -107,7 +107,9 @@ function DocsPage() {
 
         <div className='space-y-10'>
           <section>
-            <h2 className='mb-4 text-xl font-bold'>{t('Start from user workflows')}</h2>
+            <h2 className='mb-4 text-xl font-bold'>
+              {t('Start from user workflows')}
+            </h2>
             <div className='border-border/40 bg-muted/20 rounded-xl border p-6'>
               <p className='text-muted-foreground leading-relaxed'>
                 {t(
@@ -128,7 +130,9 @@ function DocsPage() {
           </section>
 
           <section>
-            <h2 className='mb-4 text-xl font-bold'>{t('What to learn first')}</h2>
+            <h2 className='mb-4 text-xl font-bold'>
+              {t('What to learn first')}
+            </h2>
             <div className='grid gap-4 md:grid-cols-2'>
               {docSections.map((section) => (
                 <div

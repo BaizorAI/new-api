@@ -16,21 +16,30 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createFileRoute, redirect } from '@tanstack/react-router'
 
-import { SystemInfo } from '@/features/system-info'
-import { ROLE } from '@/lib/roles'
-import { useAuthStore } from '@/stores/auth-store'
+export const DEFAULT_AUTH_REDIRECT = '/team-workspace'
 
-export const Route = createFileRoute('/_authenticated/system-info/')({
-  beforeLoad: () => {
-    const { auth } = useAuthStore.getState()
+const AUTH_ROUTE_PATHS = new Set(['/sign-in', '/sign-up', '/otp'])
 
-    if (auth.user?.role !== ROLE.SUPER_ADMIN) {
-      throw redirect({
-        to: '/403',
-      })
+export function normalizeLocalRedirect(redirectTo?: string | null): string {
+  const rawRedirect = typeof redirectTo === 'string' ? redirectTo.trim() : ''
+  if (!rawRedirect) {
+    return DEFAULT_AUTH_REDIRECT
+  }
+
+  const origin =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'http://localhost'
+
+  try {
+    const url = new URL(rawRedirect, origin)
+    if (url.origin !== origin || AUTH_ROUTE_PATHS.has(url.pathname)) {
+      return DEFAULT_AUTH_REDIRECT
     }
-  },
-  component: SystemInfo,
-})
+
+    return `${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return DEFAULT_AUTH_REDIRECT
+  }
+}

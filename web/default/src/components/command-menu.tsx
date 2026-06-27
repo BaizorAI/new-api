@@ -16,8 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useLocation, useNavigate } from '@tanstack/react-router'
-import { ArrowRight, ChevronRight, Laptop, Moon, Sun } from 'lucide-react'
+import { ArrowRight, Laptop, Moon, Sun } from 'lucide-react'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -33,22 +32,15 @@ import {
 } from '@/components/ui/command'
 import { useSearch } from '@/context/search-provider'
 import { useTheme } from '@/context/theme-provider'
-import { useSidebarData } from '@/hooks/use-sidebar-data'
+import { useCommandMenuItems } from '@/hooks/use-command-menu-items'
 
-import { getNavGroupsForPath } from './layout/lib/sidebar-view-registry'
 import { ScrollArea } from './ui/scroll-area'
 
 export function CommandMenu() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const { setTheme } = useTheme()
   const { open, setOpen } = useSearch()
-  const { pathname } = useLocation()
-  const sidebarData = useSidebarData()
-
-  // Use the active nested sidebar view's nav groups when one matches
-  // the current URL; otherwise fall back to the root navigation.
-  const navGroups = getNavGroupsForPath(pathname, t) ?? sidebarData.navGroups
+  const groups = useCommandMenuItems(open)
 
   const runCommand = React.useCallback(
     (command: () => unknown) => {
@@ -65,40 +57,22 @@ export function CommandMenu() {
         <CommandList>
           <ScrollArea className='h-72 pe-1'>
             <CommandEmpty>{t('No results found.')}</CommandEmpty>
-            {navGroups.map((group) => (
-              <CommandGroup key={group.id || group.title} heading={group.title}>
-                {group.items.map((navItem, i) => {
-                  if (navItem.url)
-                    return (
-                      <CommandItem
-                        key={`${navItem.url}-${i}`}
-                        value={navItem.title}
-                        onSelect={() => {
-                          runCommand(() => navigate({ to: navItem.url }))
-                        }}
-                      >
-                        <div className='flex size-4 items-center justify-center'>
-                          <ArrowRight className='text-muted-foreground/80 size-2' />
-                        </div>
-                        {navItem.title}
-                      </CommandItem>
-                    )
-
-                  return navItem.items?.map((subItem, i) => (
-                    <CommandItem
-                      key={`${navItem.title}-${subItem.url}-${i}`}
-                      value={`${navItem.title}-${subItem.url}`}
-                      onSelect={() => {
-                        runCommand(() => navigate({ to: subItem.url }))
-                      }}
-                    >
-                      <div className='flex size-4 items-center justify-center'>
-                        <ArrowRight className='text-muted-foreground/80 size-2' />
-                      </div>
-                      {navItem.title} <ChevronRight /> {subItem.title}
-                    </CommandItem>
-                  ))
-                })}
+            {groups.map((group) => (
+              <CommandGroup key={group.heading} heading={group.heading}>
+                {group.items.map((item) => (
+                  <CommandItem
+                    key={item.id}
+                    value={item.value}
+                    onSelect={() => {
+                      runCommand(item.onSelect)
+                    }}
+                  >
+                    <div className='flex size-4 items-center justify-center'>
+                      <ArrowRight className='text-muted-foreground/80 size-2' />
+                    </div>
+                    {item.label}
+                  </CommandItem>
+                ))}
               </CommandGroup>
             ))}
             <CommandSeparator />

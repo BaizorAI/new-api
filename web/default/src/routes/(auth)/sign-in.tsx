@@ -20,10 +20,11 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { z } from 'zod'
 
 import { SignIn } from '@/features/auth/sign-in'
+import { normalizeLocalRedirect } from '@/features/auth/lib/redirect'
 import { useAuthStore } from '@/stores/auth-store'
 
 const searchSchema = z.object({
-  redirect: z.string().optional(),
+  redirect: z.string().optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/(auth)/sign-in')({
@@ -36,7 +37,7 @@ export const Route = createFileRoute('/(auth)/sign-in')({
     if (auth.user) {
       // 优先使用 redirect 参数（用户之前想去的地方）
       // 否则跳转到 dashboard
-      throw redirect({ to: search?.redirect || '/team-workspace' })
+      throw redirect({ href: normalizeLocalRedirect(search?.redirect) })
     }
   },
 })

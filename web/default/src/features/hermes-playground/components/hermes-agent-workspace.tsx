@@ -122,9 +122,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const [isCapabilityCenterOpen, setIsCapabilityCenterOpen] = useState(false)
   const [isResultsOpen, setIsResultsOpen] = useState(false)
   const [isMessagePlatformsOpen, setIsMessagePlatformsOpen] = useState(false)
-  const teamPersistTimerRef = useRef<number | null>(
-    null
-  )
+  const teamPersistTimerRef = useRef<number | null>(null)
 
   const { data: teamsResponse, isLoading: isTeamsLoading } = useQuery({
     queryKey: [props.queryKeyPrefix, queryUserScope, 'teams'],
@@ -139,6 +137,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     ? Number(billingOwner.slice('team:'.length))
     : 0
   const selectedTeam = teams.find((team) => team.id === selectedTeamId)
+  const selectedTeamName = selectedTeam?.name.trim() || ''
 
   const selectBillingOwner = useCallback(
     (value: string | null) => {
@@ -231,12 +230,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     saveHermesConversations(baseScope, nextSessions)
     setSessions(nextSessions)
     setActiveSessionId(loadActiveConversationId(baseScope, nextSessions))
-  }, [
-    baseScope,
-    isTeamWorkspace,
-    selectedTeamId,
-    teamConversationsQuery.data,
-  ])
+  }, [baseScope, isTeamWorkspace, selectedTeamId, teamConversationsQuery.data])
 
   const reloadSessions = useCallback(() => {
     const nextSessions = loadHermesConversations(baseScope)
@@ -311,13 +305,20 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     [activeSessionId, baseScope, sessions]
   )
 
+  const teamContextPrompt = useMemo(() => {
+    if (!isTeamWorkspace || !selectedTeamName) return ''
+    return t('Team: {{team}}', { team: selectedTeamName })
+  }, [isTeamWorkspace, selectedTeamName, t])
+
   const defaultConfig = useMemo(
     () => ({
       ...DEFAULT_CONFIG,
       model: 'hermes-agent',
-      systemPrompt: props.defaultSystemPrompt,
+      systemPrompt: [props.defaultSystemPrompt, teamContextPrompt]
+        .filter(Boolean)
+        .join('\n\n'),
     }),
-    [props.defaultSystemPrompt]
+    [props.defaultSystemPrompt, teamContextPrompt]
   )
 
   const modelFilter = useCallback((model: ModelOption) => {
@@ -337,6 +338,14 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     }
     if (selectedTeamId > 0) {
       headers['X-Baizor-Team-Id'] = String(selectedTeamId)
+      if (
+        selectedTeamName &&
+        !selectedTeamName.includes('\r') &&
+        !selectedTeamName.includes('\n') &&
+        !selectedTeamName.includes(String.fromCharCode(0))
+      ) {
+        headers['X-Baizor-Team-Name'] = selectedTeamName
+      }
     }
     return headers
   }, [
@@ -345,6 +354,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     isTeamWorkspace,
     props.baseScopePrefix,
     selectedTeamId,
+    selectedTeamName,
   ])
 
   const persistTeamConversation = useCallback(
@@ -548,14 +558,11 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     [activeSession]
   )
 
-  const openSkillDialog = useCallback(
-    (teamId?: number) => {
-      setEditSkill(null)
-      setSkillDialogTeamId(teamId)
-      setIsSkillDialogOpen(true)
-    },
-    []
-  )
+  const openSkillDialog = useCallback((teamId?: number) => {
+    setEditSkill(null)
+    setSkillDialogTeamId(teamId)
+    setIsSkillDialogOpen(true)
+  }, [])
 
   const handleSkillCreated = useCallback(() => {
     void queryClient.invalidateQueries({
@@ -589,10 +596,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     <Main className='relative p-0'>
       <div className='absolute top-3 right-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center justify-end gap-2'>
         {teams.length > 0 && (
-          <Select
-            value={billingOwner}
-            onValueChange={selectBillingOwner}
-          >
+          <Select value={billingOwner} onValueChange={selectBillingOwner}>
             <SelectTrigger
               aria-label={t('Billing Ownership')}
               className='bg-background/95 h-8 max-w-[220px] shadow-sm backdrop-blur'
@@ -710,6 +714,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         open={isCapabilityCenterOpen}
         userScope={queryUserScope}
         selectedTeamId={selectedTeamId}
+        selectedTeamName={selectedTeamName}
         teams={teams}
         onAddSkill={() =>
           openSkillDialog(isTeamWorkspace ? selectedTeamId : undefined)
@@ -786,7 +791,7 @@ function normalizePersistedConversation(
     id: conversation.id,
     title: conversation.title,
     storageScope:
-      conversation.storageScope || baseScope + '_session_' + conversation.id,
+      conversation.storageScope || `${baseScope}_session_${conversation.id}`,
     hermesSessionId: conversation.hermesSessionId || conversation.id,
     createdAt: conversation.createdAt,
     updatedAt: conversation.updatedAt,
@@ -816,5 +821,3 @@ function sanitizeDownloadFilename(filename: string): string {
     .join('')
   return safeName || 'hermes-session.json'
 }
-
-

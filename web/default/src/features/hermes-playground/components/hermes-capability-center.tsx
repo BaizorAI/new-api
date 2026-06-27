@@ -95,6 +95,7 @@ interface HermesCapabilityCenterProps {
   open: boolean
   userScope: string
   selectedTeamId: number
+  selectedTeamName?: string
   teams: Team[]
   onOpenChange: (open: boolean) => void
   onAddSkill: () => void
@@ -109,6 +110,7 @@ type SkillPublishOptions = {
   target: 'baizor' | 'team' | 'system'
   sourceScope: 'user' | 'team' | 'baizor'
   teamId?: number
+  teamName?: string
 }
 
 type ToolsetStatusFilter =
@@ -125,10 +127,18 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
   const [toolsetStatusFilter, setToolsetStatusFilter] =
     useState<ToolsetStatusFilter>('all')
   const [deletingSkill, setDeletingSkill] = useState<HermesSkill | null>(null)
-  const [activeTeamId, setActiveTeamId] = useState(() =>
-    props.selectedTeamId || props.teams[0]?.id || 0
+  const [activeTeamId, setActiveTeamId] = useState(
+    () => props.selectedTeamId || props.teams[0]?.id || 0
   )
   const role = useAuthStore((s) => s.auth.user?.role ?? 0)
+  const activeTeamName = useMemo(() => {
+    if (activeTeamId === props.selectedTeamId && props.selectedTeamName) {
+      return props.selectedTeamName
+    }
+    return (
+      props.teams.find((team) => team.id === activeTeamId)?.name.trim() || ''
+    )
+  }, [activeTeamId, props.selectedTeamId, props.selectedTeamName, props.teams])
 
   useEffect(() => {
     const selectedTeamExists = props.teams.some(
@@ -143,7 +153,9 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
       return
     }
 
-    const activeTeamExists = props.teams.some((team) => team.id === activeTeamId)
+    const activeTeamExists = props.teams.some(
+      (team) => team.id === activeTeamId
+    )
     if (activeTeamId > 0 && activeTeamExists) return
 
     const fallbackTeamId = props.teams[0]?.id || 0
@@ -158,8 +170,13 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
       props.userScope,
       'skills',
       activeTeamId,
+      activeTeamName,
     ],
-    queryFn: () => listHermesSkills({ teamId: activeTeamId || undefined }),
+    queryFn: () =>
+      listHermesSkills({
+        teamId: activeTeamId || undefined,
+        teamName: activeTeamName || undefined,
+      }),
     enabled: props.open,
   })
   const toolsetsQuery = useQuery({
@@ -314,6 +331,7 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
                 activeTeamId={activeTeamId}
                 onActiveTeamChange={setActiveTeamId}
                 selectedTeamId={activeTeamId}
+                selectedTeamName={activeTeamName}
                 onPublishSkill={handlePublishSkill}
                 search={skillSearch}
                 setSearch={setSkillSearch}
@@ -394,6 +412,7 @@ interface SkillPanelProps {
   activeTeamId: number
   onActiveTeamChange: (teamId: number) => void
   selectedTeamId: number
+  selectedTeamName: string
   onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }
 
@@ -468,20 +487,20 @@ function SkillPanel(props: SkillPanelProps) {
                 onEditSkill={props.onEditSkill}
                 manageableTeams={props.manageableTeams}
                 selectedTeamId={props.selectedTeamId}
+                selectedTeamName={props.selectedTeamName}
                 onPublishSkill={props.onPublishSkill}
                 skills={props.userSkills}
                 title={t('My skills')}
               />
               <SkillSection
-                emptyDescription={t(
-                  'No team skills match the current search.'
-                )}
+                emptyDescription={t('No team skills match the current search.')}
                 emptyTitle={t('No team skills')}
                 isAdmin={props.isAdmin}
                 onDeleteSkill={props.onDeleteSkill}
                 onEditSkill={props.onEditSkill}
                 manageableTeams={props.manageableTeams}
                 selectedTeamId={props.selectedTeamId}
+                selectedTeamName={props.selectedTeamName}
                 onPublishSkill={props.onPublishSkill}
                 skills={props.teamSkills}
                 title={t('Team skills')}
@@ -496,6 +515,7 @@ function SkillPanel(props: SkillPanelProps) {
                 onEditSkill={props.onEditSkill}
                 manageableTeams={props.manageableTeams}
                 selectedTeamId={props.selectedTeamId}
+                selectedTeamName={props.selectedTeamName}
                 onPublishSkill={props.onPublishSkill}
                 skills={props.baizorSkills}
                 title={t('Baizor Skills')}
@@ -510,6 +530,7 @@ function SkillPanel(props: SkillPanelProps) {
                 onEditSkill={props.onEditSkill}
                 manageableTeams={props.manageableTeams}
                 selectedTeamId={props.selectedTeamId}
+                selectedTeamName={props.selectedTeamName}
                 onPublishSkill={props.onPublishSkill}
                 skills={props.systemSkills}
                 title={t('Built-in skills')}
@@ -532,6 +553,7 @@ interface SkillSectionProps {
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
   selectedTeamId: number
+  selectedTeamName: string
   onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }
 
@@ -561,6 +583,7 @@ function SkillSection(props: SkillSectionProps) {
               onEditSkill={props.onEditSkill}
               manageableTeams={props.manageableTeams}
               selectedTeamId={props.selectedTeamId}
+              selectedTeamName={props.selectedTeamName}
               onPublishSkill={props.onPublishSkill}
               skill={skill}
             />
@@ -578,6 +601,7 @@ interface SkillRowProps {
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
   selectedTeamId: number
+  selectedTeamName: string
   onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }
 
@@ -613,7 +637,7 @@ function SkillRow(props: SkillRowProps) {
             <Badge
               variant={props.skill.isUserCreated ? 'default' : 'secondary'}
             >
-              {getSkillSourceLabel(props.skill, t)}
+              {getSkillSourceLabel(props.skill, t, props.selectedTeamName)}
             </Badge>
             {props.skill.category && (
               <Badge variant='outline'>{props.skill.category}</Badge>
@@ -674,6 +698,10 @@ function SkillRow(props: SkillRowProps) {
                             skillScope === 'team'
                               ? props.selectedTeamId
                               : undefined,
+                          teamName:
+                            skillScope === 'team'
+                              ? props.selectedTeamName
+                              : undefined,
                         })
                       }
                     >
@@ -701,6 +729,7 @@ function SkillRow(props: SkillRowProps) {
                                   target: 'team',
                                   sourceScope: 'user',
                                   teamId: team.id,
+                                  teamName: team.name,
                                 })
                               }
                             >
@@ -722,7 +751,7 @@ function SkillRow(props: SkillRowProps) {
         <div className='grid gap-2 text-xs sm:grid-cols-2'>
           <SkillDetailItem
             label={t('Source')}
-            value={getSkillSourceLabel(props.skill, t)}
+            value={getSkillSourceLabel(props.skill, t, props.selectedTeamName)}
           />
           <SkillDetailItem
             label={t('Owner scope')}
@@ -1033,10 +1062,13 @@ function getToolsetFilterOptions(t: (key: string) => string) {
 
 function getSkillSourceLabel(
   skill: HermesSkill,
-  t: (key: string) => string
+  t: (key: string, options?: Record<string, unknown>) => string,
+  teamName?: string
 ): string {
   if (skill.isUserCreated) return t('Mine')
-  if (skill.source === 'team') return t('Team')
+  if (skill.source === 'team') {
+    return teamName ? t('Team: {{team}}', { team: teamName }) : t('Team')
+  }
   if (skill.source === 'baizor') return t('Baizor Skills')
   if (skill.source === 'system') return t('Built-in')
   if (skill.source === 'external') return t('External')

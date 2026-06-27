@@ -53,7 +53,7 @@ export function useSidebarData(): SidebarData {
   return {
     navGroups: [
       {
-        id: 'team-workspace',
+        id: 'overview',
         title: t('Overview'),
         items: [
           {
@@ -65,8 +65,8 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        id: 'personal-workspace',
-        title: t('Personal Workspace'),
+        id: 'ai-workspaces',
+        title: t('AI Workspaces'),
         items: [
           {
             title: t('HermesAgent'),
@@ -99,8 +99,8 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        id: 'general',
-        title: t('Management Backend'),
+        id: 'console',
+        title: t('Console'),
         items: [
           {
             title: t('Platform Overview'),
@@ -153,8 +153,9 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        id: 'admin',
-        title: t('Advanced Settings'),
+        id: 'administration',
+        title: t('Administration'),
+        requiredRole: ROLE.ADMIN,
         items: [
           {
             title: t('Model Channels'),
@@ -192,10 +193,10 @@ export function useSidebarData(): SidebarData {
             url: '/system-settings/site',
             activeUrls: ['/system-settings'],
             icon: Settings,
+            requiredRole: ROLE.SUPER_ADMIN,
           },
         ],
       },
     ],
   }
 }
-

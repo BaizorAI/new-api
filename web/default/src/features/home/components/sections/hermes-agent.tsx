@@ -168,7 +168,7 @@ export function HermesAgent() {
                 </div>
 
                 <div className='grid grid-cols-2 gap-4 sm:grid-cols-3'>
-                  <div className='bg-background/80 dark:bg-background/60 rounded-lg border border-border/40 p-4 text-center'>
+                  <div className='bg-background/80 dark:bg-background/60 border-border/40 rounded-lg border p-4 text-center'>
                     <div className='text-2xl font-bold text-amber-600 dark:text-amber-400'>
                       70+
                     </div>
@@ -176,7 +176,7 @@ export function HermesAgent() {
                       {t('Work tools')}
                     </div>
                   </div>
-                  <div className='bg-background/80 dark:bg-background/60 rounded-lg border border-border/40 p-4 text-center'>
+                  <div className='bg-background/80 dark:bg-background/60 border-border/40 rounded-lg border p-4 text-center'>
                     <div className='text-2xl font-bold text-amber-600 dark:text-amber-400'>
                       20+
                     </div>
@@ -184,7 +184,7 @@ export function HermesAgent() {
                       {t('Message access')}
                     </div>
                   </div>
-                  <div className='bg-background/80 dark:bg-background/60 rounded-lg border border-border/40 p-4 text-center'>
+                  <div className='bg-background/80 dark:bg-background/60 border-border/40 rounded-lg border p-4 text-center'>
                     <div className='text-2xl font-bold text-amber-600 dark:text-amber-400'>
                       6
                     </div>
