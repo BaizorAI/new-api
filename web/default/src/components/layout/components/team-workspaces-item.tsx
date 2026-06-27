@@ -21,6 +21,7 @@ import { Link, useLocation } from '@tanstack/react-router'
 import {
   Building2,
   FileCheck2,
+  LayoutDashboard,
   MessageSquare,
   Sparkles,
   Users,
@@ -68,7 +69,7 @@ export function TeamWorkspacesItem({ item }: { item: NavTeamWorkspaces }) {
       icon={item.icon ?? Users}
       description={item.description}
       isActive={isActive}
-      defaultOpen={isActive}
+      defaultOpen
       expandedContent={
         <SidebarTeamItems
           href={href}
@@ -101,70 +102,107 @@ function SidebarTeamItems(props: {
 
   if (props.isLoading) {
     return (
-      <SidebarMenuSubItem>
-        <SidebarMenuSubButton aria-disabled='true'>
-          <span>{t('Loading teams...')}</span>
-        </SidebarMenuSubButton>
-      </SidebarMenuSubItem>
+      <>
+        <SidebarTeamOverviewItem
+          href={props.href}
+          onNavigate={props.onNavigate}
+        />
+        <SidebarMenuSubItem>
+          <SidebarMenuSubButton aria-disabled='true'>
+            <span>{t('Loading teams...')}</span>
+          </SidebarMenuSubButton>
+        </SidebarMenuSubItem>
+      </>
     )
   }
 
   if (props.teams.length === 0) {
     return (
-      <SidebarMenuSubItem>
-        <SidebarMenuSubButton aria-disabled='true'>
-          <span>{t('No teams yet')}</span>
-        </SidebarMenuSubButton>
-      </SidebarMenuSubItem>
+      <>
+        <SidebarTeamOverviewItem
+          href={props.href}
+          onNavigate={props.onNavigate}
+        />
+        <SidebarMenuSubItem>
+          <SidebarMenuSubButton aria-disabled='true'>
+            <span>{t('No teams yet')}</span>
+          </SidebarMenuSubButton>
+        </SidebarMenuSubItem>
+      </>
     )
   }
 
-  return props.teams.flatMap((team) => [
-    <SidebarMenuSubItem key={team.id}>
-      <SidebarMenuSubButton
-        isActive={isTeamUrlActive(props.href, team.id)}
-        render={
-          <Link
-            to='/team-workspace'
-            search={{ team_id: team.id }}
-            onClick={props.onNavigate}
-          />
-        }
-      >
-        <Building2 className='size-3.5' aria-hidden='true' />
-        <span>{team.name}</span>
-      </SidebarMenuSubButton>
-    </SidebarMenuSubItem>,
-    <SidebarTeamPanelItem
-      key={`${team.id}-sessions`}
+  return [
+    <SidebarTeamOverviewItem
+      key='team-workspace-overview'
       href={props.href}
-      team={team}
-      panel='sessions'
-      title={t('Team sessions')}
-      icon={MessageSquare}
       onNavigate={props.onNavigate}
     />,
-    <SidebarTeamPanelItem
-      key={`${team.id}-results`}
-      href={props.href}
-      team={team}
-      panel='results'
-      title={t('Team results')}
-      icon={FileCheck2}
-      onNavigate={props.onNavigate}
-    />,
-    <SidebarTeamPanelItem
-      key={`${team.id}-skills`}
-      href={props.href}
-      team={team}
-      panel='skills'
-      title={t('Team skills')}
-      icon={Sparkles}
-      onNavigate={props.onNavigate}
-    />,
-  ])
+    ...props.teams.flatMap((team) => [
+      <SidebarMenuSubItem key={team.id}>
+        <SidebarMenuSubButton
+          isActive={isTeamUrlActive(props.href, team.id)}
+          render={
+            <Link
+              to='/team-workspace'
+              search={{ team_id: team.id }}
+              onClick={props.onNavigate}
+            />
+          }
+        >
+          <Building2 className='size-3.5' aria-hidden='true' />
+          <span>{team.name}</span>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>,
+      <SidebarTeamPanelItem
+        key={`${team.id}-sessions`}
+        href={props.href}
+        team={team}
+        panel='sessions'
+        title={t('Sessions')}
+        icon={MessageSquare}
+        onNavigate={props.onNavigate}
+      />,
+      <SidebarTeamPanelItem
+        key={`${team.id}-results`}
+        href={props.href}
+        team={team}
+        panel='results'
+        title={t('Results')}
+        icon={FileCheck2}
+        onNavigate={props.onNavigate}
+      />,
+      <SidebarTeamPanelItem
+        key={`${team.id}-skills`}
+        href={props.href}
+        team={team}
+        panel='skills'
+        title={t('Skills')}
+        icon={Sparkles}
+        onNavigate={props.onNavigate}
+      />,
+    ]),
+  ]
 }
 
+function SidebarTeamOverviewItem(props: {
+  href: string
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <SidebarMenuSubItem>
+      <SidebarMenuSubButton
+        isActive={isTeamUrlActive(props.href)}
+        render={<Link to='/team-workspace' onClick={props.onNavigate} />}
+      >
+        <LayoutDashboard className='size-3.5' aria-hidden='true' />
+        <span>{t('Workspace overview')}</span>
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
+  )
+}
 function SidebarTeamPanelItem(props: {
   href: string
   team: Team
@@ -252,7 +290,7 @@ function CollapsedTeamList(props: {
       href={props.href}
       team={team}
       panel='sessions'
-      title={t('Team sessions')}
+      title={t('Sessions')}
       icon={MessageSquare}
       onNavigate={props.onNavigate}
     />,
@@ -261,7 +299,7 @@ function CollapsedTeamList(props: {
       href={props.href}
       team={team}
       panel='results'
-      title={t('Team results')}
+      title={t('Results')}
       icon={FileCheck2}
       onNavigate={props.onNavigate}
     />,
@@ -270,7 +308,7 @@ function CollapsedTeamList(props: {
       href={props.href}
       team={team}
       panel='skills'
-      title={t('Team skills')}
+      title={t('Skills')}
       icon={Sparkles}
       onNavigate={props.onNavigate}
     />,

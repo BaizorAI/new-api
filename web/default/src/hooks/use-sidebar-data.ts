@@ -57,8 +57,10 @@ export function useSidebarData(): SidebarData {
         title: t('Overview'),
         items: [
           {
-            title: t('HermesAgent (Collaboration)'),
-            description: t('Shared team AI workspace'),
+            title: t('Team workspace'),
+            description: t(
+              'Shared sessions, results and skills for your teams.'
+            ),
             icon: Users,
             type: 'team-workspaces',
           },
@@ -66,7 +68,7 @@ export function useSidebarData(): SidebarData {
       },
       {
         id: 'ai-workspaces',
-        title: t('AI Workspaces'),
+        title: t('Personal Workspace'),
         items: [
           {
             title: t('HermesAgent'),
@@ -100,7 +102,7 @@ export function useSidebarData(): SidebarData {
       },
       {
         id: 'console',
-        title: t('Console'),
+        title: t('Management Backend'),
         items: [
           {
             title: t('Platform Overview'),
@@ -154,7 +156,7 @@ export function useSidebarData(): SidebarData {
       },
       {
         id: 'administration',
-        title: t('Administration'),
+        title: t('System Administration'),
         requiredRole: ROLE.ADMIN,
         items: [
           {

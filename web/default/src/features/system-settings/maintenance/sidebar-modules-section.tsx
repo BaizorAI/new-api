@@ -99,8 +99,8 @@ export function SidebarModulesSection({
         ),
       },
       team_workspace: {
-        title: t('HermesAgent (Collaboration)'),
-        description: t('Shared team AI workspace'),
+        title: t('Team workspace'),
+        description: t('Shared sessions, results and skills for your teams.'),
       },
       playground: {
         title: t('Model Playground'),
