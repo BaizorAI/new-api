@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/BaizorAI/new-api/model"
+
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,6 +68,34 @@ func TestHermesPlaygroundFileServesCurrentUserArtifact(t *testing.T) {
 	assert.Equal(t, "report", recorder.Body.String())
 }
 
+func TestHermesPlaygroundFileServesTeamArtifactForMember(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := setupModelListControllerTestDB(t)
+	require.NoError(t, db.AutoMigrate(&model.Team{}, &model.TeamMember{}))
+	require.NoError(t, db.Create(&model.Team{Id: 7, Name: "research", OwnerId: 42, Status: model.TeamStatusEnabled}).Error)
+	require.NoError(t, db.Create(&model.TeamMember{TeamId: 7, UserId: 42, Role: model.TeamRoleOwner, Status: model.TeamStatusEnabled}).Error)
+	_, memberErr := model.GetTeamMember(7, 42)
+	require.NoError(t, memberErr)
+	require.True(t, isHermesDataPathAllowed("teams/7/uploads/report.txt", 42))
+
+	root := t.TempDir()
+	targetDir := filepath.Join(root, "teams", "7", "uploads")
+	require.NoError(t, os.MkdirAll(targetDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(targetDir, "report.txt"), []byte("team report"), 0o644))
+	t.Setenv("HERMES_DATA_DIR", root)
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/files/teams/7/uploads/report.txt", nil)
+	c.Params = gin.Params{{Key: "path", Value: "/teams/7/uploads/report.txt"}}
+	c.Set("id", 42)
+
+	HermesPlaygroundFile(c)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "team report", recorder.Body.String())
+	assert.False(t, isHermesDataPathAllowed("teams/7/uploads/report.txt", 43))
+}
 func TestHermesPlaygroundFileServesRootLevelResultFile(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	root := t.TempDir()

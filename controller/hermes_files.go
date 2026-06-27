@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/model"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,6 +46,7 @@ var hermesDeniedFilenames = map[string]struct{}{
 
 var hermesAllowedTopLevelDirs = map[string]struct{}{
 	"_uploads":       {},
+	"uploads":        {},
 	"artifacts":      {},
 	"audio_cache":    {},
 	"document_cache": {},
@@ -56,6 +58,7 @@ var hermesAllowedTopLevelDirs = map[string]struct{}{
 	"sandboxes":      {},
 	"video_cache":    {},
 	"workspace":      {},
+	"workspaces":     {},
 }
 
 var hermesAllowedRootFileExtensions = map[string]struct{}{
@@ -148,6 +151,21 @@ func isHermesDataPathAllowed(relativePath string, userID int) bool {
 
 	if parts[0] == "baizor-users" {
 		if len(parts) < 3 || parts[1] != strconv.Itoa(userID) {
+			return false
+		}
+		_, ok := hermesAllowedTopLevelDirs[parts[2]]
+		return ok
+	}
+
+	if parts[0] == "teams" {
+		if len(parts) < 3 {
+			return false
+		}
+		teamID, err := strconv.Atoi(parts[1])
+		if err != nil || teamID <= 0 || model.DB == nil {
+			return false
+		}
+		if _, err := model.GetTeamMember(teamID, userID); err != nil {
 			return false
 		}
 		_, ok := hermesAllowedTopLevelDirs[parts[2]]
