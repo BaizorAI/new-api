@@ -317,8 +317,15 @@ func HermesPlaygroundWeixinSessions(c *gin.Context) {
 		return
 	}
 
+	userID := c.GetInt("id")
+	if userID <= 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		return
+	}
+
 	query := url.Values{}
 	query.Set("source", "weixin")
+	query.Set("user_id", strconv.Itoa(userID))
 	query.Set("limit", strconv.Itoa(hermesBoundedQueryInt(c.Query("limit"), 20, 100)))
 	query.Set("offset", strconv.Itoa(hermesBoundedQueryInt(c.Query("offset"), 0, 1000000)))
 	proxyHermesPlaygroundWithQuery(c, http.MethodGet, "/api/sessions", query, nil)
@@ -334,13 +341,21 @@ func HermesPlaygroundSessionMessages(c *gin.Context) {
 		return
 	}
 
+	userID := c.GetInt("id")
+	if userID <= 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
+		return
+	}
+
 	sessionID := sanitizeHermesSessionID(c.Param("session_id"))
 	if sessionID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid session_id"})
 		return
 	}
 
-	proxyHermesPlayground(c, http.MethodGet, "/api/sessions/"+url.PathEscape(sessionID)+"/messages", nil)
+	query := url.Values{}
+	query.Set("user_id", strconv.Itoa(userID))
+	proxyHermesPlaygroundWithQuery(c, http.MethodGet, "/api/sessions/"+url.PathEscape(sessionID)+"/messages", query, nil)
 }
 
 func applyHermesPlaygroundHeaderOverride(c *gin.Context, userId int) {

@@ -404,9 +404,11 @@ func TestHermesPlaygroundWeixinSessionsProxiesSourceFilteredQuery(t *testing.T) 
 
 	var receivedPath string
 	var receivedQuery url.Values
+	var receivedUserIDHeader string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedPath = r.URL.Path
 		receivedQuery = r.URL.Query()
+		receivedUserIDHeader = r.Header.Get(common.HermesDelegatedUserIDHeader)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"object":"list","data":[{"id":"s1","source":"weixin","message_count":2}]}`))
 	}))
@@ -417,7 +419,7 @@ func TestHermesPlaygroundWeixinSessionsProxiesSourceFilteredQuery(t *testing.T) 
 
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
-	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/platforms/weixin/sessions?source=telegram&limit=999", nil)
+	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/platforms/weixin/sessions?source=telegram&limit=999&user_id=7", nil)
 	c.Set("id", 42)
 
 	HermesPlaygroundWeixinSessions(c)
@@ -428,6 +430,8 @@ func TestHermesPlaygroundWeixinSessionsProxiesSourceFilteredQuery(t *testing.T) 
 	assert.Equal(t, "weixin", receivedQuery.Get("source"))
 	assert.Equal(t, "100", receivedQuery.Get("limit"))
 	assert.Equal(t, "0", receivedQuery.Get("offset"))
+	assert.Equal(t, "42", receivedQuery.Get("user_id"))
+	assert.Equal(t, "42", receivedUserIDHeader)
 }
 
 func TestHermesPlaygroundSessionMessagesRejectsInvalidSessionID(t *testing.T) {
@@ -449,8 +453,12 @@ func TestHermesPlaygroundSessionMessagesProxiesSanitizedSessionID(t *testing.T) 
 	gin.SetMode(gin.TestMode)
 
 	var receivedPath string
+	var receivedQuery url.Values
+	var receivedUserIDHeader string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedPath = r.URL.Path
+		receivedQuery = r.URL.Query()
+		receivedUserIDHeader = r.Header.Get(common.HermesDelegatedUserIDHeader)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"object":"list","session_id":"session_1","data":[{"role":"user","content":"hello"}]}`))
 	}))
@@ -461,7 +469,7 @@ func TestHermesPlaygroundSessionMessagesProxiesSanitizedSessionID(t *testing.T) 
 
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
-	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/sessions/session_1/messages", nil)
+	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/sessions/session_1/messages?user_id=7", nil)
 	c.Params = gin.Params{{Key: "session_id", Value: "session_1"}}
 	c.Set("id", 42)
 
@@ -470,6 +478,8 @@ func TestHermesPlaygroundSessionMessagesProxiesSanitizedSessionID(t *testing.T) 
 	require.Equal(t, http.StatusOK, recorder.Code)
 	assert.JSONEq(t, `{"object":"list","session_id":"session_1","data":[{"role":"user","content":"hello"}]}`, recorder.Body.String())
 	assert.Equal(t, "/api/sessions/session_1/messages", receivedPath)
+	assert.Equal(t, "42", receivedQuery.Get("user_id"))
+	assert.Equal(t, "42", receivedUserIDHeader)
 }
 
 func TestHermesPlaygroundProxyRequiresAPIKey(t *testing.T) {
