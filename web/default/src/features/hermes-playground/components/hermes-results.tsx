@@ -91,8 +91,7 @@ export type HermesResultType =
   | 'document'
   | 'attachment'
 
-interface HermesResultsProps {
-  open: boolean
+interface HermesResultsBaseProps {
   sessions: HermesConversation[]
   activeSessionId: string
   title?: string
@@ -107,9 +106,15 @@ interface HermesResultsProps {
   workspaceMode?: 'personal' | 'team'
   onContinueResult?: (prompt: string, session: HermesConversation) => void
   onOpenTask?: (task: HermesExecutionTask) => void
-  onOpenChange: (open: boolean) => void
   onSelectSession: (session: HermesConversation) => void
 }
+
+interface HermesResultsProps extends HermesResultsBaseProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+type HermesResultsWorkspaceProps = HermesResultsBaseProps
 
 type HermesResultFileSource = 'artifact' | 'attachment'
 
@@ -131,6 +136,7 @@ interface HermesResultItem {
   generatedFileCount: number
   uploadedFileCount: number
   types: Set<HermesResultType>
+  teamId?: number
   serverBacked?: boolean
   createdBy?: number
   updatedBy?: number
@@ -138,6 +144,57 @@ interface HermesResultItem {
 }
 
 export function HermesResults(props: HermesResultsProps) {
+  const { t } = useTranslation()
+
+  return (
+    <Sheet open={props.open} onOpenChange={props.onOpenChange}>
+      <SheetContent className='w-full gap-0 sm:max-w-2xl' side='right'>
+        <SheetHeader className='border-b pr-12'>
+          <SheetTitle>
+            {props.title ?? getResultsTitle(props.initialType ?? 'all', t)}
+          </SheetTitle>
+          <SheetDescription>
+            {props.description ??
+              t('Review reusable outputs from Hermes conversations.')}
+          </SheetDescription>
+        </SheetHeader>
+        <HermesResultsContent
+          {...props}
+          isActive={props.open}
+          onRequestClose={() => props.onOpenChange(false)}
+        />
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+export function HermesResultsWorkspace(props: HermesResultsWorkspaceProps) {
+  const { t } = useTranslation()
+
+  return (
+    <div className='bg-background flex h-full min-h-[calc(100vh-var(--app-header-height,0px))] flex-col'>
+      <header className='border-b px-4 py-4 sm:px-6'>
+        <div className='max-w-5xl space-y-1'>
+          <h1 className='text-lg font-semibold tracking-tight'>
+            {props.title ?? getResultsTitle(props.initialType ?? 'all', t)}
+          </h1>
+          <p className='text-muted-foreground text-sm'>
+            {props.description ??
+              t('Review reusable outputs from Hermes conversations.')}
+          </p>
+        </div>
+      </header>
+      <HermesResultsContent {...props} isActive />
+    </div>
+  )
+}
+
+function HermesResultsContent(
+  props: HermesResultsBaseProps & {
+    isActive: boolean
+    onRequestClose?: () => void
+  }
+) {
   const { t } = useTranslation()
 
   const [activeScope, setActiveScope] = useState<HermesResultScope>(
@@ -150,7 +207,7 @@ export function HermesResults(props: HermesResultsProps) {
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!props.open) return
+    if (!props.isActive) return
     setActiveScope(props.initialScope ?? getDefaultScope(props.workspaceMode))
     setActiveType(props.initialType ?? 'all')
     setQuery(props.initialTaskId ?? '')
@@ -159,7 +216,7 @@ export function HermesResults(props: HermesResultsProps) {
     props.initialScope,
     props.initialTaskId,
     props.initialType,
-    props.open,
+    props.isActive,
     props.workspaceMode,
   ])
 
@@ -184,7 +241,7 @@ export function HermesResults(props: HermesResultsProps) {
         limit: 100,
       }),
     enabled:
-      props.open &&
+      props.isActive &&
       (props.workspaceMode !== 'team' || Boolean(props.selectedTeamId)),
   })
 
@@ -212,11 +269,13 @@ export function HermesResults(props: HermesResultsProps) {
             (file) => file.source === 'attachment'
           ).length,
           types,
+          teamId:
+            props.workspaceMode === 'team' ? props.selectedTeamId : undefined,
           relatedTasks: [],
         }
       })
       .filter((item) => item.messages.length > 0)
-  }, [props.sessions])
+  }, [props.selectedTeamId, props.sessions, props.workspaceMode])
 
   const executionTasksQuery = useQuery({
     queryKey: [
@@ -232,9 +291,9 @@ export function HermesResults(props: HermesResultsProps) {
         limit: 100,
       }),
     enabled:
-      props.open &&
+      props.isActive &&
       (props.workspaceMode !== 'team' || Boolean(props.selectedTeamId)),
-    refetchInterval: props.open ? 5000 : false,
+    refetchInterval: props.isActive ? 5000 : false,
   })
 
   const serverResults = useMemo(() => {
@@ -251,9 +310,11 @@ export function HermesResults(props: HermesResultsProps) {
   const results = useMemo(() => {
     return allResults.filter(
       (item) =>
-        resultMatchesType(item, activeType) && resultMatchesQuery(item, query)
+        resultMatchesScope(item, activeScope, props.workspaceMode) &&
+        resultMatchesType(item, activeType) &&
+        resultMatchesQuery(item, query)
     )
-  }, [activeType, allResults, query])
+  }, [activeScope, activeType, allResults, props.workspaceMode, query])
 
   const totalFiles = allResults.reduce(
     (count, item) => count + item.files.length,
@@ -283,171 +344,159 @@ export function HermesResults(props: HermesResultsProps) {
   }
 
   return (
-    <Sheet open={props.open} onOpenChange={props.onOpenChange}>
-      <SheetContent className='w-full gap-0 sm:max-w-2xl' side='right'>
-        <SheetHeader className='border-b pr-12'>
-          <SheetTitle>
-            {props.title ?? getResultsTitle(activeType, t)}
-          </SheetTitle>
-          <SheetDescription>
-            {props.description ??
-              t('Review reusable outputs from Hermes conversations.')}
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className='space-y-3 border-b p-4'>
-          <div className='grid gap-2 sm:grid-cols-3'>
-            <ResultStat
-              icon={FileCheck2Icon}
-              label={t('Result sessions')}
-              value={String(allResults.length)}
-            />
-            <ResultStat
-              icon={FileCheck2Icon}
-              label={t('Generated files')}
-              value={String(generatedFiles)}
-            />
-            <ResultStat
-              icon={FileArchiveIcon}
-              label={t('All files')}
-              value={String(totalFiles)}
-            />
-          </div>
-
-          <div className='relative'>
-            <SearchIcon className='text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2' />
-            <Input
-              className='pl-8'
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t('Search results')}
-              value={query}
-            />
-          </div>
-
-          <div className='flex flex-wrap gap-1.5'>
-            {getResultTypeOptions(t).map((option) => (
-              <Button
-                aria-pressed={activeType === option.value}
-                key={option.value}
-                onClick={() => setActiveType(option.value)}
-                size='xs'
-                type='button'
-                variant={activeType === option.value ? 'secondary' : 'outline'}
-              >
-                <option.icon className='size-3.5' />
-                {option.label}
-              </Button>
-            ))}
-          </div>
-
-          <div className='flex flex-wrap gap-1.5'>
-            {getResultScopeOptions(props.workspaceMode, t).map((option) => (
-              <Button
-                aria-pressed={activeScope === option.value}
-                disabled={option.disabled}
-                key={option.value}
-                onClick={() => setActiveScope(option.value)}
-                size='xs'
-                type='button'
-                variant={activeScope === option.value ? 'secondary' : 'outline'}
-              >
-                <option.icon className='size-3.5' />
-                {option.label}
-              </Button>
-            ))}
-            {props.selectedTeamName ? (
-              <Badge variant='outline'>{props.selectedTeamName}</Badge>
-            ) : null}
-          </div>
+    <>
+      <div className='space-y-3 border-b p-4'>
+        <div className='grid gap-2 sm:grid-cols-3'>
+          <ResultStat
+            icon={FileCheck2Icon}
+            label={t('Result sessions')}
+            value={String(allResults.length)}
+          />
+          <ResultStat
+            icon={FileCheck2Icon}
+            label={t('Generated files')}
+            value={String(generatedFiles)}
+          />
+          <ResultStat
+            icon={FileArchiveIcon}
+            label={t('All files')}
+            value={String(totalFiles)}
+          />
         </div>
 
-        <ScrollArea className='min-h-0 flex-1'>
-          <div className='space-y-4 p-4'>
-            {selectedResult ? (
-              <ResultDetail
-                item={selectedResult}
-                onBack={() => setSelectedResultId(null)}
-                onContinue={
-                  props.onContinueResult
-                    ? () => {
-                        props.onContinueResult?.(
-                          buildContinueResultPrompt(selectedResult, t),
-                          selectedResult.session
-                        )
-                        props.onOpenChange(false)
-                      }
-                    : undefined
-                }
-                onExport={() => exportResult(selectedResult)}
-                onOpenTask={props.onOpenTask}
-                onOpenSession={() => {
-                  props.onSelectSession(selectedResult.session)
-                  props.onOpenChange(false)
-                }}
-              />
-            ) : null}
-            {!selectedResult && results.length === 0 ? (
-              <Empty className='min-h-40 rounded-lg border p-4'>
-                <EmptyMedia variant='icon'>
-                  <FileCheck2Icon />
-                </EmptyMedia>
-                <EmptyTitle>
-                  {props.emptyTitle ?? getEmptyTitle(activeType, t)}
-                </EmptyTitle>
-                <EmptyDescription>
-                  {getEmptyDescription(props.emptyDescription, activeType, t)}
-                </EmptyDescription>
-              </Empty>
-            ) : null}
-            {!selectedResult && results.length > 0 ? (
-              <section className='space-y-3'>
-                <div className='flex flex-wrap items-center justify-between gap-2'>
-                  <div className='text-muted-foreground text-xs font-medium'>
-                    {getResultsTitle(activeType, t)}
-                  </div>
-                  <div className='flex flex-wrap gap-1.5'>
-                    <Badge variant='outline'>
-                      {getResultScopeLabel(activeScope, t)}
-                    </Badge>
-                    <Badge variant='outline'>
-                      {getResultTypeLabel(activeType, t)}
-                    </Badge>
-                    <Badge variant='secondary'>
-                      {t('{{count}} results', { count: results.length })}
-                    </Badge>
-                  </div>
-                </div>
-                {results.map((item) => (
-                  <ResultCard
-                    key={getResultItemId(item)}
-                    active={item.session.id === props.activeSessionId}
-                    item={item}
-                    onContinue={
-                      props.onContinueResult
-                        ? () => {
-                            props.onContinueResult?.(
-                              buildContinueResultPrompt(item, t),
-                              item.session
-                            )
-                            props.onOpenChange(false)
-                          }
-                        : undefined
+        <div className='relative'>
+          <SearchIcon className='text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2' />
+          <Input
+            className='pl-8'
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('Search results')}
+            value={query}
+          />
+        </div>
+
+        <div className='flex flex-wrap gap-1.5'>
+          {getResultTypeOptions(t).map((option) => (
+            <Button
+              aria-pressed={activeType === option.value}
+              key={option.value}
+              onClick={() => setActiveType(option.value)}
+              size='xs'
+              type='button'
+              variant={activeType === option.value ? 'secondary' : 'outline'}
+            >
+              <option.icon className='size-3.5' />
+              {option.label}
+            </Button>
+          ))}
+        </div>
+
+        <div className='flex flex-wrap gap-1.5'>
+          {getResultScopeOptions(props.workspaceMode, t).map((option) => (
+            <Button
+              aria-pressed={activeScope === option.value}
+              disabled={option.disabled}
+              key={option.value}
+              onClick={() => setActiveScope(option.value)}
+              size='xs'
+              type='button'
+              variant={activeScope === option.value ? 'secondary' : 'outline'}
+            >
+              <option.icon className='size-3.5' />
+              {option.label}
+            </Button>
+          ))}
+          {props.selectedTeamName ? (
+            <Badge variant='outline'>{props.selectedTeamName}</Badge>
+          ) : null}
+        </div>
+      </div>
+
+      <ScrollArea className='min-h-0 flex-1'>
+        <div className='space-y-4 p-4'>
+          {selectedResult ? (
+            <ResultDetail
+              item={selectedResult}
+              onBack={() => setSelectedResultId(null)}
+              onContinue={
+                props.onContinueResult
+                  ? () => {
+                      props.onContinueResult?.(
+                        buildContinueResultPrompt(selectedResult, t),
+                        selectedResult.session
+                      )
+                      props.onRequestClose?.()
                     }
-                    onDetails={() => setSelectedResultId(getResultItemId(item))}
-                    onExport={() => exportResult(item)}
-                    scopeLabel={getResultScopeLabel(activeScope, t)}
-                    onOpen={() => {
-                      props.onSelectSession(item.session)
-                      props.onOpenChange(false)
-                    }}
-                  />
-                ))}
-              </section>
-            ) : null}
-          </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+                  : undefined
+              }
+              onExport={() => exportResult(selectedResult)}
+              onOpenTask={props.onOpenTask}
+              onOpenSession={() => {
+                props.onSelectSession(selectedResult.session)
+                props.onRequestClose?.()
+              }}
+            />
+          ) : null}
+          {!selectedResult && results.length === 0 ? (
+            <Empty className='min-h-40 rounded-lg border p-4'>
+              <EmptyMedia variant='icon'>
+                <FileCheck2Icon />
+              </EmptyMedia>
+              <EmptyTitle>
+                {props.emptyTitle ?? getEmptyTitle(activeType, t)}
+              </EmptyTitle>
+              <EmptyDescription>
+                {getEmptyDescription(props.emptyDescription, activeType, t)}
+              </EmptyDescription>
+            </Empty>
+          ) : null}
+          {!selectedResult && results.length > 0 ? (
+            <section className='space-y-3'>
+              <div className='flex flex-wrap items-center justify-between gap-2'>
+                <div className='text-muted-foreground text-xs font-medium'>
+                  {getResultsTitle(activeType, t)}
+                </div>
+                <div className='flex flex-wrap gap-1.5'>
+                  <Badge variant='outline'>
+                    {getResultScopeLabel(activeScope, t)}
+                  </Badge>
+                  <Badge variant='outline'>
+                    {getResultTypeLabel(activeType, t)}
+                  </Badge>
+                  <Badge variant='secondary'>
+                    {t('{{count}} results', { count: results.length })}
+                  </Badge>
+                </div>
+              </div>
+              {results.map((item) => (
+                <ResultCard
+                  key={getResultItemId(item)}
+                  active={item.session.id === props.activeSessionId}
+                  item={item}
+                  onContinue={
+                    props.onContinueResult
+                      ? () => {
+                          props.onContinueResult?.(
+                            buildContinueResultPrompt(item, t),
+                            item.session
+                          )
+                          props.onRequestClose?.()
+                        }
+                      : undefined
+                  }
+                  onDetails={() => setSelectedResultId(getResultItemId(item))}
+                  onExport={() => exportResult(item)}
+                  scopeLabel={getResultScopeLabel(activeScope, t)}
+                  onOpen={() => {
+                    props.onSelectSession(item.session)
+                    props.onRequestClose?.()
+                  }}
+                />
+              ))}
+            </section>
+          ) : null}
+        </div>
+      </ScrollArea>
+    </>
   )
 }
 
@@ -961,6 +1010,7 @@ function buildServerResultItems(
       generatedFileCount,
       uploadedFileCount,
       types,
+      teamId: newest.teamId || undefined,
       serverBacked: true,
       createdBy: newest.createdBy || undefined,
       updatedBy: newest.updatedBy || undefined,
@@ -1113,6 +1163,16 @@ function resultMatchesType(
   }
   if (item.files.some((file) => file.type === type)) return true
   return type === 'document' && item.assistantMessages > 0
+}
+
+function resultMatchesScope(
+  item: HermesResultItem,
+  scope: HermesResultScope,
+  workspaceMode?: 'personal' | 'team'
+): boolean {
+  if (scope === 'all') return true
+  const isTeamResult = workspaceMode === 'team' || Boolean(item.teamId)
+  return scope === 'team' ? isTeamResult : !isTeamResult
 }
 
 function resultMatchesQuery(item: HermesResultItem, query: string): boolean {

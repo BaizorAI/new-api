@@ -33,7 +33,7 @@ import {
   XCircleIcon,
   ArrowBigUpIcon,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -109,6 +109,11 @@ interface HermesCapabilityCenterProps {
   onEditSkill: (skill: HermesSkill, teamId?: number) => void
 }
 
+type HermesCapabilityCenterWorkspaceProps = Omit<
+  HermesCapabilityCenterProps,
+  'open' | 'onOpenChange'
+>
+
 const EMPTY_SKILLS: HermesSkill[] = []
 const EMPTY_TOOLSETS: HermesToolset[] = []
 const ADMIN_MIN_ROLE = 10
@@ -129,6 +134,65 @@ type ToolsetStatusFilter =
 
 export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
   const { t } = useTranslation()
+
+  return (
+    <HermesCapabilityCenterContent
+      {...props}
+      isActive={props.open}
+      renderFrame={(content) => (
+        <Sheet open={props.open} onOpenChange={props.onOpenChange}>
+          <SheetContent className='w-full gap-0 sm:max-w-xl' side='right'>
+            <SheetHeader className='border-b pr-12'>
+              <SheetTitle>{t('Hermes capabilities')}</SheetTitle>
+              <SheetDescription>
+                {t(
+                  'Manage reusable skills and inspect available Hermes tools.'
+                )}
+              </SheetDescription>
+            </SheetHeader>
+            {content}
+          </SheetContent>
+        </Sheet>
+      )}
+    />
+  )
+}
+
+export function HermesCapabilityCenterWorkspace(
+  props: HermesCapabilityCenterWorkspaceProps
+) {
+  const { t } = useTranslation()
+
+  return (
+    <div className='bg-background flex h-full min-h-[calc(100vh-var(--app-header-height,0px))] flex-col'>
+      <header className='border-b px-4 py-4 sm:px-6'>
+        <div className='max-w-5xl space-y-1'>
+          <h1 className='text-lg font-semibold tracking-tight'>
+            {t('Hermes capabilities')}
+          </h1>
+          <p className='text-muted-foreground text-sm'>
+            {t('Manage reusable skills and inspect available Hermes tools.')}
+          </p>
+        </div>
+      </header>
+      <HermesCapabilityCenterContent
+        {...props}
+        isActive
+        renderFrame={(content) => (
+          <div className='flex min-h-0 flex-1 flex-col'>{content}</div>
+        )}
+      />
+    </div>
+  )
+}
+
+function HermesCapabilityCenterContent(
+  props: HermesCapabilityCenterWorkspaceProps & {
+    isActive: boolean
+    renderFrame: (content: ReactNode) => ReactNode
+  }
+) {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<HermesCapabilityTab>(() =>
     getInitialCapabilityTab(props.initialSection)
   )
@@ -145,10 +209,10 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
   const role = useAuthStore((s) => s.auth.user?.role ?? 0)
 
   useEffect(() => {
-    if (!props.open) return
+    if (!props.isActive) return
     setActiveTab(getInitialCapabilityTab(props.initialSection))
     setSkillSearch(getInitialSkillSearch(props.initialCategory))
-  }, [props.initialCategory, props.initialSection, props.open])
+  }, [props.initialCategory, props.initialSection, props.isActive])
 
   const activeTeamName = useMemo(() => {
     if (activeTeamId === props.selectedTeamId && props.selectedTeamName) {
@@ -196,12 +260,12 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
         teamId: activeTeamId || undefined,
         teamName: activeTeamName || undefined,
       }),
-    enabled: props.open,
+    enabled: props.isActive,
   })
   const toolsetsQuery = useQuery({
     queryKey: ['hermes-capabilities', props.userScope, 'toolsets'],
     queryFn: listHermesToolsets,
-    enabled: props.open,
+    enabled: props.isActive,
   })
 
   const skills = skillsQuery.data ?? EMPTY_SKILLS
@@ -311,78 +375,69 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
 
   return (
     <>
-      <Sheet open={props.open} onOpenChange={props.onOpenChange}>
-        <SheetContent className='w-full gap-0 sm:max-w-xl' side='right'>
-          <SheetHeader className='border-b pr-12'>
-            <SheetTitle>{t('Hermes capabilities')}</SheetTitle>
-            <SheetDescription>
-              {t('Manage reusable skills and inspect available Hermes tools.')}
-            </SheetDescription>
-          </SheetHeader>
+      {props.renderFrame(
+        <Tabs
+          className='min-h-0 flex-1 gap-0'
+          value={activeTab}
+          onValueChange={(value) =>
+            setActiveTab(value === 'tools' ? 'tools' : 'skills')
+          }
+        >
+          <div className='flex items-center justify-between gap-2 border-b px-4 py-3'>
+            <TabsList className='w-fit'>
+              <TabsTrigger value='skills'>{t('Skills')}</TabsTrigger>
+              <TabsTrigger value='tools'>{t('Tools')}</TabsTrigger>
+            </TabsList>
+            <Button
+              aria-label={t('Refresh Hermes capabilities')}
+              onClick={refresh}
+              size='icon-sm'
+              type='button'
+              variant='ghost'
+            >
+              <RefreshCwIcon className='size-4' />
+            </Button>
+          </div>
 
-          <Tabs
-            className='min-h-0 flex-1 gap-0'
-            value={activeTab}
-            onValueChange={(value) =>
-              setActiveTab(value === 'tools' ? 'tools' : 'skills')
-            }
-          >
-            <div className='flex items-center justify-between gap-2 border-b px-4 py-3'>
-              <TabsList className='w-fit'>
-                <TabsTrigger value='skills'>{t('Skills')}</TabsTrigger>
-                <TabsTrigger value='tools'>{t('Tools')}</TabsTrigger>
-              </TabsList>
-              <Button
-                aria-label={t('Refresh Hermes capabilities')}
-                onClick={refresh}
-                size='icon-sm'
-                type='button'
-                variant='ghost'
-              >
-                <RefreshCwIcon className='size-4' />
-              </Button>
-            </div>
+          <TabsContent className='min-h-0' value='skills'>
+            <SkillPanel
+              error={skillsQuery.error}
+              isLoading={skillsQuery.isLoading}
+              isAdmin={isAdmin}
+              onAddSkill={props.onAddSkill}
+              onUseSkill={props.onUseSkill}
+              onDeleteSkill={setDeletingSkill}
+              onEditSkill={props.onEditSkill}
+              manageableTeams={manageableTeams}
+              teams={props.teams}
+              activeTeamId={activeTeamId}
+              initialSection={props.initialSection}
+              onActiveTeamChange={setActiveTeamId}
+              selectedTeamId={activeTeamId}
+              selectedTeamName={activeTeamName}
+              onPublishSkill={handlePublishSkill}
+              search={skillSearch}
+              setSearch={setSkillSearch}
+              baizorSkills={baizorSkills}
+              systemSkills={systemSkills}
+              teamSkills={teamSkills}
+              userSkills={userSkills}
+            />
+          </TabsContent>
 
-            <TabsContent className='min-h-0' value='skills'>
-              <SkillPanel
-                error={skillsQuery.error}
-                isLoading={skillsQuery.isLoading}
-                isAdmin={isAdmin}
-                onAddSkill={props.onAddSkill}
-                onUseSkill={props.onUseSkill}
-                onDeleteSkill={setDeletingSkill}
-                onEditSkill={props.onEditSkill}
-                manageableTeams={manageableTeams}
-                teams={props.teams}
-                activeTeamId={activeTeamId}
-                initialSection={props.initialSection}
-                onActiveTeamChange={setActiveTeamId}
-                selectedTeamId={activeTeamId}
-                selectedTeamName={activeTeamName}
-                onPublishSkill={handlePublishSkill}
-                search={skillSearch}
-                setSearch={setSkillSearch}
-                baizorSkills={baizorSkills}
-                systemSkills={systemSkills}
-                teamSkills={teamSkills}
-                userSkills={userSkills}
-              />
-            </TabsContent>
-
-            <TabsContent className='min-h-0' value='tools'>
-              <ToolPanel
-                error={toolsetsQuery.error}
-                isLoading={toolsetsQuery.isLoading}
-                search={toolsetSearch}
-                setSearch={setToolsetSearch}
-                statusFilter={toolsetStatusFilter}
-                setStatusFilter={setToolsetStatusFilter}
-                toolsets={toolsets}
-              />
-            </TabsContent>
-          </Tabs>
-        </SheetContent>
-      </Sheet>
+          <TabsContent className='min-h-0' value='tools'>
+            <ToolPanel
+              error={toolsetsQuery.error}
+              isLoading={toolsetsQuery.isLoading}
+              search={toolsetSearch}
+              setSearch={setToolsetSearch}
+              statusFilter={toolsetStatusFilter}
+              setStatusFilter={setToolsetStatusFilter}
+              toolsets={toolsets}
+            />
+          </TabsContent>
+        </Tabs>
+      )}
 
       <Dialog
         open={Boolean(deletingSkill)}
@@ -1044,7 +1099,7 @@ function getOrderedSkillSections(
   ]
 
   if (!focusedSection) return sections
-  return sections.sort((a, b) => Number(b.isFocused) - Number(a.isFocused))
+  return sections.filter((section) => section.id === focusedSection)
 }
 
 function getInitialCapabilityTab(

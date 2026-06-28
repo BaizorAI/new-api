@@ -18,12 +18,15 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { Building2Icon, UsersIcon, WalletCardsIcon } from 'lucide-react'
 import {
-  Building2Icon,
-  UsersIcon,
-  WalletCardsIcon,
-} from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -49,25 +52,27 @@ import {
 } from '@/features/hermes-playground/api'
 import {
   HermesCapabilityCenter,
+  HermesCapabilityCenterWorkspace,
 } from '@/features/hermes-playground/components/hermes-capability-center'
 import { HermesExecutionTasksSheet } from '@/features/hermes-playground/components/hermes-execution-tasks-sheet'
 import {
   HermesMessagePlatforms,
   HermesMessagePlatformsWorkspace,
 } from '@/features/hermes-playground/components/hermes-message-platforms'
+import {
+  HermesResults,
+  HermesResultsWorkspace,
+  type HermesResultScope,
+  type HermesResultType,
+} from '@/features/hermes-playground/components/hermes-results'
+import { HermesSessionsSheet } from '@/features/hermes-playground/components/hermes-sessions-sheet'
+import { HermesSkillDialog } from '@/features/hermes-playground/components/hermes-skill-dialog'
 import type {
   HermesCapabilitySection,
   HermesMessageSection,
   HermesPersonalPanel,
   HermesTeamPanel,
 } from '@/features/hermes-playground/lib/workspace-panel-controller'
-import {
-  HermesResults,
-  type HermesResultScope,
-  type HermesResultType,
-} from '@/features/hermes-playground/components/hermes-results'
-import { HermesSessionsSheet } from '@/features/hermes-playground/components/hermes-sessions-sheet'
-import { HermesSkillDialog } from '@/features/hermes-playground/components/hermes-skill-dialog'
 import {
   clearConversationStorage,
   createDefaultConversation,
@@ -278,15 +283,6 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   useEffect(() => {
     if (props.initialPanel === 'tasks') {
       setIsExecutionTasksOpen(true)
-      return
-    }
-    if (props.initialPanel === 'skills') {
-      setIsCapabilityCenterOpen(true)
-      return
-    }
-    if (props.initialPanel === 'results') {
-      setResultsTaskId(undefined)
-      setIsResultsOpen(true)
       return
     }
     if (
@@ -762,6 +758,19 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     setIsSkillDialogOpen(true)
   }, [])
 
+  const navigateToConversationWorkspace = useCallback(() => {
+    if (isTeamWorkspace) {
+      if (selectedTeamId <= 0) return
+      void navigate({
+        to: '/team-workspace',
+        search: { team_id: selectedTeamId },
+      })
+      return
+    }
+
+    void navigate({ to: '/hermes-playground' })
+  }, [isTeamWorkspace, navigate, selectedTeamId])
+
   const handleSkillCreated = useCallback(() => {
     void queryClient.invalidateQueries({
       queryKey: ['hermes-capabilities', queryUserScope, 'skills'],
@@ -777,8 +786,9 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         }),
       })
       setIsCapabilityCenterOpen(false)
+      navigateToConversationWorkspace()
     },
-    [t]
+    [navigateToConversationWorkspace, t]
   )
 
   const continueWithResult = useCallback(
@@ -794,8 +804,9 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         id: `result-${Date.now()}-${session.id}`,
         prompt,
       })
+      navigateToConversationWorkspace()
     },
-    [baseScope, sessions]
+    [baseScope, navigateToConversationWorkspace, sessions]
   )
 
   if (isTeamWorkspace && selectedTeamId <= 0) {
@@ -817,6 +828,116 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
           )}
         </div>
       </Main>
+    )
+  }
+
+  let workspaceContent: ReactNode
+  if (props.initialPanel === 'messages') {
+    workspaceContent = (
+      <HermesMessagePlatformsWorkspace
+        initialSection={props.initialMessageSection}
+        userScope={queryUserScope}
+      />
+    )
+  } else if (props.initialPanel === 'skills') {
+    workspaceContent = (
+      <HermesCapabilityCenterWorkspace
+        userScope={queryUserScope}
+        initialCategory={props.initialCapabilityCategory}
+        initialSection={props.initialCapabilitySection}
+        selectedTeamId={selectedTeamId}
+        selectedTeamName={selectedTeamName}
+        teams={teams}
+        onAddSkill={() =>
+          openSkillDialog(isTeamWorkspace ? selectedTeamId : undefined)
+        }
+        onUseSkill={startWithSkill}
+        onEditSkill={(skill, teamId) => {
+          setEditSkill(skill)
+          setSkillDialogTeamId(teamId)
+          setIsCapabilityCenterOpen(false)
+          setIsSkillDialogOpen(true)
+        }}
+      />
+    )
+  } else if (props.initialPanel === 'results') {
+    workspaceContent = (
+      <HermesResultsWorkspace
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        initialScope={props.initialResultScope}
+        initialType={props.initialResultType}
+        selectedTeamId={selectedTeamId > 0 ? selectedTeamId : undefined}
+        selectedTeamName={selectedTeamName || undefined}
+        workspaceMode={isTeamWorkspace ? 'team' : 'personal'}
+        title={isTeamWorkspace ? t('Team results') : undefined}
+        description={
+          selectedTeam
+            ? t('Review shared outputs and files for {{team}}.', {
+                team: selectedTeam.name,
+              })
+            : undefined
+        }
+        emptyTitle={isTeamWorkspace ? t('No team results yet') : undefined}
+        emptyDescription={
+          isTeamWorkspace
+            ? t(
+                'Ask Hermes to produce team reports, documents or analysis results, then review and export them here.'
+              )
+            : undefined
+        }
+        onContinueResult={continueWithResult}
+        onOpenTask={(task) => {
+          void openExecutionTask(task)
+        }}
+        onSelectSession={(session) => {
+          if (!sessions.some((item) => item.id === session.id)) {
+            const nextSessions = [session, ...sessions]
+            saveHermesConversations(baseScope, nextSessions)
+            setSessions(nextSessions)
+          }
+          saveActiveConversationId(baseScope, session.id)
+          setActiveSessionId(session.id)
+          navigateToConversationWorkspace()
+        }}
+      />
+    )
+  } else {
+    workspaceContent = (
+      <Playground
+        key={activeSession.storageScope}
+        defaultConfig={defaultConfig}
+        enableSlashCommands
+        emptyModelsMessage={props.emptyModelsMessage}
+        modelFilter={modelFilter}
+        onAddSkill={() =>
+          openSkillDialog(isTeamWorkspace ? selectedTeamId : undefined)
+        }
+        onMessagesChange={updateActiveSessionFromMessages}
+        onNewSession={createSession}
+        onSaveSession={exportActiveSession}
+        queryKeyPrefix={props.queryKeyPrefix}
+        quickPromptRequest={quickPromptRequest ?? undefined}
+        requestHeaders={requestHeaders}
+        executionTaskContext={{
+          workspaceMode: isTeamWorkspace
+            ? 'team_workspace'
+            : props.baseScopePrefix || 'personal',
+          conversationId: activeSession.id,
+          storageScope: activeSession.storageScope,
+          hermesSessionId: activeHermesSessionId,
+          teamId: selectedTeamId > 0 ? selectedTeamId : undefined,
+          teamName: selectedTeamName || undefined,
+          title: activeSession.title,
+          onTaskCreated: invalidateExecutionTasks,
+          onTaskSettled: (task) => {
+            invalidateExecutionTasks()
+            applyExecutionTaskResult(task)
+          },
+        }}
+        storageScope={activeSession.storageScope}
+        suggestedPrompts={props.suggestedPrompts}
+      />
     )
   }
 
@@ -853,47 +974,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
           </Select>
         </div>
       )}
-      {props.initialPanel === 'messages' ? (
-        <HermesMessagePlatformsWorkspace
-          initialSection={props.initialMessageSection}
-          userScope={queryUserScope}
-        />
-      ) : (
-        <Playground
-          key={activeSession.storageScope}
-          defaultConfig={defaultConfig}
-          enableSlashCommands
-          emptyModelsMessage={props.emptyModelsMessage}
-          modelFilter={modelFilter}
-          onAddSkill={() =>
-            openSkillDialog(isTeamWorkspace ? selectedTeamId : undefined)
-          }
-          onMessagesChange={updateActiveSessionFromMessages}
-          onNewSession={createSession}
-          onSaveSession={exportActiveSession}
-          queryKeyPrefix={props.queryKeyPrefix}
-          quickPromptRequest={quickPromptRequest ?? undefined}
-          requestHeaders={requestHeaders}
-          executionTaskContext={{
-            workspaceMode: isTeamWorkspace
-              ? 'team_workspace'
-              : props.baseScopePrefix || 'personal',
-            conversationId: activeSession.id,
-            storageScope: activeSession.storageScope,
-            hermesSessionId: activeHermesSessionId,
-            teamId: selectedTeamId > 0 ? selectedTeamId : undefined,
-            teamName: selectedTeamName || undefined,
-            title: activeSession.title,
-            onTaskCreated: invalidateExecutionTasks,
-            onTaskSettled: (task) => {
-              invalidateExecutionTasks()
-              applyExecutionTaskResult(task)
-            },
-          }}
-          storageScope={activeSession.storageScope}
-          suggestedPrompts={props.suggestedPrompts}
-        />
-      )}
+      {workspaceContent}
       <HermesSkillDialog
         open={isSkillDialogOpen}
         editSkill={editSkill}
