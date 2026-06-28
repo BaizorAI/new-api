@@ -886,7 +886,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         onNewSession={createSession}
         onSaveSession={exportActiveSession}
         queryKeyPrefix={props.queryKeyPrefix}
-        quickPromptRequest={quickPromptRequest}
+        quickPromptRequest={quickPromptRequest ?? undefined}
         requestHeaders={requestHeaders}
         executionTaskContext={{
           workspaceMode: isTeamWorkspace
@@ -967,6 +967,8 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         activeSessionId={activeSessionId}
         initialScope={props.initialResultScope}
         initialType={props.initialResultType}
+        selectedTeamName={selectedTeamName || undefined}
+        workspaceMode={isTeamWorkspace ? 'team' : 'personal'}
         title={isTeamWorkspace ? t('Team results') : undefined}
         description={
           selectedTeam

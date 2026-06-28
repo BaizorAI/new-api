@@ -51,6 +51,11 @@ import {
   createPlaygroundStorageKeys,
   loadMessages,
 } from '@/features/playground/lib'
+import {
+  extractHermesFileArtifacts,
+  renderHermesDataPathsAsLinks,
+} from '@/features/playground/lib/hermes-file-links'
+import { parseThinkTags } from '@/features/playground/lib/message-utils'
 import type { Message } from '@/features/playground/types'
 import { listTeams } from '@/features/teams/api'
 import type { Team } from '@/features/teams/types'
@@ -78,6 +83,8 @@ type ResultItem = {
     team_id?: number
     panel?: 'sessions' | 'results' | 'skills' | 'messages' | 'tasks'
   }
+  sourceTitle?: string
+  teamName?: string
   updatedAt: number
 }
 
@@ -184,6 +191,7 @@ export function WorkspaceHome() {
               team_id: teams[index]?.id,
               panel: 'results',
             },
+            teamName: teams[index]?.name,
           })
       )
     )
@@ -558,11 +566,12 @@ function SessionList(props: {
 
 function SessionCard(props: { item: SessionItem }) {
   const { t } = useTranslation()
-  const title = props.item.title || t('New session')
+  const { item } = props
+  const title = item.title || t('New session')
   return (
     <Link
-      to={props.item.href}
-      search={props.item.search}
+      to={item.href}
+      search={item.search}
       className='bg-background hover:bg-muted/30 block rounded-lg border p-3 transition-colors'
     >
       <div className='flex items-start justify-between gap-3'>
@@ -661,10 +670,13 @@ function TeamCard(props: { team: Team }) {
 
 function ResultCard(props: { item: ResultItem }) {
   const { t } = useTranslation()
+  const { item } = props
+  const context = [item.teamName, item.sourceTitle].filter(Boolean).join(' / ')
+
   return (
     <Link
-      to={props.item.href}
-      search={props.item.search}
+      to={item.href}
+      search={item.search}
       className='bg-background hover:bg-muted/30 block rounded-lg border p-3 transition-colors'
     >
       <div className='flex items-start gap-3'>
@@ -673,14 +685,19 @@ function ResultCard(props: { item: ResultItem }) {
         </div>
         <div className='min-w-0 flex-1'>
           <div className='flex items-center gap-2'>
-            <Badge variant='secondary'>{t(props.item.kind)}</Badge>
+            <Badge variant='secondary'>{t(item.kind)}</Badge>
             <span className='text-muted-foreground text-xs'>
-              {formatSessionTime(props.item.updatedAt, t('Just now'))}
+              {formatSessionTime(item.updatedAt, t('Just now'))}
             </span>
           </div>
           <div className='mt-2 truncate text-sm font-medium'>
-            {props.item.title || t('Untitled result')}
+            {item.title || t('Untitled result')}
           </div>
+          {context ? (
+            <div className='text-muted-foreground mt-1 truncate text-xs'>
+              {context}
+            </div>
+          ) : null}
         </div>
       </div>
     </Link>
@@ -727,23 +744,30 @@ function toResultItems(
       team_id?: number
       panel?: 'sessions' | 'results' | 'skills' | 'messages' | 'tasks'
     }
+    teamName?: string
   }
 ): ResultItem[] {
   const safeMessages = messages.filter(isMessageLike)
-  const attachments = safeMessages
-    .flatMap((message) => message.attachments ?? [])
-    .filter(isAttachmentLike)
   const assistantMessages = safeMessages.filter(
     (message) => message.from === 'assistant'
   )
-  const fileResults = attachments.map((attachment, index) => ({
-    id: `${target.href}-${session.id}-file-${index}`,
-    title: attachment.filename || session.title,
-    kind: getResultKind(attachment.filename),
-    href: target.href,
-    search: target.search,
-    updatedAt: session.updatedAt,
-  }))
+  const fileResults = [
+    ...extractAssistantResultFiles(session, assistantMessages, target),
+    ...safeMessages
+      .flatMap((message) => message.attachments ?? [])
+      .filter(isAttachmentLike)
+      .map((attachment, index) => ({
+        id: `${target.href}-${session.id}-file-${index}`,
+        title: attachment.filename || session.title,
+        kind: getResultKind(attachment.filename),
+        href: target.href,
+        search: target.search,
+        sourceTitle: session.title,
+        teamName: target.teamName,
+        updatedAt: session.updatedAt,
+      })),
+  ]
+
   if (fileResults.length > 0) return fileResults
   if (assistantMessages.length === 0) return []
   return [
@@ -753,11 +777,49 @@ function toResultItems(
       kind: 'Document',
       href: target.href,
       search: target.search,
+      sourceTitle: session.title,
+      teamName: target.teamName,
       updatedAt: session.updatedAt,
     },
   ]
 }
 
+function extractAssistantResultFiles(
+  session: HermesConversation,
+  messages: Message[],
+  target: {
+    href: '/team-workspace' | '/hermes-playground' | '/one-person-company'
+    search?: {
+      team_id?: number
+      panel?: 'sessions' | 'results' | 'skills' | 'messages' | 'tasks'
+    }
+    teamName?: string
+  }
+): ResultItem[] {
+  const artifacts = new Map<string, ResultItem>()
+
+  for (const message of messages) {
+    for (const version of message.versions) {
+      const visibleContent = renderHermesDataPathsAsLinks(
+        parseThinkTags(version.content).visibleContent
+      )
+      for (const artifact of extractHermesFileArtifacts(visibleContent)) {
+        artifacts.set(artifact.href, {
+          id: `${target.href}-${session.id}-artifact-${artifact.href}`,
+          title: artifact.filename || artifact.label || session.title,
+          kind: getResultKind(artifact.filename || artifact.label),
+          href: target.href,
+          search: target.search,
+          sourceTitle: session.title,
+          teamName: target.teamName,
+          updatedAt: session.updatedAt,
+        })
+      }
+    }
+  }
+
+  return [...artifacts.values()]
+}
 function isMessageLike(value: unknown): value is Message {
   return Boolean(value && typeof value === 'object' && 'from' in value)
 }
@@ -769,7 +831,9 @@ function isAttachmentLike(value: unknown): value is { filename?: string } {
 function getResultKind(filename?: string): string {
   const lower = filename?.toLowerCase() ?? ''
   if (lower.endsWith('.ppt') || lower.endsWith('.pptx')) return 'PPT'
-  if (lower.includes('report') || lower.includes('报告')) return 'Report'
+  if (/report|research|\u62a5\u544a|\u8c03\u7814/.test(lower)) {
+    return 'Report'
+  }
   if (
     lower.endsWith('.doc') ||
     lower.endsWith('.docx') ||
