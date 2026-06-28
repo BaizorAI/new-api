@@ -729,8 +729,11 @@ function toResultItems(
     }
   }
 ): ResultItem[] {
-  const attachments = messages.flatMap((message) => message.attachments ?? [])
-  const assistantMessages = messages.filter(
+  const safeMessages = messages.filter(isMessageLike)
+  const attachments = safeMessages
+    .flatMap((message) => message.attachments ?? [])
+    .filter(isAttachmentLike)
+  const assistantMessages = safeMessages.filter(
     (message) => message.from === 'assistant'
   )
   const fileResults = attachments.map((attachment, index) => ({
@@ -753,6 +756,14 @@ function toResultItems(
       updatedAt: session.updatedAt,
     },
   ]
+}
+
+function isMessageLike(value: unknown): value is Message {
+  return Boolean(value && typeof value === 'object' && 'from' in value)
+}
+
+function isAttachmentLike(value: unknown): value is { filename?: string } {
+  return Boolean(value && typeof value === 'object')
 }
 
 function getResultKind(filename?: string): string {

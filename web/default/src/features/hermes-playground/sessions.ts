@@ -182,7 +182,7 @@ export function clearConversationStorage(session: HermesConversation): void {
 
 export function deriveConversationTitle(messages: Message[]): string | null {
   const firstUserMessage = messages.find((message) => message.from === 'user')
-  const content = firstUserMessage?.versions[0]?.content
+  const content = firstUserMessage?.versions?.[0]?.content
     ?.replaceAll(/\s+/g, ' ')
     .trim()
   if (!content) return null
@@ -190,15 +190,20 @@ export function deriveConversationTitle(messages: Message[]): string | null {
 }
 
 export function formatSessionTime(timestamp: number, justNow: string): string {
+  if (!Number.isFinite(timestamp)) return justNow
+
   const diffMs = Date.now() - timestamp
   if (diffMs < 60_000) return justNow
+
+  const date = new Date(timestamp)
+  if (!Number.isFinite(date.getTime())) return justNow
 
   return new Intl.DateTimeFormat(undefined, {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(timestamp))
+  }).format(date)
 }
 
 export function notifyHermesSessionsChanged(): void {
