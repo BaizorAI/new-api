@@ -202,7 +202,7 @@ function getProductDestination(group: NavGroup, teams: Team[]): string {
     const firstTeam = teams[0]
     return firstTeam
       ? `/team-workspace?team_id=${encodeURIComponent(firstTeam.id)}`
-      : '/team-workspace'
+      : '/teams'
   }
 
   if (typeof group.url === 'string') return group.url
@@ -230,6 +230,10 @@ function resolveActiveRootGroup(
     return params.has('team_id')
       ? findGroup(navGroups, 'team-collaboration')
       : findGroup(navGroups, 'overview')
+  }
+
+  if (pathname === '/teams') {
+    return findGroup(navGroups, 'team-collaboration')
   }
 
   if (pathname === '/hermes-playground') {
@@ -264,7 +268,6 @@ function resolveActiveRootGroup(
   }
 
   if (
-    pathname === '/teams' ||
     pathname === '/keys' ||
     pathname === '/channels' ||
     pathname === '/users' ||

@@ -158,14 +158,14 @@ export function useSidebarData(): SidebarData {
         title: t('Team Collaboration'),
         description: t('Shared team sessions, results, skills and tasks.'),
         icon: Users,
-        url: '/team-workspace',
+        url: '/teams',
         position: 'top',
         items: [
           {
             title: t('My team list'),
-            url: '/team-workspace',
+            url: '/teams',
             icon: Users,
-            configUrls: ['/team-workspace'],
+            configUrls: ['/teams'],
           },
           {
             title: t('Team workspaces'),
