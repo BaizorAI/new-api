@@ -21,6 +21,7 @@ import {
   Box,
   BriefcaseBusiness,
   CreditCard,
+  FileCheck2,
   FileText,
   FlaskConical,
   Key,
@@ -30,6 +31,7 @@ import {
   Radio,
   ServerCog,
   Settings,
+  Sparkles,
   Ticket,
   User,
   Users,
@@ -44,8 +46,9 @@ import { ROLE } from '@/lib/roles'
 /**
  * Root navigation groups for the application sidebar.
  *
- * These are shown when the URL does not match any nested sidebar view
- * registered in `layout/lib/sidebar-view-registry.ts`.
+ * The root order is intentionally user-workflow first. Technical and
+ * operational surfaces remain available, but they sit behind Management or
+ * Settings instead of competing with workspaces, skills, messages and results.
  */
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
@@ -54,22 +57,29 @@ export function useSidebarData(): SidebarData {
     navGroups: [
       {
         id: 'overview',
-        title: t('Start'),
+        title: t('Overview'),
         items: [
           {
-            title: t('Workspaces'),
+            title: t('Workspace Home'),
             description: t(
               'Continue from teams, skills, conversations and results.'
             ),
-            icon: Users,
-            type: 'team-workspaces',
+            url: '/team-workspace',
+            icon: LayoutDashboard,
+            configUrls: ['/team-workspace'],
           },
         ],
       },
       {
-        id: 'ai-workspaces',
-        title: t('Personal work'),
+        id: 'workbench',
+        title: t('Workbench'),
         items: [
+          {
+            title: t('My Teams'),
+            description: t('Team collaboration workspace'),
+            icon: Users,
+            type: 'team-workspaces',
+          },
           {
             title: t('HermesAgent'),
             description: t('Personal AI workspace'),
@@ -85,8 +95,51 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        id: 'model-experience',
-        title: t('Model Experience'),
+        id: 'skill-store',
+        title: t('Skill Store'),
+        items: [
+          {
+            title: t('Skill Store'),
+            description: t(
+              'Choose proven skills by scenario and reuse them in personal or team work.'
+            ),
+            url: '/hermes-playground?panel=skills',
+            configUrls: ['/hermes-playground'],
+            icon: Sparkles,
+          },
+        ],
+      },
+      {
+        id: 'message-platforms',
+        title: t('Message platforms'),
+        items: [
+          {
+            title: t('WeChat'),
+            description: t(
+              'Connect WeChat so messages can enter your AI workspace.'
+            ),
+            url: '/hermes-playground?panel=messages',
+            configUrls: ['/hermes-playground'],
+            icon: MessageSquare,
+          },
+        ],
+      },
+      {
+        id: 'results',
+        title: t('Results'),
+        items: [
+          {
+            title: t('Latest results'),
+            description: t('Reports, slides, documents and file results.'),
+            url: '/hermes-playground?panel=results',
+            configUrls: ['/hermes-playground'],
+            icon: FileCheck2,
+          },
+        ],
+      },
+      {
+        id: 'model-playground',
+        title: t('Model Playground'),
         items: [
           {
             title: t('Model Playground'),
@@ -101,9 +154,19 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        id: 'console',
+        id: 'management',
         title: t('Management Backend'),
         items: [
+          {
+            title: t('Team Management'),
+            url: '/teams',
+            icon: Users,
+          },
+          {
+            title: t('Access Keys'),
+            url: '/keys',
+            icon: Key,
+          },
           {
             title: t('Platform Overview'),
             url: '/dashboard/overview',
@@ -113,16 +176,6 @@ export function useSidebarData(): SidebarData {
             title: t('Data Dashboard'),
             url: '/dashboard/models',
             icon: LayoutDashboard,
-          },
-          {
-            title: t('Access Keys'),
-            url: '/keys',
-            icon: Key,
-          },
-          {
-            title: t('Team Management'),
-            url: '/teams',
-            icon: Users,
           },
           {
             title: t('Usage Details'),
@@ -136,11 +189,41 @@ export function useSidebarData(): SidebarData {
             configUrls: ['/usage-logs/drawing', '/usage-logs/task'],
             icon: ListTodo,
           },
+          {
+            title: t('Model Channels'),
+            url: '/channels',
+            icon: Radio,
+            requiredRole: ROLE.ADMIN,
+          },
+          {
+            title: t('Model Management'),
+            url: '/models/metadata',
+            icon: Box,
+            requiredRole: ROLE.ADMIN,
+          },
+          {
+            title: t('Users'),
+            url: '/users',
+            icon: Users,
+            requiredRole: ROLE.ADMIN,
+          },
+          {
+            title: t('Redeem codes'),
+            url: '/redemption-codes',
+            icon: Ticket,
+            requiredRole: ROLE.ADMIN,
+          },
+          {
+            title: t('Subscription Management'),
+            url: '/subscriptions',
+            icon: CreditCard,
+            requiredRole: ROLE.ADMIN,
+          },
         ],
       },
       {
-        id: 'personal',
-        title: t('Personal'),
+        id: 'settings',
+        title: t('Settings'),
         items: [
           {
             title: t('Wallet'),
@@ -151,38 +234,6 @@ export function useSidebarData(): SidebarData {
             title: t('Profile'),
             url: '/profile',
             icon: User,
-          },
-        ],
-      },
-      {
-        id: 'administration',
-        title: t('System Administration'),
-        requiredRole: ROLE.ADMIN,
-        items: [
-          {
-            title: t('Model Channels'),
-            url: '/channels',
-            icon: Radio,
-          },
-          {
-            title: t('Model Management'),
-            url: '/models/metadata',
-            icon: Box,
-          },
-          {
-            title: t('Users'),
-            url: '/users',
-            icon: Users,
-          },
-          {
-            title: t('Redeem codes'),
-            url: '/redemption-codes',
-            icon: Ticket,
-          },
-          {
-            title: t('Subscription Management'),
-            url: '/subscriptions',
-            icon: CreditCard,
           },
           {
             title: t('System Info'),

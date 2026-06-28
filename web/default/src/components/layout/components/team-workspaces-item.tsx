@@ -238,24 +238,67 @@ function CollapsedTeamItems(props: {
   onNavigate: () => void
 }) {
   const { t } = useTranslation()
+  const firstTeam = props.teams[0]
+
+  if (props.isLoading) {
+    return <CollapsedTeamList {...props} />
+  }
 
   return (
     <>
+      <CollapsedTeamOverviewItem
+        href={props.href}
+        firstTeam={firstTeam}
+        onNavigate={props.onNavigate}
+        title={t('Workspaces')}
+      />
+      <DropdownMenuSeparator />
+      <CollapsedTeamList {...props} />
+    </>
+  )
+}
+
+function CollapsedTeamOverviewItem(props: {
+  href: string
+  firstTeam?: Team
+  onNavigate: () => void
+  title: string
+}) {
+  const isActive = props.firstTeam
+    ? isTeamUrlActive(props.href, props.firstTeam.id)
+    : isTeamUrlActive(props.href)
+
+  if (!props.firstTeam) {
+    return (
       <DropdownMenuItem
         render={
           <Link
             to='/team-workspace'
-            className={isTeamUrlActive(props.href) ? 'bg-secondary' : ''}
+            className={isActive ? 'bg-secondary' : ''}
             onClick={props.onNavigate}
           />
         }
       >
         <Users className='size-4' aria-hidden='true' />
-        {t('Workspaces')}
+        {props.title}
       </DropdownMenuItem>
-      <DropdownMenuSeparator />
-      <CollapsedTeamList {...props} />
-    </>
+    )
+  }
+
+  return (
+    <DropdownMenuItem
+      render={
+        <Link
+          to='/team-workspace'
+          search={{ team_id: props.firstTeam.id }}
+          className={isActive ? 'bg-secondary' : ''}
+          onClick={props.onNavigate}
+        />
+      }
+    >
+      <Users className='size-4' aria-hidden='true' />
+      {props.title}
+    </DropdownMenuItem>
   )
 }
 

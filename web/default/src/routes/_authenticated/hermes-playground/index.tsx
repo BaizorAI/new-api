@@ -24,7 +24,7 @@ import { HermesAgentWorkspace } from '@/features/hermes-playground/components/he
 import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 
 const hermesPlaygroundSearchSchema = z.object({
-  panel: z.enum(['skills', 'messages']).optional().catch(undefined),
+  panel: z.enum(['skills', 'messages', 'results']).optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/_authenticated/hermes-playground/')({

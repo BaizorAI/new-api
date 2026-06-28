@@ -93,7 +93,7 @@ function TeamWorkspacePage() {
     [t]
   )
 
-  if (!team_id && !panel) {
+  if (!team_id) {
     return <WorkspaceHome />
   }
 

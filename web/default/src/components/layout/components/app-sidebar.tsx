@@ -26,13 +26,16 @@ import { MOTION_TRANSITION } from '@/lib/motion'
 import { NavGroup } from './nav-group'
 import { SidebarViewHeader } from './sidebar-view-header'
 
+const ROOT_BOTTOM_GROUP_IDS = new Set(['management', 'settings'])
+
 /**
  * Application sidebar.
  *
  * Adopts the Vercel / Cloudflare "drill-in" pattern: the URL drives
  * which sidebar *view* is rendered. Clicking a top-level entry like
- * `System Settings` swaps the sidebar to a contextual workspace ?? * with a `??Back to Workspace` affordance ??instead of stacking the
- * sub-navigation inside the root tree.
+ * `System Settings` swaps the sidebar to a contextual workspace with a
+ * `Back to Workspace` affordance instead of stacking the sub-navigation
+ * inside the root tree.
  *
  * Architecture:
  *   - View resolution + filtering: {@link useSidebarView}
@@ -46,12 +49,13 @@ export function AppSidebar() {
   const { collapsible, variant } = useLayout()
   const { key, view, navGroups } = useSidebarView()
   const shouldReduce = useReducedMotion()
+  const [topNavGroups, bottomNavGroups] = splitRootNavGroups(navGroups, !view)
 
   return (
     <Sidebar collapsible={collapsible} variant={variant}>
       {view && <SidebarViewHeader view={view} />}
 
-      <SidebarContent className='py-2'>
+      <SidebarContent className='overflow-hidden py-2'>
         <AnimatePresence mode='wait' initial={false}>
           <motion.div
             key={key}
@@ -59,11 +63,21 @@ export function AppSidebar() {
             animate={{ opacity: 1, x: 0 }}
             exit={shouldReduce ? undefined : { opacity: 0 }}
             transition={MOTION_TRANSITION.fast}
-            className='flex flex-col'
+            className='flex min-h-0 flex-1 flex-col'
           >
-            {navGroups.map((props) => (
-              <NavGroup key={props.id || props.title} {...props} />
-            ))}
+            <div className='min-h-0 flex-1 overflow-auto pb-2'>
+              {topNavGroups.map((props) => (
+                <NavGroup key={props.id || props.title} {...props} />
+              ))}
+            </div>
+
+            {bottomNavGroups.length > 0 && (
+              <div className='border-sidebar-border mt-auto shrink-0 border-t pt-2'>
+                {bottomNavGroups.map((props) => (
+                  <NavGroup key={props.id || props.title} {...props} />
+                ))}
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
       </SidebarContent>
@@ -71,4 +85,19 @@ export function AppSidebar() {
       <SidebarRail />
     </Sidebar>
   )
+}
+
+function splitRootNavGroups<T extends { id?: string }>(
+  navGroups: T[],
+  isRootView: boolean
+): [T[], T[]] {
+  if (!isRootView) return [navGroups, []]
+
+  const topNavGroups = navGroups.filter(
+    (group) => !group.id || !ROOT_BOTTOM_GROUP_IDS.has(group.id)
+  )
+  const bottomNavGroups = navGroups.filter(
+    (group) => group.id && ROOT_BOTTOM_GROUP_IDS.has(group.id)
+  )
+  return [topNavGroups, bottomNavGroups]
 }

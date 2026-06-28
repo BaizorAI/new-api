@@ -93,12 +93,12 @@ export function WorkspaceHome() {
   })
   const selfQuery = useQuery({
     queryKey: ['workspace-home', 'self'],
-    queryFn: () => getSelf({ silent: true }),
+    queryFn: () => getSelf({ silent: true }).catch(() => null),
     staleTime: 15_000,
   })
   const personalSkillsQuery = useQuery({
     queryKey: ['workspace-home', 'skills', 'personal'],
-    queryFn: () => listHermesSkills(),
+    queryFn: () => listHermesSkills().catch(() => []),
     staleTime: 30_000,
   })
 
@@ -110,14 +110,14 @@ export function WorkspaceHome() {
   const teamConversationQueries = useQueries({
     queries: teams.slice(0, 5).map((team) => ({
       queryKey: ['workspace-home', 'team-sessions', team.id],
-      queryFn: () => listTeamHermesConversations(team.id),
+      queryFn: () => listTeamHermesConversations(team.id).catch(() => []),
       staleTime: 30_000,
     })),
   })
   const teamSkillQueries = useQueries({
     queries: teams.slice(0, 3).map((team) => ({
       queryKey: ['workspace-home', 'team-skills', team.id],
-      queryFn: () => listHermesSkills({ teamId: team.id }),
+      queryFn: () => listHermesSkills({ teamId: team.id }).catch(() => []),
       staleTime: 30_000,
     })),
   })
@@ -262,16 +262,28 @@ export function WorkspaceHome() {
               action={t('Start task')}
               to='/hermes-playground'
             />
-            <QuickActionCard
-              icon={<Users className='size-4' />}
-              title={t('Work with a team')}
-              description={t(
-                'Share sessions, skills and results with teammates in one workspace.'
-              )}
-              action={t('Enter team')}
-              to='/team-workspace'
-              search={firstTeam ? { team_id: firstTeam.id } : undefined}
-            />
+            {firstTeam ? (
+              <QuickActionCard
+                icon={<Users className='size-4' />}
+                title={t('Work with a team')}
+                description={t(
+                  'Share sessions, skills and results with teammates in one workspace.'
+                )}
+                action={t('Enter team')}
+                to='/team-workspace'
+                search={{ team_id: firstTeam.id }}
+              />
+            ) : (
+              <QuickActionCard
+                icon={<Users className='size-4' />}
+                title={t('Work with a team')}
+                description={t(
+                  'Share sessions, skills and results with teammates in one workspace.'
+                )}
+                action={t('Enter team')}
+                to='/team-workspace'
+              />
+            )}
             <QuickActionCard
               icon={<Sparkles className='size-4' />}
               title={t('Skill Store')}
@@ -450,12 +462,38 @@ function QuickActionCard(props: {
     panel?: 'sessions' | 'results' | 'skills' | 'messages'
   }
 }) {
+  const content = <QuickActionCardContent {...props} />
+
+  if (!props.search) {
+    return (
+      <Link
+        to={props.to}
+        className='group bg-background hover:bg-muted/30 flex min-h-36 flex-col justify-between rounded-xl border p-4 transition-colors'
+      >
+        {content}
+      </Link>
+    )
+  }
+
   return (
     <Link
       to={props.to}
       search={props.search}
       className='group bg-background hover:bg-muted/30 flex min-h-36 flex-col justify-between rounded-xl border p-4 transition-colors'
     >
+      {content}
+    </Link>
+  )
+}
+
+function QuickActionCardContent(props: {
+  icon: React.ReactNode
+  title: string
+  description: string
+  action: string
+}) {
+  return (
+    <>
       <div className='space-y-3'>
         <div className='bg-muted text-muted-foreground flex size-9 items-center justify-center rounded-lg'>
           {props.icon}
@@ -471,7 +509,7 @@ function QuickActionCard(props: {
         {props.action}
         <ArrowRight className='size-4 transition-transform group-hover:translate-x-0.5' />
       </div>
-    </Link>
+    </>
   )
 }
 
