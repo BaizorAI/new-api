@@ -91,6 +91,8 @@ func SetRelayRouter(router *gin.Engine) {
 		hermesPlaygroundRouter.DELETE("/skills", controller.HermesPlaygroundSkills)
 		hermesPlaygroundRouter.POST("/skills/promote", controller.HermesPromoteSkill)
 		hermesPlaygroundRouter.GET("/toolsets", controller.HermesPlaygroundToolsets)
+		hermesPlaygroundRouter.GET("/results", controller.ListHermesResults)
+		hermesPlaygroundRouter.POST("/results/sync", controller.SyncHermesResults)
 		hermesPlaygroundRouter.POST("/execution-tasks", controller.CreateHermesExecutionTask)
 		hermesPlaygroundRouter.GET("/execution-tasks", controller.ListHermesExecutionTasks)
 		hermesPlaygroundRouter.GET("/execution-tasks/:task_id", controller.GetHermesExecutionTask)

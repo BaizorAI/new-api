@@ -12,6 +12,7 @@ import (
 	"github.com/BaizorAI/new-api/constant"
 	"github.com/BaizorAI/new-api/middleware"
 	"github.com/BaizorAI/new-api/model"
+	"github.com/BaizorAI/new-api/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -329,9 +330,68 @@ func runHermesExecutionTask(taskID string) {
 	}
 	if err := model.CompleteHermesExecutionTask(taskID, string(responseBody)); err != nil {
 		common.SysError("failed to complete hermes execution task: " + err.Error())
+		return
+	}
+	syncHermesResultsFromExecutionTask(task, responseBody)
+}
+
+func syncHermesResultsFromExecutionTask(task *model.HermesExecutionTask, responseBody []byte) {
+	if task == nil || strings.TrimSpace(task.ConversationId) == "" {
+		return
+	}
+	content := extractHermesExecutionTaskAssistantContent(responseBody)
+	if strings.TrimSpace(content) == "" {
+		return
+	}
+	messages := []any{
+		map[string]any{
+			"key":  task.TaskId,
+			"from": "assistant",
+			"versions": []any{
+				map[string]any{
+					"id":      task.TaskId,
+					"content": content,
+				},
+			},
+		},
+	}
+	if err := service.UpsertHermesResultsFromConversation(service.HermesResultConversationInput{
+		UserId:          task.UserId,
+		TeamId:          task.TeamId,
+		ConversationId:  task.ConversationId,
+		StorageScope:    task.StorageScope,
+		HermesSessionId: task.HermesSessionId,
+		Title:           task.Title,
+		Messages:        messages,
+		UpdatedBy:       task.UserId,
+	}); err != nil {
+		common.SysError("failed to sync hermes execution task results: " + err.Error())
 	}
 }
 
+func extractHermesExecutionTaskAssistantContent(body []byte) string {
+	payload := map[string]any{}
+	if err := common.Unmarshal(body, &payload); err != nil {
+		return ""
+	}
+	choices, ok := payload["choices"].([]any)
+	if !ok || len(choices) == 0 {
+		return ""
+	}
+	choice, ok := choices[0].(map[string]any)
+	if !ok {
+		return ""
+	}
+	message, ok := choice["message"].(map[string]any)
+	if !ok {
+		return ""
+	}
+	content, ok := message["content"].(string)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(content)
+}
 func executeHermesCompletionTask(task *model.HermesExecutionTask) ([]byte, int, error) {
 	payload := map[string]any{}
 	if err := common.UnmarshalJsonStr(task.RequestPayload, &payload); err != nil {

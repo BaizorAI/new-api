@@ -6,6 +6,7 @@ import (
 
 	"github.com/BaizorAI/new-api/common"
 	"github.com/BaizorAI/new-api/model"
+	"github.com/BaizorAI/new-api/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -106,6 +107,19 @@ func UpsertTeamHermesConversation(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	if err := service.SyncHermesResultsFromConversation(service.HermesResultConversationInput{
+		UserId:          c.GetInt("id"),
+		TeamId:          team.Id,
+		ConversationId:  conversationID,
+		StorageScope:    strings.TrimSpace(request.StorageScope),
+		HermesSessionId: strings.TrimSpace(request.HermesSessionId),
+		Title:           strings.TrimSpace(request.Title),
+		Messages:        request.Messages,
+		UpdatedBy:       c.GetInt("id"),
+	}); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	common.ApiSuccess(c, nil)
 }
 
@@ -121,6 +135,10 @@ func DeleteTeamHermesConversation(c *gin.Context) {
 		return
 	}
 	if err := model.DeleteHermesTeamConversation(team.Id, conversationID); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.DeleteHermesResultsForConversation(c.GetInt("id"), team.Id, conversationID); err != nil {
 		common.ApiError(c, err)
 		return
 	}

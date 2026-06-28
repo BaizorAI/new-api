@@ -45,6 +45,7 @@ import {
   deleteTeamHermesConversation,
   getHermesExecutionTask,
   listTeamHermesConversations,
+  syncHermesResults,
   upsertTeamHermesConversation,
   type HermesExecutionTask,
   type HermesSkill,
@@ -146,6 +147,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     prompt: string
   } | null>(null)
   const teamPersistTimerRef = useRef<number | null>(null)
+  const resultSyncTimerRef = useRef<number | null>(null)
 
   const { data: teamsResponse, isLoading: isTeamsLoading } = useQuery({
     queryKey: [props.queryKeyPrefix, queryUserScope, 'teams'],
@@ -408,6 +410,48 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     [isTeamWorkspace, selectedTeamId]
   )
 
+  const syncResultsForSession = useCallback(
+    (
+      session: HermesConversation,
+      messages: Message[],
+      options?: { immediate?: boolean }
+    ) => {
+      if (isTeamWorkspace && selectedTeamId <= 0) return
+      if (resultSyncTimerRef.current) {
+        window.clearTimeout(resultSyncTimerRef.current)
+      }
+
+      const run = () => {
+        void syncHermesResults(
+          {
+            teamId: isTeamWorkspace ? selectedTeamId : undefined,
+            conversationId: session.id,
+            storageScope: session.storageScope,
+            hermesSessionId: isTeamWorkspace
+              ? `team_workspace_${selectedTeamId || 0}_${session.id}`
+              : session.hermesSessionId,
+            title: session.title,
+            messages,
+          },
+          { teamName: selectedTeamName || undefined }
+        )
+          .then(() => {
+            void queryClient.invalidateQueries({ queryKey: ['hermes-results'] })
+          })
+          .catch(() => {
+            // Results sync is best-effort; conversation saving remains primary.
+          })
+      }
+
+      if (options?.immediate) {
+        run()
+        return
+      }
+      resultSyncTimerRef.current = window.setTimeout(run, 1200)
+    },
+    [isTeamWorkspace, queryClient, selectedTeamId, selectedTeamName]
+  )
+
   const persistTeamConversationNow = useCallback(
     async (session: HermesConversation) => {
       if (!isTeamWorkspace || selectedTeamId <= 0) return
@@ -428,8 +472,19 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       if (teamPersistTimerRef.current) {
         window.clearTimeout(teamPersistTimerRef.current)
       }
+      if (resultSyncTimerRef.current) {
+        window.clearTimeout(resultSyncTimerRef.current)
+      }
     }
   }, [])
+
+  useEffect(() => {
+    if (!isResultsOpen) return
+    const messages =
+      loadMessages(createPlaygroundStorageKeys(activeSession.storageScope)) ??
+      []
+    syncResultsForSession(activeSession, messages, { immediate: true })
+  }, [activeSession, isResultsOpen, syncResultsForSession])
 
   const updateActiveSessionFromMessages = useCallback(
     (messages: Message[]) => {
@@ -441,6 +496,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         updatedAt: now,
       }
       persistTeamConversation(sessionToPersist, messages)
+      syncResultsForSession(sessionToPersist, messages)
 
       setSessions((prev) => {
         let changed = false
@@ -462,7 +518,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         return next
       })
     },
-    [activeSession, baseScope, persistTeamConversation]
+    [activeSession, baseScope, persistTeamConversation, syncResultsForSession]
   )
 
   const createSession = useCallback(() => {
@@ -967,6 +1023,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         activeSessionId={activeSessionId}
         initialScope={props.initialResultScope}
         initialType={props.initialResultType}
+        selectedTeamId={selectedTeamId > 0 ? selectedTeamId : undefined}
         selectedTeamName={selectedTeamName || undefined}
         workspaceMode={isTeamWorkspace ? 'team' : 'personal'}
         title={isTeamWorkspace ? t('Team results') : undefined}
@@ -986,9 +1043,14 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
             : undefined
         }
         onOpenChange={setIsResultsOpen}
-        onSelectSession={(sessionId) => {
-          saveActiveConversationId(baseScope, sessionId)
-          setActiveSessionId(sessionId)
+        onSelectSession={(session) => {
+          if (!sessions.some((item) => item.id === session.id)) {
+            const nextSessions = [session, ...sessions]
+            saveHermesConversations(baseScope, nextSessions)
+            setSessions(nextSessions)
+          }
+          saveActiveConversationId(baseScope, session.id)
+          setActiveSessionId(session.id)
         }}
       />
       <HermesExecutionTasksSheet

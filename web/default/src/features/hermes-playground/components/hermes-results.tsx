@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useQuery } from '@tanstack/react-query'
 import {
   ClockIcon,
   CopyIcon,
@@ -62,6 +63,7 @@ import {
 import { parseThinkTags } from '@/features/playground/lib/message-utils'
 import type { FileAttachment, Message } from '@/features/playground/types'
 
+import { listHermesResults, type HermesResultRecord } from '../api'
 import {
   formatSessionTime,
   sortSessions,
@@ -86,10 +88,11 @@ interface HermesResultsProps {
   emptyDescription?: string
   initialScope?: HermesResultScope
   initialType?: HermesResultType
+  selectedTeamId?: number
   selectedTeamName?: string
   workspaceMode?: 'personal' | 'team'
   onOpenChange: (open: boolean) => void
-  onSelectSession: (sessionId: string) => void
+  onSelectSession: (session: HermesConversation) => void
 }
 
 type HermesResultFileSource = 'artifact' | 'attachment'
@@ -131,7 +134,28 @@ export function HermesResults(props: HermesResultsProps) {
     setActiveType(props.initialType ?? 'all')
   }, [props.initialScope, props.initialType, props.open, props.workspaceMode])
 
-  const allResults = useMemo<HermesResultItem[]>(() => {
+  const serverResultsQuery = useQuery({
+    queryKey: [
+      'hermes-results',
+      props.workspaceMode ?? 'personal',
+      props.selectedTeamId ?? 0,
+      activeType,
+      query.trim(),
+    ],
+    queryFn: () =>
+      listHermesResults({
+        teamId:
+          props.workspaceMode === 'team' ? props.selectedTeamId : undefined,
+        type: activeType,
+        query: query.trim() || undefined,
+        limit: 100,
+      }),
+    enabled:
+      props.open &&
+      (props.workspaceMode !== 'team' || Boolean(props.selectedTeamId)),
+  })
+
+  const localResults = useMemo<HermesResultItem[]>(() => {
     return sortSessions(props.sessions)
       .map((session) => {
         const messages =
@@ -159,6 +183,14 @@ export function HermesResults(props: HermesResultsProps) {
       })
       .filter((item) => item.messages.length > 0)
   }, [props.sessions])
+
+  const serverResults = useMemo(() => {
+    return buildServerResultItems(serverResultsQuery.data ?? [], props.sessions)
+  }, [props.sessions, serverResultsQuery.data])
+
+  const allResults = useMemo(() => {
+    return mergeServerAndLocalResults(serverResults, localResults)
+  }, [localResults, serverResults])
 
   const results = useMemo(() => {
     return allResults.filter(
@@ -309,7 +341,7 @@ export function HermesResults(props: HermesResultsProps) {
                     onExport={() => exportResult(item)}
                     scopeLabel={getResultScopeLabel(activeScope, t)}
                     onOpen={() => {
-                      props.onSelectSession(item.session.id)
+                      props.onSelectSession(item.session)
                       props.onOpenChange(false)
                     }}
                   />
@@ -516,6 +548,104 @@ function ResultTypeIcon(props: { type: HermesResultType }) {
     default:
       return <FileTextIcon className='size-4' />
   }
+}
+
+function mergeServerAndLocalResults(
+  serverResults: HermesResultItem[],
+  localResults: HermesResultItem[]
+): HermesResultItem[] {
+  if (serverResults.length === 0) return localResults
+  const serverSessionIds = new Set(serverResults.map((item) => item.session.id))
+  return [
+    ...serverResults,
+    ...localResults.filter((item) => !serverSessionIds.has(item.session.id)),
+  ]
+}
+
+function buildServerResultItems(
+  records: HermesResultRecord[],
+  sessions: HermesConversation[]
+): HermesResultItem[] {
+  const sessionsById = new Map(sessions.map((session) => [session.id, session]))
+  const grouped = new Map<string, HermesResultRecord[]>()
+
+  for (const record of records) {
+    const conversationId = record.conversationId || record.resultKey
+    const existing = grouped.get(conversationId) ?? []
+    existing.push(record)
+    grouped.set(conversationId, existing)
+  }
+
+  return [...grouped.entries()].map(([conversationId, group]) => {
+    const newest = [...group].sort(
+      (a, b) =>
+        normalizeResultTime(b.updatedAt) - normalizeResultTime(a.updatedAt)
+    )[0]
+    const session =
+      sessionsById.get(conversationId) ??
+      createSessionFromResult(conversationId, newest)
+    const files = group
+      .filter((record) => record.href)
+      .map((record) => normalizeServerFile(record))
+    const generatedFileCount = files.filter(
+      (file) => file.source === 'artifact'
+    ).length
+    const uploadedFileCount = files.filter(
+      (file) => file.source === 'attachment'
+    ).length
+    const types = new Set<HermesResultType>()
+    for (const record of group) types.add(record.resultType)
+
+    return {
+      session,
+      messages: [],
+      assistantMessages: group.some(
+        (record) => record.source === 'conversation'
+      )
+        ? 1
+        : 0,
+      files,
+      generatedFileCount,
+      uploadedFileCount,
+      types,
+    }
+  })
+}
+
+function createSessionFromResult(
+  conversationId: string,
+  result: HermesResultRecord
+): HermesConversation {
+  const updatedAt = normalizeResultTime(result.updatedAt || result.createdAt)
+  return {
+    id: conversationId,
+    title: result.title || result.fileName || conversationId,
+    storageScope: result.storageScope || conversationId,
+    hermesSessionId: result.hermesSessionId || conversationId,
+    createdAt: normalizeResultTime(result.createdAt) || updatedAt || Date.now(),
+    updatedAt: updatedAt || Date.now(),
+    pinned: false,
+    archived: false,
+  }
+}
+
+function normalizeServerFile(record: HermesResultRecord): HermesResultFile {
+  const source = record.source === 'attachment' ? 'attachment' : 'artifact'
+  return {
+    id: record.resultKey || `${record.conversationId}-${record.href}`,
+    filename:
+      record.fileName || decodeFilenameFromHref(record.href) || record.href,
+    href: record.href,
+    mediaType: record.mediaType || undefined,
+    size: record.size || undefined,
+    source,
+    type: record.resultType,
+  }
+}
+
+function normalizeResultTime(value: number): number {
+  if (!value || !Number.isFinite(value)) return 0
+  return value < 1000000000000 ? value * 1000 : value
 }
 
 function extractResultFiles(

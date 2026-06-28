@@ -80,6 +80,38 @@ export interface HermesTeamConversationRecord extends HermesConversation {
   updatedBy?: number
 }
 
+export type HermesResultRecordType =
+  | 'ppt'
+  | 'report'
+  | 'document'
+  | 'attachment'
+
+export type HermesResultRecordSource =
+  | 'artifact'
+  | 'attachment'
+  | 'conversation'
+
+export interface HermesResultRecord {
+  resultKey: string
+  userId: number
+  teamId: number
+  conversationId: string
+  storageScope: string
+  hermesSessionId: string
+  title: string
+  fileName: string
+  href: string
+  mediaType: string
+  size: number
+  resultType: HermesResultRecordType
+  source: HermesResultRecordSource
+  sourceMessageId: string
+  createdBy: number
+  updatedBy: number
+  createdAt: number
+  updatedAt: number
+}
+
 export type HermesExecutionTaskStatus =
   | 'queued'
   | 'running'
@@ -210,6 +242,56 @@ export async function deleteTeamHermesConversation(
   const response = await api.delete(
     `/api/team/${teamId}/hermes/conversations/${encodeURIComponent(conversationId)}`,
     {
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    }
+  )
+  return response.data
+}
+
+export async function listHermesResults(options?: {
+  teamId?: number
+  type?: HermesResultRecordType | 'all'
+  query?: string
+  limit?: number
+}): Promise<HermesResultRecord[]> {
+  const response = await api.get('/pg/hermes/results', {
+    params: {
+      team_id: options?.teamId,
+      type: options?.type,
+      q: options?.query,
+      limit: options?.limit,
+    },
+    headers: buildHermesTeamHeaders(options?.teamId),
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  return normalizeHermesResultsResponse(response.data)
+}
+
+export async function syncHermesResults(
+  payload: {
+    teamId?: number
+    conversationId: string
+    storageScope: string
+    hermesSessionId: string
+    title: string
+    messages: Message[]
+  },
+  options?: { teamName?: string }
+) {
+  const response = await api.post(
+    '/pg/hermes/results/sync',
+    {
+      team_id: payload.teamId,
+      conversation_id: payload.conversationId,
+      storage_scope: payload.storageScope,
+      hermes_session_id: payload.hermesSessionId,
+      title: payload.title,
+      messages: payload.messages,
+    },
+    {
+      headers: buildHermesTeamHeaders(payload.teamId, options?.teamName),
       skipBusinessError: true,
       skipErrorHandler: true,
     }
@@ -496,6 +578,41 @@ function normalizeTeamConversationsResponse(
   })
 }
 
+function normalizeHermesResultsResponse(
+  payload: unknown
+): HermesResultRecord[] {
+  const record = asRecord(payload)
+  const rawResults = arrayFromUnknown(record.data)
+  if (!rawResults) return []
+  return rawResults.map(normalizeHermesResultRecord)
+}
+
+function normalizeHermesResultRecord(payload: unknown): HermesResultRecord {
+  const result = asRecord(payload)
+  return {
+    resultKey: stringFromUnknown(result.result_key),
+    userId: numberFromUnknown(result.user_id) ?? 0,
+    teamId: numberFromUnknown(result.team_id) ?? 0,
+    conversationId: stringFromUnknown(result.conversation_id),
+    storageScope: stringFromUnknown(result.storage_scope),
+    hermesSessionId: stringFromUnknown(result.hermes_session_id),
+    title: stringFromUnknown(result.title),
+    fileName: stringFromUnknown(result.file_name),
+    href: stringFromUnknown(result.href),
+    mediaType: stringFromUnknown(result.media_type),
+    size: numberFromUnknown(result.size) ?? 0,
+    resultType: normalizeHermesResultType(
+      stringFromUnknown(result.result_type)
+    ),
+    source: normalizeHermesResultSource(stringFromUnknown(result.source)),
+    sourceMessageId: stringFromUnknown(result.source_message_id),
+    createdBy: numberFromUnknown(result.created_by) ?? 0,
+    updatedBy: numberFromUnknown(result.updated_by) ?? 0,
+    createdAt: numberFromUnknown(result.created_at) ?? 0,
+    updatedAt: numberFromUnknown(result.updated_at) ?? 0,
+  }
+}
+
 function normalizeSkillsResponse(payload: unknown): HermesSkill[] {
   const record = asRecord(payload)
   const rawSkills =
@@ -619,6 +736,29 @@ function normalizeSource(value: string): HermesSkill['source'] {
     return value
   }
   return 'unknown'
+}
+
+function normalizeHermesResultType(value: string): HermesResultRecordType {
+  if (
+    value === 'ppt' ||
+    value === 'report' ||
+    value === 'document' ||
+    value === 'attachment'
+  ) {
+    return value
+  }
+  return 'attachment'
+}
+
+function normalizeHermesResultSource(value: string): HermesResultRecordSource {
+  if (
+    value === 'artifact' ||
+    value === 'attachment' ||
+    value === 'conversation'
+  ) {
+    return value
+  }
+  return 'conversation'
 }
 
 function normalizeWeixinStatus(value: string): HermesWeixinStatusValue {
