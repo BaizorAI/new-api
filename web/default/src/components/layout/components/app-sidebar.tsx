@@ -56,7 +56,12 @@ export function AppSidebar() {
   const pathname = useLocation({ select: (location) => location.pathname })
   const shouldReduce = useReducedMotion()
   const activeRootGroup = resolveActiveRootGroup(rootNavGroups, href, pathname)
-  const menuGroups = view ? navGroups : activeRootGroup ? [activeRootGroup] : []
+  let menuGroups: NavGroup[] = []
+  if (view) {
+    menuGroups = navGroups
+  } else if (activeRootGroup) {
+    menuGroups = [activeRootGroup]
+  }
 
   return (
     <Sidebar collapsible={collapsible} variant={variant}>
@@ -139,7 +144,7 @@ function ProductRail(props: { activeGroup?: NavGroup; navGroups: NavGroup[] }) {
 }
 
 function ProductRailItem(props: { group: NavGroup; isActive: boolean }) {
-  const { setOpenMobile } = useSidebar()
+  const { isMobile, setOpen, setOpenMobile } = useSidebar()
   const { data: teamsResponse } = useQuery({
     queryKey: ['sidebar', 'team-workspaces'],
     queryFn: listTeams,
@@ -165,7 +170,13 @@ function ProductRailItem(props: { group: NavGroup; isActive: boolean }) {
         render={
           <Link
             to={destination}
-            onClick={() => setOpenMobile(false)}
+            onClick={() => {
+              if (isMobile) {
+                setOpenMobile(false)
+                return
+              }
+              setOpen(true)
+            }}
             aria-label={props.group.title}
             aria-current={props.isActive ? 'page' : undefined}
           />

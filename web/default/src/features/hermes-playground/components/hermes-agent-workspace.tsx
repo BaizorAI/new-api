@@ -20,10 +20,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Building2Icon,
-  FileCheck2Icon,
-  ListChecksIcon,
-  MessageSquareIcon,
-  SparklesIcon,
   UsersIcon,
   WalletCardsIcon,
 } from 'lucide-react'
@@ -53,10 +49,15 @@ import {
 } from '@/features/hermes-playground/api'
 import {
   HermesCapabilityCenter,
-  type HermesCapabilitySection,
 } from '@/features/hermes-playground/components/hermes-capability-center'
 import { HermesExecutionTasksSheet } from '@/features/hermes-playground/components/hermes-execution-tasks-sheet'
 import { HermesMessagePlatforms } from '@/features/hermes-playground/components/hermes-message-platforms'
+import type {
+  HermesCapabilitySection,
+  HermesMessageSection,
+  HermesPersonalPanel,
+  HermesTeamPanel,
+} from '@/features/hermes-playground/lib/workspace-panel-controller'
 import {
   HermesResults,
   type HermesResultScope,
@@ -101,8 +102,6 @@ export interface HermesPromptSuggestion {
   prompt: string
 }
 
-export type HermesMessageSection = 'wechat' | 'history' | 'settings'
-
 interface HermesAgentWorkspaceProps {
   baseScopePrefix?: string
   defaultSystemPrompt: string
@@ -110,7 +109,7 @@ interface HermesAgentWorkspaceProps {
   initialCapabilityCategory?: string
   initialCapabilitySection?: HermesCapabilitySection
   initialMessageSection?: HermesMessageSection
-  initialPanel?: 'sessions' | 'results' | 'skills' | 'messages' | 'tasks'
+  initialPanel?: HermesPersonalPanel | HermesTeamPanel
   initialResultScope?: HermesResultScope
   initialResultType?: HermesResultType
   initialTeamId?: number
@@ -824,8 +823,8 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
 
   return (
     <Main className='relative p-0'>
-      <div className='absolute top-3 right-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center justify-end gap-2'>
-        {teams.length > 0 && (
+      {teams.length > 0 && (
+        <div className='absolute top-3 right-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center justify-end gap-2'>
           <Select value={billingOwner} onValueChange={selectBillingOwner}>
             <SelectTrigger
               aria-label={t('Billing Ownership')}
@@ -853,108 +852,8 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
               </SelectGroup>
             </SelectContent>
           </Select>
-        )}
-        {isTeamWorkspace ? (
-          <>
-            <Button
-              className='bg-background/95 shadow-sm backdrop-blur'
-              render={<Link to='/teams' />}
-              size='sm'
-              type='button'
-              variant='outline'
-            >
-              <UsersIcon className='size-4' />
-              <span className='hidden sm:inline'>{t('Team management')}</span>
-            </Button>
-            <Button
-              className='bg-background/95 shadow-sm backdrop-blur'
-              onClick={() => setIsMessagePlatformsOpen(true)}
-              size='sm'
-              type='button'
-              variant='outline'
-            >
-              <MessageSquareIcon className='size-4' />
-              <span className='hidden sm:inline'>{t('Message platforms')}</span>
-            </Button>
-            <Button
-              className='bg-background/95 shadow-sm backdrop-blur'
-              onClick={() => setIsExecutionTasksOpen(true)}
-              size='sm'
-              type='button'
-              variant='outline'
-            >
-              <ListChecksIcon className='size-4' />
-              <span className='hidden sm:inline'>{t('Execution tasks')}</span>
-            </Button>
-            <Button
-              className='bg-background/95 shadow-sm backdrop-blur'
-              onClick={() => setIsSessionsOpen(true)}
-              size='sm'
-              type='button'
-              variant='outline'
-            >
-              <MessageSquareIcon className='size-4' />
-              <span className='hidden sm:inline'>{t('Team sessions')}</span>
-            </Button>
-            <Button
-              className='bg-background/95 shadow-sm backdrop-blur'
-              onClick={() => {
-                setResultsTaskId(undefined)
-                setIsResultsOpen(true)
-              }}
-              size='sm'
-              type='button'
-              variant='outline'
-            >
-              <FileCheck2Icon className='size-4' />
-              <span className='hidden sm:inline'>{t('Team results')}</span>
-            </Button>
-            <Button
-              className='bg-background/95 shadow-sm backdrop-blur'
-              onClick={() => setIsCapabilityCenterOpen(true)}
-              size='sm'
-              type='button'
-              variant='outline'
-            >
-              <SparklesIcon className='size-4' />
-              <span className='hidden sm:inline'>{t('Team skills')}</span>
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button
-              className='bg-background/95 shadow-sm backdrop-blur'
-              onClick={() => setIsCapabilityCenterOpen(true)}
-              size='sm'
-              type='button'
-              variant='outline'
-            >
-              <SparklesIcon className='size-4' />
-              {t('Capabilities')}
-            </Button>
-            <Button
-              className='bg-background/95 shadow-sm backdrop-blur'
-              onClick={() => setIsMessagePlatformsOpen(true)}
-              size='sm'
-              type='button'
-              variant='outline'
-            >
-              <MessageSquareIcon className='size-4' />
-              {t('Message platforms')}
-            </Button>
-            <Button
-              className='bg-background/95 shadow-sm backdrop-blur'
-              onClick={() => setIsExecutionTasksOpen(true)}
-              size='sm'
-              type='button'
-              variant='outline'
-            >
-              <ListChecksIcon className='size-4' />
-              {t('Execution tasks')}
-            </Button>
-          </>
-        )}
-      </div>
+        </div>
+      )}
       <Playground
         key={activeSession.storageScope}
         defaultConfig={defaultConfig}

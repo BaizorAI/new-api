@@ -57,19 +57,18 @@ import {
   type HermesWeixinStatus,
   type HermesWeixinStatusValue,
 } from '../api'
-
-type MessagePlatformSection = 'wechat' | 'history' | 'settings'
+import type { HermesMessageSection } from '../lib/workspace-panel-controller'
 
 interface HermesMessagePlatformsProps {
   open: boolean
-  initialSection?: MessagePlatformSection
+  initialSection?: HermesMessageSection
   userScope: string
   onOpenChange: (open: boolean) => void
 }
 
 export function HermesMessagePlatforms(props: HermesMessagePlatformsProps) {
   const { t } = useTranslation()
-  const [activeSection, setActiveSection] = useState<MessagePlatformSection>(
+  const [activeSection, setActiveSection] = useState<HermesMessageSection>(
     () => props.initialSection ?? 'wechat'
   )
 
@@ -129,12 +128,12 @@ export function HermesMessagePlatforms(props: HermesMessagePlatformsProps) {
 }
 
 function MessagePlatformSectionTabs(props: {
-  activeSection: MessagePlatformSection
-  onSectionChange: (section: MessagePlatformSection) => void
+  activeSection: HermesMessageSection
+  onSectionChange: (section: HermesMessageSection) => void
 }) {
   const { t } = useTranslation()
   const options: Array<{
-    value: MessagePlatformSection
+    value: HermesMessageSection
     label: string
     icon: typeof QrCodeIcon
   }> = [

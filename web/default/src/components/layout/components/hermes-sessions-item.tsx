@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useLocation } from '@tanstack/react-router'
-import { FileCheck2, MessageCircle, Plus, Sparkles } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { IconHermes } from '@/assets/brand-icons'
@@ -38,9 +38,6 @@ import {
   getHermesBaseScope,
   loadActiveConversationId,
   loadHermesConversations,
-  requestOpenHermesCapabilities,
-  requestOpenHermesMessagePlatforms,
-  requestOpenHermesResults,
   saveActiveConversationId,
   saveHermesConversations,
   sortSessions,
@@ -115,48 +112,13 @@ export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
     setOpenMobile(false)
   }
 
-  const handleOpenCapabilities = () => {
-    requestOpenHermesCapabilities()
-    setOpenMobile(false)
-  }
-
-  const handleOpenResults = () => {
-    requestOpenHermesResults()
-    setOpenMobile(false)
-  }
-
-  const handleOpenMessagePlatforms = () => {
-    requestOpenHermesMessagePlatforms()
-    setOpenMobile(false)
-  }
-
   const expandedTopActions = (
-    <>
-      <SidebarMenuSubItem>
-        <SidebarMenuSubButton onClick={handleCreateSession}>
-          <Plus className='size-3.5' aria-hidden='true' />
-          <span>{t('New session')}</span>
-        </SidebarMenuSubButton>
-      </SidebarMenuSubItem>
-      <SidebarMenuSubItem>
-        <SidebarMenuSubButton onClick={handleOpenCapabilities}>
-          <Sparkles className='size-3.5' aria-hidden='true' />
-          <span>{t('Capabilities')}</span>
-        </SidebarMenuSubButton>
-      </SidebarMenuSubItem>
-      <SidebarMenuSubItem>
-        <SidebarMenuSubButton onClick={handleOpenResults}>
-          <FileCheck2 className='size-3.5' aria-hidden='true' />
-          <span>{t('Results')}</span>
-        </SidebarMenuSubButton>
-      </SidebarMenuSubItem>
-      <SidebarMenuSubItem>
-        <SidebarMenuSubButton onClick={handleOpenMessagePlatforms}>
-          <MessageCircle className='size-3.5' aria-hidden='true' />
-          <span>{t('Message platforms')}</span>
-        </SidebarMenuSubButton>
-      </SidebarMenuSubItem>
-    </>
+    <SidebarMenuSubItem>
+      <SidebarMenuSubButton onClick={handleCreateSession}>
+        <Plus className='size-3.5' aria-hidden='true' />
+        <span>{t('New session')}</span>
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
   )
 
   const collapsedTopActions = (
@@ -164,18 +126,6 @@ export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
       <DropdownMenuItem onClick={handleCreateSession}>
         <Plus className='size-4' aria-hidden='true' />
         {t('New session')}
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={handleOpenCapabilities}>
-        <Sparkles className='size-4' aria-hidden='true' />
-        {t('Capabilities')}
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={handleOpenResults}>
-        <FileCheck2 className='size-4' aria-hidden='true' />
-        {t('Results')}
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={handleOpenMessagePlatforms}>
-        <MessageCircle className='size-4' aria-hidden='true' />
-        {t('Message platforms')}
       </DropdownMenuItem>
       <DropdownMenuSeparator />
     </>

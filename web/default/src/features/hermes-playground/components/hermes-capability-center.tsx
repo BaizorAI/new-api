@@ -91,13 +91,7 @@ import {
   type HermesSkill,
   type HermesToolset,
 } from '../api'
-
-export type HermesCapabilitySection =
-  | 'mine'
-  | 'team'
-  | 'baizor'
-  | 'builtin'
-  | 'tools'
+import type { HermesCapabilitySection } from '../lib/workspace-panel-controller'
 
 type HermesCapabilityTab = 'skills' | 'tools'
 

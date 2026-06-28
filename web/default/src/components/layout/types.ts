@@ -93,6 +93,15 @@ export type NavPlaygroundSessions = BaseNavItem & {
 }
 
 /**
+ * Dynamic Hermes execution task list.
+ */
+export type NavHermesExecutionTasks = BaseNavItem & {
+  type: 'hermes-execution-tasks'
+  url?: never
+  items?: never
+}
+
+/**
  * Navigation item union type
  */
 export type NavItem =
@@ -102,6 +111,7 @@ export type NavItem =
   | NavHermesSessions
   | NavTeamWorkspaces
   | NavPlaygroundSessions
+  | NavHermesExecutionTasks
 
 /**
  * Navigation group type - a group of navigation items in sidebar

@@ -41,12 +41,14 @@ import type {
   NavChatPresets,
   NavCollapsible,
   NavHermesSessions,
+  NavHermesExecutionTasks,
   NavPlaygroundSessions,
   NavTeamWorkspaces,
   NavLink,
   NavGroup as NavGroupProps,
 } from '../types'
 import { ChatPresetsItem } from './chat-presets-item'
+import { HermesExecutionTasksItem } from './hermes-execution-tasks-item'
 import { HermesSessionsItem } from './hermes-sessions-item'
 import { PlaygroundSessionsItem } from './playground-sessions-item'
 import { SidebarCollapsibleShell } from './sidebar-collapsible-shell'
@@ -76,6 +78,15 @@ export function NavGroup({ title, items }: NavGroupProps) {
           if (item.type === 'hermes-sessions') {
             return (
               <HermesSessionsItem key={key} item={item as NavHermesSessions} />
+            )
+          }
+
+          if (item.type === 'hermes-execution-tasks') {
+            return (
+              <HermesExecutionTasksItem
+                key={key}
+                item={item as NavHermesExecutionTasks}
+              />
             )
           }
 

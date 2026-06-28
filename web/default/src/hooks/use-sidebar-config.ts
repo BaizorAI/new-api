@@ -209,12 +209,14 @@ function findModuleConfig(
 
 type DynamicNavType =
   | 'chat-presets'
+  | 'hermes-execution-tasks'
   | 'hermes-sessions'
   | 'team-workspaces'
   | 'playground-sessions'
 
 const DYNAMIC_TYPE_TO_CONFIG_URL: Record<DynamicNavType, string> = {
   'chat-presets': '/chat',
+  'hermes-execution-tasks': '/hermes-playground',
   'hermes-sessions': '/hermes-playground',
   'team-workspaces': '/team-workspace',
   'playground-sessions': '/playground',

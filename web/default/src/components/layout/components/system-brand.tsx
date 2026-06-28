@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils'
 type SystemBrandProps = {
   defaultName?: string
   defaultVersion?: string
+  showName?: boolean
   /**
    * Visual layout:
    * - 'sidebar': stacked card style (used inside the sidebar header).
@@ -51,6 +52,7 @@ export function SystemBrand(props: SystemBrandProps) {
   const { logo } = useSystemConfig()
 
   const variant = props.variant ?? 'sidebar'
+  const showName = props.showName ?? true
   const name = status?.system_name || props.defaultName || 'New API'
   const version =
     status?.version || props.defaultVersion || t('Unknown version')
@@ -72,7 +74,9 @@ export function SystemBrand(props: SystemBrandProps) {
             className='size-full rounded-md object-cover'
           />
         </div>
-        <span className='max-w-[12rem] truncate'>{name}</span>
+        <span className={cn(showName ? 'max-w-[12rem] truncate' : 'sr-only')}>
+          {name}
+        </span>
       </Link>
     )
   }

@@ -117,6 +117,12 @@ export function useSidebarData(): SidebarData {
             icon: IconHermes,
           },
           {
+            title: t('Sessions'),
+            description: t('Manage Hermes conversations.'),
+            type: 'hermes-sessions',
+            icon: MessageSquare,
+          },
+          {
             title: t('My One-Person Company'),
             description: t('Personal business and project workspace'),
             url: '/one-person-company',
@@ -125,21 +131,26 @@ export function useSidebarData(): SidebarData {
           {
             title: t('Execution tasks'),
             description: t('View running, completed and failed agent tasks.'),
-            url: '/hermes-playground?panel=tasks',
-            configUrls: ['/hermes-playground'],
+            type: 'hermes-execution-tasks',
             icon: ListChecks,
           },
           {
-            title: t('Personal results'),
+            title: t('Results'),
             url: '/hermes-playground?panel=results&scope=mine',
             configUrls: ['/hermes-playground'],
             icon: FileCheck2,
           },
           {
-            title: t('Personal skills'),
+            title: t('Skills'),
             url: '/hermes-playground?panel=skills&section=mine',
             configUrls: ['/hermes-playground'],
             icon: Sparkles,
+          },
+          {
+            title: t('Tools'),
+            url: '/hermes-playground?panel=skills&section=tools',
+            configUrls: ['/hermes-playground'],
+            icon: Plug,
           },
         ],
       },
@@ -272,6 +283,12 @@ export function useSidebarData(): SidebarData {
         url: '/hermes-playground?panel=messages&section=wechat',
         position: 'top',
         items: [
+          {
+            title: t('Overview'),
+            url: '/hermes-playground?panel=messages',
+            configUrls: ['/hermes-playground'],
+            icon: LayoutDashboard,
+          },
           {
             title: t('WeChat'),
             description: t(
