@@ -90,7 +90,7 @@ function PlaygroundPage() {
   const defaultConfig = useMemo(
     () => ({
       ...DEFAULT_CONFIG,
-      model: 'deepseek-v4-pro',
+      model: 'huazhen3.6-35b',
     }),
     []
   )

@@ -281,18 +281,10 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   }, [reloadSessions])
 
   useEffect(() => {
-    if (props.initialPanel === 'tasks') {
+    if (props.initialPanel === 'tasks' && !isTeamWorkspace) {
       setIsExecutionTasksOpen(true)
-      return
     }
-    if (
-      props.initialPanel === 'sessions' &&
-      isTeamWorkspace &&
-      selectedTeamId > 0
-    ) {
-      setIsSessionsOpen(true)
-    }
-  }, [isTeamWorkspace, props.initialPanel, selectedTeamId])
+  }, [isTeamWorkspace, props.initialPanel])
 
   useEffect(() => {
     if (consumeHermesCapabilitiesOpenRequest()) {

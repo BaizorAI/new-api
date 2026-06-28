@@ -20,13 +20,17 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from '@tanstack/react-router'
 import {
   Building2,
+  CheckCircle2,
+  Clock3,
   FileCheck2,
   LayoutDashboard,
   ListChecks,
+  Loader2,
   MessageSquare,
   Sparkles,
   UserRound,
   Users,
+  XCircle,
 } from 'lucide-react'
 import { useMemo, type ElementType } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -43,6 +47,20 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+import {
+  listHermesExecutionTasks,
+  listTeamHermesConversations,
+  type HermesExecutionTask,
+  type HermesExecutionTaskStatus,
+  type HermesTeamConversationRecord,
+} from '@/features/hermes-playground/api'
+import {
+  activeConversationStorageKey,
+  formatSessionTime,
+  loadActiveConversationId,
+  saveActiveConversationId,
+  sortSessions,
+} from '@/features/hermes-playground/sessions'
 import { listTeams } from '@/features/teams/api'
 import type { Team } from '@/features/teams/types'
 
@@ -119,6 +137,10 @@ const TEAM_PANEL_CONFIG: Array<{
   { panel: 'tasks', titleKey: 'Team tasks', icon: ListChecks },
 ]
 
+const TEAM_LINK_PANEL_CONFIG = TEAM_PANEL_CONFIG.filter(
+  (config) => config.panel !== 'sessions' && config.panel !== 'tasks'
+)
+
 const TEAM_MANAGEMENT_CONFIG: Array<{
   area: TeamManagementArea
   titleKey: string
@@ -183,7 +205,14 @@ function FlatTeamWorkspaceItems(props: {
             <span>{team.name}</span>
           </SidebarMenuButton>
         </SidebarMenuItem>,
-        ...TEAM_PANEL_CONFIG.map((config) => (
+        <FlatTeamSessionItems
+          key={`${team.id}-sessions`}
+          href={props.href}
+          team={team}
+          title={t('Team conversation')}
+          onNavigate={props.onNavigate}
+        />,
+        ...TEAM_LINK_PANEL_CONFIG.map((config) => (
           <FlatSidebarTeamPanelItem
             key={`${team.id}-${config.panel}`}
             href={props.href}
@@ -194,6 +223,13 @@ function FlatTeamWorkspaceItems(props: {
             onNavigate={props.onNavigate}
           />
         )),
+        <FlatTeamTaskItems
+          key={`${team.id}-tasks`}
+          href={props.href}
+          team={team}
+          title={t('Team tasks')}
+          onNavigate={props.onNavigate}
+        />,
         ...TEAM_MANAGEMENT_CONFIG.map((config) => (
           <FlatSidebarTeamManagementItem
             key={`${team.id}-${config.area}`}
@@ -207,6 +243,234 @@ function FlatTeamWorkspaceItems(props: {
         )),
       ])}
     </>
+  )
+}
+
+function FlatTeamSessionItems(props: {
+  href: string
+  team: Team
+  title: string
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+  const { data: sessions = [], isLoading } = useQuery({
+    queryKey: ['sidebar', 'team-sessions', props.team.id],
+    queryFn: () => listTeamHermesConversations(props.team.id),
+  })
+  const visibleSessions = useMemo<HermesTeamConversationRecord[]>(
+    () =>
+      sortSessions(
+        sessions.filter((session) => !session.archived)
+      ) as HermesTeamConversationRecord[],
+    [sessions]
+  )
+  const baseScope = getTeamWorkspaceBaseScope(props.team.id)
+  const activeSessionId =
+    visibleSessions.length > 0
+      ? loadActiveConversationId(baseScope, visibleSessions)
+      : ''
+
+  return (
+    <>
+      <FlatSidebarSectionLabel
+        icon={MessageSquare}
+        title={props.title}
+        className='pl-6'
+      />
+      {isLoading ? (
+        <FlatSidebarMutedItem
+          className='pl-9'
+          icon={Loader2}
+          iconClassName='animate-spin'
+          title={t('Loading sessions...')}
+        />
+      ) : null}
+      {!isLoading && visibleSessions.length === 0 ? (
+        <FlatSidebarMutedItem
+          className='pl-9'
+          icon={Clock3}
+          title={t('No team sessions yet')}
+        />
+      ) : null}
+      {visibleSessions.map((session) => (
+        <FlatTeamSessionItem
+          key={session.id}
+          active={isTeamSessionActive(
+            props.href,
+            props.team.id,
+            activeSessionId,
+            session.id
+          )}
+          baseScope={baseScope}
+          session={session}
+          team={props.team}
+          onNavigate={props.onNavigate}
+        />
+      ))}
+    </>
+  )
+}
+
+function FlatTeamSessionItem(props: {
+  active: boolean
+  baseScope: string
+  session: HermesTeamConversationRecord
+  team: Team
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+  const title = props.session.title || t('New session')
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        className='pl-9'
+        isActive={props.active}
+        tooltip={title}
+        render={
+          <Link
+            to='/team-workspace'
+            search={{ team_id: props.team.id }}
+            onClick={() => {
+              saveActiveConversationId(props.baseScope, props.session.id)
+              props.onNavigate()
+            }}
+          />
+        }
+      >
+        <MessageSquare className='size-4' aria-hidden='true' />
+        <span className='min-w-0 flex-1 truncate'>{title}</span>
+        <span className='text-muted-foreground shrink-0 text-[10px]'>
+          {formatSessionTime(props.session.updatedAt, t('Just now'))}
+        </span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+}
+
+function FlatTeamTaskItems(props: {
+  href: string
+  team: Team
+  title: string
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ['sidebar', 'team-tasks', props.team.id],
+    queryFn: () => listHermesExecutionTasks({ teamId: props.team.id }),
+    refetchInterval: 5000,
+  })
+
+  return (
+    <>
+      <FlatSidebarSectionLabel
+        icon={ListChecks}
+        title={props.title}
+        className='pl-6'
+      />
+      {isLoading ? (
+        <FlatSidebarMutedItem
+          className='pl-9'
+          icon={Loader2}
+          iconClassName='animate-spin'
+          title={t('Loading tasks...')}
+        />
+      ) : null}
+      {!isLoading && tasks.length === 0 ? (
+        <FlatSidebarMutedItem
+          className='pl-9'
+          icon={Clock3}
+          title={t('No recent tasks')}
+        />
+      ) : null}
+      {tasks.map((task) => (
+        <FlatTeamTaskItem
+          key={task.taskId}
+          active={isTeamTaskActive(props.href, props.team.id, task)}
+          task={task}
+          team={props.team}
+          onNavigate={props.onNavigate}
+        />
+      ))}
+    </>
+  )
+}
+
+function FlatTeamTaskItem(props: {
+  active: boolean
+  task: HermesExecutionTask
+  team: Team
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+  const title = props.task.title || t('Hermes task')
+  const baseScope = getTeamWorkspaceBaseScope(props.team.id)
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        className='pl-9'
+        isActive={props.active}
+        tooltip={title}
+        render={
+          <Link
+            to='/team-workspace'
+            search={{ team_id: props.team.id, panel: 'tasks' }}
+            onClick={() => {
+              if (props.task.conversationId) {
+                saveActiveConversationId(baseScope, props.task.conversationId)
+              }
+              props.onNavigate()
+            }}
+          />
+        }
+      >
+        <TaskStatusIcon status={props.task.status} />
+        <span className='min-w-0 flex-1 truncate'>{title}</span>
+        <span className='text-muted-foreground shrink-0 text-[10px]'>
+          {props.task.progress}%
+        </span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+}
+
+function FlatSidebarSectionLabel(props: {
+  icon: ElementType
+  title: string
+  className?: string
+}) {
+  return (
+    <SidebarMenuItem>
+      <div
+        className={`text-muted-foreground flex h-7 min-w-0 items-center gap-2 px-2 text-xs font-medium ${props.className ?? ''}`}
+      >
+        <props.icon className='size-3.5 shrink-0' aria-hidden='true' />
+        <span className='truncate'>{props.title}</span>
+      </div>
+    </SidebarMenuItem>
+  )
+}
+
+function FlatSidebarMutedItem(props: {
+  icon: ElementType
+  title: string
+  className?: string
+  iconClassName?: string
+}) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        aria-disabled='true'
+        className={`text-muted-foreground ${props.className ?? ''}`}
+      >
+        <props.icon
+          className={`size-4 ${props.iconClassName ?? ''}`}
+          aria-hidden='true'
+        />
+        <span>{props.title}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   )
 }
 
@@ -608,6 +872,63 @@ function isTeamUrlActive(
   if (activeTeamId !== String(teamId)) return false
   if (panel === undefined) return !activePanel
   return activePanel === panel
+}
+
+function isTeamSessionActive(
+  href: string,
+  teamId: number,
+  activeSessionId: string,
+  sessionId: string
+): boolean {
+  if (!isTeamUrlActive(href, teamId)) return false
+  return activeSessionId === sessionId
+}
+
+function isTeamTaskActive(
+  href: string,
+  teamId: number,
+  task: HermesExecutionTask
+): boolean {
+  if (!isTeamUrlActive(href, teamId, 'tasks')) return false
+  if (!task.conversationId) return true
+
+  return getActiveTeamConversationId(teamId) === task.conversationId
+}
+
+function TaskStatusIcon(props: { status: HermesExecutionTaskStatus }) {
+  if (props.status === 'succeeded') {
+    return (
+      <CheckCircle2
+        className='size-4 shrink-0 text-emerald-600'
+        aria-hidden='true'
+      />
+    )
+  }
+  if (props.status === 'failed' || props.status === 'canceled') {
+    return <XCircle className='text-destructive size-4 shrink-0' aria-hidden />
+  }
+  return (
+    <Loader2
+      className='text-muted-foreground size-4 shrink-0 animate-spin'
+      aria-hidden='true'
+    />
+  )
+}
+
+function getTeamWorkspaceBaseScope(teamId: number): string {
+  return `team_workspace_team_${teamId}`
+}
+
+function getActiveTeamConversationId(teamId: number): string {
+  try {
+    return (
+      localStorage.getItem(
+        activeConversationStorageKey(getTeamWorkspaceBaseScope(teamId))
+      ) ?? ''
+    )
+  } catch {
+    return ''
+  }
 }
 
 function isTeamManagementUrlActive(
