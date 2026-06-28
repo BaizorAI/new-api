@@ -25,6 +25,7 @@ export const HERMES_CAPABILITY_SECTIONS = [
 ] as const
 
 export const HERMES_MESSAGE_SECTIONS = [
+  'overview',
   'wechat',
   'history',
   'settings',

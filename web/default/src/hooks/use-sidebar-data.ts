@@ -280,7 +280,7 @@ export function useSidebarData(): SidebarData {
         title: t('Message Platform'),
         description: t('Connect external messages to the AI workspace.'),
         icon: MessageSquare,
-        url: '/hermes-playground?panel=messages&section=wechat',
+        url: '/hermes-playground?panel=messages',
         position: 'top',
         items: [
           {

@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   HistoryIcon,
+  LayoutDashboardIcon,
   Link2OffIcon,
   MessageCircleIcon,
   QrCodeIcon,
@@ -34,6 +35,7 @@ import { toast } from 'sonner'
 import { IconWeChat } from '@/assets/brand-icons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import {
   Empty,
   EmptyDescription,
@@ -66,15 +68,20 @@ interface HermesMessagePlatformsProps {
   onOpenChange: (open: boolean) => void
 }
 
+interface HermesMessagePlatformsWorkspaceProps {
+  initialSection?: HermesMessageSection
+  userScope: string
+}
+
 export function HermesMessagePlatforms(props: HermesMessagePlatformsProps) {
   const { t } = useTranslation()
   const [activeSection, setActiveSection] = useState<HermesMessageSection>(
-    () => props.initialSection ?? 'wechat'
+    () => props.initialSection ?? 'overview'
   )
 
   useEffect(() => {
     if (!props.open) return
-    setActiveSection(props.initialSection ?? 'wechat')
+    setActiveSection(props.initialSection ?? 'overview')
   }, [props.initialSection, props.open])
 
   return (
@@ -89,41 +96,120 @@ export function HermesMessagePlatforms(props: HermesMessagePlatformsProps) {
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className='min-h-0 flex-1'>
-          <div className='space-y-3 p-4'>
-            <MessagePlatformSectionTabs
-              activeSection={activeSection}
-              onSectionChange={setActiveSection}
-            />
-            {activeSection === 'history' ? (
-              <CompactEmpty
-                description={t(
-                  'Message history will show recent incoming and outgoing platform messages.'
-                )}
-                title={t('Message history')}
-              />
-            ) : null}
-            {activeSection === 'settings' ? (
-              <CompactEmpty
-                description={t(
-                  'Connection settings will show channel status, listener status and reconnect actions.'
-                )}
-                title={t('Connection settings')}
-              />
-            ) : null}
-            <WeixinPlatformCard open={props.open} userScope={props.userScope} />
-            {activeSection === 'wechat' ? (
-              <CompactEmpty
-                description={t(
-                  'More message platforms will appear here after they are enabled.'
-                )}
-                title={t('No other message platforms')}
-              />
-            ) : null}
-          </div>
-        </ScrollArea>
+        <HermesMessagePlatformContent
+          activeSection={activeSection}
+          className='p-4'
+          isActive
+          onSectionChange={setActiveSection}
+          showSectionTabs
+          userScope={props.userScope}
+        />
       </SheetContent>
     </Sheet>
+  )
+}
+
+export function HermesMessagePlatformsWorkspace(
+  props: HermesMessagePlatformsWorkspaceProps
+) {
+  const { t } = useTranslation()
+  const activeSection = props.initialSection ?? 'overview'
+
+  return (
+    <div className='flex h-full min-h-[calc(100vh-var(--app-header-height,0px))] flex-col bg-background'>
+      <header className='border-b px-4 py-4 sm:px-6'>
+        <div className='max-w-5xl space-y-1'>
+          <h1 className='text-lg font-semibold tracking-tight'>
+            {t('Message platforms')}
+          </h1>
+          <p className='text-muted-foreground text-sm'>
+            {t(
+              'Connect WeChat and other message channels for your AI workspace.'
+            )}
+          </p>
+        </div>
+      </header>
+      <HermesMessagePlatformContent
+        activeSection={activeSection}
+        className='max-w-5xl p-4 sm:p-6'
+        isActive
+        userScope={props.userScope}
+      />
+    </div>
+  )
+}
+
+function HermesMessagePlatformContent(props: {
+  activeSection: HermesMessageSection
+  className?: string
+  isActive: boolean
+  onSectionChange?: (section: HermesMessageSection) => void
+  showSectionTabs?: boolean
+  userScope: string
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <ScrollArea className='min-h-0 flex-1'>
+      <div className={cn('space-y-3', props.className)}>
+        {props.showSectionTabs && props.onSectionChange ? (
+          <MessagePlatformSectionTabs
+            activeSection={props.activeSection}
+            onSectionChange={props.onSectionChange}
+          />
+        ) : null}
+        {props.activeSection === 'overview' ? (
+          <>
+            <CompactEmpty
+              description={t(
+                'Use the message platform menu to manage connections, review message history and check listener status.'
+              )}
+              title={t('Message platform overview')}
+            />
+            <WeixinPlatformCard
+              open={props.isActive}
+              userScope={props.userScope}
+            />
+          </>
+        ) : null}
+        {props.activeSection === 'wechat' ? (
+          <>
+            <WeixinPlatformCard
+              open={props.isActive}
+              userScope={props.userScope}
+            />
+            <CompactEmpty
+              description={t(
+                'More message platforms will appear here after they are enabled.'
+              )}
+              title={t('No other message platforms')}
+            />
+          </>
+        ) : null}
+        {props.activeSection === 'history' ? (
+          <CompactEmpty
+            description={t(
+              'Message history will show recent incoming and outgoing platform messages.'
+            )}
+            title={t('Message history')}
+          />
+        ) : null}
+        {props.activeSection === 'settings' ? (
+          <>
+            <CompactEmpty
+              description={t(
+                'Connection settings will show channel status, listener status and reconnect actions.'
+              )}
+              title={t('Connection settings')}
+            />
+            <WeixinPlatformCard
+              open={props.isActive}
+              userScope={props.userScope}
+            />
+          </>
+        ) : null}
+      </div>
+    </ScrollArea>
   )
 }
 
@@ -137,6 +223,7 @@ function MessagePlatformSectionTabs(props: {
     label: string
     icon: typeof QrCodeIcon
   }> = [
+    { value: 'overview', label: t('Overview'), icon: LayoutDashboardIcon },
     { value: 'wechat', label: t('WeChat'), icon: QrCodeIcon },
     { value: 'history', label: t('Message history'), icon: HistoryIcon },
     { value: 'settings', label: t('Connection settings'), icon: SettingsIcon },

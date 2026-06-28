@@ -51,7 +51,10 @@ import {
   HermesCapabilityCenter,
 } from '@/features/hermes-playground/components/hermes-capability-center'
 import { HermesExecutionTasksSheet } from '@/features/hermes-playground/components/hermes-execution-tasks-sheet'
-import { HermesMessagePlatforms } from '@/features/hermes-playground/components/hermes-message-platforms'
+import {
+  HermesMessagePlatforms,
+  HermesMessagePlatformsWorkspace,
+} from '@/features/hermes-playground/components/hermes-message-platforms'
 import type {
   HermesCapabilitySection,
   HermesMessageSection,
@@ -273,10 +276,6 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   }, [reloadSessions])
 
   useEffect(() => {
-    if (props.initialPanel === 'messages') {
-      setIsMessagePlatformsOpen(true)
-      return
-    }
     if (props.initialPanel === 'tasks') {
       setIsExecutionTasksOpen(true)
       return
@@ -854,40 +853,47 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
           </Select>
         </div>
       )}
-      <Playground
-        key={activeSession.storageScope}
-        defaultConfig={defaultConfig}
-        enableSlashCommands
-        emptyModelsMessage={props.emptyModelsMessage}
-        modelFilter={modelFilter}
-        onAddSkill={() =>
-          openSkillDialog(isTeamWorkspace ? selectedTeamId : undefined)
-        }
-        onMessagesChange={updateActiveSessionFromMessages}
-        onNewSession={createSession}
-        onSaveSession={exportActiveSession}
-        queryKeyPrefix={props.queryKeyPrefix}
-        quickPromptRequest={quickPromptRequest ?? undefined}
-        requestHeaders={requestHeaders}
-        executionTaskContext={{
-          workspaceMode: isTeamWorkspace
-            ? 'team_workspace'
-            : props.baseScopePrefix || 'personal',
-          conversationId: activeSession.id,
-          storageScope: activeSession.storageScope,
-          hermesSessionId: activeHermesSessionId,
-          teamId: selectedTeamId > 0 ? selectedTeamId : undefined,
-          teamName: selectedTeamName || undefined,
-          title: activeSession.title,
-          onTaskCreated: invalidateExecutionTasks,
-          onTaskSettled: (task) => {
-            invalidateExecutionTasks()
-            applyExecutionTaskResult(task)
-          },
-        }}
-        storageScope={activeSession.storageScope}
-        suggestedPrompts={props.suggestedPrompts}
-      />
+      {props.initialPanel === 'messages' ? (
+        <HermesMessagePlatformsWorkspace
+          initialSection={props.initialMessageSection}
+          userScope={queryUserScope}
+        />
+      ) : (
+        <Playground
+          key={activeSession.storageScope}
+          defaultConfig={defaultConfig}
+          enableSlashCommands
+          emptyModelsMessage={props.emptyModelsMessage}
+          modelFilter={modelFilter}
+          onAddSkill={() =>
+            openSkillDialog(isTeamWorkspace ? selectedTeamId : undefined)
+          }
+          onMessagesChange={updateActiveSessionFromMessages}
+          onNewSession={createSession}
+          onSaveSession={exportActiveSession}
+          queryKeyPrefix={props.queryKeyPrefix}
+          quickPromptRequest={quickPromptRequest ?? undefined}
+          requestHeaders={requestHeaders}
+          executionTaskContext={{
+            workspaceMode: isTeamWorkspace
+              ? 'team_workspace'
+              : props.baseScopePrefix || 'personal',
+            conversationId: activeSession.id,
+            storageScope: activeSession.storageScope,
+            hermesSessionId: activeHermesSessionId,
+            teamId: selectedTeamId > 0 ? selectedTeamId : undefined,
+            teamName: selectedTeamName || undefined,
+            title: activeSession.title,
+            onTaskCreated: invalidateExecutionTasks,
+            onTaskSettled: (task) => {
+              invalidateExecutionTasks()
+              applyExecutionTaskResult(task)
+            },
+          }}
+          storageScope={activeSession.storageScope}
+          suggestedPrompts={props.suggestedPrompts}
+        />
+      )}
       <HermesSkillDialog
         open={isSkillDialogOpen}
         editSkill={editSkill}
