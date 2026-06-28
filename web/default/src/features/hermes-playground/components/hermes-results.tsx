@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import {
+  ArrowLeftIcon,
   ClockIcon,
   CopyIcon,
   DownloadIcon,
@@ -26,8 +27,10 @@ import {
   FileCheck2Icon,
   FileTextIcon,
   FolderOpenIcon,
+  InfoIcon,
   PresentationIcon,
   SearchIcon,
+  SparklesIcon,
   UserIcon,
   UsersIcon,
 } from 'lucide-react'
@@ -91,6 +94,7 @@ interface HermesResultsProps {
   selectedTeamId?: number
   selectedTeamName?: string
   workspaceMode?: 'personal' | 'team'
+  onContinueResult?: (prompt: string, session: HermesConversation) => void
   onOpenChange: (open: boolean) => void
   onSelectSession: (session: HermesConversation) => void
 }
@@ -130,11 +134,13 @@ export function HermesResults(props: HermesResultsProps) {
     () => props.initialType ?? 'all'
   )
   const [query, setQuery] = useState('')
+  const [selectedResultId, setSelectedResultId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!props.open) return
     setActiveScope(props.initialScope ?? getDefaultScope(props.workspaceMode))
     setActiveType(props.initialType ?? 'all')
+    setSelectedResultId(null)
   }, [props.initialScope, props.initialType, props.open, props.workspaceMode])
 
   const serverResultsQuery = useQuery({
@@ -210,6 +216,10 @@ export function HermesResults(props: HermesResultsProps) {
     (count, item) => count + item.generatedFileCount,
     0
   )
+  const selectedResult = selectedResultId
+    ? (results.find((item) => getResultItemId(item) === selectedResultId) ??
+      null)
+    : null
 
   const exportResult = (item: HermesResultItem) => {
     downloadJson(
@@ -306,7 +316,29 @@ export function HermesResults(props: HermesResultsProps) {
 
         <ScrollArea className='min-h-0 flex-1'>
           <div className='space-y-4 p-4'>
-            {results.length === 0 ? (
+            {selectedResult ? (
+              <ResultDetail
+                item={selectedResult}
+                onBack={() => setSelectedResultId(null)}
+                onContinue={
+                  props.onContinueResult
+                    ? () => {
+                        props.onContinueResult?.(
+                          buildContinueResultPrompt(selectedResult, t),
+                          selectedResult.session
+                        )
+                        props.onOpenChange(false)
+                      }
+                    : undefined
+                }
+                onExport={() => exportResult(selectedResult)}
+                onOpenSession={() => {
+                  props.onSelectSession(selectedResult.session)
+                  props.onOpenChange(false)
+                }}
+              />
+            ) : null}
+            {!selectedResult && results.length === 0 ? (
               <Empty className='min-h-40 rounded-lg border p-4'>
                 <EmptyMedia variant='icon'>
                   <FileCheck2Icon />
@@ -318,7 +350,8 @@ export function HermesResults(props: HermesResultsProps) {
                   {getEmptyDescription(props.emptyDescription, activeType, t)}
                 </EmptyDescription>
               </Empty>
-            ) : (
+            ) : null}
+            {!selectedResult && results.length > 0 ? (
               <section className='space-y-3'>
                 <div className='flex flex-wrap items-center justify-between gap-2'>
                   <div className='text-muted-foreground text-xs font-medium'>
@@ -338,9 +371,21 @@ export function HermesResults(props: HermesResultsProps) {
                 </div>
                 {results.map((item) => (
                   <ResultCard
-                    key={item.session.id}
+                    key={getResultItemId(item)}
                     active={item.session.id === props.activeSessionId}
                     item={item}
+                    onContinue={
+                      props.onContinueResult
+                        ? () => {
+                            props.onContinueResult?.(
+                              buildContinueResultPrompt(item, t),
+                              item.session
+                            )
+                            props.onOpenChange(false)
+                          }
+                        : undefined
+                    }
+                    onDetails={() => setSelectedResultId(getResultItemId(item))}
                     onExport={() => exportResult(item)}
                     scopeLabel={getResultScopeLabel(activeScope, t)}
                     onOpen={() => {
@@ -350,7 +395,7 @@ export function HermesResults(props: HermesResultsProps) {
                   />
                 ))}
               </section>
-            )}
+            ) : null}
           </div>
         </ScrollArea>
       </SheetContent>
@@ -362,6 +407,8 @@ function ResultCard(props: {
   item: HermesResultItem
   active: boolean
   scopeLabel: string
+  onContinue?: () => void
+  onDetails: () => void
   onExport: () => void
   onOpen: () => void
 }) {
@@ -442,6 +489,21 @@ function ResultCard(props: {
               size='sm'
               type='button'
               variant='outline'
+              onClick={props.onDetails}
+            >
+              <InfoIcon data-icon='inline-start' />
+              {t('Details')}
+            </Button>
+            {props.onContinue ? (
+              <Button size='sm' type='button' onClick={props.onContinue}>
+                <SparklesIcon data-icon='inline-start' />
+                {t('Continue working')}
+              </Button>
+            ) : null}
+            <Button
+              size='sm'
+              type='button'
+              variant='outline'
               onClick={props.onOpen}
             >
               <FolderOpenIcon data-icon='inline-start' />
@@ -459,6 +521,143 @@ function ResultCard(props: {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function ResultDetail(props: {
+  item: HermesResultItem
+  onBack: () => void
+  onContinue?: () => void
+  onExport: () => void
+  onOpenSession: () => void
+}) {
+  const { t } = useTranslation()
+  const { item } = props
+  const title = item.session.title || t('New session')
+  const preview = getResultPreview(item)
+  const primaryType = getPrimaryResultType(item)
+  const updatedAt = formatSessionTime(item.session.updatedAt, t('Just now'))
+  const createdAt = formatSessionTime(item.session.createdAt, t('Just now'))
+
+  return (
+    <section className='space-y-4'>
+      <div className='flex flex-wrap items-center justify-between gap-2'>
+        <Button size='sm' type='button' variant='ghost' onClick={props.onBack}>
+          <ArrowLeftIcon data-icon='inline-start' />
+          {t('Back')}
+        </Button>
+        <div className='flex flex-wrap gap-2'>
+          {props.onContinue ? (
+            <Button size='sm' type='button' onClick={props.onContinue}>
+              <SparklesIcon data-icon='inline-start' />
+              {t('Continue working')}
+            </Button>
+          ) : null}
+          <Button
+            size='sm'
+            type='button'
+            variant='outline'
+            onClick={() => copyResultSummary(item, t)}
+          >
+            <CopyIcon data-icon='inline-start' />
+            {t('Copy summary')}
+          </Button>
+        </div>
+      </div>
+
+      <div className='rounded-lg border p-4'>
+        <div className='flex items-start gap-3'>
+          <div className='bg-muted text-muted-foreground mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-md'>
+            <ResultTypeIcon type={primaryType} />
+          </div>
+          <div className='min-w-0 flex-1 space-y-3'>
+            <div>
+              <h3 className='truncate text-base font-semibold'>{title}</h3>
+              <div className='text-muted-foreground mt-1 flex flex-wrap gap-2 text-xs'>
+                <Badge variant='outline'>
+                  {getResultTypeLabel(primaryType, t)}
+                </Badge>
+                {item.serverBacked ? (
+                  <Badge variant='outline'>{t('Saved')}</Badge>
+                ) : null}
+                <Badge variant='outline'>
+                  {t('Updated {{time}}', { time: updatedAt })}
+                </Badge>
+              </div>
+            </div>
+
+            <div className='grid gap-2 sm:grid-cols-2'>
+              <ResultMeta label={t('Source session')} value={item.session.id} />
+              <ResultMeta label={t('Created')} value={createdAt} />
+              <ResultMeta
+                label={t('Creator')}
+                value={item.createdBy ? String(item.createdBy) : t('Unknown')}
+              />
+              <ResultMeta
+                label={t('Files')}
+                value={String(item.files.length)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {preview ? (
+        <div className='rounded-lg border p-3'>
+          <div className='text-muted-foreground mb-2 text-xs font-medium'>
+            {t('Result preview')}
+          </div>
+          <div className='text-sm whitespace-pre-wrap'>{preview}</div>
+        </div>
+      ) : null}
+
+      {item.files.length > 0 ? (
+        <div className='rounded-lg border p-3'>
+          <div className='text-muted-foreground mb-2 text-xs font-medium'>
+            {t('Result files')}
+          </div>
+          <div className='grid gap-2'>
+            {item.files.map((file) => (
+              <ResultFileCard file={file} key={file.id} />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className='bg-muted/20 text-muted-foreground rounded-lg border p-3 text-sm'>
+          {t('Conversation result')}
+        </div>
+      )}
+
+      <div className='flex flex-wrap gap-2'>
+        <Button
+          size='sm'
+          type='button'
+          variant='outline'
+          onClick={props.onOpenSession}
+        >
+          <FolderOpenIcon data-icon='inline-start' />
+          {t('Back to session')}
+        </Button>
+        <Button
+          size='sm'
+          type='button'
+          variant='outline'
+          onClick={props.onExport}
+        >
+          <DownloadIcon data-icon='inline-start' />
+          {t('Export conversation')}
+        </Button>
+      </div>
+    </section>
+  )
+}
+
+function ResultMeta(props: { label: string; value: string }) {
+  return (
+    <div className='bg-muted/20 min-w-0 rounded-md border p-2'>
+      <div className='text-muted-foreground text-xs'>{props.label}</div>
+      <div className='mt-1 truncate text-sm font-medium'>{props.value}</div>
     </div>
   )
 }
@@ -760,6 +959,64 @@ function getResultHaystack(item: HermesResultItem): string {
     )
     .join(' ')
   return [item.session.title, messageText, fileText].join(' ')
+}
+
+function getResultItemId(item: HermesResultItem): string {
+  const fileIds = item.files.map((file) => file.id).join('|')
+  return `${item.session.id}:${fileIds || 'conversation'}`
+}
+
+function getResultPreview(item: HermesResultItem): string {
+  const assistantMessages = item.messages.filter(
+    (message) => message.from === 'assistant'
+  )
+  const latest = assistantMessages.at(-1)
+  const content = latest?.versions.at(-1)?.content ?? ''
+  const visible = parseThinkTags(content).visibleContent.trim()
+  if (!visible) return ''
+  return truncateText(visible.replaceAll(/\n{3,}/g, '\n\n'), 600)
+}
+
+function buildContinueResultPrompt(
+  item: HermesResultItem,
+  t: (key: string, options?: Record<string, unknown>) => string
+): string {
+  const title = item.session.title || item.files[0]?.filename || item.session.id
+  const files = item.files
+    .map((file) => `- ${file.filename}: ${file.href}`)
+    .join('\n')
+  const preview = getResultPreview(item)
+  return t('Continue working from this result prompt', {
+    title,
+    files: files || t('No files'),
+    preview: preview || t('No preview'),
+  })
+}
+
+function copyResultSummary(
+  item: HermesResultItem,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  const title = item.session.title || item.files[0]?.filename || item.session.id
+  const files = item.files
+    .map((file) => `${file.filename}: ${file.href}`)
+    .join('\n')
+  const summary = [
+    `${t('Result')}: ${title}`,
+    `${t('Source session')}: ${item.session.id}`,
+    files ? `${t('Files')}:\n${files}` : '',
+    getResultPreview(item),
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+  void navigator.clipboard.writeText(summary).then(() => {
+    toast.success(t('Copied to clipboard'))
+  })
+}
+
+function truncateText(value: string, limit: number): string {
+  if (value.length <= limit) return value
+  return `${value.slice(0, limit).trim()}...`
 }
 
 function getPrimaryResultType(item: HermesResultItem): HermesResultType {

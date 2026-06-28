@@ -777,6 +777,23 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     [t]
   )
 
+  const continueWithResult = useCallback(
+    (prompt: string, session: HermesConversation) => {
+      if (!sessions.some((item) => item.id === session.id)) {
+        const nextSessions = [session, ...sessions]
+        saveHermesConversations(baseScope, nextSessions)
+        setSessions(nextSessions)
+      }
+      saveActiveConversationId(baseScope, session.id)
+      setActiveSessionId(session.id)
+      setQuickPromptRequest({
+        id: `result-${Date.now()}-${session.id}`,
+        prompt,
+      })
+    },
+    [baseScope, sessions]
+  )
+
   if (isTeamWorkspace && selectedTeamId <= 0) {
     return (
       <Main className='flex min-h-[calc(100vh-var(--app-header-height,0px))] items-center justify-center p-6'>
@@ -1042,6 +1059,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
               )
             : undefined
         }
+        onContinueResult={continueWithResult}
         onOpenChange={setIsResultsOpen}
         onSelectSession={(session) => {
           if (!sessions.some((item) => item.id === session.id)) {
