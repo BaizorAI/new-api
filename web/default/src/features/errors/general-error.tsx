@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useNavigate, useRouter } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -37,6 +38,29 @@ function getHttpStatus(error: unknown): number | undefined {
   return typeof status === 'number' ? status : undefined
 }
 
+function getErrorText(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`
+  if (typeof error === 'string') return error
+  try {
+    return JSON.stringify(error)
+  } catch {
+    return ''
+  }
+}
+
+function isChunkLoadError(error: unknown): boolean {
+  const text = getErrorText(error)
+  return (
+    text.includes('ChunkLoadError') ||
+    text.includes('Loading chunk') ||
+    text.includes('failed to fetch dynamically imported module')
+  )
+}
+
+function reloadCurrentPage(): void {
+  window.location.reload()
+}
+
 export function GeneralError({
   className,
   minimal = false,
@@ -46,6 +70,7 @@ export function GeneralError({
   const navigate = useNavigate()
   const { history } = useRouter()
   const status = getHttpStatus(error)
+  const chunkLoadError = isChunkLoadError(error)
   const isRateLimited = status === 429
   const title = isRateLimited
     ? t('Too many requests')
@@ -53,6 +78,16 @@ export function GeneralError({
   const description = isRateLimited
     ? t('Please wait a moment before trying again.')
     : t('Please try again later.')
+
+  useEffect(() => {
+    if (!chunkLoadError) return
+
+    const key = `chunk-load-reload:${window.location.pathname}`
+    if (sessionStorage.getItem(key) === '1') return
+
+    sessionStorage.setItem(key, '1')
+    window.location.reload()
+  }, [chunkLoadError])
 
   return (
     <div className={cn('h-svh w-full', className)}>
@@ -88,6 +123,11 @@ export function GeneralError({
             >
               {t('Report an issue')}
             </Button>
+            {chunkLoadError && (
+              <Button variant='outline' onClick={reloadCurrentPage}>
+                {t('Retry')}
+              </Button>
+            )}
             <Button onClick={() => navigate({ to: '/' })}>
               {t('Back to Home')}
             </Button>
