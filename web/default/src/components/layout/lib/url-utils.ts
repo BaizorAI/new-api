@@ -43,7 +43,7 @@ function urlToString(url: LinkProps['to'] | (string & {})): string | null {
  * Keeps the root `/` intact.
  */
 export function normalizeHref(href: string): string {
-  const withoutQuery = href.split('?')[0] ?? ''
+  const withoutQuery = href.split('?')[0]?.split('#')[0] ?? ''
   return withoutQuery.length > 1
     ? withoutQuery.replace(/\/+$/, '')
     : withoutQuery
@@ -54,6 +54,30 @@ export function normalizeHref(href: string): string {
  */
 function pathsMatch(a: string, b: string): boolean {
   return normalizeHref(a) === normalizeHref(b)
+}
+
+function getQueryString(url: string): string {
+  return url.split('?')[1]?.split('#')[0] ?? ''
+}
+
+function hasQuery(url: string): boolean {
+  return url.includes('?') && getQueryString(url).length > 0
+}
+
+function searchParamsEqual(a: string, b: string): boolean {
+  const aParams = [...new URLSearchParams(getQueryString(a)).entries()].sort()
+  const bParams = [...new URLSearchParams(getQueryString(b)).entries()].sort()
+  if (aParams.length !== bParams.length) return false
+
+  return aParams.every(([key, value], index) => {
+    const current = bParams[index]
+    return current?.[0] === key && current[1] === value
+  })
+}
+
+function urlsMatch(itemUrl: string, href: string): boolean {
+  if (!pathsMatch(itemUrl, href)) return false
+  return hasQuery(itemUrl) ? searchParamsEqual(itemUrl, href) : true
 }
 
 /**
@@ -73,7 +97,7 @@ export function checkIsActive(
   if (
     item.activeUrls?.some((url) => {
       const urlStr = urlToString(url)
-      return urlStr ? pathsMatch(urlStr, href) : false
+      return urlStr ? urlsMatch(urlStr, href) : false
     })
   ) {
     return true
@@ -86,7 +110,7 @@ export function checkIsActive(
       collapsibleItem.items.some((sub) => {
         if (!sub.url) return false
         const subUrl = urlToString(sub.url)
-        return subUrl ? pathsMatch(subUrl, href) : false
+        return subUrl ? urlsMatch(subUrl, href) : false
       })
     ) {
       return true
@@ -99,7 +123,7 @@ export function checkIsActive(
   const itemUrl = urlToString(item.url)
   if (!itemUrl) return false
 
-  if (pathsMatch(itemUrl, href)) {
+  if (urlsMatch(itemUrl, href)) {
     return true
   }
 

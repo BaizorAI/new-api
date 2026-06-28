@@ -31,11 +31,9 @@ const ROOT_BOTTOM_GROUP_IDS = new Set(['management', 'settings'])
 /**
  * Application sidebar.
  *
- * Adopts the Vercel / Cloudflare "drill-in" pattern: the URL drives
- * which sidebar *view* is rendered. Clicking a top-level entry like
- * `System Settings` swaps the sidebar to a contextual workspace with a
- * `Back to Workspace` affordance instead of stacking the sub-navigation
- * inside the root tree.
+ * The root sidebar stays visible for normal work areas. Only registered
+ * administration/settings routes can swap into a contextual sidebar with a
+ * `Back to Workspace` affordance.
  *
  * Architecture:
  *   - View resolution + filtering: {@link useSidebarView}

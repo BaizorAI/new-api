@@ -91,9 +91,20 @@ import {
   type HermesToolset,
 } from '../api'
 
+export type HermesCapabilitySection =
+  | 'mine'
+  | 'team'
+  | 'baizor'
+  | 'builtin'
+  | 'tools'
+
+type HermesCapabilityTab = 'skills' | 'tools'
+
 interface HermesCapabilityCenterProps {
   open: boolean
   userScope: string
+  initialCategory?: string
+  initialSection?: HermesCapabilitySection
   selectedTeamId: number
   selectedTeamName?: string
   teams: Team[]
@@ -122,7 +133,12 @@ type ToolsetStatusFilter =
 
 export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
   const { t } = useTranslation()
-  const [skillSearch, setSkillSearch] = useState('')
+  const [activeTab, setActiveTab] = useState<HermesCapabilityTab>(() =>
+    getInitialCapabilityTab(props.initialSection)
+  )
+  const [skillSearch, setSkillSearch] = useState(() =>
+    getInitialSkillSearch(props.initialCategory)
+  )
   const [toolsetSearch, setToolsetSearch] = useState('')
   const [toolsetStatusFilter, setToolsetStatusFilter] =
     useState<ToolsetStatusFilter>('all')
@@ -131,6 +147,13 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
     () => props.selectedTeamId || props.teams[0]?.id || 0
   )
   const role = useAuthStore((s) => s.auth.user?.role ?? 0)
+
+  useEffect(() => {
+    if (!props.open) return
+    setActiveTab(getInitialCapabilityTab(props.initialSection))
+    setSkillSearch(getInitialSkillSearch(props.initialCategory))
+  }, [props.initialCategory, props.initialSection, props.open])
+
   const activeTeamName = useMemo(() => {
     if (activeTeamId === props.selectedTeamId && props.selectedTeamName) {
       return props.selectedTeamName
@@ -301,7 +324,13 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
             </SheetDescription>
           </SheetHeader>
 
-          <Tabs className='min-h-0 flex-1 gap-0' defaultValue='skills'>
+          <Tabs
+            className='min-h-0 flex-1 gap-0'
+            value={activeTab}
+            onValueChange={(value) =>
+              setActiveTab(value === 'tools' ? 'tools' : 'skills')
+            }
+          >
             <div className='flex items-center justify-between gap-2 border-b px-4 py-3'>
               <TabsList className='w-fit'>
                 <TabsTrigger value='skills'>{t('Skills')}</TabsTrigger>
@@ -329,6 +358,7 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
                 manageableTeams={manageableTeams}
                 teams={props.teams}
                 activeTeamId={activeTeamId}
+                initialSection={props.initialSection}
                 onActiveTeamChange={setActiveTeamId}
                 selectedTeamId={activeTeamId}
                 selectedTeamName={activeTeamName}
@@ -410,6 +440,7 @@ interface SkillPanelProps {
   manageableTeams: Team[]
   teams: Team[]
   activeTeamId: number
+  initialSection?: HermesCapabilitySection
   onActiveTeamChange: (teamId: number) => void
   selectedTeamId: number
   selectedTeamName: string
@@ -477,66 +508,25 @@ function SkillPanel(props: SkillPanelProps) {
             />
           )}
           {props.isLoading && <LoadingRows />}
-          {!props.isLoading && !props.error && (
-            <>
+          {!props.isLoading &&
+            !props.error &&
+            getOrderedSkillSections(props, t).map((section) => (
               <SkillSection
-                emptyDescription={t('Create a skill to make it appear here.')}
-                emptyTitle={t('No personal skills')}
+                emptyDescription={section.emptyDescription}
+                emptyTitle={section.emptyTitle}
                 isAdmin={props.isAdmin}
+                isFocused={section.isFocused}
+                key={section.id}
                 onDeleteSkill={props.onDeleteSkill}
                 onEditSkill={props.onEditSkill}
                 manageableTeams={props.manageableTeams}
                 selectedTeamId={props.selectedTeamId}
                 selectedTeamName={props.selectedTeamName}
                 onPublishSkill={props.onPublishSkill}
-                skills={props.userSkills}
-                title={t('My skills')}
+                skills={section.skills}
+                title={section.title}
               />
-              <SkillSection
-                emptyDescription={t('No team skills match the current search.')}
-                emptyTitle={t('No team skills')}
-                isAdmin={props.isAdmin}
-                onDeleteSkill={props.onDeleteSkill}
-                onEditSkill={props.onEditSkill}
-                manageableTeams={props.manageableTeams}
-                selectedTeamId={props.selectedTeamId}
-                selectedTeamName={props.selectedTeamName}
-                onPublishSkill={props.onPublishSkill}
-                skills={props.teamSkills}
-                title={t('Team skills')}
-              />
-              <SkillSection
-                emptyDescription={t(
-                  'No Baizor Skills match the current search.'
-                )}
-                emptyTitle={t('No Baizor Skills')}
-                isAdmin={props.isAdmin}
-                onDeleteSkill={props.onDeleteSkill}
-                onEditSkill={props.onEditSkill}
-                manageableTeams={props.manageableTeams}
-                selectedTeamId={props.selectedTeamId}
-                selectedTeamName={props.selectedTeamName}
-                onPublishSkill={props.onPublishSkill}
-                skills={props.baizorSkills}
-                title={t('Baizor Skills')}
-              />
-              <SkillSection
-                emptyDescription={t(
-                  'No built-in skills match the current search.'
-                )}
-                emptyTitle={t('No system skills')}
-                isAdmin={props.isAdmin}
-                onDeleteSkill={props.onDeleteSkill}
-                onEditSkill={props.onEditSkill}
-                manageableTeams={props.manageableTeams}
-                selectedTeamId={props.selectedTeamId}
-                selectedTeamName={props.selectedTeamName}
-                onPublishSkill={props.onPublishSkill}
-                skills={props.systemSkills}
-                title={t('Built-in skills')}
-              />
-            </>
-          )}
+            ))}
         </div>
       </ScrollArea>
     </div>
@@ -549,6 +539,7 @@ interface SkillSectionProps {
   emptyTitle: string
   emptyDescription: string
   isAdmin: boolean
+  isFocused?: boolean
   onEditSkill: (skill: HermesSkill, teamId?: number) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
@@ -563,7 +554,10 @@ function SkillSection(props: SkillSectionProps) {
   return (
     <section className='space-y-2'>
       <div className='flex items-center justify-between'>
-        <h3 className='text-sm font-medium'>{props.title}</h3>
+        <div className='flex min-w-0 items-center gap-2'>
+          <h3 className='truncate text-sm font-medium'>{props.title}</h3>
+          {props.isFocused && <Badge variant='secondary'>{t('Current')}</Badge>}
+        </div>
         <span className='text-muted-foreground text-xs'>
           {t('{{count}} items', { count: props.skills.length })}
         </span>
@@ -970,6 +964,84 @@ function CompactEmpty(props: { title: string; description: string }) {
       <EmptyDescription>{props.description}</EmptyDescription>
     </Empty>
   )
+}
+
+type OrderedSkillSection = {
+  id: Exclude<HermesCapabilitySection, 'tools'>
+  title: string
+  skills: HermesSkill[]
+  emptyTitle: string
+  emptyDescription: string
+  isFocused: boolean
+}
+
+function getOrderedSkillSections(
+  props: SkillPanelProps,
+  t: (key: string) => string
+): OrderedSkillSection[] {
+  const focusedSection =
+    props.initialSection && props.initialSection !== 'tools'
+      ? props.initialSection
+      : undefined
+
+  const sections: OrderedSkillSection[] = [
+    {
+      id: 'mine',
+      title: t('My skills'),
+      skills: props.userSkills,
+      emptyTitle: t('No personal skills'),
+      emptyDescription: t('Create a skill to make it appear here.'),
+      isFocused: focusedSection === 'mine',
+    },
+    {
+      id: 'team',
+      title: t('Team skills'),
+      skills: props.teamSkills,
+      emptyTitle: t('No team skills'),
+      emptyDescription: t('No team skills match the current search.'),
+      isFocused: focusedSection === 'team',
+    },
+    {
+      id: 'baizor',
+      title: t('Baizor Skills'),
+      skills: props.baizorSkills,
+      emptyTitle: t('No Baizor Skills'),
+      emptyDescription: t('No Baizor Skills match the current search.'),
+      isFocused: focusedSection === 'baizor',
+    },
+    {
+      id: 'builtin',
+      title: t('Built-in skills'),
+      skills: props.systemSkills,
+      emptyTitle: t('No system skills'),
+      emptyDescription: t('No built-in skills match the current search.'),
+      isFocused: focusedSection === 'builtin',
+    },
+  ]
+
+  if (!focusedSection) return sections
+  return sections.sort((a, b) => Number(b.isFocused) - Number(a.isFocused))
+}
+
+function getInitialCapabilityTab(
+  section?: HermesCapabilitySection
+): HermesCapabilityTab {
+  return section === 'tools' ? 'tools' : 'skills'
+}
+
+function getInitialSkillSearch(category?: string): string {
+  if (!category) return ''
+
+  const normalizedCategory = category.trim().toLowerCase()
+  const categorySearchTerms: Record<string, string> = {
+    ppt: 'ppt',
+    presentation: 'ppt',
+    report: 'report',
+    research: 'report',
+    data: 'data',
+    document: 'document',
+  }
+  return categorySearchTerms[normalizedCategory] ?? normalizedCategory
 }
 
 function filterSkills(skills: HermesSkill[], query: string): HermesSkill[] {

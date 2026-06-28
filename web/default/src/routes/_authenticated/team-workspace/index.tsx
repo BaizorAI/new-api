@@ -32,9 +32,14 @@ import { WorkspaceHome } from './-workspace-home'
 const teamWorkspaceSearchSchema = z.object({
   team_id: z.coerce.number().int().positive().optional().catch(undefined),
   panel: z
-    .enum(['sessions', 'results', 'skills', 'messages'])
+    .enum(['sessions', 'results', 'skills', 'messages', 'tasks'])
     .optional()
     .catch(undefined),
+  section: z
+    .enum(['mine', 'team', 'baizor', 'builtin', 'tools'])
+    .optional()
+    .catch(undefined),
+  category: z.string().optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/_authenticated/team-workspace/')({
@@ -49,7 +54,7 @@ export const Route = createFileRoute('/_authenticated/team-workspace/')({
 
 function TeamWorkspacePage() {
   const { t } = useTranslation()
-  const { panel, team_id } = Route.useSearch()
+  const { category, panel, section, team_id } = Route.useSearch()
 
   const suggestedPrompts = useMemo<HermesPromptSuggestion[]>(
     () => [
@@ -104,6 +109,8 @@ function TeamWorkspacePage() {
         'You are a team collaboration assistant. Use Chinese by default. Help team members complete shared work through skills, tools, structured documents, task breakdowns, project plans, meeting summaries and delivery reviews. Keep outputs practical, traceable and suitable for team reuse.'
       )}
       emptyModelsMessage={t('No Hermes models available')}
+      initialCapabilityCategory={category}
+      initialCapabilitySection={section}
       initialPanel={panel}
       initialTeamId={team_id}
       queryKeyPrefix='team-workspace'

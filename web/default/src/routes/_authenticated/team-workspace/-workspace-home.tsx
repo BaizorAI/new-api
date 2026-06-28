@@ -63,7 +63,7 @@ type SessionItem = {
   href: '/team-workspace' | '/hermes-playground' | '/one-person-company'
   search?: {
     team_id?: number
-    panel?: 'sessions' | 'results' | 'skills' | 'messages'
+    panel?: 'sessions' | 'results' | 'skills' | 'messages' | 'tasks'
   }
   teamName?: string
   updatedAt: number
@@ -76,7 +76,7 @@ type ResultItem = {
   href: '/team-workspace' | '/hermes-playground' | '/one-person-company'
   search?: {
     team_id?: number
-    panel?: 'sessions' | 'results' | 'skills' | 'messages'
+    panel?: 'sessions' | 'results' | 'skills' | 'messages' | 'tasks'
   }
   updatedAt: number
 }
@@ -459,7 +459,7 @@ function QuickActionCard(props: {
   to: '/team-workspace' | '/hermes-playground'
   search?: {
     team_id?: number
-    panel?: 'sessions' | 'results' | 'skills' | 'messages'
+    panel?: 'sessions' | 'results' | 'skills' | 'messages' | 'tasks'
   }
 }) {
   const content = <QuickActionCardContent {...props} />
@@ -725,7 +725,7 @@ function toResultItems(
     href: '/team-workspace' | '/hermes-playground' | '/one-person-company'
     search?: {
       team_id?: number
-      panel?: 'sessions' | 'results' | 'skills' | 'messages'
+      panel?: 'sessions' | 'results' | 'skills' | 'messages' | 'tasks'
     }
   }
 ): ResultItem[] {

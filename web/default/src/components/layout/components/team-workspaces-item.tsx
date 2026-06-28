@@ -285,6 +285,17 @@ function SidebarTeamItems(props: {
           onNavigate={props.onNavigate}
         />
       )),
+      ...TEAM_MANAGEMENT_CONFIG.map((config) => (
+        <SidebarTeamManagementItem
+          key={`${team.id}-${config.area}`}
+          href={props.href}
+          team={team}
+          area={config.area}
+          title={t(config.titleKey)}
+          icon={config.icon}
+          onNavigate={props.onNavigate}
+        />
+      )),
     ]),
   ]
 }

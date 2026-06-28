@@ -19,22 +19,19 @@ For commercial licensing, please contact support@quantumnous.com
 import type { TFunction } from 'i18next'
 
 import { SYSTEM_SETTINGS_VIEW } from '../config/system-settings.config'
-import { WORKBENCH_VIEW } from '../config/workbench.config'
 import type { NavGroup, SidebarView } from '../types'
 
 /**
  * Registered nested sidebar views.
  *
- * Each entry describes a contextual sidebar that replaces the root
- * navigation when the user enters that workspace (Vercel-style
- * "drill-in" pattern). Add new entries here to register a new view.
+ * Only deep administration/settings areas should replace the root navigation.
+ * Workspace routes such as `/team-workspace`, `/hermes-playground`, and
+ * `/one-person-company` must keep the first-stage root sidebar and expand
+ * their entries inside the Workspace group.
  *
  * Match priority is array order; the first matching `pathPattern` wins.
  */
-const SIDEBAR_VIEWS: readonly SidebarView[] = [
-  SYSTEM_SETTINGS_VIEW,
-  WORKBENCH_VIEW,
-]
+const SIDEBAR_VIEWS: readonly SidebarView[] = [SYSTEM_SETTINGS_VIEW]
 
 /**
  * Resolve the active nested view for the given path.

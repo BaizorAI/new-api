@@ -50,7 +50,10 @@ import {
   type HermesSkill,
   type HermesTeamConversationRecord,
 } from '@/features/hermes-playground/api'
-import { HermesCapabilityCenter } from '@/features/hermes-playground/components/hermes-capability-center'
+import {
+  HermesCapabilityCenter,
+  type HermesCapabilitySection,
+} from '@/features/hermes-playground/components/hermes-capability-center'
 import { HermesExecutionTasksSheet } from '@/features/hermes-playground/components/hermes-execution-tasks-sheet'
 import { HermesMessagePlatforms } from '@/features/hermes-playground/components/hermes-message-platforms'
 import { HermesResults } from '@/features/hermes-playground/components/hermes-results'
@@ -97,7 +100,9 @@ interface HermesAgentWorkspaceProps {
   baseScopePrefix?: string
   defaultSystemPrompt: string
   emptyModelsMessage: string
-  initialPanel?: 'sessions' | 'results' | 'skills' | 'messages'
+  initialCapabilityCategory?: string
+  initialCapabilitySection?: HermesCapabilitySection
+  initialPanel?: 'sessions' | 'results' | 'skills' | 'messages' | 'tasks'
   initialTeamId?: number
   queryKeyPrefix: string
   suggestedPrompts?: HermesPromptSuggestion[]
@@ -257,17 +262,24 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       setIsMessagePlatformsOpen(true)
       return
     }
-
-    if (isTeamWorkspace && selectedTeamId > 0) {
-      if (props.initialPanel === 'sessions') {
-        setIsSessionsOpen(true)
-      }
-      if (props.initialPanel === 'skills') {
-        setIsCapabilityCenterOpen(true)
-      }
-      if (props.initialPanel === 'results') {
-        setIsResultsOpen(true)
-      }
+    if (props.initialPanel === 'tasks') {
+      setIsExecutionTasksOpen(true)
+      return
+    }
+    if (props.initialPanel === 'skills') {
+      setIsCapabilityCenterOpen(true)
+      return
+    }
+    if (props.initialPanel === 'results') {
+      setIsResultsOpen(true)
+      return
+    }
+    if (
+      props.initialPanel === 'sessions' &&
+      isTeamWorkspace &&
+      selectedTeamId > 0
+    ) {
+      setIsSessionsOpen(true)
     }
   }, [isTeamWorkspace, props.initialPanel, selectedTeamId])
 
@@ -884,6 +896,8 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       <HermesCapabilityCenter
         open={isCapabilityCenterOpen}
         userScope={queryUserScope}
+        initialCategory={props.initialCapabilityCategory}
+        initialSection={props.initialCapabilitySection}
         selectedTeamId={selectedTeamId}
         selectedTeamName={selectedTeamName}
         teams={teams}

@@ -24,7 +24,15 @@ import { HermesAgentWorkspace } from '@/features/hermes-playground/components/he
 import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 
 const hermesPlaygroundSearchSchema = z.object({
-  panel: z.enum(['skills', 'messages', 'results']).optional().catch(undefined),
+  panel: z
+    .enum(['skills', 'messages', 'results', 'tasks'])
+    .optional()
+    .catch(undefined),
+  section: z
+    .enum(['mine', 'team', 'baizor', 'builtin', 'tools'])
+    .optional()
+    .catch(undefined),
+  category: z.string().optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/_authenticated/hermes-playground/')({
@@ -39,12 +47,14 @@ export const Route = createFileRoute('/_authenticated/hermes-playground/')({
 
 function HermesPlaygroundPage() {
   const { t } = useTranslation()
-  const { panel } = Route.useSearch()
+  const { category, panel, section } = Route.useSearch()
 
   return (
     <HermesAgentWorkspace
       defaultSystemPrompt='Use Chinese by default unless the user asks otherwise.'
       emptyModelsMessage={t('No Hermes models available')}
+      initialCapabilityCategory={category}
+      initialCapabilitySection={section}
       initialPanel={panel}
       queryKeyPrefix='hermes-playground'
     />
