@@ -16,6 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useLocation } from '@tanstack/react-router'
+import { useEffect, useMemo, useRef } from 'react'
+
 import { Main } from '@/components/layout'
 import {
   CardStaggerContainer,
@@ -38,6 +41,11 @@ export function Profile() {
   const { profile, loading, refreshProfile } = useProfile()
   const { status } = useStatus()
   const permissions = useAuthStore((s) => s.auth.user?.permissions)
+  const href = useLocation({ select: (location) => location.href })
+  const headerRef = useRef<HTMLDivElement>(null)
+  const settingsRef = useRef<HTMLDivElement>(null)
+  const securityRef = useRef<HTMLDivElement>(null)
+  const sidebarRef = useRef<HTMLDivElement>(null)
 
   const checkinEnabled = status?.checkin_enabled === true
   const turnstileEnabled = !!(
@@ -45,28 +53,55 @@ export function Profile() {
   )
   const turnstileSiteKey = status?.turnstile_site_key || ''
   const canConfigureSidebar = permissions?.sidebar_settings !== false
+  const activeSection = useMemo(() => {
+    const params = new URLSearchParams(href.split('?')[1]?.split('#')[0] ?? '')
+    return params.get('section')
+  }, [href])
+
+  useEffect(() => {
+    let target: HTMLDivElement | null = null
+
+    if (activeSection === 'account' || activeSection === 'preferences') {
+      target = settingsRef.current
+    } else if (activeSection === 'security') {
+      target = securityRef.current
+    } else if (activeSection === 'sidebar') {
+      target = sidebarRef.current
+    } else if (activeSection === 'profile') {
+      target = headerRef.current
+    }
+
+    target?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }, [activeSection])
 
   return (
     <Main>
       <div className='min-h-0 flex-1 overflow-auto px-3 py-3 sm:px-4 sm:py-6'>
         <CardStaggerContainer className='mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-6'>
           <CardStaggerItem>
-            <ProfileHeader profile={profile} loading={loading} />
+            <div ref={headerRef}>
+              <ProfileHeader profile={profile} loading={loading} />
+            </div>
           </CardStaggerItem>
 
           <CardStaggerItem>
             <div className='grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.46fr)] xl:items-start'>
               <div className='space-y-4 sm:space-y-6'>
-                <ProfileSettingsCard
-                  profile={profile}
-                  loading={loading}
-                  onProfileUpdate={refreshProfile}
-                />
+                <div ref={settingsRef}>
+                  <ProfileSettingsCard
+                    profile={profile}
+                    loading={loading}
+                    onProfileUpdate={refreshProfile}
+                    activeSection={activeSection}
+                  />
+                </div>
                 <LanguagePreferencesCard
                   profile={profile}
                   onProfileUpdate={refreshProfile}
                 />
-                <ProfileSecurityCard profile={profile} loading={loading} />
+                <div ref={securityRef}>
+                  <ProfileSecurityCard profile={profile} loading={loading} />
+                </div>
               </div>
 
               <div className='space-y-4 sm:space-y-6 xl:sticky xl:top-6'>
@@ -77,7 +112,11 @@ export function Profile() {
                     turnstileSiteKey={turnstileSiteKey}
                   />
                 )}
-                {canConfigureSidebar && <SidebarModulesCard />}
+                {canConfigureSidebar && (
+                  <div ref={sidebarRef}>
+                    <SidebarModulesCard />
+                  </div>
+                )}
                 <PasskeyCard loading={loading} />
                 <TwoFACard loading={loading} />
               </div>

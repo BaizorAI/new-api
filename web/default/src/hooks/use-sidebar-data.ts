@@ -332,7 +332,7 @@ export function useSidebarData(): SidebarData {
         title: t('Management'),
         description: t('Team, user, model and billing administration.'),
         icon: ServerCog,
-        url: '/teams',
+        url: '/dashboard/overview',
         position: 'bottom',
         items: [
           {
@@ -434,12 +434,13 @@ export function useSidebarData(): SidebarData {
         title: t('Personal Center'),
         description: t('Profile, wallet and personal navigation settings.'),
         icon: User,
-        url: '/profile',
+        url: '/profile?section=profile',
         position: 'bottom',
         items: [
           {
             title: t('Profile'),
-            url: '/profile',
+            url: '/profile?section=profile',
+            configUrls: ['/profile'],
             icon: User,
           },
           {
@@ -449,7 +450,8 @@ export function useSidebarData(): SidebarData {
           },
           {
             title: t('Sidebar Personal Settings'),
-            url: '/profile',
+            url: '/profile?section=sidebar',
+            configUrls: ['/profile'],
             icon: Settings,
           },
         ],

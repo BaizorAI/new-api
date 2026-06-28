@@ -118,7 +118,7 @@ function ProductRail(props: { activeGroup?: NavGroup; navGroups: NavGroup[] }) {
       aria-label={t('Product navigation')}
       className='bg-sidebar flex min-h-0 flex-col items-center gap-1 overflow-hidden py-2'
     >
-      <SidebarMenu className='items-center gap-1 px-1'>
+      <SidebarMenu className='no-scrollbar min-h-0 flex-1 items-center gap-1 overflow-y-auto px-1'>
         {topNavGroups.map((group) => (
           <ProductRailItem
             key={group.id || group.title}
@@ -129,7 +129,7 @@ function ProductRail(props: { activeGroup?: NavGroup; navGroups: NavGroup[] }) {
       </SidebarMenu>
 
       {bottomNavGroups.length > 0 ? (
-        <SidebarMenu className='mt-auto items-center gap-1 border-t px-1 pt-2'>
+        <SidebarMenu className='shrink-0 items-center gap-1 border-t px-1 pt-2'>
           {bottomNavGroups.map((group) => (
             <ProductRailItem
               key={group.id || group.title}
@@ -251,7 +251,12 @@ function resolveActiveRootGroup(
     return findGroup(navGroups, 'model-playground')
   }
 
-  if (pathname === '/profile' && section) {
+  if (
+    pathname === '/profile' &&
+    (section === 'account' ||
+      section === 'security' ||
+      section === 'preferences')
+  ) {
     return findGroup(navGroups, 'settings')
   }
 

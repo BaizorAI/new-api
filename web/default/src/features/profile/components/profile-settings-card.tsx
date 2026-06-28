@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link2, Settings } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -37,15 +37,30 @@ interface ProfileSettingsCardProps {
   profile: UserProfile | null
   loading: boolean
   onProfileUpdate: () => void
+  activeSection?: string | null
 }
 
 export function ProfileSettingsCard({
   profile,
   loading,
   onProfileUpdate,
+  activeSection,
 }: ProfileSettingsCardProps) {
   const { t } = useTranslation()
-  const [activeTab, setActiveTab] = useState('bindings')
+  const [activeTab, setActiveTab] = useState(
+    activeSection === 'preferences' ? 'settings' : 'bindings'
+  )
+
+  useEffect(() => {
+    if (activeSection === 'preferences') {
+      setActiveTab('settings')
+      return
+    }
+
+    if (activeSection === 'account') {
+      setActiveTab('bindings')
+    }
+  }, [activeSection])
 
   if (loading) {
     return (
@@ -56,8 +71,8 @@ export function ProfileSettingsCard({
         </CardHeader>
         <CardContent className='space-y-4 p-3 sm:p-5'>
           <Skeleton className='h-10 w-full' />
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className='h-20 w-full' />
+          {['bindings', 'settings', 'security'].map((key) => (
+            <Skeleton key={key} className='h-20 w-full' />
           ))}
         </CardContent>
       </Card>
