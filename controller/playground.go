@@ -307,6 +307,42 @@ func HermesPlaygroundWeixinDisconnect(c *gin.Context) {
 	recordHermesWeixinAudit(c, "hermes.weixin_disconnect", "disconnect", result)
 }
 
+func HermesPlaygroundWeixinSessions(c *gin.Context) {
+	if c == nil || c.Request == nil {
+		return
+	}
+
+	if c.Request.Method != http.MethodGet {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
+		return
+	}
+
+	query := url.Values{}
+	query.Set("source", "weixin")
+	query.Set("limit", strconv.Itoa(hermesBoundedQueryInt(c.Query("limit"), 20, 100)))
+	query.Set("offset", strconv.Itoa(hermesBoundedQueryInt(c.Query("offset"), 0, 1000000)))
+	proxyHermesPlaygroundWithQuery(c, http.MethodGet, "/api/sessions", query, nil)
+}
+
+func HermesPlaygroundSessionMessages(c *gin.Context) {
+	if c == nil || c.Request == nil {
+		return
+	}
+
+	if c.Request.Method != http.MethodGet {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
+		return
+	}
+
+	sessionID := sanitizeHermesSessionID(c.Param("session_id"))
+	if sessionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid session_id"})
+		return
+	}
+
+	proxyHermesPlayground(c, http.MethodGet, "/api/sessions/"+url.PathEscape(sessionID)+"/messages", nil)
+}
+
 func applyHermesPlaygroundHeaderOverride(c *gin.Context, userId int) {
 	if c == nil || c.Request == nil || !strings.HasPrefix(c.Request.URL.Path, "/pg/chat/completions") {
 		return
@@ -395,7 +431,22 @@ func applyHermesRequestedBillingContext(c *gin.Context, userId int) error {
 	return nil
 }
 
+func hermesBoundedQueryInt(value string, fallback int, maximum int) int {
+	parsed, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || parsed < 0 {
+		return fallback
+	}
+	if parsed > maximum {
+		return maximum
+	}
+	return parsed
+}
+
 func proxyHermesPlayground(c *gin.Context, method string, path string, body []byte) hermesProxyResult {
+	return proxyHermesPlaygroundWithQuery(c, method, path, nil, body)
+}
+
+func proxyHermesPlaygroundWithQuery(c *gin.Context, method string, path string, query url.Values, body []byte) hermesProxyResult {
 	baseURL := strings.TrimRight(common.GetEnvOrDefaultString("HERMES_API_SERVER_URL", "http://baizor-hermes:8642"), "/")
 	apiKey := strings.TrimSpace(common.GetEnvOrDefaultString("HERMES_API_SERVER_KEY", ""))
 	if apiKey == "" {
@@ -409,7 +460,7 @@ func proxyHermesPlayground(c *gin.Context, method string, path string, body []by
 		return hermesProxyResult{StatusCode: http.StatusServiceUnavailable}
 	}
 	parsedURL.Path = strings.TrimRight(parsedURL.Path, "/") + path
-	parsedURL.RawQuery = ""
+	parsedURL.RawQuery = query.Encode()
 
 	var reader io.Reader
 	if len(body) > 0 {

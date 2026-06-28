@@ -28,7 +28,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -56,6 +56,10 @@ import {
   disconnectHermesWeixin,
   getHermesWeixinQRStatus,
   getHermesWeixinStatus,
+  listHermesSessionMessages,
+  listHermesWeixinMessageSessions,
+  type HermesMessageSession,
+  type HermesSessionMessage,
   type HermesWeixinStatus,
   type HermesWeixinStatusValue,
 } from '../api'
@@ -187,11 +191,9 @@ function HermesMessagePlatformContent(props: {
           </>
         ) : null}
         {props.activeSection === 'history' ? (
-          <CompactEmpty
-            description={t(
-              'Message history will show recent incoming and outgoing platform messages.'
-            )}
-            title={t('Message history')}
+          <WeixinMessageHistory
+            open={props.isActive}
+            userScope={props.userScope}
           />
         ) : null}
         {props.activeSection === 'settings' ? (
@@ -244,6 +246,238 @@ function MessagePlatformSectionTabs(props: {
           {option.label}
         </Button>
       ))}
+    </div>
+  )
+}
+
+function WeixinMessageHistory(props: { open: boolean; userScope: string }) {
+  const { t } = useTranslation()
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null
+  )
+
+  const sessionsQuery = useQuery({
+    queryKey: ['hermes-message-platforms', props.userScope, 'weixin', 'sessions'],
+    queryFn: listHermesWeixinMessageSessions,
+    enabled: props.open,
+  })
+
+  const sessions = useMemo(() => sessionsQuery.data ?? [], [sessionsQuery.data])
+  useEffect(() => {
+    if (sessions.length === 0) {
+      setSelectedSessionId(null)
+      return
+    }
+    if (
+      !selectedSessionId ||
+      !sessions.some((session) => session.id === selectedSessionId)
+    ) {
+      setSelectedSessionId(sessions[0].id)
+    }
+  }, [selectedSessionId, sessions])
+
+  const selectedSession =
+    sessions.find((session) => session.id === selectedSessionId) ?? sessions[0]
+
+  const messagesQuery = useQuery({
+    queryKey: [
+      'hermes-message-platforms',
+      props.userScope,
+      'weixin',
+      'messages',
+      selectedSession?.id,
+    ],
+    queryFn: () => listHermesSessionMessages(selectedSession?.id ?? ''),
+    enabled: props.open && !!selectedSession?.id,
+  })
+
+  const messages = messagesQuery.data ?? []
+  let messagesContent = null
+  if (messagesQuery.isLoading) {
+    messagesContent = (
+      <div className='text-muted-foreground flex min-h-40 items-center justify-center gap-2 text-sm'>
+        <RefreshCwIcon className='size-4 animate-spin' />
+        {t('Loading messages')}
+      </div>
+    )
+  } else if (messagesQuery.error) {
+    messagesContent = (
+      <CapabilityError
+        message={getErrorMessage(
+          messagesQuery.error,
+          t('Failed to load messages')
+        )}
+      />
+    )
+  } else if (messages.length === 0) {
+    messagesContent = (
+      <CompactEmpty
+        description={t('This conversation does not have saved messages yet.')}
+        title={t('No messages')}
+      />
+    )
+  } else {
+    messagesContent = (
+      <div className='space-y-3'>
+        {messages.map((message, index) => (
+          <MessageHistoryItem
+            key={message.id ?? `${message.role}-${index}`}
+            message={message}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  let historyContent = null
+  if (sessionsQuery.isLoading) {
+    historyContent = (
+      <div className='text-muted-foreground flex min-h-40 items-center justify-center gap-2 p-4 text-sm'>
+        <RefreshCwIcon className='size-4 animate-spin' />
+        {t('Loading message history')}
+      </div>
+    )
+  } else if (sessionsQuery.error) {
+    historyContent = (
+      <CapabilityError
+        message={getErrorMessage(
+          sessionsQuery.error,
+          t('Failed to load WeChat message history')
+        )}
+      />
+    )
+  } else if (sessions.length === 0) {
+    historyContent = (
+      <CompactEmpty
+        description={t(
+          'WeChat conversations will appear here after Hermes receives messages.'
+        )}
+        title={t('No WeChat message history')}
+      />
+    )
+  } else {
+    historyContent = (
+      <div className='grid min-h-80 md:grid-cols-[280px_minmax(0,1fr)]'>
+        <div className='border-b md:border-r md:border-b-0'>
+          <div className='border-b px-3 py-2 text-xs font-medium'>
+            {t('Conversations')}
+          </div>
+          <div className='max-h-[520px] overflow-y-auto p-2'>
+            {sessions.map((session) => (
+              <button
+                className={cn(
+                  'hover:bg-muted/70 flex w-full flex-col gap-1 rounded-md px-3 py-2 text-left text-sm',
+                  selectedSession?.id === session.id && 'bg-muted'
+                )}
+                key={session.id}
+                onClick={() => setSelectedSessionId(session.id)}
+                type='button'
+              >
+                <span className='line-clamp-1 font-medium'>
+                  {getMessageSessionTitle(session, t)}
+                </span>
+                {session.preview ? (
+                  <span className='text-muted-foreground line-clamp-2 text-xs'>
+                    {session.preview}
+                  </span>
+                ) : null}
+                <span className='text-muted-foreground text-xs'>
+                  {t('Messages: {{count}}', {
+                    count: session.messageCount,
+                  })}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className='min-w-0'>
+          <div className='flex items-center justify-between gap-3 border-b px-4 py-2'>
+            <div className='min-w-0'>
+              <div className='line-clamp-1 text-sm font-medium'>
+                {getMessageSessionTitle(selectedSession, t)}
+              </div>
+              {selectedSession?.lastActive ? (
+                <div className='text-muted-foreground text-xs'>
+                  {formatUnixSeconds(selectedSession.lastActive)}
+                </div>
+              ) : null}
+            </div>
+            <Button
+              aria-label={t('Refresh messages')}
+              disabled={messagesQuery.isFetching}
+              onClick={() => void messagesQuery.refetch()}
+              size='icon-sm'
+              type='button'
+              variant='ghost'
+            >
+              <RefreshCwIcon className='size-4' />
+            </Button>
+          </div>
+
+          <div className='max-h-[520px] overflow-y-auto p-4'>
+            {messagesContent}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <section className='rounded-lg border'>
+      <div className='flex flex-wrap items-center justify-between gap-3 border-b p-4'>
+        <div className='space-y-1'>
+          <h3 className='text-sm font-medium'>{t('Message history')}</h3>
+          <p className='text-muted-foreground text-xs'>
+            {t(
+              'Review recent WeChat conversations received by the message platform.'
+            )}
+          </p>
+        </div>
+        <Button
+          disabled={sessionsQuery.isFetching}
+          onClick={() => void sessionsQuery.refetch()}
+          size='sm'
+          type='button'
+          variant='outline'
+        >
+          <RefreshCwIcon className='size-4' />
+          {t('Refresh')}
+        </Button>
+      </div>
+      {historyContent}
+    </section>
+  )
+}
+
+function MessageHistoryItem(props: { message: HermesSessionMessage }) {
+  const { t } = useTranslation()
+  const role = props.message.role
+  const isAssistant = role === 'assistant'
+
+  return (
+    <div
+      className={cn(
+        'flex',
+        isAssistant ? 'justify-start' : 'justify-end'
+      )}
+    >
+      <div
+        className={cn(
+          'max-w-[88%] rounded-lg border px-3 py-2 text-sm',
+          isAssistant ? 'bg-muted/40' : 'bg-primary text-primary-foreground'
+        )}
+      >
+        <div className='mb-1 flex flex-wrap items-center gap-2 text-xs opacity-80'>
+          <span>{getMessageRoleLabel(role, t)}</span>
+          {props.message.timestamp ? (
+            <span>{formatUnixSeconds(props.message.timestamp)}</span>
+          ) : null}
+        </div>
+        <div className='whitespace-pre-wrap break-words'>
+          {messageContentText(props.message.content)}
+        </div>
+      </div>
     </div>
   )
 }
@@ -566,6 +800,66 @@ function isImageDataUrl(value: string): boolean {
 
 function formatUnixSeconds(value: number): string {
   return new Date(value * 1000).toLocaleString()
+}
+
+function getMessageSessionTitle(
+  session: HermesMessageSession | undefined,
+  t: (key: string) => string
+): string {
+  if (!session) return t('Conversation')
+  return session.title || session.preview || session.id || t('Conversation')
+}
+
+function getMessageRoleLabel(
+  role: string,
+  t: (key: string) => string
+): string {
+  switch (role) {
+    case 'assistant':
+      return t('Assistant')
+    case 'user':
+      return t('User')
+    case 'tool':
+      return t('Tool')
+    case 'system':
+      return t('System')
+    default:
+      return t('Message')
+  }
+}
+
+function messageContentText(content: unknown): string {
+  if (typeof content === 'string') return content
+  if (Array.isArray(content)) {
+    return content
+      .map((item) => {
+        if (typeof item === 'string') return item
+        const record = asMessageRecord(item)
+        return stringFromMessageValue(record.text) || stringFromMessageValue(record.content)
+      })
+      .filter(Boolean)
+      .join('\n')
+  }
+  const record = asMessageRecord(content)
+  const text = stringFromMessageValue(record.text) || stringFromMessageValue(record.content)
+  if (text) return text
+  if (content == null) return ''
+  try {
+    return JSON.stringify(content)
+  } catch {
+    return String(content)
+  }
+}
+
+function asMessageRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
+
+function stringFromMessageValue(value: unknown): string {
+  return typeof value === 'string' ? value : ''
 }
 
 function getErrorMessage(error: Error | null, fallback: string): string {

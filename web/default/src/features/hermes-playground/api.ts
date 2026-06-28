@@ -74,6 +74,29 @@ export interface HermesWeixinStatus {
   removedAccounts?: number
 }
 
+export interface HermesMessageSession {
+  id: string
+  source: string
+  userId?: string
+  model?: string
+  title?: string
+  startedAt?: number
+  endedAt?: number
+  lastActive?: number
+  messageCount: number
+  preview?: string
+}
+
+export interface HermesSessionMessage {
+  id?: number
+  sessionId?: string
+  role: string
+  content: unknown
+  timestamp?: number
+  toolName?: string
+  finishReason?: string
+}
+
 export interface HermesTeamConversationRecord extends HermesConversation {
   messages: Message[]
   createdBy?: number
@@ -466,6 +489,30 @@ export async function disconnectHermesWeixin(): Promise<HermesWeixinStatus> {
   return normalizeWeixinStatusResponse(response.data)
 }
 
+export async function listHermesWeixinMessageSessions(): Promise<
+  HermesMessageSession[]
+> {
+  const response = await api.get('/pg/hermes/platforms/weixin/sessions', {
+    params: { limit: 50 },
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  return normalizeHermesMessageSessionsResponse(response.data)
+}
+
+export async function listHermesSessionMessages(
+  sessionId: string
+): Promise<HermesSessionMessage[]> {
+  const response = await api.get(
+    `/pg/hermes/sessions/${encodeURIComponent(sessionId)}/messages`,
+    {
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    }
+  )
+  return normalizeHermesSessionMessagesResponse(response.data)
+}
+
 function buildHermesTeamHeaders(teamId: number | undefined, teamName?: string) {
   if (!teamId || teamId <= 0) return undefined
   const headers: Record<string, string> = { 'X-Baizor-Team-Id': String(teamId) }
@@ -685,6 +732,56 @@ function normalizeWeixinStatusResponse(payload: unknown): HermesWeixinStatus {
     message: stringFromUnknown(record.message) || undefined,
     removedAccounts: numberFromUnknown(record.removed_accounts) ?? undefined,
   }
+}
+
+function normalizeHermesMessageSessionsResponse(
+  payload: unknown
+): HermesMessageSession[] {
+  const record = asRecord(payload)
+  const rawSessions =
+    arrayFromUnknown(record.data) ?? arrayFromUnknown(record.sessions)
+  if (!rawSessions) return []
+  return rawSessions.map(normalizeHermesMessageSession)
+}
+
+function normalizeHermesMessageSession(
+  payload: unknown
+): HermesMessageSession {
+  const session = asRecord(payload)
+  const id = stringFromUnknown(session.id)
+  return {
+    id,
+    source: stringFromUnknown(session.source) || 'weixin',
+    userId: stringFromUnknown(session.user_id) || undefined,
+    model: stringFromUnknown(session.model) || undefined,
+    title: stringFromUnknown(session.title) || undefined,
+    startedAt: numberFromUnknown(session.started_at) ?? undefined,
+    endedAt: numberFromUnknown(session.ended_at) ?? undefined,
+    lastActive: numberFromUnknown(session.last_active) ?? undefined,
+    messageCount: numberFromUnknown(session.message_count) ?? 0,
+    preview: stringFromUnknown(session.preview) || undefined,
+  }
+}
+
+function normalizeHermesSessionMessagesResponse(
+  payload: unknown
+): HermesSessionMessage[] {
+  const record = asRecord(payload)
+  const rawMessages =
+    arrayFromUnknown(record.data) ?? arrayFromUnknown(record.messages)
+  if (!rawMessages) return []
+  return rawMessages.map((item) => {
+    const message = asRecord(item)
+    return {
+      id: numberFromUnknown(message.id) ?? undefined,
+      sessionId: stringFromUnknown(message.session_id) || undefined,
+      role: stringFromUnknown(message.role) || 'message',
+      content: message.content,
+      timestamp: numberFromUnknown(message.timestamp) ?? undefined,
+      toolName: stringFromUnknown(message.tool_name) || undefined,
+      finishReason: stringFromUnknown(message.finish_reason) || undefined,
+    }
+  })
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

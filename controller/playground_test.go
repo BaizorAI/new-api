@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -396,6 +397,79 @@ func TestHermesPlaygroundWeixinConnectedAuditIsScopedByUser(t *testing.T) {
 		require.NoError(t, db.Model(&model.Log{}).Where("user_id = ? AND type = ? AND content = ?", userID, model.LogTypeManage, "Connected Hermes WeChat account").Count(&count).Error)
 		assert.Equal(t, int64(1), count)
 	}
+}
+
+func TestHermesPlaygroundWeixinSessionsProxiesSourceFilteredQuery(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var receivedPath string
+	var receivedQuery url.Values
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedPath = r.URL.Path
+		receivedQuery = r.URL.Query()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"object":"list","data":[{"id":"s1","source":"weixin","message_count":2}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("HERMES_API_SERVER_URL", server.URL+"/root")
+	t.Setenv("HERMES_API_SERVER_KEY", "test-key")
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/platforms/weixin/sessions?source=telegram&limit=999", nil)
+	c.Set("id", 42)
+
+	HermesPlaygroundWeixinSessions(c)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.JSONEq(t, `{"object":"list","data":[{"id":"s1","source":"weixin","message_count":2}]}`, recorder.Body.String())
+	assert.Equal(t, "/root/api/sessions", receivedPath)
+	assert.Equal(t, "weixin", receivedQuery.Get("source"))
+	assert.Equal(t, "100", receivedQuery.Get("limit"))
+	assert.Equal(t, "0", receivedQuery.Get("offset"))
+}
+
+func TestHermesPlaygroundSessionMessagesRejectsInvalidSessionID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/sessions/bad%0Aid/messages", nil)
+	c.Params = gin.Params{{Key: "session_id", Value: "bad\nid"}}
+	c.Set("id", 42)
+
+	HermesPlaygroundSessionMessages(c)
+
+	require.Equal(t, http.StatusBadRequest, recorder.Code)
+	assert.JSONEq(t, `{"message":"invalid session_id"}`, recorder.Body.String())
+}
+
+func TestHermesPlaygroundSessionMessagesProxiesSanitizedSessionID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var receivedPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"object":"list","session_id":"session_1","data":[{"role":"user","content":"hello"}]}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("HERMES_API_SERVER_URL", server.URL)
+	t.Setenv("HERMES_API_SERVER_KEY", "test-key")
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/sessions/session_1/messages", nil)
+	c.Params = gin.Params{{Key: "session_id", Value: "session_1"}}
+	c.Set("id", 42)
+
+	HermesPlaygroundSessionMessages(c)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.JSONEq(t, `{"object":"list","session_id":"session_1","data":[{"role":"user","content":"hello"}]}`, recorder.Body.String())
+	assert.Equal(t, "/api/sessions/session_1/messages", receivedPath)
 }
 
 func TestHermesPlaygroundProxyRequiresAPIKey(t *testing.T) {
