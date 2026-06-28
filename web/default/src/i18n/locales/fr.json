@@ -5758,6 +5758,7 @@
     "All result types": "Tous les types de resultats",
     "No results match the current result filter.": "Aucun resultat ne correspond au filtre actuel.",
     "Message history will show recent incoming and outgoing platform messages.": "L historique affichera les messages recents entrants et sortants des plateformes.",
-    "Connection settings will show channel status, listener status and reconnect actions.": "Les parametres de connexion afficheront l etat du canal, du listener et les actions de reconnexion."
+    "Connection settings will show channel status, listener status and reconnect actions.": "Les parametres de connexion afficheront l etat du canal, du listener et les actions de reconnexion.",
+    "Start using": "Commencer"
   }
 }

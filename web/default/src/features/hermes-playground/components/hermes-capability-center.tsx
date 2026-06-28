@@ -23,6 +23,7 @@ import {
   CopyIcon,
   MoreHorizontalIcon,
   PackagePlusIcon,
+  PlayIcon,
   PencilIcon,
   RefreshCwIcon,
   SearchIcon,
@@ -110,6 +111,7 @@ interface HermesCapabilityCenterProps {
   teams: Team[]
   onOpenChange: (open: boolean) => void
   onAddSkill: () => void
+  onUseSkill: (skill: HermesSkill) => void
   onEditSkill: (skill: HermesSkill, teamId?: number) => void
 }
 
@@ -353,6 +355,7 @@ export function HermesCapabilityCenter(props: HermesCapabilityCenterProps) {
                 isLoading={skillsQuery.isLoading}
                 isAdmin={isAdmin}
                 onAddSkill={props.onAddSkill}
+                onUseSkill={props.onUseSkill}
                 onDeleteSkill={setDeletingSkill}
                 onEditSkill={props.onEditSkill}
                 manageableTeams={manageableTeams}
@@ -435,6 +438,7 @@ interface SkillPanelProps {
   error: Error | null
   isAdmin: boolean
   onAddSkill: () => void
+  onUseSkill: (skill: HermesSkill) => void
   onEditSkill: (skill: HermesSkill, teamId?: number) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
@@ -495,6 +499,20 @@ function SkillPanel(props: SkillPanelProps) {
             </Select>
           </div>
         )}
+        <div className='flex flex-wrap gap-1.5'>
+          {getSkillCategoryOptions(t).map((option) => (
+            <Button
+              aria-pressed={props.search === option.query}
+              key={option.query || 'all'}
+              onClick={() => props.setSearch(option.query)}
+              size='xs'
+              type='button'
+              variant={props.search === option.query ? 'secondary' : 'outline'}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <ScrollArea className='min-h-0 flex-1'>
@@ -518,6 +536,7 @@ function SkillPanel(props: SkillPanelProps) {
                 isFocused={section.isFocused}
                 key={section.id}
                 onDeleteSkill={props.onDeleteSkill}
+                onUseSkill={props.onUseSkill}
                 onEditSkill={props.onEditSkill}
                 manageableTeams={props.manageableTeams}
                 selectedTeamId={props.selectedTeamId}
@@ -541,6 +560,7 @@ interface SkillSectionProps {
   isAdmin: boolean
   isFocused?: boolean
   onEditSkill: (skill: HermesSkill, teamId?: number) => void
+  onUseSkill: (skill: HermesSkill) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
   selectedTeamId: number
@@ -574,6 +594,7 @@ function SkillSection(props: SkillSectionProps) {
               key={`${skill.source}-${skill.path ?? skill.name}`}
               isAdmin={props.isAdmin}
               onDeleteSkill={props.onDeleteSkill}
+              onUseSkill={props.onUseSkill}
               onEditSkill={props.onEditSkill}
               manageableTeams={props.manageableTeams}
               selectedTeamId={props.selectedTeamId}
@@ -592,6 +613,7 @@ interface SkillRowProps {
   skill: HermesSkill
   isAdmin: boolean
   onEditSkill: (skill: HermesSkill, teamId?: number) => void
+  onUseSkill: (skill: HermesSkill) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
   selectedTeamId: number
@@ -769,6 +791,14 @@ function SkillRow(props: SkillRowProps) {
           </div>
         </div>
         <div className='flex flex-wrap gap-2'>
+          <Button
+            onClick={() => props.onUseSkill(props.skill)}
+            size='sm'
+            type='button'
+          >
+            <PlayIcon className='size-3.5' />
+            {t('Start using')}
+          </Button>
           <Button onClick={copyName} size='sm' type='button' variant='outline'>
             <CopyIcon className='size-3.5' />
             {t('Copy skill name')}
@@ -1120,6 +1150,16 @@ function matchesToolsetStatusFilter(
     default:
       return true
   }
+}
+
+function getSkillCategoryOptions(t: (key: string) => string) {
+  return [
+    { query: '', label: t('Recommended') },
+    { query: 'ppt', label: t('PPT and presentations') },
+    { query: 'report', label: t('Research reports') },
+    { query: 'data', label: t('Data analysis') },
+    { query: 'document', label: t('Document writing') },
+  ]
 }
 
 function getToolsetFilterOptions(t: (key: string) => string) {

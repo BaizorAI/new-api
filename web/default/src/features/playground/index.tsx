@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -65,6 +65,7 @@ interface PlaygroundProps {
   onSaveSession?: (messages: MessageType[]) => void
   onAddSkill?: () => void
   suggestedPrompts?: { label: string; prompt: string }[]
+  quickPromptRequest?: { id: string; prompt: string }
   executionTaskContext?: PlaygroundExecutionTaskContext
 }
 
@@ -108,6 +109,7 @@ export function Playground(props: PlaygroundProps = {}) {
   const [editingMessageKey, setEditingMessageKey] = useState<string | null>(
     null
   )
+  const handledQuickPromptIdRef = useRef<string | null>(null)
 
   // Load models
   const { data: modelsData, isLoading: isLoadingModels } = useQuery({
@@ -194,27 +196,34 @@ export function Playground(props: PlaygroundProps = {}) {
     }
   }, [groupsData, setGroups, config.group, updateConfig])
 
-  const handleSendMessage = (
-    text: string,
-    files?: PromptInputSubmittedFile[]
-  ) => {
-    const userMessage = createUserMessage(
-      text,
-      files?.map((f) => ({
-        url: f.url,
-        mediaType: f.mediaType,
-        filename: f.filename,
-        size: f.size,
-      }))
-    )
-    const assistantMessage = createLoadingAssistantMessage()
+  const handleSendMessage = useCallback(
+    (text: string, files?: PromptInputSubmittedFile[]) => {
+      const userMessage = createUserMessage(
+        text,
+        files?.map((f) => ({
+          url: f.url,
+          mediaType: f.mediaType,
+          filename: f.filename,
+          size: f.size,
+        }))
+      )
+      const assistantMessage = createLoadingAssistantMessage()
 
-    const newMessages = [...messages, userMessage, assistantMessage]
-    updateMessagesAndNotify(newMessages)
+      const newMessages = [...messages, userMessage, assistantMessage]
+      updateMessagesAndNotify(newMessages)
 
-    // Send chat request
-    sendChat(newMessages)
-  }
+      // Send chat request
+      sendChat(newMessages)
+    },
+    [messages, sendChat, updateMessagesAndNotify]
+  )
+
+  useEffect(() => {
+    const request = props.quickPromptRequest
+    if (!request || handledQuickPromptIdRef.current === request.id) return
+    handledQuickPromptIdRef.current = request.id
+    handleSendMessage(request.prompt)
+  }, [handleSendMessage, props.quickPromptRequest])
 
   const handleCopyMessage = (message: MessageType) => {
     // Copy is handled in MessageActions component

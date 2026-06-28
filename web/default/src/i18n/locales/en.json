@@ -5758,6 +5758,7 @@
     "All result types": "All result types",
     "No results match the current result filter.": "No results match the current result filter.",
     "Message history will show recent incoming and outgoing platform messages.": "Message history will show recent incoming and outgoing platform messages.",
-    "Connection settings will show channel status, listener status and reconnect actions.": "Connection settings will show channel status, listener status and reconnect actions."
+    "Connection settings will show channel status, listener status and reconnect actions.": "Connection settings will show channel status, listener status and reconnect actions.",
+    "Start using": "Start using"
   }
 }

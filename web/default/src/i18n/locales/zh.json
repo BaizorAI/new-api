@@ -5758,6 +5758,7 @@
     "All result types": "全部成果类型",
     "No results match the current result filter.": "没有符合当前成果筛选的内容。",
     "Message history will show recent incoming and outgoing platform messages.": "消息记录会显示最近收发的平台消息。",
-    "Connection settings will show channel status, listener status and reconnect actions.": "连接设置会显示渠道状态、监听状态和重新连接操作。"
+    "Connection settings will show channel status, listener status and reconnect actions.": "连接设置会显示渠道状态、监听状态和重新连接操作。",
+    "Start using": "开始使用"
   }
 }

@@ -141,6 +141,10 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const [isResultsOpen, setIsResultsOpen] = useState(false)
   const [isMessagePlatformsOpen, setIsMessagePlatformsOpen] = useState(false)
   const [isExecutionTasksOpen, setIsExecutionTasksOpen] = useState(false)
+  const [quickPromptRequest, setQuickPromptRequest] = useState<{
+    id: string
+    prompt: string
+  } | null>(null)
   const teamPersistTimerRef = useRef<number | null>(null)
 
   const { data: teamsResponse, isLoading: isTeamsLoading } = useQuery({
@@ -704,6 +708,19 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     })
   }, [queryClient, queryUserScope])
 
+  const startWithSkill = useCallback(
+    (skill: HermesSkill) => {
+      setQuickPromptRequest({
+        id: `${Date.now()}-${skill.name}`,
+        prompt: t('Use the "{{name}}" skill for this task.', {
+          name: skill.name,
+        }),
+      })
+      setIsCapabilityCenterOpen(false)
+    },
+    [t]
+  )
+
   if (isTeamWorkspace && selectedTeamId <= 0) {
     return (
       <Main className='flex min-h-[calc(100vh-var(--app-header-height,0px))] items-center justify-center p-6'>
@@ -869,6 +886,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         onNewSession={createSession}
         onSaveSession={exportActiveSession}
         queryKeyPrefix={props.queryKeyPrefix}
+        quickPromptRequest={quickPromptRequest}
         requestHeaders={requestHeaders}
         executionTaskContext={{
           workspaceMode: isTeamWorkspace
@@ -913,6 +931,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         onAddSkill={() =>
           openSkillDialog(isTeamWorkspace ? selectedTeamId : undefined)
         }
+        onUseSkill={startWithSkill}
         onEditSkill={(skill, teamId) => {
           setEditSkill(skill)
           setSkillDialogTeamId(teamId)

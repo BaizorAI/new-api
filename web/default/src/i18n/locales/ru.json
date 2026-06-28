@@ -5758,6 +5758,7 @@
     "All result types": "Все типы результатов",
     "No results match the current result filter.": "Нет результатов, соответствующих текущему фильтру.",
     "Message history will show recent incoming and outgoing platform messages.": "В истории сообщений будут показаны недавние входящие и исходящие сообщения платформ.",
-    "Connection settings will show channel status, listener status and reconnect actions.": "В настройках подключения будут показаны статус канала, статус слушателя и действия по переподключению."
+    "Connection settings will show channel status, listener status and reconnect actions.": "В настройках подключения будут показаны статус канала, статус слушателя и действия по переподключению.",
+    "Start using": "Начать использовать"
   }
 }
