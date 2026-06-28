@@ -272,7 +272,8 @@ function isModuleEnabled(
   adminConfig: SidebarModulesAdminConfig,
   userConfig: SidebarModulesUserConfig
 ): boolean {
-  const mapping = findModuleConfig(url)
+  const path = url.split('?')[0]?.split('#')[0] ?? url
+  const mapping = findModuleConfig(path)
   if (!mapping) {
     // No matcher applies, default to visible (e.g. system-info and future routes)
     return true

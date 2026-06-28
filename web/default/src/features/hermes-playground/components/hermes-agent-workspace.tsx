@@ -140,6 +140,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const [isSessionsOpen, setIsSessionsOpen] = useState(false)
   const [isCapabilityCenterOpen, setIsCapabilityCenterOpen] = useState(false)
   const [isResultsOpen, setIsResultsOpen] = useState(false)
+  const [resultsTaskId, setResultsTaskId] = useState<string | undefined>()
   const [isMessagePlatformsOpen, setIsMessagePlatformsOpen] = useState(false)
   const [isExecutionTasksOpen, setIsExecutionTasksOpen] = useState(false)
   const [quickPromptRequest, setQuickPromptRequest] = useState<{
@@ -286,6 +287,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       return
     }
     if (props.initialPanel === 'results') {
+      setResultsTaskId(undefined)
       setIsResultsOpen(true)
       return
     }
@@ -303,6 +305,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       setIsCapabilityCenterOpen(true)
     }
     if (consumeHermesResultsOpenRequest()) {
+      setResultsTaskId(undefined)
       setIsResultsOpen(true)
     }
     if (consumeHermesMessagePlatformsOpenRequest()) {
@@ -310,7 +313,10 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     }
 
     const openCapabilityCenter = () => setIsCapabilityCenterOpen(true)
-    const openResults = () => setIsResultsOpen(true)
+    const openResults = () => {
+      setResultsTaskId(undefined)
+      setIsResultsOpen(true)
+    }
     const openMessagePlatforms = () => setIsMessagePlatformsOpen(true)
     window.addEventListener(
       HERMES_CAPABILITIES_OPEN_EVENT,
@@ -650,9 +656,9 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
 
   const invalidateExecutionTasks = useCallback(() => {
     void queryClient.invalidateQueries({
-      queryKey: ['hermes-execution-tasks', queryUserScope],
+      queryKey: ['hermes-execution-tasks'],
     })
-  }, [queryClient, queryUserScope])
+  }, [queryClient])
 
   const applyExecutionTaskResult = useCallback(
     (task: HermesExecutionTask) => {
@@ -892,7 +898,10 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
             </Button>
             <Button
               className='bg-background/95 shadow-sm backdrop-blur'
-              onClick={() => setIsResultsOpen(true)}
+              onClick={() => {
+                setResultsTaskId(undefined)
+                setIsResultsOpen(true)
+              }}
               size='sm'
               type='button'
               variant='outline'
@@ -1040,6 +1049,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         activeSessionId={activeSessionId}
         initialScope={props.initialResultScope}
         initialType={props.initialResultType}
+        initialTaskId={resultsTaskId}
         selectedTeamId={selectedTeamId > 0 ? selectedTeamId : undefined}
         selectedTeamName={selectedTeamName || undefined}
         workspaceMode={isTeamWorkspace ? 'team' : 'personal'}
@@ -1060,7 +1070,13 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
             : undefined
         }
         onContinueResult={continueWithResult}
-        onOpenChange={setIsResultsOpen}
+        onOpenTask={(task) => {
+          void openExecutionTask(task)
+        }}
+        onOpenChange={(open) => {
+          setIsResultsOpen(open)
+          if (!open) setResultsTaskId(undefined)
+        }}
         onSelectSession={(session) => {
           if (!sessions.some((item) => item.id === session.id)) {
             const nextSessions = [session, ...sessions]
@@ -1076,6 +1092,11 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         userScope={queryUserScope}
         teamId={selectedTeamId > 0 ? selectedTeamId : undefined}
         onOpenChange={setIsExecutionTasksOpen}
+        onOpenTaskResults={(task) => {
+          setResultsTaskId(task.taskId)
+          setIsExecutionTasksOpen(false)
+          setIsResultsOpen(true)
+        }}
         onSelectTask={(task) => {
           void openExecutionTask(task)
         }}

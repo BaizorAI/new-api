@@ -16,68 +16,87 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useQuery } from '@tanstack/react-query'
+import { Link, useLocation } from '@tanstack/react-router'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useTranslation } from 'react-i18next'
 
-import { Sidebar, SidebarContent, SidebarRail } from '@/components/ui/sidebar'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+  useSidebar,
+} from '@/components/ui/sidebar'
 import { useLayout } from '@/context/layout-provider'
+import { listTeams } from '@/features/teams/api'
+import type { Team } from '@/features/teams/types'
 import { useSidebarView } from '@/hooks/use-sidebar-view'
 import { MOTION_TRANSITION } from '@/lib/motion'
+import { cn } from '@/lib/utils'
 
-import { NavGroup } from './nav-group'
+import type { NavGroup } from '../types'
+import { NavGroup as ProductMenuGroup } from './nav-group'
 import { SidebarViewHeader } from './sidebar-view-header'
 
-const ROOT_BOTTOM_GROUP_IDS = new Set(['management', 'settings'])
+const PRODUCT_RAIL_WIDTH = '3.5rem'
 
 /**
- * Application sidebar.
+ * Three-column workspace sidebar.
  *
- * The root sidebar stays visible for normal work areas. Only registered
- * administration/settings routes can swap into a contextual sidebar with a
- * `Back to Workspace` affordance.
- *
- * Architecture:
- *   - View resolution + filtering: {@link useSidebarView}
- *   - View registry: `layout/lib/sidebar-view-registry.ts`
- *   - Per-view header: {@link SidebarViewHeader}
- *
- * Adding a new nested view only requires registering a {@link SidebarView}
- * in the registry; this component requires no changes.
+ * Column 1 is a fixed product icon rail. Column 2 is the flat menu for the
+ * current product. Column 3 is the route content rendered by the layout inset.
  */
 export function AppSidebar() {
   const { collapsible, variant } = useLayout()
-  const { key, view, navGroups } = useSidebarView()
+  const { key, view, navGroups, rootNavGroups } = useSidebarView()
+  const href = useLocation({ select: (location) => location.href })
+  const pathname = useLocation({ select: (location) => location.pathname })
   const shouldReduce = useReducedMotion()
-  const [topNavGroups, bottomNavGroups] = splitRootNavGroups(navGroups, !view)
+  const activeRootGroup = resolveActiveRootGroup(rootNavGroups, href, pathname)
+  const menuGroups = view ? navGroups : activeRootGroup ? [activeRootGroup] : []
 
   return (
     <Sidebar collapsible={collapsible} variant={variant}>
-      {view && <SidebarViewHeader view={view} />}
+      <SidebarContent className='overflow-hidden p-0'>
+        <div
+          className='grid h-full min-h-0 grid-cols-[var(--product-rail-width)_minmax(0,1fr)] group-data-[collapsible=icon]:grid-cols-[var(--product-rail-width)]'
+          style={
+            {
+              '--product-rail-width': PRODUCT_RAIL_WIDTH,
+            } as React.CSSProperties
+          }
+        >
+          <ProductRail
+            activeGroup={activeRootGroup}
+            navGroups={rootNavGroups}
+          />
 
-      <SidebarContent className='overflow-hidden py-2'>
-        <AnimatePresence mode='wait' initial={false}>
-          <motion.div
-            key={key}
-            initial={shouldReduce ? false : { opacity: 0, x: -4 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={shouldReduce ? undefined : { opacity: 0 }}
-            transition={MOTION_TRANSITION.fast}
-            className='flex min-h-0 flex-1 flex-col'
-          >
-            <div className='min-h-0 flex-1 overflow-auto pb-2'>
-              {topNavGroups.map((props) => (
-                <NavGroup key={props.id || props.title} {...props} />
-              ))}
-            </div>
-
-            {bottomNavGroups.length > 0 && (
-              <div className='border-sidebar-border mt-auto shrink-0 border-t pt-2'>
-                {bottomNavGroups.map((props) => (
-                  <NavGroup key={props.id || props.title} {...props} />
-                ))}
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+          <div className='border-sidebar-border flex min-h-0 min-w-0 flex-col border-l group-data-[collapsible=icon]:hidden'>
+            {view ? <SidebarViewHeader view={view} /> : null}
+            <AnimatePresence mode='wait' initial={false}>
+              <motion.div
+                key={view ? key : activeRootGroup?.id || key}
+                initial={shouldReduce ? false : { opacity: 0, x: -4 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={shouldReduce ? undefined : { opacity: 0 }}
+                transition={MOTION_TRANSITION.fast}
+                className='flex min-h-0 flex-1 flex-col'
+              >
+                <div className='min-h-0 flex-1 overflow-auto py-2'>
+                  {menuGroups.map((props) => (
+                    <ProductMenuGroup
+                      key={props.id || props.title}
+                      {...props}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
       </SidebarContent>
 
       <SidebarRail />
@@ -85,17 +104,172 @@ export function AppSidebar() {
   )
 }
 
-function splitRootNavGroups<T extends { id?: string }>(
-  navGroups: T[],
-  isRootView: boolean
-): [T[], T[]] {
-  if (!isRootView) return [navGroups, []]
+function ProductRail(props: { activeGroup?: NavGroup; navGroups: NavGroup[] }) {
+  const { t } = useTranslation()
+  const [topNavGroups, bottomNavGroups] = splitProductGroups(props.navGroups)
 
-  const topNavGroups = navGroups.filter(
-    (group) => !group.id || !ROOT_BOTTOM_GROUP_IDS.has(group.id)
+  return (
+    <nav
+      aria-label={t('Product navigation')}
+      className='bg-sidebar flex min-h-0 flex-col items-center gap-1 overflow-hidden py-2'
+    >
+      <SidebarMenu className='items-center gap-1 px-1'>
+        {topNavGroups.map((group) => (
+          <ProductRailItem
+            key={group.id || group.title}
+            group={group}
+            isActive={props.activeGroup?.id === group.id}
+          />
+        ))}
+      </SidebarMenu>
+
+      {bottomNavGroups.length > 0 ? (
+        <SidebarMenu className='mt-auto items-center gap-1 border-t px-1 pt-2'>
+          {bottomNavGroups.map((group) => (
+            <ProductRailItem
+              key={group.id || group.title}
+              group={group}
+              isActive={props.activeGroup?.id === group.id}
+            />
+          ))}
+        </SidebarMenu>
+      ) : null}
+    </nav>
   )
+}
+
+function ProductRailItem(props: { group: NavGroup; isActive: boolean }) {
+  const { setOpenMobile } = useSidebar()
+  const { data: teamsResponse } = useQuery({
+    queryKey: ['sidebar', 'team-workspaces'],
+    queryFn: listTeams,
+    enabled: props.group.id === 'team-collaboration',
+  })
+  const destination = getProductDestination(
+    props.group,
+    teamsResponse?.success ? (teamsResponse.data ?? []) : []
+  )
+  const Icon = props.group.icon
+  const label = props.group.description ?? props.group.title
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        isActive={props.isActive}
+        title={label}
+        tooltip={label}
+        className={cn(
+          'size-10 justify-center rounded-lg p-0',
+          props.isActive && 'bg-sidebar-accent text-sidebar-accent-foreground'
+        )}
+        render={
+          <Link
+            to={destination}
+            onClick={() => setOpenMobile(false)}
+            aria-label={props.group.title}
+            aria-current={props.isActive ? 'page' : undefined}
+          />
+        }
+      >
+        {Icon ? <Icon className='size-5 shrink-0' aria-hidden='true' /> : null}
+        <span className='sr-only'>{props.group.title}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+}
+
+function splitProductGroups(navGroups: NavGroup[]): [NavGroup[], NavGroup[]] {
+  const topNavGroups = navGroups.filter((group) => group.position !== 'bottom')
   const bottomNavGroups = navGroups.filter(
-    (group) => group.id && ROOT_BOTTOM_GROUP_IDS.has(group.id)
+    (group) => group.position === 'bottom'
   )
   return [topNavGroups, bottomNavGroups]
+}
+
+function getProductDestination(group: NavGroup, teams: Team[]): string {
+  if (group.id === 'team-collaboration') {
+    const firstTeam = teams[0]
+    return firstTeam
+      ? `/team-workspace?team_id=${encodeURIComponent(firstTeam.id)}`
+      : '/team-workspace'
+  }
+
+  if (typeof group.url === 'string') return group.url
+
+  const firstLink = group.items.find(
+    (item) => 'url' in item && typeof item.url === 'string'
+  )
+  if (firstLink && 'url' in firstLink && typeof firstLink.url === 'string') {
+    return firstLink.url
+  }
+
+  return '/team-workspace'
+}
+
+function resolveActiveRootGroup(
+  navGroups: NavGroup[],
+  href: string,
+  pathname: string
+): NavGroup | undefined {
+  const params = new URLSearchParams(href.split('?')[1]?.split('#')[0] ?? '')
+  const panel = params.get('panel')
+  const section = params.get('section')
+
+  if (pathname === '/team-workspace') {
+    return params.has('team_id')
+      ? findGroup(navGroups, 'team-collaboration')
+      : findGroup(navGroups, 'overview')
+  }
+
+  if (pathname === '/hermes-playground') {
+    if (panel === 'skills') return findGroup(navGroups, 'skill-store')
+    if (panel === 'results') return findGroup(navGroups, 'results-center')
+    if (panel === 'messages') return findGroup(navGroups, 'message-platform')
+    return findGroup(navGroups, 'workbench')
+  }
+
+  if (pathname === '/one-person-company') {
+    return findGroup(navGroups, 'workbench')
+  }
+
+  if (pathname === '/playground' || pathname.startsWith('/chat/')) {
+    return findGroup(navGroups, 'model-playground')
+  }
+
+  if (pathname === '/profile' && section) {
+    return findGroup(navGroups, 'settings')
+  }
+
+  if (pathname === '/profile' || pathname === '/wallet') {
+    return findGroup(navGroups, 'personal-center')
+  }
+
+  if (pathname === '/docs') {
+    return findGroup(navGroups, 'help-docs')
+  }
+
+  if (pathname.startsWith('/system-settings')) {
+    return findGroup(navGroups, 'settings')
+  }
+
+  if (
+    pathname === '/teams' ||
+    pathname === '/keys' ||
+    pathname === '/channels' ||
+    pathname === '/users' ||
+    pathname === '/redemption-codes' ||
+    pathname === '/subscriptions' ||
+    pathname === '/system-info' ||
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/models') ||
+    pathname.startsWith('/usage-logs')
+  ) {
+    return findGroup(navGroups, 'management')
+  }
+
+  return navGroups[0]
+}
+
+function findGroup(navGroups: NavGroup[], id: string): NavGroup | undefined {
+  return navGroups.find((group) => group.id === id) ?? navGroups[0]
 }

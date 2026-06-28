@@ -20,28 +20,23 @@ import {
   Activity,
   Archive,
   BriefcaseBusiness,
-  Building2,
   Box,
+  CircleHelp,
   ClipboardList,
   CreditCard,
-  Database,
   FileArchive,
   FileCheck2,
   FileText,
   FlaskConical,
-  FolderOpen,
   History,
   Key,
   LayoutDashboard,
   ListChecks,
   ListTodo,
   MessageSquare,
-  PenLine,
   Plug,
-  Presentation,
   QrCode,
   Radio,
-  Search,
   ServerCog,
   Settings,
   Sparkles,
@@ -57,11 +52,10 @@ import type { SidebarData } from '@/components/layout/types'
 import { ROLE } from '@/lib/roles'
 
 /**
- * Root navigation groups for the application sidebar.
+ * Product-first sidebar data.
  *
- * Each top-level group represents the first-column product entry. Its items
- * form the second-column object list for that entry. Technical and operational
- * surfaces remain available, but they sit behind Management or Settings.
+ * Each group is a first-column product entry. The group's items are the
+ * second-column flat menu for that product; existing route targets are kept.
  */
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
@@ -69,18 +63,52 @@ export function useSidebarData(): SidebarData {
   return {
     navGroups: [
       {
-        id: 'workspace',
-        title: t('Workspace'),
+        id: 'overview',
+        title: t('Overview'),
+        description: t('Start from recent work, results, skills and quota.'),
+        icon: LayoutDashboard,
+        url: '/team-workspace',
+        position: 'top',
         items: [
           {
-            title: t('Workspace overview'),
-            description: t(
-              'Continue from teams, skills, conversations and results.'
-            ),
+            title: t('Continue work'),
             url: '/team-workspace',
-            icon: LayoutDashboard,
+            icon: MessageSquare,
             configUrls: ['/team-workspace'],
           },
+          {
+            title: t('Recent results'),
+            url: '/hermes-playground?panel=results',
+            configUrls: ['/hermes-playground'],
+            icon: FileCheck2,
+          },
+          {
+            title: t('Common skills'),
+            url: '/hermes-playground?panel=skills',
+            configUrls: ['/hermes-playground'],
+            icon: Sparkles,
+          },
+          {
+            title: t('Team activity'),
+            url: '/team-workspace',
+            icon: Users,
+            configUrls: ['/team-workspace'],
+          },
+          {
+            title: t('Quota status'),
+            url: '/wallet',
+            icon: Wallet,
+          },
+        ],
+      },
+      {
+        id: 'workbench',
+        title: t('Workbench'),
+        description: t('Personal agent work and execution tasks.'),
+        icon: BriefcaseBusiness,
+        url: '/hermes-playground',
+        position: 'top',
+        items: [
           {
             title: t('HermesAgent'),
             description: t('Personal AI workspace'),
@@ -95,27 +123,57 @@ export function useSidebarData(): SidebarData {
             icon: BriefcaseBusiness,
           },
           {
-            title: t('Team Workspace'),
+            title: t('Execution tasks'),
+            description: t('View running, completed and failed agent tasks.'),
+            url: '/hermes-playground?panel=tasks',
+            configUrls: ['/hermes-playground'],
+            icon: ListChecks,
+          },
+          {
+            title: t('Personal results'),
+            url: '/hermes-playground?panel=results&scope=mine',
+            configUrls: ['/hermes-playground'],
+            icon: FileCheck2,
+          },
+          {
+            title: t('Personal skills'),
+            url: '/hermes-playground?panel=skills&section=mine',
+            configUrls: ['/hermes-playground'],
+            icon: Sparkles,
+          },
+        ],
+      },
+      {
+        id: 'team-collaboration',
+        title: t('Team Collaboration'),
+        description: t('Shared team sessions, results, skills and tasks.'),
+        icon: Users,
+        url: '/team-workspace',
+        position: 'top',
+        items: [
+          {
+            title: t('My team list'),
+            url: '/team-workspace',
+            icon: Users,
+            configUrls: ['/team-workspace'],
+          },
+          {
+            title: t('Team workspaces'),
             description: t('Team collaboration workspace'),
-            icon: Building2,
+            icon: Users,
             type: 'team-workspaces',
-            variant: 'collapsible',
+            variant: 'flat',
           },
         ],
       },
       {
         id: 'skill-store',
         title: t('Skill Store'),
+        description: t('Find and create reusable work skills.'),
+        icon: Sparkles,
+        url: '/hermes-playground?panel=skills',
+        position: 'top',
         items: [
-          {
-            title: t('Skill overview'),
-            description: t(
-              'Choose proven skills by scenario and reuse them in personal or team work.'
-            ),
-            url: '/hermes-playground?panel=skills',
-            configUrls: ['/hermes-playground'],
-            icon: Sparkles,
-          },
           {
             title: t('My skills'),
             url: '/hermes-playground?panel=skills&section=mine',
@@ -147,37 +205,72 @@ export function useSidebarData(): SidebarData {
             icon: Plug,
           },
           {
-            title: t('Skill categories'),
-            icon: FolderOpen,
-            items: [
-              {
-                title: t('PPT and presentations'),
-                url: '/hermes-playground?panel=skills&category=ppt',
-                icon: Presentation,
-              },
-              {
-                title: t('Research reports'),
-                url: '/hermes-playground?panel=skills&category=report',
-                icon: Search,
-              },
-              {
-                title: t('Data analysis'),
-                url: '/hermes-playground?panel=skills&category=data',
-                icon: Database,
-              },
-              {
-                title: t('Document writing'),
-                url: '/hermes-playground?panel=skills&category=document',
-                icon: PenLine,
-              },
-            ],
+            title: t('Create skill'),
+            url: '/hermes-playground?panel=skills',
             configUrls: ['/hermes-playground'],
+            icon: Sparkles,
           },
         ],
       },
       {
-        id: 'message-platforms',
-        title: t('Message platforms'),
+        id: 'results-center',
+        title: t('Results Center'),
+        description: t('Reports, slides, documents and file results.'),
+        icon: FileCheck2,
+        url: '/hermes-playground?panel=results',
+        position: 'top',
+        items: [
+          {
+            title: t('All results'),
+            url: '/hermes-playground?panel=results',
+            configUrls: ['/hermes-playground'],
+            icon: FileCheck2,
+          },
+          {
+            title: t('Reports'),
+            url: '/hermes-playground?panel=results&type=report',
+            configUrls: ['/hermes-playground'],
+            icon: FileText,
+          },
+          {
+            title: t('PPT'),
+            url: '/hermes-playground?panel=results&type=ppt',
+            configUrls: ['/hermes-playground'],
+            icon: ClipboardList,
+          },
+          {
+            title: t('Documents'),
+            url: '/hermes-playground?panel=results&type=document',
+            configUrls: ['/hermes-playground'],
+            icon: FileText,
+          },
+          {
+            title: t('Attachments'),
+            url: '/hermes-playground?panel=results&type=attachment',
+            configUrls: ['/hermes-playground'],
+            icon: FileArchive,
+          },
+          {
+            title: t('Related tasks'),
+            url: '/hermes-playground?panel=tasks',
+            configUrls: ['/hermes-playground'],
+            icon: ListTodo,
+          },
+          {
+            title: t('Archived'),
+            url: '/hermes-playground?panel=results',
+            configUrls: ['/hermes-playground'],
+            icon: Archive,
+          },
+        ],
+      },
+      {
+        id: 'message-platform',
+        title: t('Message Platform'),
+        description: t('Connect external messages to the AI workspace.'),
+        icon: MessageSquare,
+        url: '/hermes-playground?panel=messages&section=wechat',
+        position: 'top',
         items: [
           {
             title: t('WeChat'),
@@ -189,20 +282,19 @@ export function useSidebarData(): SidebarData {
             icon: QrCode,
           },
           {
-            title: t('Execution tasks'),
-            description: t('View running, completed and failed agent tasks.'),
-            url: '/hermes-playground?panel=tasks',
-            configUrls: ['/hermes-playground'],
-            icon: ListChecks,
-          },
-          {
             title: t('Message history'),
             url: '/hermes-playground?panel=messages&section=history',
             configUrls: ['/hermes-playground'],
             icon: History,
           },
           {
-            title: t('Connection settings'),
+            title: t('Connection status'),
+            url: '/hermes-playground?panel=messages&section=settings',
+            configUrls: ['/hermes-playground'],
+            icon: Radio,
+          },
+          {
+            title: t('Auto-reply settings'),
             url: '/hermes-playground?panel=messages&section=settings',
             configUrls: ['/hermes-playground'],
             icon: Settings,
@@ -210,78 +302,81 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        id: 'results',
-        title: t('Results'),
-        items: [
-          {
-            title: t('All results'),
-            description: t('Reports, slides, documents and file results.'),
-            url: '/hermes-playground?panel=results',
-            configUrls: ['/hermes-playground'],
-            icon: FileCheck2,
-          },
-          {
-            title: t('My results'),
-            url: '/hermes-playground?panel=results&scope=mine',
-            configUrls: ['/hermes-playground'],
-            icon: User,
-          },
-          {
-            title: t('Team results'),
-            url: '/team-workspace',
-            configUrls: ['/team-workspace'],
-            icon: Users,
-          },
-          {
-            title: t('PPT'),
-            url: '/hermes-playground?panel=results&type=ppt',
-            configUrls: ['/hermes-playground'],
-            icon: Presentation,
-          },
-          {
-            title: t('Reports'),
-            url: '/hermes-playground?panel=results&type=report',
-            configUrls: ['/hermes-playground'],
-            icon: FileText,
-          },
-          {
-            title: t('Documents'),
-            url: '/hermes-playground?panel=results&type=document',
-            configUrls: ['/hermes-playground'],
-            icon: ClipboardList,
-          },
-          {
-            title: t('Attachment results'),
-            url: '/hermes-playground?panel=results&type=attachment',
-            configUrls: ['/hermes-playground'],
-            icon: FileArchive,
-          },
-        ],
-      },
-      {
         id: 'model-playground',
         title: t('Model Playground'),
+        description: t('Try models and compare model capabilities.'),
+        icon: FlaskConical,
+        url: '/playground',
+        position: 'top',
         items: [
           {
-            title: t('Model sessions'),
-            icon: FlaskConical,
-            type: 'playground-sessions',
+            title: t('AI chat'),
+            url: '/playground',
+            icon: MessageSquare,
+            configUrls: ['/playground'],
           },
           {
-            title: t('AI chat'),
-            icon: MessageSquare,
-            type: 'chat-presets',
+            title: t('Large model trial'),
+            url: '/playground',
+            icon: FlaskConical,
+            configUrls: ['/playground'],
+          },
+          {
+            title: t('Model capability comparison'),
+            url: '/dashboard/models',
+            icon: Activity,
+            configUrls: ['/dashboard'],
           },
         ],
       },
       {
         id: 'management',
         title: t('Management'),
+        description: t('Team, user, model and billing administration.'),
+        icon: ServerCog,
+        url: '/teams',
+        position: 'bottom',
         items: [
           {
             title: t('Team Management'),
             url: '/teams',
             icon: Users,
+          },
+          {
+            title: t('User Management'),
+            url: '/users',
+            icon: Users,
+            requiredRole: ROLE.ADMIN,
+          },
+          {
+            title: t('Channel Management'),
+            url: '/channels',
+            icon: Radio,
+            requiredRole: ROLE.ADMIN,
+          },
+          {
+            title: t('Model Management'),
+            url: '/models/metadata',
+            icon: Box,
+            requiredRole: ROLE.ADMIN,
+          },
+          {
+            title: t('Billing Management'),
+            url: '/subscriptions',
+            icon: CreditCard,
+            requiredRole: ROLE.ADMIN,
+          },
+          {
+            title: t('System Logs'),
+            url: '/usage-logs/common',
+            icon: FileText,
+            requiredRole: ROLE.ADMIN,
+          },
+          {
+            title: t('System Info'),
+            url: '/system-info',
+            icon: ServerCog,
+            requiredRole: ROLE.SUPER_ADMIN,
           },
           {
             title: t('Access Keys'),
@@ -294,50 +389,9 @@ export function useSidebarData(): SidebarData {
             icon: Activity,
           },
           {
-            title: t('Data Dashboard'),
-            url: '/dashboard/models',
-            icon: LayoutDashboard,
-          },
-          {
-            title: t('Usage Details'),
-            url: '/usage-logs/common',
-            icon: FileText,
-          },
-          {
-            title: t('Task Records'),
-            url: '/usage-logs/task',
-            activeUrls: ['/usage-logs/drawing'],
-            configUrls: ['/usage-logs/drawing', '/usage-logs/task'],
-            icon: ListTodo,
-          },
-          {
-            title: t('Model Channels'),
-            url: '/channels',
-            icon: Radio,
-            requiredRole: ROLE.ADMIN,
-          },
-          {
-            title: t('Model Management'),
-            url: '/models/metadata',
-            icon: Box,
-            requiredRole: ROLE.ADMIN,
-          },
-          {
-            title: t('Users'),
-            url: '/users',
-            icon: Users,
-            requiredRole: ROLE.ADMIN,
-          },
-          {
             title: t('Redeem codes'),
             url: '/redemption-codes',
             icon: Ticket,
-            requiredRole: ROLE.ADMIN,
-          },
-          {
-            title: t('Subscription Management'),
-            url: '/subscriptions',
-            icon: CreditCard,
             requiredRole: ROLE.ADMIN,
           },
         ],
@@ -345,29 +399,80 @@ export function useSidebarData(): SidebarData {
       {
         id: 'settings',
         title: t('Settings'),
+        description: t('Account, security, preferences and system settings.'),
+        icon: Settings,
+        url: '/profile?section=account',
+        position: 'bottom',
         items: [
           {
-            title: t('Wallet'),
-            url: '/wallet',
-            icon: Wallet,
+            title: t('Account settings'),
+            url: '/profile?section=account',
+            configUrls: ['/profile'],
+            icon: User,
           },
+          {
+            title: t('Security settings'),
+            url: '/profile?section=security',
+            configUrls: ['/profile'],
+            icon: Key,
+          },
+          {
+            title: t('Preference settings'),
+            url: '/profile?section=preferences',
+            configUrls: ['/profile'],
+            icon: Settings,
+          },
+          {
+            title: t('System configuration'),
+            url: '/system-settings/site',
+            activeUrls: ['/system-settings'],
+            icon: ServerCog,
+            requiredRole: ROLE.SUPER_ADMIN,
+          },
+        ],
+      },
+      {
+        id: 'personal-center',
+        title: t('Personal Center'),
+        description: t('Profile, wallet and personal navigation settings.'),
+        icon: User,
+        url: '/profile',
+        position: 'bottom',
+        items: [
           {
             title: t('Profile'),
             url: '/profile',
             icon: User,
           },
           {
-            title: t('System Info'),
-            url: '/system-info',
-            icon: ServerCog,
-            requiredRole: ROLE.SUPER_ADMIN,
+            title: t('Wallet'),
+            url: '/wallet',
+            icon: Wallet,
           },
           {
-            title: t('System Settings'),
-            url: '/system-settings/site',
-            activeUrls: ['/system-settings'],
+            title: t('Sidebar Personal Settings'),
+            url: '/profile',
             icon: Settings,
-            requiredRole: ROLE.SUPER_ADMIN,
+          },
+        ],
+      },
+      {
+        id: 'help-docs',
+        title: t('Help / Docs'),
+        description: t('Open product help and documentation.'),
+        icon: CircleHelp,
+        url: '/docs',
+        position: 'bottom',
+        items: [
+          {
+            title: t('Documentation map'),
+            url: '/docs',
+            icon: CircleHelp,
+          },
+          {
+            title: t('View Documentation'),
+            url: '/docs',
+            icon: FileText,
           },
         ],
       },

@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (C) 2023-2026 QuantumNous
 
 This program is free software: you can redistribute it and/or modify
@@ -21,6 +21,7 @@ import {
   CheckCircle2Icon,
   Clock3Icon,
   ExternalLinkIcon,
+  FileCheck2Icon,
   Loader2Icon,
   RotateCcwIcon,
   XCircleIcon,
@@ -57,6 +58,7 @@ interface HermesExecutionTasksSheetProps {
   userScope: string
   teamId?: number
   onOpenChange: (open: boolean) => void
+  onOpenTaskResults?: (task: HermesExecutionTask) => void
   onSelectTask: (task: HermesExecutionTask) => void
 }
 
@@ -161,6 +163,17 @@ export function HermesExecutionTasksSheet(
                     <ExternalLinkIcon className='size-4' />
                     {t('Open')}
                   </Button>
+                  {props.onOpenTaskResults && task.conversationId ? (
+                    <Button
+                      onClick={() => props.onOpenTaskResults?.(task)}
+                      size='sm'
+                      type='button'
+                      variant='outline'
+                    >
+                      <FileCheck2Icon className='size-4' />
+                      {t('Open results')}
+                    </Button>
+                  ) : null}
                   {(task.status === 'failed' || task.status === 'canceled') && (
                     <Button
                       disabled={retryMutation.isPending}

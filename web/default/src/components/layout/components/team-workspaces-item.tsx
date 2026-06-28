@@ -22,8 +22,8 @@ import {
   Building2,
   FileCheck2,
   LayoutDashboard,
+  ListChecks,
   MessageSquare,
-  Settings,
   Sparkles,
   UserRound,
   Users,
@@ -105,27 +105,25 @@ export function TeamWorkspacesItem({ item }: { item: NavTeamWorkspaces }) {
   )
 }
 
-type TeamWorkspacePanel = 'sessions' | 'results' | 'skills'
-type TeamManagementArea = 'members' | 'settings'
+type TeamWorkspacePanel = 'sessions' | 'results' | 'skills' | 'tasks'
+type TeamManagementArea = 'members'
 
 const TEAM_PANEL_CONFIG: Array<{
   panel: TeamWorkspacePanel
   titleKey: string
   icon: ElementType
 }> = [
-  { panel: 'sessions', titleKey: 'Team sessions', icon: MessageSquare },
+  { panel: 'sessions', titleKey: 'Team conversation', icon: MessageSquare },
   { panel: 'results', titleKey: 'Team results', icon: FileCheck2 },
   { panel: 'skills', titleKey: 'Team skills', icon: Sparkles },
+  { panel: 'tasks', titleKey: 'Team tasks', icon: ListChecks },
 ]
 
 const TEAM_MANAGEMENT_CONFIG: Array<{
   area: TeamManagementArea
   titleKey: string
   icon: ElementType
-}> = [
-  { area: 'members', titleKey: 'Team members', icon: UserRound },
-  { area: 'settings', titleKey: 'Team settings', icon: Settings },
-]
+}> = [{ area: 'members', titleKey: 'Team members', icon: UserRound }]
 
 function FlatTeamWorkspaceItems(props: {
   href: string
@@ -151,10 +149,10 @@ function FlatTeamWorkspaceItems(props: {
       <>
         <SidebarMenuItem>
           <SidebarMenuButton
-            render={<Link to='/teams' onClick={props.onNavigate} />}
+            render={<Link to='/team-workspace' onClick={props.onNavigate} />}
           >
             <Users className='size-4' aria-hidden='true' />
-            <span>{t('Team Management')}</span>
+            <span>{t('Create or join a team to collaborate')}</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
         <SidebarMenuItem>
@@ -186,7 +184,7 @@ function FlatTeamWorkspaceItems(props: {
           </SidebarMenuButton>
         </SidebarMenuItem>,
         ...TEAM_PANEL_CONFIG.map((config) => (
-          <SidebarTeamPanelItem
+          <FlatSidebarTeamPanelItem
             key={`${team.id}-${config.panel}`}
             href={props.href}
             team={team}
@@ -197,7 +195,7 @@ function FlatTeamWorkspaceItems(props: {
           />
         )),
         ...TEAM_MANAGEMENT_CONFIG.map((config) => (
-          <SidebarTeamManagementItem
+          <FlatSidebarTeamManagementItem
             key={`${team.id}-${config.area}`}
             href={props.href}
             team={team}
@@ -209,6 +207,66 @@ function FlatTeamWorkspaceItems(props: {
         )),
       ])}
     </>
+  )
+}
+
+function FlatSidebarTeamPanelItem(props: {
+  href: string
+  team: Team
+  panel: TeamWorkspacePanel
+  title: string
+  icon: ElementType
+  onNavigate: () => void
+}) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        className='pl-6'
+        isActive={isTeamUrlActive(props.href, props.team.id, props.panel)}
+        render={
+          <Link
+            to='/team-workspace'
+            search={{ team_id: props.team.id, panel: props.panel }}
+            onClick={props.onNavigate}
+          />
+        }
+      >
+        <props.icon className='size-4' aria-hidden='true' />
+        <span>{props.title}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+}
+
+function FlatSidebarTeamManagementItem(props: {
+  href: string
+  team: Team
+  area: TeamManagementArea
+  title: string
+  icon: ElementType
+  onNavigate: () => void
+}) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        className='pl-6'
+        isActive={isTeamManagementUrlActive(
+          props.href,
+          props.team.id,
+          props.area
+        )}
+        render={
+          <Link
+            to='/teams'
+            search={{ team_id: props.team.id, area: props.area }}
+            onClick={props.onNavigate}
+          />
+        }
+      >
+        <props.icon className='size-4' aria-hidden='true' />
+        <span>{props.title}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   )
 }
 

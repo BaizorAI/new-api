@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQuery } from '@tanstack/react-query'
 import {
   ArrowLeftIcon,
+  CheckCircle2Icon,
   ClockIcon,
   CopyIcon,
   DownloadIcon,
@@ -28,11 +29,14 @@ import {
   FileTextIcon,
   FolderOpenIcon,
   InfoIcon,
+  ListChecksIcon,
+  Loader2Icon,
   PresentationIcon,
   SearchIcon,
   SparklesIcon,
   UserIcon,
   UsersIcon,
+  XCircleIcon,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -66,7 +70,13 @@ import {
 import { parseThinkTags } from '@/features/playground/lib/message-utils'
 import type { FileAttachment, Message } from '@/features/playground/types'
 
-import { listHermesResults, type HermesResultRecord } from '../api'
+import {
+  listHermesExecutionTasks,
+  listHermesResults,
+  type HermesExecutionTask,
+  type HermesExecutionTaskStatus,
+  type HermesResultRecord,
+} from '../api'
 import {
   formatSessionTime,
   sortSessions,
@@ -91,10 +101,12 @@ interface HermesResultsProps {
   emptyDescription?: string
   initialScope?: HermesResultScope
   initialType?: HermesResultType
+  initialTaskId?: string
   selectedTeamId?: number
   selectedTeamName?: string
   workspaceMode?: 'personal' | 'team'
   onContinueResult?: (prompt: string, session: HermesConversation) => void
+  onOpenTask?: (task: HermesExecutionTask) => void
   onOpenChange: (open: boolean) => void
   onSelectSession: (session: HermesConversation) => void
 }
@@ -122,6 +134,7 @@ interface HermesResultItem {
   serverBacked?: boolean
   createdBy?: number
   updatedBy?: number
+  relatedTasks: HermesExecutionTask[]
 }
 
 export function HermesResults(props: HermesResultsProps) {
@@ -140,8 +153,19 @@ export function HermesResults(props: HermesResultsProps) {
     if (!props.open) return
     setActiveScope(props.initialScope ?? getDefaultScope(props.workspaceMode))
     setActiveType(props.initialType ?? 'all')
+    setQuery(props.initialTaskId ?? '')
     setSelectedResultId(null)
-  }, [props.initialScope, props.initialType, props.open, props.workspaceMode])
+  }, [
+    props.initialScope,
+    props.initialTaskId,
+    props.initialType,
+    props.open,
+    props.workspaceMode,
+  ])
+
+  const queryText = query.trim()
+  const serverQueryText =
+    props.initialTaskId && queryText === props.initialTaskId ? '' : queryText
 
   const serverResultsQuery = useQuery({
     queryKey: [
@@ -149,14 +173,14 @@ export function HermesResults(props: HermesResultsProps) {
       props.workspaceMode ?? 'personal',
       props.selectedTeamId ?? 0,
       activeType,
-      query.trim(),
+      serverQueryText,
     ],
     queryFn: () =>
       listHermesResults({
         teamId:
           props.workspaceMode === 'team' ? props.selectedTeamId : undefined,
         type: activeType,
-        query: query.trim() || undefined,
+        query: serverQueryText || undefined,
         limit: 100,
       }),
     enabled:
@@ -188,18 +212,41 @@ export function HermesResults(props: HermesResultsProps) {
             (file) => file.source === 'attachment'
           ).length,
           types,
+          relatedTasks: [],
         }
       })
       .filter((item) => item.messages.length > 0)
   }, [props.sessions])
+
+  const executionTasksQuery = useQuery({
+    queryKey: [
+      'hermes-execution-tasks',
+      'results',
+      props.workspaceMode ?? 'personal',
+      props.selectedTeamId ?? 0,
+    ],
+    queryFn: () =>
+      listHermesExecutionTasks({
+        teamId:
+          props.workspaceMode === 'team' ? props.selectedTeamId : undefined,
+        limit: 100,
+      }),
+    enabled:
+      props.open &&
+      (props.workspaceMode !== 'team' || Boolean(props.selectedTeamId)),
+    refetchInterval: props.open ? 5000 : false,
+  })
 
   const serverResults = useMemo(() => {
     return buildServerResultItems(serverResultsQuery.data ?? [], props.sessions)
   }, [props.sessions, serverResultsQuery.data])
 
   const allResults = useMemo(() => {
-    return mergeServerAndLocalResults(serverResults, localResults)
-  }, [localResults, serverResults])
+    return attachExecutionTasks(
+      mergeServerAndLocalResults(serverResults, localResults),
+      executionTasksQuery.data ?? []
+    )
+  }, [executionTasksQuery.data, localResults, serverResults])
 
   const results = useMemo(() => {
     return allResults.filter(
@@ -332,6 +379,7 @@ export function HermesResults(props: HermesResultsProps) {
                     : undefined
                 }
                 onExport={() => exportResult(selectedResult)}
+                onOpenTask={props.onOpenTask}
                 onOpenSession={() => {
                   props.onSelectSession(selectedResult.session)
                   props.onOpenChange(false)
@@ -478,6 +526,12 @@ function ResultCard(props: {
           </div>
 
           {item.files.length > 0 ? <ResultFileList files={item.files} /> : null}
+          {item.relatedTasks.length > 0 ? (
+            <Badge variant='outline'>
+              <ListChecksIcon className='size-3' />
+              {t('Linked task')}
+            </Badge>
+          ) : null}
           {showConversationResult ? (
             <div className='bg-muted/20 text-muted-foreground rounded-md border p-2 text-xs'>
               {t('Conversation result')}
@@ -530,6 +584,7 @@ function ResultDetail(props: {
   onBack: () => void
   onContinue?: () => void
   onExport: () => void
+  onOpenTask?: (task: HermesExecutionTask) => void
   onOpenSession: () => void
 }) {
   const { t } = useTranslation()
@@ -603,6 +658,13 @@ function ResultDetail(props: {
         </div>
       </div>
 
+      {item.relatedTasks.length > 0 ? (
+        <ResultTaskTrail
+          tasks={item.relatedTasks}
+          onOpenTask={props.onOpenTask}
+        />
+      ) : null}
+
       {preview ? (
         <div className='rounded-lg border p-3'>
           <div className='text-muted-foreground mb-2 text-xs font-medium'>
@@ -650,6 +712,79 @@ function ResultDetail(props: {
         </Button>
       </div>
     </section>
+  )
+}
+
+function ResultTaskTrail(props: {
+  tasks: HermesExecutionTask[]
+  onOpenTask?: (task: HermesExecutionTask) => void
+}) {
+  const { t } = useTranslation()
+  const primaryTask = props.tasks[0]
+  if (!primaryTask) return null
+  const duration = formatTaskDuration(primaryTask)
+
+  return (
+    <div className='rounded-lg border p-3'>
+      <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
+        <div className='text-muted-foreground flex items-center gap-1.5 text-xs font-medium'>
+          <ListChecksIcon className='size-3.5' />
+          {t('Source task')}
+        </div>
+        <TaskStatusBadge status={primaryTask.status} />
+      </div>
+
+      <div className='grid gap-2 sm:grid-cols-2'>
+        <ResultMeta label={t('Task ID')} value={primaryTask.taskId} />
+        <ResultMeta
+          label={t('Progress')}
+          value={t('{{count}}%', { count: primaryTask.progress })}
+        />
+        <ResultMeta
+          label={t('Started')}
+          value={formatTaskTimestamp(primaryTask.startedAt, t('Not started'))}
+        />
+        <ResultMeta label={t('Duration')} value={duration || t('Unknown')} />
+      </div>
+
+      <div className='mt-3 flex flex-wrap gap-2'>
+        {props.onOpenTask ? (
+          <Button
+            size='sm'
+            type='button'
+            variant='outline'
+            onClick={() => props.onOpenTask?.(primaryTask)}
+          >
+            <ListChecksIcon data-icon='inline-start' />
+            {t('Open task')}
+          </Button>
+        ) : null}
+        <Button
+          size='sm'
+          type='button'
+          variant='outline'
+          onClick={() => copyTaskId(primaryTask.taskId, t)}
+        >
+          <CopyIcon data-icon='inline-start' />
+          {t('Copy task ID')}
+        </Button>
+        {props.tasks.length > 1 ? (
+          <Badge variant='secondary'>
+            {t('{{count}} related tasks', { count: props.tasks.length })}
+          </Badge>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function TaskStatusBadge(props: { status: HermesExecutionTaskStatus }) {
+  const { t } = useTranslation()
+  return (
+    <Badge variant={getTaskStatusVariant(props.status)}>
+      {getTaskStatusIcon(props.status)}
+      {getTaskStatusLabel(props.status, t)}
+    </Badge>
   )
 }
 
@@ -829,6 +964,43 @@ function buildServerResultItems(
       serverBacked: true,
       createdBy: newest.createdBy || undefined,
       updatedBy: newest.updatedBy || undefined,
+      relatedTasks: [],
+    }
+  })
+}
+
+function attachExecutionTasks(
+  items: HermesResultItem[],
+  tasks: HermesExecutionTask[]
+): HermesResultItem[] {
+  if (tasks.length === 0) return items
+
+  const tasksById = new Map(tasks.map((task) => [task.taskId, task]))
+  const tasksByConversation = new Map<string, HermesExecutionTask[]>()
+  for (const task of tasks) {
+    if (!task.conversationId) continue
+    const existing = tasksByConversation.get(task.conversationId) ?? []
+    existing.push(task)
+    tasksByConversation.set(task.conversationId, existing)
+  }
+
+  return items.map((item) => {
+    const related = new Map<string, HermesExecutionTask>()
+    for (const message of item.messages) {
+      if (!message.executionTaskId) continue
+      const task = tasksById.get(message.executionTaskId)
+      if (task) related.set(task.taskId, task)
+    }
+    for (const task of tasksByConversation.get(item.session.id) ?? []) {
+      related.set(task.taskId, task)
+    }
+
+    return {
+      ...item,
+      relatedTasks: [...related.values()].sort(
+        (a, b) =>
+          normalizeTaskTime(b.updatedAt) - normalizeTaskTime(a.updatedAt)
+      ),
     }
   })
 }
@@ -958,7 +1130,10 @@ function getResultHaystack(item: HermesResultItem): string {
       [file.filename, file.mediaType, file.href].filter(Boolean).join(' ')
     )
     .join(' ')
-  return [item.session.title, messageText, fileText].join(' ')
+  const taskText = item.relatedTasks
+    .map((task) => [task.taskId, task.title, task.status].join(' '))
+    .join(' ')
+  return [item.session.title, messageText, fileText, taskText].join(' ')
 }
 
 function getResultItemId(item: HermesResultItem): string {
@@ -1010,6 +1185,15 @@ function copyResultSummary(
     .filter(Boolean)
     .join('\n\n')
   void navigator.clipboard.writeText(summary).then(() => {
+    toast.success(t('Copied to clipboard'))
+  })
+}
+
+function copyTaskId(
+  taskId: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  void navigator.clipboard.writeText(taskId).then(() => {
     toast.success(t('Copied to clipboard'))
   })
 }
@@ -1187,6 +1371,66 @@ function decodeFilenameFromHref(href: string): string {
   } catch {
     return rawFilename
   }
+}
+
+function getTaskStatusLabel(
+  status: HermesExecutionTaskStatus,
+  t: (key: string) => string
+): string {
+  switch (status) {
+    case 'queued':
+      return t('Queued')
+    case 'running':
+      return t('Running')
+    case 'succeeded':
+      return t('Completed')
+    case 'failed':
+      return t('Failed')
+    case 'canceled':
+      return t('Canceled')
+  }
+}
+
+function getTaskStatusVariant(status: HermesExecutionTaskStatus) {
+  if (status === 'succeeded') return 'secondary'
+  if (status === 'failed' || status === 'canceled') return 'destructive'
+  return 'outline'
+}
+
+function getTaskStatusIcon(status: HermesExecutionTaskStatus) {
+  if (status === 'succeeded') {
+    return <CheckCircle2Icon className='size-3.5' />
+  }
+  if (status === 'failed' || status === 'canceled') {
+    return <XCircleIcon className='size-3.5' />
+  }
+  return <Loader2Icon className='size-3.5 animate-spin' />
+}
+
+function formatTaskTimestamp(value: number | undefined, fallback: string) {
+  if (!value) return fallback
+  return new Date(normalizeTaskTime(value)).toLocaleString()
+}
+
+function formatTaskDuration(task: HermesExecutionTask): string {
+  const start = normalizeTaskTime(task.startedAt ?? task.createdAt)
+  const end = normalizeTaskTime(task.finishedAt ?? task.updatedAt)
+  if (!start || !end || end < start) return ''
+  const totalSeconds = Math.max(1, Math.round((end - start) / 1000))
+  if (totalSeconds < 60) return `${totalSeconds}s`
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  if (minutes < 60) {
+    return seconds ? `${minutes}m ${seconds}s` : `${minutes}m`
+  }
+  const hours = Math.floor(minutes / 60)
+  const restMinutes = minutes % 60
+  return restMinutes ? `${hours}h ${restMinutes}m` : `${hours}h`
+}
+
+function normalizeTaskTime(value?: number): number {
+  if (!value || !Number.isFinite(value)) return 0
+  return value < 1000000000000 ? value * 1000 : value
 }
 
 function formatFileSize(size?: number): string {

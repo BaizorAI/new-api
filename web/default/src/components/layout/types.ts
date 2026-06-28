@@ -109,6 +109,10 @@ export type NavItem =
 export type NavGroup = {
   id?: string
   title: string
+  description?: string
+  icon?: React.ElementType
+  url?: LinkProps['to'] | (string & {})
+  position?: 'top' | 'bottom'
   items: NavItem[]
   /**
    * Minimum role required to see this group. When set, the entire group
@@ -183,5 +187,6 @@ export type ResolvedSidebarView = {
   /** Animation/identity key ??falls back to a sentinel for the root view */
   key: string
   view: SidebarView | null
+  rootNavGroups: NavGroup[]
   navGroups: NavGroup[]
 }

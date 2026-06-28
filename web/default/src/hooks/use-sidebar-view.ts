@@ -72,6 +72,7 @@ export function useSidebarView(): ResolvedSidebarView {
     return {
       key: view.id,
       view,
+      rootNavGroups,
       navGroups: view.getNavGroups(t),
     }
   }
@@ -79,6 +80,7 @@ export function useSidebarView(): ResolvedSidebarView {
   return {
     key: ROOT_VIEW_KEY,
     view: null,
+    rootNavGroups,
     navGroups: rootNavGroups,
   }
 }
