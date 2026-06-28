@@ -20,18 +20,32 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 
-import { HermesAgentWorkspace } from '@/features/hermes-playground/components/hermes-agent-workspace'
+import {
+  HermesAgentWorkspace,
+  type HermesMessageSection,
+} from '@/features/hermes-playground/components/hermes-agent-workspace'
 import { isSidebarModuleEnabled } from '@/lib/nav-modules'
+
+const capabilitySections = [
+  'mine',
+  'team',
+  'baizor',
+  'builtin',
+  'tools',
+] as const
+const messageSections = ['wechat', 'history', 'settings'] as const
+const routeSections = [...capabilitySections, ...messageSections] as const
+const resultScopes = ['all', 'mine', 'team'] as const
+const resultTypes = ['all', 'ppt', 'report', 'document', 'attachment'] as const
 
 const hermesPlaygroundSearchSchema = z.object({
   panel: z
     .enum(['skills', 'messages', 'results', 'tasks'])
     .optional()
     .catch(undefined),
-  section: z
-    .enum(['mine', 'team', 'baizor', 'builtin', 'tools'])
-    .optional()
-    .catch(undefined),
+  section: z.enum(routeSections).optional().catch(undefined),
+  scope: z.enum(resultScopes).optional().catch(undefined),
+  type: z.enum(resultTypes).optional().catch(undefined),
   category: z.string().optional().catch(undefined),
 })
 
@@ -47,16 +61,39 @@ export const Route = createFileRoute('/_authenticated/hermes-playground/')({
 
 function HermesPlaygroundPage() {
   const { t } = useTranslation()
-  const { category, panel, section } = Route.useSearch()
+  const {
+    category,
+    panel,
+    scope,
+    section,
+    type: resultType,
+  } = Route.useSearch()
+  const capabilitySection = isCapabilitySection(section) ? section : undefined
+  const messageSection = isMessageSection(section) ? section : undefined
 
   return (
     <HermesAgentWorkspace
       defaultSystemPrompt='Use Chinese by default unless the user asks otherwise.'
       emptyModelsMessage={t('No Hermes models available')}
       initialCapabilityCategory={category}
-      initialCapabilitySection={section}
+      initialCapabilitySection={capabilitySection}
+      initialMessageSection={messageSection}
       initialPanel={panel}
+      initialResultScope={scope}
+      initialResultType={resultType}
       queryKeyPrefix='hermes-playground'
     />
   )
+}
+
+function isCapabilitySection(
+  value: unknown
+): value is (typeof capabilitySections)[number] {
+  return capabilitySections.includes(
+    value as (typeof capabilitySections)[number]
+  )
+}
+
+function isMessageSection(value: unknown): value is HermesMessageSection {
+  return messageSections.includes(value as HermesMessageSection)
 }

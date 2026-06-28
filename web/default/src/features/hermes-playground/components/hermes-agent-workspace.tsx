@@ -56,7 +56,11 @@ import {
 } from '@/features/hermes-playground/components/hermes-capability-center'
 import { HermesExecutionTasksSheet } from '@/features/hermes-playground/components/hermes-execution-tasks-sheet'
 import { HermesMessagePlatforms } from '@/features/hermes-playground/components/hermes-message-platforms'
-import { HermesResults } from '@/features/hermes-playground/components/hermes-results'
+import {
+  HermesResults,
+  type HermesResultScope,
+  type HermesResultType,
+} from '@/features/hermes-playground/components/hermes-results'
 import { HermesSessionsSheet } from '@/features/hermes-playground/components/hermes-sessions-sheet'
 import { HermesSkillDialog } from '@/features/hermes-playground/components/hermes-skill-dialog'
 import {
@@ -96,13 +100,18 @@ export interface HermesPromptSuggestion {
   prompt: string
 }
 
+export type HermesMessageSection = 'wechat' | 'history' | 'settings'
+
 interface HermesAgentWorkspaceProps {
   baseScopePrefix?: string
   defaultSystemPrompt: string
   emptyModelsMessage: string
   initialCapabilityCategory?: string
   initialCapabilitySection?: HermesCapabilitySection
+  initialMessageSection?: HermesMessageSection
   initialPanel?: 'sessions' | 'results' | 'skills' | 'messages' | 'tasks'
+  initialResultScope?: HermesResultScope
+  initialResultType?: HermesResultType
   initialTeamId?: number
   queryKeyPrefix: string
   suggestedPrompts?: HermesPromptSuggestion[]
@@ -937,6 +946,8 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         open={isResultsOpen}
         sessions={sessions}
         activeSessionId={activeSessionId}
+        initialScope={props.initialResultScope}
+        initialType={props.initialResultType}
         title={isTeamWorkspace ? t('Team results') : undefined}
         description={
           selectedTeam
@@ -970,6 +981,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       />
       <HermesMessagePlatforms
         open={isMessagePlatformsOpen}
+        initialSection={props.initialMessageSection}
         userScope={queryUserScope}
         onOpenChange={setIsMessagePlatformsOpen}
       />

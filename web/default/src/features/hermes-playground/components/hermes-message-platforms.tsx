@@ -1,9 +1,11 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
+  HistoryIcon,
   Link2OffIcon,
   MessageCircleIcon,
   QrCodeIcon,
   RefreshCwIcon,
+  SettingsIcon,
   WrenchIcon,
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
@@ -56,14 +58,25 @@ import {
   type HermesWeixinStatusValue,
 } from '../api'
 
+type MessagePlatformSection = 'wechat' | 'history' | 'settings'
+
 interface HermesMessagePlatformsProps {
   open: boolean
+  initialSection?: MessagePlatformSection
   userScope: string
   onOpenChange: (open: boolean) => void
 }
 
 export function HermesMessagePlatforms(props: HermesMessagePlatformsProps) {
   const { t } = useTranslation()
+  const [activeSection, setActiveSection] = useState<MessagePlatformSection>(
+    () => props.initialSection ?? 'wechat'
+  )
+
+  useEffect(() => {
+    if (!props.open) return
+    setActiveSection(props.initialSection ?? 'wechat')
+  }, [props.initialSection, props.open])
 
   return (
     <Sheet open={props.open} onOpenChange={props.onOpenChange}>
@@ -79,17 +92,73 @@ export function HermesMessagePlatforms(props: HermesMessagePlatformsProps) {
 
         <ScrollArea className='min-h-0 flex-1'>
           <div className='space-y-3 p-4'>
-            <WeixinPlatformCard open={props.open} userScope={props.userScope} />
-            <CompactEmpty
-              description={t(
-                'More message platforms will appear here after they are enabled.'
-              )}
-              title={t('No other message platforms')}
+            <MessagePlatformSectionTabs
+              activeSection={activeSection}
+              onSectionChange={setActiveSection}
             />
+            {activeSection === 'history' ? (
+              <CompactEmpty
+                description={t(
+                  'Message history will show recent incoming and outgoing platform messages.'
+                )}
+                title={t('Message history')}
+              />
+            ) : null}
+            {activeSection === 'settings' ? (
+              <CompactEmpty
+                description={t(
+                  'Connection settings will show channel status, listener status and reconnect actions.'
+                )}
+                title={t('Connection settings')}
+              />
+            ) : null}
+            <WeixinPlatformCard open={props.open} userScope={props.userScope} />
+            {activeSection === 'wechat' ? (
+              <CompactEmpty
+                description={t(
+                  'More message platforms will appear here after they are enabled.'
+                )}
+                title={t('No other message platforms')}
+              />
+            ) : null}
           </div>
         </ScrollArea>
       </SheetContent>
     </Sheet>
+  )
+}
+
+function MessagePlatformSectionTabs(props: {
+  activeSection: MessagePlatformSection
+  onSectionChange: (section: MessagePlatformSection) => void
+}) {
+  const { t } = useTranslation()
+  const options: Array<{
+    value: MessagePlatformSection
+    label: string
+    icon: typeof QrCodeIcon
+  }> = [
+    { value: 'wechat', label: t('WeChat'), icon: QrCodeIcon },
+    { value: 'history', label: t('Message history'), icon: HistoryIcon },
+    { value: 'settings', label: t('Connection settings'), icon: SettingsIcon },
+  ]
+
+  return (
+    <div className='bg-muted/20 flex flex-wrap gap-1.5 rounded-lg border p-1'>
+      {options.map((option) => (
+        <Button
+          aria-pressed={props.activeSection === option.value}
+          key={option.value}
+          onClick={() => props.onSectionChange(option.value)}
+          size='sm'
+          type='button'
+          variant={props.activeSection === option.value ? 'secondary' : 'ghost'}
+        >
+          <option.icon className='size-4' />
+          {option.label}
+        </Button>
+      ))}
+    </div>
   )
 }
 

@@ -5752,6 +5752,12 @@
     "Zero retention": "データ保持なし",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム"
+    "Zoom": "ズーム",
+    "{{count}} more files": "{{count}} 件の追加ファイル",
+    "{{count}} results": "{{count}} 件の成果",
+    "All result types": "すべての成果タイプ",
+    "No results match the current result filter.": "現在の成果フィルターに一致する成果はありません。",
+    "Message history will show recent incoming and outgoing platform messages.": "メッセージ履歴には、最近の送受信プラットフォームメッセージが表示されます。",
+    "Connection settings will show channel status, listener status and reconnect actions.": "接続設定には、チャネル状態、リスナー状態、再接続操作が表示されます。"
   }
 }

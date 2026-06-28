@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import {
   DownloadIcon,
+  ExternalLinkIcon,
   FileCheck2Icon,
   FileTextIcon,
   FolderOpenIcon,
@@ -46,13 +47,21 @@ import {
   createPlaygroundStorageKeys,
   loadMessages,
 } from '@/features/playground/lib'
-import type { Message } from '@/features/playground/types'
+import type { FileAttachment, Message } from '@/features/playground/types'
 
 import {
   formatSessionTime,
   sortSessions,
   type HermesConversation,
 } from '../sessions'
+
+export type HermesResultScope = 'all' | 'mine' | 'team'
+export type HermesResultType =
+  | 'all'
+  | 'ppt'
+  | 'report'
+  | 'document'
+  | 'attachment'
 
 interface HermesResultsProps {
   open: boolean
@@ -62,6 +71,8 @@ interface HermesResultsProps {
   description?: string
   emptyTitle?: string
   emptyDescription?: string
+  initialScope?: HermesResultScope
+  initialType?: HermesResultType
   onOpenChange: (open: boolean) => void
   onSelectSession: (sessionId: string) => void
 }
@@ -71,30 +82,39 @@ interface HermesResultItem {
   messages: Message[]
   assistantMessages: number
   attachmentCount: number
+  attachments: FileAttachment[]
 }
 
 export function HermesResults(props: HermesResultsProps) {
   const { t } = useTranslation()
 
-  const results = useMemo<HermesResultItem[]>(() => {
+  const resultScope = props.initialScope ?? 'all'
+  const resultType = props.initialType ?? 'all'
+
+  const allResults = useMemo<HermesResultItem[]>(() => {
     return sortSessions(props.sessions)
       .map((session) => {
         const messages =
           loadMessages(createPlaygroundStorageKeys(session.storageScope)) ?? []
+        const attachments = messages.flatMap(
+          (message) => message.attachments ?? []
+        )
         return {
           session,
           messages,
           assistantMessages: messages.filter(
             (message) => message.from === 'assistant'
           ).length,
-          attachmentCount: messages.reduce(
-            (count, message) => count + (message.attachments?.length ?? 0),
-            0
-          ),
+          attachmentCount: attachments.length,
+          attachments,
         }
       })
       .filter((item) => item.messages.length > 0)
   }, [props.sessions])
+
+  const results = useMemo(() => {
+    return allResults.filter((item) => resultMatchesType(item, resultType))
+  }, [allResults, resultType])
 
   const exportResult = (item: HermesResultItem) => {
     downloadJson(
@@ -131,16 +151,26 @@ export function HermesResults(props: HermesResultsProps) {
                   {props.emptyTitle ?? t('No results yet')}
                 </EmptyTitle>
                 <EmptyDescription>
-                  {props.emptyDescription ??
-                    t(
-                      'Ask Hermes to produce a report, file, skill or analysis result, then export it here.'
-                    )}
+                  {getEmptyDescription(props.emptyDescription, resultType, t)}
                 </EmptyDescription>
               </Empty>
             ) : (
               <section className='space-y-3'>
-                <div className='text-muted-foreground text-xs font-medium'>
-                  {t('Conversation results')}
+                <div className='flex flex-wrap items-center justify-between gap-2'>
+                  <div className='text-muted-foreground text-xs font-medium'>
+                    {t('Conversation results')}
+                  </div>
+                  <div className='flex flex-wrap gap-1.5'>
+                    <Badge variant='outline'>
+                      {getResultScopeLabel(resultScope, t)}
+                    </Badge>
+                    <Badge variant='outline'>
+                      {getResultTypeLabel(resultType, t)}
+                    </Badge>
+                    <Badge variant='secondary'>
+                      {t('{{count}} results', { count: results.length })}
+                    </Badge>
+                  </div>
                 </div>
                 {results.map((item) => (
                   <ResultCard
@@ -207,6 +237,37 @@ function ResultCard(props: {
               </Badge>
             ) : null}
           </div>
+          {item.attachments.length > 0 ? (
+            <div className='bg-muted/20 space-y-1 rounded-md border p-2'>
+              {item.attachments.slice(0, 3).map((attachment) => (
+                <a
+                  className='text-muted-foreground hover:text-foreground flex min-w-0 items-center gap-2 text-xs'
+                  href={attachment.url}
+                  key={[
+                    attachment.url,
+                    attachment.filename,
+                    attachment.mediaType,
+                  ]
+                    .filter(Boolean)
+                    .join('|')}
+                  rel='noreferrer'
+                  target='_blank'
+                >
+                  <ExternalLinkIcon className='size-3 shrink-0' />
+                  <span className='truncate'>
+                    {attachment.filename || attachment.url}
+                  </span>
+                </a>
+              ))}
+              {item.attachments.length > 3 ? (
+                <div className='text-muted-foreground text-xs'>
+                  {t('{{count}} more files', {
+                    count: item.attachments.length - 3,
+                  })}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <div className='flex flex-wrap gap-2'>
             <Button
               size='sm'
@@ -250,4 +311,83 @@ function downloadJson(payload: unknown, filename: string): void {
 function sanitizeDownloadFilename(filename: string): string {
   const value = filename.trim().replaceAll(/[\\/:*?"<>|]/g, '_')
   return value || 'hermes-result.json'
+}
+
+function resultMatchesType(
+  item: HermesResultItem,
+  type: HermesResultType
+): boolean {
+  if (type === 'all') return true
+  if (type === 'attachment') return item.attachmentCount > 0
+
+  const haystack = getResultHaystack(item)
+  switch (type) {
+    case 'ppt':
+      return /\.(ppt|pptx)\b|\bppt\b|presentation|\u5e7b\u706f\u7247|\u6f14\u793a/i.test(
+        haystack
+      )
+    case 'report':
+      return /\breport\b|research|\u8c03\u7814|\u62a5\u544a/i.test(haystack)
+    case 'document':
+      return /\.(doc|docx|md|pdf)\b|document|markdown|\u6587\u6863|\u6750\u6599/i.test(
+        haystack
+      )
+    default:
+      return true
+  }
+}
+
+function getResultHaystack(item: HermesResultItem): string {
+  const messageText = item.messages
+    .flatMap((message) => message.versions.map((version) => version.content))
+    .join(' ')
+  const attachmentText = item.attachments
+    .map((attachment) =>
+      [attachment.filename, attachment.mediaType, attachment.url]
+        .filter(Boolean)
+        .join(' ')
+    )
+    .join(' ')
+  return [item.session.title, messageText, attachmentText].join(' ')
+}
+
+function getResultScopeLabel(
+  scope: HermesResultScope,
+  t: (key: string) => string
+): string {
+  if (scope === 'mine') return t('My results')
+  if (scope === 'team') return t('Team results')
+  return t('All results')
+}
+
+function getResultTypeLabel(
+  type: HermesResultType,
+  t: (key: string) => string
+): string {
+  switch (type) {
+    case 'ppt':
+      return t('PPT')
+    case 'report':
+      return t('Reports')
+    case 'document':
+      return t('Documents')
+    case 'attachment':
+      return t('Attachment results')
+    default:
+      return t('All result types')
+  }
+}
+
+function getEmptyDescription(
+  fallback: string | undefined,
+  type: HermesResultType,
+  t: (key: string) => string
+): string {
+  if (fallback) return fallback
+  if (type !== 'all') {
+    return t('No results match the current result filter.')
+  }
+  return t(
+    'Ask Hermes to produce a report, file, skill or analysis result, then export it here.'
+  )
 }

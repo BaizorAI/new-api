@@ -19,8 +19,8 @@ For commercial licensing, please contact support@quantumnous.com
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { z } from 'zod'
 
-import { SignIn } from '@/features/auth/sign-in'
 import { normalizeLocalRedirect } from '@/features/auth/lib/redirect'
+import { SignIn } from '@/features/auth/sign-in'
 import { useAuthStore } from '@/stores/auth-store'
 
 const searchSchema = z.object({

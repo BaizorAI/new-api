@@ -23,11 +23,24 @@ import { z } from 'zod'
 
 import {
   HermesAgentWorkspace,
+  type HermesMessageSection,
   type HermesPromptSuggestion,
 } from '@/features/hermes-playground/components/hermes-agent-workspace'
 import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 
 import { WorkspaceHome } from './-workspace-home'
+
+const capabilitySections = [
+  'mine',
+  'team',
+  'baizor',
+  'builtin',
+  'tools',
+] as const
+const messageSections = ['wechat', 'history', 'settings'] as const
+const routeSections = [...capabilitySections, ...messageSections] as const
+const resultScopes = ['all', 'mine', 'team'] as const
+const resultTypes = ['all', 'ppt', 'report', 'document', 'attachment'] as const
 
 const teamWorkspaceSearchSchema = z.object({
   team_id: z.coerce.number().int().positive().optional().catch(undefined),
@@ -35,10 +48,9 @@ const teamWorkspaceSearchSchema = z.object({
     .enum(['sessions', 'results', 'skills', 'messages', 'tasks'])
     .optional()
     .catch(undefined),
-  section: z
-    .enum(['mine', 'team', 'baizor', 'builtin', 'tools'])
-    .optional()
-    .catch(undefined),
+  section: z.enum(routeSections).optional().catch(undefined),
+  scope: z.enum(resultScopes).optional().catch(undefined),
+  type: z.enum(resultTypes).optional().catch(undefined),
   category: z.string().optional().catch(undefined),
 })
 
@@ -54,7 +66,16 @@ export const Route = createFileRoute('/_authenticated/team-workspace/')({
 
 function TeamWorkspacePage() {
   const { t } = useTranslation()
-  const { category, panel, section, team_id } = Route.useSearch()
+  const {
+    category,
+    panel,
+    scope,
+    section,
+    team_id,
+    type: resultType,
+  } = Route.useSearch()
+  const capabilitySection = isCapabilitySection(section) ? section : undefined
+  const messageSection = isMessageSection(section) ? section : undefined
 
   const suggestedPrompts = useMemo<HermesPromptSuggestion[]>(
     () => [
@@ -110,12 +131,27 @@ function TeamWorkspacePage() {
       )}
       emptyModelsMessage={t('No Hermes models available')}
       initialCapabilityCategory={category}
-      initialCapabilitySection={section}
+      initialCapabilitySection={capabilitySection}
+      initialMessageSection={messageSection}
       initialPanel={panel}
+      initialResultScope={scope}
+      initialResultType={resultType}
       initialTeamId={team_id}
       queryKeyPrefix='team-workspace'
       suggestedPrompts={suggestedPrompts}
       workspaceMode='team'
     />
   )
+}
+
+function isCapabilitySection(
+  value: unknown
+): value is (typeof capabilitySections)[number] {
+  return capabilitySections.includes(
+    value as (typeof capabilitySections)[number]
+  )
+}
+
+function isMessageSection(value: unknown): value is HermesMessageSection {
+  return messageSections.includes(value as HermesMessageSection)
 }

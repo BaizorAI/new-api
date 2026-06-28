@@ -5752,6 +5752,12 @@
     "Zero retention": "Không lưu dữ liệu",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "{{count}} more files": "Them {{count}} tep",
+    "{{count}} results": "{{count}} ket qua",
+    "All result types": "Tat ca loai ket qua",
+    "No results match the current result filter.": "Khong co ket qua phu hop voi bo loc hien tai.",
+    "Message history will show recent incoming and outgoing platform messages.": "Lich su tin nhan se hien thi tin nhan nen tang gan day vao va ra.",
+    "Connection settings will show channel status, listener status and reconnect actions.": "Cai dat ket noi se hien thi trang thai kenh, trang thai listener va thao tac ket noi lai."
   }
 }
