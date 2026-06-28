@@ -175,6 +175,47 @@ func DeleteHermesResultsForConversation(userId int, teamId int, conversationId s
 	return query.Delete(&HermesResult{}).Error
 }
 
+func HasAccessibleHermesResultHref(userId int, hrefCandidates []string) (bool, error) {
+	if userId <= 0 {
+		return false, errors.New("user id is required")
+	}
+	normalized := make([]string, 0, len(hrefCandidates))
+	seen := map[string]struct{}{}
+	for _, href := range hrefCandidates {
+		href = strings.TrimSpace(href)
+		if href == "" {
+			continue
+		}
+		if _, ok := seen[href]; ok {
+			continue
+		}
+		seen[href] = struct{}{}
+		normalized = append(normalized, href)
+	}
+	if len(normalized) == 0 {
+		return false, nil
+	}
+
+	teamSubQuery := DB.Model(&TeamMember{}).
+		Select("team_id").
+		Where("user_id = ? AND status = ?", userId, TeamStatusEnabled)
+	ownerScope := DB.Where("user_id = ? AND team_id = 0", userId).
+		Or("team_id IN (?)", teamSubQuery)
+
+	var result HermesResult
+	err := DB.Model(&HermesResult{}).
+		Where("href IN ?", normalized).
+		Where(ownerScope).
+		First(&result).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func ListHermesResults(options HermesResultQuery) ([]HermesResult, error) {
 	limit := options.Limit
 	if limit <= 0 || limit > 100 {

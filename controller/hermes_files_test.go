@@ -98,10 +98,19 @@ func TestHermesPlaygroundFileServesTeamArtifactForMember(t *testing.T) {
 }
 func TestHermesPlaygroundFileServesRootLevelResultFile(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	db := setupModelListControllerTestDB(t)
+	require.NoError(t, db.AutoMigrate(&model.HermesResult{}, &model.Team{}, &model.TeamMember{}))
 	root := t.TempDir()
 	reportName := "report_20260624.md"
 	require.NoError(t, os.WriteFile(filepath.Join(root, reportName), []byte("report"), 0o644))
 	t.Setenv("HERMES_DATA_DIR", root)
+	require.NoError(t, model.ReplaceHermesResultsForConversation(42, 0, "conversation-1", []model.HermesResult{{
+		Title:      "Report",
+		FileName:   reportName,
+		Href:       "/pg/hermes/files/" + reportName,
+		ResultType: model.HermesResultTypeDocument,
+		Source:     model.HermesResultSourceArtifact,
+	}}))
 
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
@@ -128,4 +137,24 @@ func TestHermesPlaygroundFileRejectsSensitiveAndOtherUserPaths(t *testing.T) {
 	} {
 		assert.False(t, isHermesDataPathAllowed(strings.TrimPrefix(path, "/"), 42), path)
 	}
+}
+
+func TestHermesPlaygroundFileRejectsUnindexedRootLevelResultFile(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := setupModelListControllerTestDB(t)
+	require.NoError(t, db.AutoMigrate(&model.HermesResult{}, &model.Team{}, &model.TeamMember{}))
+	root := t.TempDir()
+	reportName := "unindexed_report.md"
+	require.NoError(t, os.WriteFile(filepath.Join(root, reportName), []byte("report"), 0o644))
+	t.Setenv("HERMES_DATA_DIR", root)
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/files/"+reportName, nil)
+	c.Params = gin.Params{{Key: "path", Value: "/" + reportName}}
+	c.Set("id", 42)
+
+	HermesPlaygroundFile(c)
+
+	require.Equal(t, http.StatusForbidden, recorder.Code)
 }

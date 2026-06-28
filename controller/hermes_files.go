@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -126,6 +127,33 @@ func normalizeHermesDataPath(value string) (string, bool) {
 	return cleaned, true
 }
 
+func isHermesRootResultFileAllowed(relativePath string, userID int) bool {
+	if _, ok := hermesAllowedRootFileExtensions[strings.ToLower(filepath.Ext(relativePath))]; !ok {
+		return false
+	}
+	if model.DB == nil {
+		return false
+	}
+	allowed, err := model.HasAccessibleHermesResultHref(userID, hermesFileHrefCandidates(relativePath))
+	return err == nil && allowed
+}
+
+func hermesFileHrefCandidates(relativePath string) []string {
+	relativePath = strings.Trim(filepath.ToSlash(relativePath), "/")
+	if relativePath == "" {
+		return nil
+	}
+	parts := strings.Split(relativePath, "/")
+	encodedParts := make([]string, 0, len(parts))
+	for _, part := range parts {
+		encodedParts = append(encodedParts, url.PathEscape(part))
+	}
+	return []string{
+		"/pg/hermes/files/" + relativePath,
+		"/pg/hermes/files/" + strings.Join(encodedParts, "/"),
+	}
+}
+
 func isHermesDataPathAllowed(relativePath string, userID int) bool {
 	parts := strings.Split(relativePath, "/")
 	if len(parts) == 0 || parts[0] == "" {
@@ -173,8 +201,7 @@ func isHermesDataPathAllowed(relativePath string, userID int) bool {
 	}
 
 	if len(parts) == 1 {
-		_, ok := hermesAllowedRootFileExtensions[strings.ToLower(filepath.Ext(parts[0]))]
-		return ok
+		return isHermesRootResultFileAllowed(relativePath, userID)
 	}
 
 	_, ok := hermesAllowedTopLevelDirs[parts[0]]

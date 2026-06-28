@@ -115,6 +115,9 @@ interface HermesResultItem {
   generatedFileCount: number
   uploadedFileCount: number
   types: Set<HermesResultType>
+  serverBacked?: boolean
+  createdBy?: number
+  updatedBy?: number
 }
 
 export function HermesResults(props: HermesResultsProps) {
@@ -367,6 +370,7 @@ function ResultCard(props: {
   const title = item.session.title || t('New session')
   const timeLabel = formatSessionTime(item.session.updatedAt, t('Just now'))
   const primaryType = getPrimaryResultType(item)
+  const showConversationResult = item.files.length === 0 && item.serverBacked
 
   return (
     <div className='rounded-lg border p-3'>
@@ -394,14 +398,24 @@ function ResultCard(props: {
           </div>
 
           <div className='text-muted-foreground flex flex-wrap gap-2 text-xs'>
-            <Badge variant='outline'>
-              {t('Messages: {{count}}', { count: item.messages.length })}
-            </Badge>
+            {item.messages.length > 0 ? (
+              <Badge variant='outline'>
+                {t('Messages: {{count}}', { count: item.messages.length })}
+              </Badge>
+            ) : null}
             <Badge variant='outline'>
               {t('Assistant replies: {{count}}', {
                 count: item.assistantMessages,
               })}
             </Badge>
+            {item.serverBacked ? (
+              <Badge variant='outline'>{t('Saved')}</Badge>
+            ) : null}
+            {item.createdBy ? (
+              <Badge variant='outline'>
+                {t('Creator: {{id}}', { id: item.createdBy })}
+              </Badge>
+            ) : null}
             {item.generatedFileCount > 0 ? (
               <Badge variant='outline'>
                 {t('Generated files: {{count}}', {
@@ -417,6 +431,11 @@ function ResultCard(props: {
           </div>
 
           {item.files.length > 0 ? <ResultFileList files={item.files} /> : null}
+          {showConversationResult ? (
+            <div className='bg-muted/20 text-muted-foreground rounded-md border p-2 text-xs'>
+              {t('Conversation result')}
+            </div>
+          ) : null}
 
           <div className='flex flex-wrap gap-2'>
             <Button
@@ -584,6 +603,8 @@ function buildServerResultItems(
     const session =
       sessionsById.get(conversationId) ??
       createSessionFromResult(conversationId, newest)
+    const messages =
+      loadMessages(createPlaygroundStorageKeys(session.storageScope)) ?? []
     const files = group
       .filter((record) => record.href)
       .map((record) => normalizeServerFile(record))
@@ -598,16 +619,17 @@ function buildServerResultItems(
 
     return {
       session,
-      messages: [],
-      assistantMessages: group.some(
-        (record) => record.source === 'conversation'
-      )
-        ? 1
-        : 0,
+      messages,
+      assistantMessages:
+        messages.filter((message) => message.from === 'assistant').length ||
+        (group.some((record) => record.source === 'conversation') ? 1 : 0),
       files,
       generatedFileCount,
       uploadedFileCount,
       types,
+      serverBacked: true,
+      createdBy: newest.createdBy || undefined,
+      updatedBy: newest.updatedBy || undefined,
     }
   })
 }

@@ -87,3 +87,41 @@ func TestListHermesResultsFiltersByTypeAndQuery(t *testing.T) {
 	require.Len(t, queried, 1)
 	assert.Equal(t, HermesResultTypePPT, queried[0].ResultType)
 }
+
+func TestHasAccessibleHermesResultHrefAllowsPersonalAndTeamMembers(t *testing.T) {
+	setupHermesResultTestDB(t)
+	require.NoError(t, DB.AutoMigrate(&Team{}, &TeamMember{}))
+	require.NoError(t, DB.Create(&Team{Id: 9, Name: "team", OwnerId: 7, Status: TeamStatusEnabled}).Error)
+	require.NoError(t, DB.Create(&TeamMember{TeamId: 9, UserId: 8, Role: TeamRoleMember, Status: TeamStatusEnabled}).Error)
+
+	require.NoError(t, ReplaceHermesResultsForConversation(7, 0, "personal", []HermesResult{{
+		Title:      "Personal root file",
+		FileName:   "personal.md",
+		Href:       "/pg/hermes/files/personal.md",
+		ResultType: HermesResultTypeDocument,
+		Source:     HermesResultSourceArtifact,
+	}}))
+	require.NoError(t, ReplaceHermesResultsForConversation(7, 9, "team", []HermesResult{{
+		Title:      "Team root file",
+		FileName:   "team.md",
+		Href:       "/pg/hermes/files/team.md",
+		ResultType: HermesResultTypeDocument,
+		Source:     HermesResultSourceArtifact,
+	}}))
+
+	allowed, err := HasAccessibleHermesResultHref(7, []string{"/pg/hermes/files/personal.md"})
+	require.NoError(t, err)
+	assert.True(t, allowed)
+
+	allowed, err = HasAccessibleHermesResultHref(8, []string{"/pg/hermes/files/team.md"})
+	require.NoError(t, err)
+	assert.True(t, allowed)
+
+	allowed, err = HasAccessibleHermesResultHref(8, []string{"/pg/hermes/files/personal.md"})
+	require.NoError(t, err)
+	assert.False(t, allowed)
+
+	allowed, err = HasAccessibleHermesResultHref(10, []string{"/pg/hermes/files/team.md"})
+	require.NoError(t, err)
+	assert.False(t, allowed)
+}
