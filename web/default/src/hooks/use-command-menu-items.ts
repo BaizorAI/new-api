@@ -178,8 +178,8 @@ export function useCommandMenuItems(open: boolean): CommandMenuGroup[] {
         if (item.type === 'team-workspaces') {
           dynamicItems.push({
             id: 'team-workspace',
-            label: t('Team workspace'),
-            value: t('Team workspace'),
+            label: t('Workspaces'),
+            value: t('Workspaces'),
             onSelect: () => navigate({ to: '/team-workspace' }),
           })
 

@@ -73,6 +73,13 @@ func SetRelayRouter(router *gin.Engine) {
 	{
 		hermesFileRouter.GET("/files/*path", controller.HermesPlaygroundFile)
 	}
+	hermesGatewayRouter := router.Group("/pg/hermes/gateway")
+	hermesGatewayRouter.Use(middleware.RouteTag("relay"))
+	hermesGatewayRouter.Use(middleware.SystemPerformanceCheck())
+	{
+		hermesGatewayRouter.POST("/execution-tasks", controller.CreateHermesGatewayExecutionTask)
+		hermesGatewayRouter.GET("/execution-tasks/:task_id", controller.GetHermesGatewayExecutionTask)
+	}
 	hermesPlaygroundRouter := router.Group("/pg/hermes")
 	hermesPlaygroundRouter.Use(middleware.RouteTag("relay"))
 	hermesPlaygroundRouter.Use(middleware.SystemPerformanceCheck())
@@ -84,6 +91,10 @@ func SetRelayRouter(router *gin.Engine) {
 		hermesPlaygroundRouter.DELETE("/skills", controller.HermesPlaygroundSkills)
 		hermesPlaygroundRouter.POST("/skills/promote", controller.HermesPromoteSkill)
 		hermesPlaygroundRouter.GET("/toolsets", controller.HermesPlaygroundToolsets)
+		hermesPlaygroundRouter.POST("/execution-tasks", controller.CreateHermesExecutionTask)
+		hermesPlaygroundRouter.GET("/execution-tasks", controller.ListHermesExecutionTasks)
+		hermesPlaygroundRouter.GET("/execution-tasks/:task_id", controller.GetHermesExecutionTask)
+		hermesPlaygroundRouter.POST("/execution-tasks/:task_id/retry", controller.RetryHermesExecutionTask)
 		hermesPlaygroundRouter.GET("/platforms/weixin/status", middleware.HermesWeixinStatusRateLimit(), controller.HermesPlaygroundWeixinStatus)
 		hermesPlaygroundRouter.POST("/platforms/weixin/qr", middleware.HermesWeixinActionRateLimit(), controller.HermesPlaygroundWeixinQR)
 		hermesPlaygroundRouter.GET("/platforms/weixin/qr/:request_id", middleware.HermesWeixinStatusRateLimit(), controller.HermesPlaygroundWeixinQRStatus)

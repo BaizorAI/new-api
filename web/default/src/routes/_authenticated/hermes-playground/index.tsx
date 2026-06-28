@@ -18,11 +18,17 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { z } from 'zod'
 
 import { HermesAgentWorkspace } from '@/features/hermes-playground/components/hermes-agent-workspace'
 import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 
+const hermesPlaygroundSearchSchema = z.object({
+  panel: z.enum(['skills', 'messages']).optional().catch(undefined),
+})
+
 export const Route = createFileRoute('/_authenticated/hermes-playground/')({
+  validateSearch: hermesPlaygroundSearchSchema,
   beforeLoad: () => {
     if (!isSidebarModuleEnabled('chat', 'hermes_playground')) {
       throw redirect({ to: '/dashboard' })
@@ -33,11 +39,13 @@ export const Route = createFileRoute('/_authenticated/hermes-playground/')({
 
 function HermesPlaygroundPage() {
   const { t } = useTranslation()
+  const { panel } = Route.useSearch()
 
   return (
     <HermesAgentWorkspace
       defaultSystemPrompt='Use Chinese by default unless the user asks otherwise.'
       emptyModelsMessage={t('No Hermes models available')}
+      initialPanel={panel}
       queryKeyPrefix='hermes-playground'
     />
   )

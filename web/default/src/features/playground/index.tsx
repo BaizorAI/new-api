@@ -23,6 +23,7 @@ import { toast } from 'sonner'
 
 import type { PromptInputSubmittedFile } from '@/components/ai-elements/prompt-input'
 import { Button } from '@/components/ui/button'
+import type { HermesExecutionTask } from '@/features/hermes-playground/api'
 
 import { getUserModels, getUserGroups } from './api'
 import { PlaygroundChat } from './components/playground-chat'
@@ -38,6 +39,18 @@ import type {
   PlaygroundConfig,
 } from './types'
 
+interface PlaygroundExecutionTaskContext {
+  workspaceMode: string
+  conversationId: string
+  storageScope: string
+  hermesSessionId: string
+  teamId?: number
+  teamName?: string
+  title?: string
+  onTaskCreated?: (task: HermesExecutionTask) => void
+  onTaskSettled?: (task: HermesExecutionTask) => void
+}
+
 interface PlaygroundProps {
   storageScope?: string
   defaultConfig?: PlaygroundConfig
@@ -52,6 +65,7 @@ interface PlaygroundProps {
   onSaveSession?: (messages: MessageType[]) => void
   onAddSkill?: () => void
   suggestedPrompts?: { label: string; prompt: string }[]
+  executionTaskContext?: PlaygroundExecutionTaskContext
 }
 
 export function Playground(props: PlaygroundProps = {}) {
@@ -87,6 +101,7 @@ export function Playground(props: PlaygroundProps = {}) {
     parameterEnabled,
     onMessageUpdate: updateMessagesAndNotify,
     requestHeaders: props.requestHeaders,
+    executionTaskContext: props.executionTaskContext,
   })
 
   // Edit dialog state

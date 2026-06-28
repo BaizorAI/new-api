@@ -16,8 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
+
+import {
+  createHermesExecutionTask,
+  getHermesExecutionTask,
+  type HermesExecutionTask,
+} from '@/features/hermes-playground/api'
 
 import { sendChatCompletion } from '../api'
 import { MESSAGE_STATUS, ERROR_MESSAGES } from '../constants'
@@ -31,11 +37,24 @@ import {
 import type { Message, PlaygroundConfig, ParameterEnabled } from '../types'
 import { useStreamRequest } from './use-stream-request'
 
+interface HermesExecutionTaskContext {
+  workspaceMode: string
+  conversationId: string
+  storageScope: string
+  hermesSessionId: string
+  teamId?: number
+  teamName?: string
+  title?: string
+  onTaskCreated?: (task: HermesExecutionTask) => void
+  onTaskSettled?: (task: HermesExecutionTask) => void
+}
+
 interface UseChatHandlerOptions {
   config: PlaygroundConfig
   parameterEnabled: ParameterEnabled
   onMessageUpdate: (updater: (prev: Message[]) => Message[]) => void
   requestHeaders?: Record<string, string>
+  executionTaskContext?: HermesExecutionTaskContext
 }
 
 type PlaygroundErrorData = {
@@ -57,18 +76,20 @@ function extractChatError(error: unknown): {
   const data = err?.response?.data
   const errorCode = data?.error?.code
 
+  let code: string | undefined
+  if (typeof errorCode === 'string') {
+    code = errorCode
+  } else if (errorCode != null) {
+    code = String(errorCode)
+  }
+
   return {
     message:
       data?.error?.message?.trim() ||
       data?.message?.trim() ||
       err?.message ||
       ERROR_MESSAGES.API_REQUEST_ERROR,
-    code:
-      typeof errorCode === 'string'
-        ? errorCode
-        : errorCode == null
-          ? undefined
-          : String(errorCode),
+    code,
   }
 }
 
@@ -80,8 +101,10 @@ export function useChatHandler({
   parameterEnabled,
   onMessageUpdate,
   requestHeaders,
+  executionTaskContext,
 }: UseChatHandlerOptions) {
   const { sendStreamRequest, stopStream, isStreaming } = useStreamRequest()
+  const [isExecutionTaskRunning, setIsExecutionTaskRunning] = useState(false)
 
   // Handle stream update
   const handleStreamUpdate = useCallback(
@@ -209,16 +232,108 @@ export function useChatHandler({
     ]
   )
 
+  const sendExecutionTaskChat = useCallback(
+    async (messages: Message[]) => {
+      if (!executionTaskContext) return
+
+      const payload = {
+        ...buildChatCompletionPayload(messages, config, parameterEnabled),
+        stream: false,
+      }
+
+      setIsExecutionTaskRunning(true)
+      try {
+        let task = await createHermesExecutionTask(
+          {
+            title: executionTaskContext.title,
+            workspaceMode: executionTaskContext.workspaceMode,
+            conversationId: executionTaskContext.conversationId,
+            storageScope: executionTaskContext.storageScope,
+            hermesSessionId: executionTaskContext.hermesSessionId,
+            teamId: executionTaskContext.teamId,
+            payload,
+          },
+          {
+            teamId: executionTaskContext.teamId,
+            teamName: executionTaskContext.teamName,
+          }
+        )
+
+        executionTaskContext.onTaskCreated?.(task)
+        onMessageUpdate((prev) =>
+          updateLastAssistantMessage(prev, (message) => ({
+            ...message,
+            executionTaskId: task.taskId,
+          }))
+        )
+
+        while (task.status === 'queued' || task.status === 'running') {
+          await sleep(2000)
+          task = await getHermesExecutionTask(task.taskId)
+        }
+
+        executionTaskContext.onTaskSettled?.(task)
+
+        if (task.status !== 'succeeded') {
+          handleStreamError(task.error || ERROR_MESSAGES.API_REQUEST_ERROR)
+          return
+        }
+
+        const result = extractExecutionTaskAssistantResult(task.responsePayload)
+        onMessageUpdate((prev) =>
+          updateLastAssistantMessage(prev, (message) => ({
+            ...finalizeMessage(
+              {
+                ...message,
+                versions: [
+                  {
+                    ...message.versions[0],
+                    content: result.content,
+                  },
+                ],
+              },
+              result.reasoningContent
+            ),
+            status: MESSAGE_STATUS.COMPLETE,
+          }))
+        )
+      } catch (error: unknown) {
+        const { message, code } = extractChatError(error)
+        handleStreamError(message, code)
+      } finally {
+        setIsExecutionTaskRunning(false)
+      }
+    },
+    [
+      config,
+      executionTaskContext,
+      handleStreamError,
+      onMessageUpdate,
+      parameterEnabled,
+    ]
+  )
+
   // Send chat request (stream or non-stream based on config)
   const sendChat = useCallback(
     (messages: Message[]) => {
+      if (executionTaskContext) {
+        void sendExecutionTaskChat(messages)
+        return
+      }
+
       if (config.stream) {
         sendStreamingChat(messages)
       } else {
         sendNonStreamingChat(messages)
       }
     },
-    [config.stream, sendStreamingChat, sendNonStreamingChat]
+    [
+      config.stream,
+      executionTaskContext,
+      sendExecutionTaskChat,
+      sendStreamingChat,
+      sendNonStreamingChat,
+    ]
   )
 
   // Stop generation
@@ -237,6 +352,35 @@ export function useChatHandler({
   return {
     sendChat,
     stopGeneration,
-    isGenerating: isStreaming,
+    isGenerating: isStreaming || isExecutionTaskRunning,
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+function extractExecutionTaskAssistantResult(payload: unknown): {
+  content: string
+  reasoningContent?: string
+} {
+  const record = asRecord(payload)
+  const choices = Array.isArray(record.choices) ? record.choices : []
+  const firstChoice = asRecord(choices[0])
+  const message = asRecord(firstChoice.message)
+  return {
+    content: stringFromUnknown(message.content),
+    reasoningContent: stringFromUnknown(message.reasoning_content) || undefined,
+  }
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
+
+function stringFromUnknown(value: unknown): string {
+  return typeof value === 'string' ? value : ''
 }

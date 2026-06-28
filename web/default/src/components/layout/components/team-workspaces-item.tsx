@@ -251,7 +251,7 @@ function CollapsedTeamItems(props: {
         }
       >
         <Users className='size-4' aria-hidden='true' />
-        {t('Team workspace')}
+        {t('Workspaces')}
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <CollapsedTeamList {...props} />

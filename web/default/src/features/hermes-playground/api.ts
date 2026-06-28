@@ -80,6 +80,96 @@ export interface HermesTeamConversationRecord extends HermesConversation {
   updatedBy?: number
 }
 
+export type HermesExecutionTaskStatus =
+  | 'queued'
+  | 'running'
+  | 'succeeded'
+  | 'failed'
+  | 'canceled'
+
+export interface HermesExecutionTask {
+  taskId: string
+  userId: number
+  teamId: number
+  workspaceMode: string
+  conversationId: string
+  storageScope: string
+  hermesSessionId: string
+  title: string
+  status: HermesExecutionTaskStatus
+  progress: number
+  responsePayload?: unknown
+  error?: string
+  createdAt: number
+  updatedAt: number
+  startedAt?: number
+  finishedAt?: number
+}
+
+export interface CreateHermesExecutionTaskPayload {
+  title?: string
+  workspaceMode: string
+  conversationId: string
+  storageScope: string
+  hermesSessionId: string
+  teamId?: number
+  payload: unknown
+}
+
+export async function createHermesExecutionTask(
+  payload: CreateHermesExecutionTaskPayload,
+  options?: { teamId?: number; teamName?: string }
+): Promise<HermesExecutionTask> {
+  const response = await api.post('/pg/hermes/execution-tasks', payload, {
+    headers: buildHermesTeamHeaders(options?.teamId, options?.teamName),
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  return normalizeExecutionTaskResponse(response.data)
+}
+
+export async function listHermesExecutionTasks(options?: {
+  teamId?: number
+  limit?: number
+}): Promise<HermesExecutionTask[]> {
+  const response = await api.get('/pg/hermes/execution-tasks', {
+    params: {
+      team_id: options?.teamId,
+      limit: options?.limit,
+    },
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  return normalizeExecutionTasksResponse(response.data)
+}
+
+export async function getHermesExecutionTask(
+  taskId: string
+): Promise<HermesExecutionTask> {
+  const response = await api.get(
+    `/pg/hermes/execution-tasks/${encodeURIComponent(taskId)}`,
+    {
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    }
+  )
+  return normalizeExecutionTaskResponse(response.data)
+}
+
+export async function retryHermesExecutionTask(
+  taskId: string
+): Promise<HermesExecutionTask> {
+  const response = await api.post(
+    `/pg/hermes/execution-tasks/${encodeURIComponent(taskId)}/retry`,
+    undefined,
+    {
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    }
+  )
+  return normalizeExecutionTaskResponse(response.data)
+}
+
 export async function listTeamHermesConversations(
   teamId: number
 ): Promise<HermesTeamConversationRecord[]> {
@@ -345,6 +435,42 @@ function getHermesRequestErrorMessage(error: unknown): string {
   return 'Failed to add skill'
 }
 
+function normalizeExecutionTasksResponse(
+  payload: unknown
+): HermesExecutionTask[] {
+  const record = asRecord(payload)
+  const rawTasks = arrayFromUnknown(record.data)
+  if (!rawTasks) return []
+  return rawTasks.map(normalizeExecutionTask)
+}
+
+function normalizeExecutionTaskResponse(payload: unknown): HermesExecutionTask {
+  const record = asRecord(payload)
+  return normalizeExecutionTask(asRecord(record.data))
+}
+
+function normalizeExecutionTask(payload: unknown): HermesExecutionTask {
+  const task = asRecord(payload)
+  return {
+    taskId: stringFromUnknown(task.task_id),
+    userId: numberFromUnknown(task.user_id) ?? 0,
+    teamId: numberFromUnknown(task.team_id) ?? 0,
+    workspaceMode: stringFromUnknown(task.workspace_mode),
+    conversationId: stringFromUnknown(task.conversation_id),
+    storageScope: stringFromUnknown(task.storage_scope),
+    hermesSessionId: stringFromUnknown(task.hermes_session_id),
+    title: stringFromUnknown(task.title) || 'Hermes task',
+    status: normalizeExecutionTaskStatus(stringFromUnknown(task.status)),
+    progress: numberFromUnknown(task.progress) ?? 0,
+    responsePayload: task.response_payload,
+    error: stringFromUnknown(task.error) || undefined,
+    createdAt: numberFromUnknown(task.created_at) ?? 0,
+    updatedAt: numberFromUnknown(task.updated_at) ?? 0,
+    startedAt: numberFromUnknown(task.started_at) ?? undefined,
+    finishedAt: numberFromUnknown(task.finished_at) ?? undefined,
+  }
+}
+
 function normalizeTeamConversationsResponse(
   payload: unknown
 ): HermesTeamConversationRecord[] {
@@ -465,6 +591,21 @@ function booleanFromUnknown(value: unknown): boolean | null {
 
 function numberFromUnknown(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function normalizeExecutionTaskStatus(
+  value: string
+): HermesExecutionTaskStatus {
+  if (
+    value === 'queued' ||
+    value === 'running' ||
+    value === 'succeeded' ||
+    value === 'failed' ||
+    value === 'canceled'
+  ) {
+    return value
+  }
+  return 'failed'
 }
 
 function normalizeSource(value: string): HermesSkill['source'] {

@@ -71,7 +71,9 @@ export function HermesMessagePlatforms(props: HermesMessagePlatformsProps) {
         <SheetHeader className='border-b pr-12'>
           <SheetTitle>{t('Message platforms')}</SheetTitle>
           <SheetDescription>
-            {t('Manage message platform connections for Hermes.')}
+            {t(
+              'Connect WeChat and other message channels for your AI workspace.'
+            )}
           </SheetDescription>
         </SheetHeader>
 
@@ -129,7 +131,7 @@ function WeixinPlatformCard(props: { open: boolean; userScope: string }) {
     onSuccess: (data) => {
       completedQrRequestRef.current = null
       setQrState(data)
-      void statusQuery.refetch()
+      void refetchWeixinStatus()
       toast.success(t('WeChat QR code created'))
     },
     onError: (error) => {
@@ -143,7 +145,7 @@ function WeixinPlatformCard(props: { open: boolean; userScope: string }) {
     mutationFn: disconnectHermesWeixin,
     onSuccess: () => {
       setQrState(null)
-      void statusQuery.refetch()
+      void refetchWeixinStatus()
       toast.success(t('WeChat disconnected'))
     },
     onError: (error) => {
@@ -152,6 +154,8 @@ function WeixinPlatformCard(props: { open: boolean; userScope: string }) {
       )
     },
   })
+
+  const refetchWeixinStatus = statusQuery.refetch
 
   useEffect(() => {
     const data = qrStatusQuery.data
@@ -164,9 +168,9 @@ function WeixinPlatformCard(props: { open: boolean; userScope: string }) {
       completedQrRequestRef.current !== requestId
     ) {
       completedQrRequestRef.current = requestId
-      void statusQuery.refetch()
+      void refetchWeixinStatus()
     }
-  }, [qrState?.requestId, qrStatusQuery.data, statusQuery.refetch])
+  }, [qrState?.requestId, qrStatusQuery.data, refetchWeixinStatus])
 
   const current = qrState ?? statusQuery.data
   const qrValue = qrState?.qrcodeUrl || qrState?.qrcode || ''
@@ -177,6 +181,25 @@ function WeixinPlatformCard(props: { open: boolean; userScope: string }) {
     createQRMutation.isPending ||
     disconnectMutation.isPending ||
     statusQuery.isLoading
+  let qrContent = (
+    <div className='text-muted-foreground flex flex-col items-center gap-2 text-xs'>
+      <QrCodeIcon className='size-6' />
+      <span>{t('WeChat QR code will be displayed here')}</span>
+    </div>
+  )
+  if (qrValue && isImageDataUrl(qrValue)) {
+    qrContent = (
+      <img
+        alt={t('WeChat QR code')}
+        className='size-48 rounded bg-white p-2'
+        src={qrValue}
+      />
+    )
+  } else if (qrValue) {
+    qrContent = (
+      <QRCodeSVG className='rounded bg-white p-2' size={192} value={qrValue} />
+    )
+  }
 
   return (
     <section className='rounded-lg border p-4'>
@@ -195,7 +218,7 @@ function WeixinPlatformCard(props: { open: boolean; userScope: string }) {
             <p className='text-muted-foreground text-xs'>
               {current?.message ||
                 t(
-                  'Scan the QR code with WeChat to connect this Hermes account.'
+                  'Scan the QR code with WeChat to connect your message channel.'
                 )}
             </p>
             {current?.accountLabel && (
@@ -226,26 +249,7 @@ function WeixinPlatformCard(props: { open: boolean; userScope: string }) {
 
       <div className='mt-4 grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]'>
         <div className='bg-muted/30 flex h-56 w-full items-center justify-center rounded-md border'>
-          {qrValue ? (
-            isImageDataUrl(qrValue) ? (
-              <img
-                alt={t('WeChat QR code')}
-                className='size-48 rounded bg-white p-2'
-                src={qrValue}
-              />
-            ) : (
-              <QRCodeSVG
-                className='rounded bg-white p-2'
-                size={192}
-                value={qrValue}
-              />
-            )
-          ) : (
-            <div className='text-muted-foreground flex flex-col items-center gap-2 text-xs'>
-              <QrCodeIcon className='size-6' />
-              <span>{t('WeChat QR code will be displayed here')}</span>
-            </div>
-          )}
+          {qrContent}
         </div>
 
         <div className='flex min-h-56 flex-col justify-between gap-4'>

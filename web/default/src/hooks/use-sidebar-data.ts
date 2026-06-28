@@ -54,12 +54,12 @@ export function useSidebarData(): SidebarData {
     navGroups: [
       {
         id: 'overview',
-        title: t('Overview'),
+        title: t('Start'),
         items: [
           {
-            title: t('Team workspace'),
+            title: t('Workspaces'),
             description: t(
-              'Shared sessions, results and skills for your teams.'
+              'Continue from teams, skills, conversations and results.'
             ),
             icon: Users,
             type: 'team-workspaces',
@@ -68,7 +68,7 @@ export function useSidebarData(): SidebarData {
       },
       {
         id: 'ai-workspaces',
-        title: t('Personal Workspace'),
+        title: t('Personal work'),
         items: [
           {
             title: t('HermesAgent'),

@@ -31,7 +31,10 @@ import { WorkspaceHome } from './-workspace-home'
 
 const teamWorkspaceSearchSchema = z.object({
   team_id: z.coerce.number().int().positive().optional().catch(undefined),
-  panel: z.enum(['sessions', 'results', 'skills']).optional().catch(undefined),
+  panel: z
+    .enum(['sessions', 'results', 'skills', 'messages'])
+    .optional()
+    .catch(undefined),
 })
 
 export const Route = createFileRoute('/_authenticated/team-workspace/')({

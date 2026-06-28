@@ -48,6 +48,7 @@ export interface Message {
   isContentComplete?: boolean
   status?: MessageStatus
   errorCode?: string | null
+  executionTaskId?: string
 }
 
 // API payload types

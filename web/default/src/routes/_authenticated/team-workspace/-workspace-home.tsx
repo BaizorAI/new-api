@@ -61,7 +61,10 @@ type SessionItem = {
   id: string
   title: string
   href: '/team-workspace' | '/hermes-playground' | '/one-person-company'
-  search?: { team_id?: number; panel?: 'sessions' | 'results' | 'skills' }
+  search?: {
+    team_id?: number
+    panel?: 'sessions' | 'results' | 'skills' | 'messages'
+  }
   teamName?: string
   updatedAt: number
 }
@@ -71,7 +74,10 @@ type ResultItem = {
   title: string
   kind: string
   href: '/team-workspace' | '/hermes-playground' | '/one-person-company'
-  search?: { team_id?: number; panel?: 'sessions' | 'results' | 'skills' }
+  search?: {
+    team_id?: number
+    panel?: 'sessions' | 'results' | 'skills' | 'messages'
+  }
   updatedAt: number
 }
 
@@ -246,6 +252,66 @@ export function WorkspaceHome() {
             </div>
           </section>
 
+          <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-5'>
+            <QuickActionCard
+              icon={<MessageSquare className='size-4' />}
+              title={t('Ask AI to do a task')}
+              description={t(
+                'Start with a real task, then keep the conversation and files together.'
+              )}
+              action={t('Start task')}
+              to='/hermes-playground'
+            />
+            <QuickActionCard
+              icon={<Users className='size-4' />}
+              title={t('Work with a team')}
+              description={t(
+                'Share sessions, skills and results with teammates in one workspace.'
+              )}
+              action={t('Enter team')}
+              to='/team-workspace'
+              search={firstTeam ? { team_id: firstTeam.id } : undefined}
+            />
+            <QuickActionCard
+              icon={<Sparkles className='size-4' />}
+              title={t('Skill Store')}
+              description={t(
+                'Pick a reusable skill for reports, slides, documents, data work or team operations.'
+              )}
+              action={t('Browse skills')}
+              to={firstTeam ? '/team-workspace' : '/hermes-playground'}
+              search={
+                firstTeam
+                  ? { team_id: firstTeam.id, panel: 'skills' }
+                  : { panel: 'skills' }
+              }
+            />
+            <QuickActionCard
+              icon={<MessageSquare className='size-4' />}
+              title={t('Message platforms')}
+              description={t(
+                'Connect WeChat so messages can enter your AI workspace.'
+              )}
+              action={t('Connect channel')}
+              to='/hermes-playground'
+              search={{ panel: 'messages' }}
+            />
+            <QuickActionCard
+              icon={<FileCheck2 className='size-4' />}
+              title={t('Find results')}
+              description={t(
+                'Open recent reports, slides, documents and attached file results.'
+              )}
+              action={t('View results')}
+              to={firstTeam ? '/team-workspace' : '/hermes-playground'}
+              search={
+                firstTeam
+                  ? { team_id: firstTeam.id, panel: 'results' }
+                  : undefined
+              }
+            />
+          </div>
+
           <div className='grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.65fr)]'>
             <div className='space-y-4'>
               <Panel
@@ -271,12 +337,13 @@ export function WorkspaceHome() {
 
               <Panel
                 icon={<Sparkles className='size-4' />}
-                title={t('Common skills')}
+                title={t('Skill Store')}
                 description={t(
-                  'Reuse useful methods instead of starting over.'
+                  'Choose proven skills by scenario and reuse them in personal or team work.'
                 )}
               >
-                <div className='grid gap-3 md:grid-cols-3'>
+                <SkillScenarioGrid />
+                <div className='mt-3 grid gap-3 md:grid-cols-3'>
                   <SkillList
                     emptyText={t('Used skills will appear here')}
                     skills={recentSkills}
@@ -372,6 +439,42 @@ export function WorkspaceHome() {
   )
 }
 
+function QuickActionCard(props: {
+  icon: React.ReactNode
+  title: string
+  description: string
+  action: string
+  to: '/team-workspace' | '/hermes-playground'
+  search?: {
+    team_id?: number
+    panel?: 'sessions' | 'results' | 'skills' | 'messages'
+  }
+}) {
+  return (
+    <Link
+      to={props.to}
+      search={props.search}
+      className='group bg-background hover:bg-muted/30 flex min-h-36 flex-col justify-between rounded-xl border p-4 transition-colors'
+    >
+      <div className='space-y-3'>
+        <div className='bg-muted text-muted-foreground flex size-9 items-center justify-center rounded-lg'>
+          {props.icon}
+        </div>
+        <div>
+          <h2 className='text-sm font-semibold'>{props.title}</h2>
+          <p className='text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed'>
+            {props.description}
+          </p>
+        </div>
+      </div>
+      <div className='text-primary mt-4 flex items-center gap-1 text-sm font-medium'>
+        {props.action}
+        <ArrowRight className='size-4 transition-transform group-hover:translate-x-0.5' />
+      </div>
+    </Link>
+  )
+}
+
 function Panel(props: {
   icon: React.ReactNode
   title: string
@@ -438,6 +541,30 @@ function SessionCard(props: { item: SessionItem }) {
         <ArrowRight className='text-muted-foreground mt-0.5 size-4 shrink-0' />
       </div>
     </Link>
+  )
+}
+
+function SkillScenarioGrid() {
+  const { t } = useTranslation()
+  const scenarios = [
+    'PPT and presentations',
+    'Research reports',
+    'Data analysis',
+    'Document writing',
+    'Team operations',
+  ]
+
+  return (
+    <div className='flex flex-wrap gap-2'>
+      {scenarios.map((scenario) => (
+        <span
+          key={scenario}
+          className='bg-muted/30 text-muted-foreground rounded-full border px-3 py-1 text-xs font-medium'
+        >
+          {t(scenario)}
+        </span>
+      ))}
+    </div>
   )
 }
 
@@ -558,7 +685,10 @@ function toResultItems(
   messages: Message[],
   target: {
     href: '/team-workspace' | '/hermes-playground' | '/one-person-company'
-    search?: { team_id?: number; panel?: 'sessions' | 'results' | 'skills' }
+    search?: {
+      team_id?: number
+      panel?: 'sessions' | 'results' | 'skills' | 'messages'
+    }
   }
 ): ResultItem[] {
   const attachments = messages.flatMap((message) => message.attachments ?? [])

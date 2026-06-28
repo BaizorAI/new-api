@@ -21,6 +21,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Building2Icon,
   FileCheck2Icon,
+  ListChecksIcon,
   MessageSquareIcon,
   SparklesIcon,
   UsersIcon,
@@ -42,12 +43,15 @@ import {
 } from '@/components/ui/select'
 import {
   deleteTeamHermesConversation,
+  getHermesExecutionTask,
   listTeamHermesConversations,
   upsertTeamHermesConversation,
+  type HermesExecutionTask,
   type HermesSkill,
   type HermesTeamConversationRecord,
 } from '@/features/hermes-playground/api'
 import { HermesCapabilityCenter } from '@/features/hermes-playground/components/hermes-capability-center'
+import { HermesExecutionTasksSheet } from '@/features/hermes-playground/components/hermes-execution-tasks-sheet'
 import { HermesMessagePlatforms } from '@/features/hermes-playground/components/hermes-message-platforms'
 import { HermesResults } from '@/features/hermes-playground/components/hermes-results'
 import { HermesSessionsSheet } from '@/features/hermes-playground/components/hermes-sessions-sheet'
@@ -93,7 +97,7 @@ interface HermesAgentWorkspaceProps {
   baseScopePrefix?: string
   defaultSystemPrompt: string
   emptyModelsMessage: string
-  initialPanel?: 'sessions' | 'results' | 'skills'
+  initialPanel?: 'sessions' | 'results' | 'skills' | 'messages'
   initialTeamId?: number
   queryKeyPrefix: string
   suggestedPrompts?: HermesPromptSuggestion[]
@@ -122,6 +126,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const [isCapabilityCenterOpen, setIsCapabilityCenterOpen] = useState(false)
   const [isResultsOpen, setIsResultsOpen] = useState(false)
   const [isMessagePlatformsOpen, setIsMessagePlatformsOpen] = useState(false)
+  const [isExecutionTasksOpen, setIsExecutionTasksOpen] = useState(false)
   const teamPersistTimerRef = useRef<number | null>(null)
 
   const { data: teamsResponse, isLoading: isTeamsLoading } = useQuery({
@@ -248,6 +253,11 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   }, [reloadSessions])
 
   useEffect(() => {
+    if (props.initialPanel === 'messages') {
+      setIsMessagePlatformsOpen(true)
+      return
+    }
+
     if (isTeamWorkspace && selectedTeamId > 0) {
       if (props.initialPanel === 'sessions') {
         setIsSessionsOpen(true)
@@ -305,6 +315,10 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     [activeSessionId, baseScope, sessions]
   )
 
+  const activeHermesSessionId = isTeamWorkspace
+    ? `team_workspace_${selectedTeamId || 0}_${activeSession.id}`
+    : activeSession.hermesSessionId
+
   const teamContextPrompt = useMemo(() => {
     if (!isTeamWorkspace || !selectedTeamName) return ''
     return t('Team: {{team}}', { team: selectedTeamName })
@@ -326,12 +340,9 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   }, [])
 
   const requestHeaders = useMemo(() => {
-    const hermesSessionId = isTeamWorkspace
-      ? `team_workspace_${selectedTeamId || 0}_${activeSession.id}`
-      : activeSession.hermesSessionId
     const headers: Record<string, string> = {
       'X-Baizor-Playground': 'hermes',
-      'X-Baizor-Hermes-Session': hermesSessionId,
+      'X-Baizor-Hermes-Session': activeHermesSessionId,
     }
     if (props.baseScopePrefix) {
       headers['X-Baizor-Hermes-Workspace'] = props.baseScopePrefix
@@ -349,9 +360,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     }
     return headers
   }, [
-    activeSession.hermesSessionId,
-    activeSession.id,
-    isTeamWorkspace,
+    activeHermesSessionId,
     props.baseScopePrefix,
     selectedTeamId,
     selectedTeamName,
@@ -558,6 +567,110 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     [activeSession]
   )
 
+  const invalidateExecutionTasks = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: ['hermes-execution-tasks', queryUserScope],
+    })
+  }, [queryClient, queryUserScope])
+
+  const applyExecutionTaskResult = useCallback(
+    (task: HermesExecutionTask) => {
+      if (task.status !== 'succeeded' || !task.responsePayload) return
+      const result = extractExecutionTaskAssistantResult(task.responsePayload)
+      if (!result.content && !result.reasoningContent) return
+
+      const targetStorageScope = task.storageScope || activeSession.storageScope
+      const keys = createPlaygroundStorageKeys(targetStorageScope)
+      const existingMessages = loadMessages(keys) ?? []
+      const assistantMessage: Message = {
+        key: `task-${task.taskId}`,
+        from: 'assistant',
+        versions: [
+          {
+            id: `task-${task.taskId}-v1`,
+            content: result.content,
+          },
+        ],
+        reasoning: result.reasoningContent
+          ? { content: result.reasoningContent, duration: 0 }
+          : undefined,
+        status: 'complete',
+        executionTaskId: task.taskId,
+      }
+
+      const lastMessage = existingMessages.at(-1)
+      const shouldReplaceLastAssistant =
+        lastMessage?.from === 'assistant' &&
+        (lastMessage.executionTaskId === task.taskId ||
+          lastMessage.status === 'loading' ||
+          lastMessage.status === 'streaming' ||
+          lastMessage.status === 'error')
+      const nextMessages = shouldReplaceLastAssistant
+        ? [...existingMessages.slice(0, -1), assistantMessage]
+        : [...existingMessages, assistantMessage]
+      saveMessages(nextMessages, keys)
+      const targetSession =
+        sessions.find((session) => session.id === task.conversationId) ??
+        activeSession
+      if (isTeamWorkspace && selectedTeamId > 0) {
+        void upsertTeamHermesConversation(selectedTeamId, {
+          ...targetSession,
+          messages: nextMessages,
+        })
+      }
+      if (task.conversationId === activeSession.id) {
+        updateActiveSessionFromMessages(nextMessages)
+      }
+    },
+    [
+      activeSession,
+      isTeamWorkspace,
+      selectedTeamId,
+      sessions,
+      updateActiveSessionFromMessages,
+    ]
+  )
+
+  const openExecutionTask = useCallback(
+    async (task: HermesExecutionTask) => {
+      if (task.conversationId) {
+        const exists = sessions.some(
+          (session) => session.id === task.conversationId
+        )
+        if (!exists) {
+          const restoredSession: HermesConversation = {
+            id: task.conversationId,
+            title: task.title || task.conversationId,
+            storageScope:
+              task.storageScope ||
+              `${baseScope}_session_${task.conversationId}`,
+            hermesSessionId: task.hermesSessionId || task.conversationId,
+            createdAt: task.createdAt ? task.createdAt * 1000 : Date.now(),
+            updatedAt: task.updatedAt ? task.updatedAt * 1000 : Date.now(),
+            pinned: false,
+            archived: false,
+          }
+          const nextSessions = [restoredSession, ...sessions]
+          saveHermesConversations(baseScope, nextSessions)
+          setSessions(nextSessions)
+        }
+        saveActiveConversationId(baseScope, task.conversationId)
+        setActiveSessionId(task.conversationId)
+      }
+
+      try {
+        const detail = await getHermesExecutionTask(task.taskId)
+        applyExecutionTaskResult(detail)
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : t('Failed to load task')
+        )
+      }
+      setIsExecutionTasksOpen(false)
+    },
+    [applyExecutionTaskResult, baseScope, sessions, t]
+  )
+
   const openSkillDialog = useCallback((teamId?: number) => {
     setEditSkill(null)
     setSkillDialogTeamId(teamId)
@@ -638,6 +751,26 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
             </Button>
             <Button
               className='bg-background/95 shadow-sm backdrop-blur'
+              onClick={() => setIsMessagePlatformsOpen(true)}
+              size='sm'
+              type='button'
+              variant='outline'
+            >
+              <MessageSquareIcon className='size-4' />
+              <span className='hidden sm:inline'>{t('Message platforms')}</span>
+            </Button>
+            <Button
+              className='bg-background/95 shadow-sm backdrop-blur'
+              onClick={() => setIsExecutionTasksOpen(true)}
+              size='sm'
+              type='button'
+              variant='outline'
+            >
+              <ListChecksIcon className='size-4' />
+              <span className='hidden sm:inline'>{t('Execution tasks')}</span>
+            </Button>
+            <Button
+              className='bg-background/95 shadow-sm backdrop-blur'
               onClick={() => setIsSessionsOpen(true)}
               size='sm'
               type='button'
@@ -668,16 +801,38 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
             </Button>
           </>
         ) : (
-          <Button
-            className='bg-background/95 shadow-sm backdrop-blur'
-            onClick={() => setIsCapabilityCenterOpen(true)}
-            size='sm'
-            type='button'
-            variant='outline'
-          >
-            <SparklesIcon className='size-4' />
-            {t('Capabilities')}
-          </Button>
+          <>
+            <Button
+              className='bg-background/95 shadow-sm backdrop-blur'
+              onClick={() => setIsCapabilityCenterOpen(true)}
+              size='sm'
+              type='button'
+              variant='outline'
+            >
+              <SparklesIcon className='size-4' />
+              {t('Capabilities')}
+            </Button>
+            <Button
+              className='bg-background/95 shadow-sm backdrop-blur'
+              onClick={() => setIsMessagePlatformsOpen(true)}
+              size='sm'
+              type='button'
+              variant='outline'
+            >
+              <MessageSquareIcon className='size-4' />
+              {t('Message platforms')}
+            </Button>
+            <Button
+              className='bg-background/95 shadow-sm backdrop-blur'
+              onClick={() => setIsExecutionTasksOpen(true)}
+              size='sm'
+              type='button'
+              variant='outline'
+            >
+              <ListChecksIcon className='size-4' />
+              {t('Execution tasks')}
+            </Button>
+          </>
         )}
       </div>
       <Playground
@@ -694,6 +849,22 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         onSaveSession={exportActiveSession}
         queryKeyPrefix={props.queryKeyPrefix}
         requestHeaders={requestHeaders}
+        executionTaskContext={{
+          workspaceMode: isTeamWorkspace
+            ? 'team_workspace'
+            : props.baseScopePrefix || 'personal',
+          conversationId: activeSession.id,
+          storageScope: activeSession.storageScope,
+          hermesSessionId: activeHermesSessionId,
+          teamId: selectedTeamId > 0 ? selectedTeamId : undefined,
+          teamName: selectedTeamName || undefined,
+          title: activeSession.title,
+          onTaskCreated: invalidateExecutionTasks,
+          onTaskSettled: (task) => {
+            invalidateExecutionTasks()
+            applyExecutionTaskResult(task)
+          },
+        }}
         storageScope={activeSession.storageScope}
         suggestedPrompts={props.suggestedPrompts}
       />
@@ -774,6 +945,15 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
           setActiveSessionId(sessionId)
         }}
       />
+      <HermesExecutionTasksSheet
+        open={isExecutionTasksOpen}
+        userScope={queryUserScope}
+        teamId={selectedTeamId > 0 ? selectedTeamId : undefined}
+        onOpenChange={setIsExecutionTasksOpen}
+        onSelectTask={(task) => {
+          void openExecutionTask(task)
+        }}
+      />
       <HermesMessagePlatforms
         open={isMessagePlatformsOpen}
         userScope={queryUserScope}
@@ -781,6 +961,31 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       />
     </Main>
   )
+}
+
+function extractExecutionTaskAssistantResult(payload: unknown): {
+  content: string
+  reasoningContent?: string
+} {
+  const record = asRecord(payload)
+  const choices = Array.isArray(record.choices) ? record.choices : []
+  const choice = asRecord(choices[0])
+  const message = asRecord(choice.message)
+  return {
+    content: stringFromUnknown(message.content),
+    reasoningContent: stringFromUnknown(message.reasoning_content) || undefined,
+  }
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return {}
+}
+
+function stringFromUnknown(value: unknown): string {
+  return typeof value === 'string' ? value : ''
 }
 
 function normalizePersistedConversation(
