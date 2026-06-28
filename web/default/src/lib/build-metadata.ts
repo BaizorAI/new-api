@@ -26,13 +26,13 @@ For commercial licensing, please contact support@quantumnous.com
  *
  * The same revision is propagated through several independent layers, which
  * keeps it observable when one of them is stripped (CSP blocking inline
- * scripts, third-party DOM rewriters, storage disabled in private mode, …):
+ * scripts, third-party DOM rewriters, storage disabled in private mode, 鈥?:
  *
- *   - `window.__APP_BUILD__`                   — global runtime descriptor
+ *   - `window.__APP_BUILD__`                   鈥?global runtime descriptor
  *   - `<html data-build-rev>` / `data-app-channel`
- *   - `<meta name="build-id" content="…">`     — head metadata
- *   - `:root { --app-build-rev: '…' }`         — CSS custom property
- *   - `localStorage['app:rev']`                — cache-key derivation
+ *   - `<meta name="build-id" content="鈥?>`     鈥?head metadata
+ *   - `:root { --app-build-rev: '鈥? }`         鈥?CSS custom property
+ *   - `localStorage['app:rev']`                鈥?cache-key derivation
  *
  * Read by `getBuildRevision()` and surfaced in support bundles.
  */
@@ -74,16 +74,19 @@ function readEnvRevision(): string | undefined {
   return undefined
 }
 
-function computeBuildRevision(): string {
+export function getBuildVersion(): string {
   const envRev = readEnvRevision()
-  const head = envRev && envRev.length > 0 ? envRev : '0000'
-  return `${BUILD_REV_PREFIX}.${head}.${BUILD_CHANNEL_TAG}`
+  return envRev && envRev.length > 0 ? envRev : '0000'
+}
+
+function computeBuildRevision(): string {
+  return `${BUILD_REV_PREFIX}.${getBuildVersion()}.${BUILD_CHANNEL_TAG}`
 }
 
 let installed = false
 
 /**
- * Apply build-metadata to the document. Safe to call multiple times — the
+ * Apply build-metadata to the document. Safe to call multiple times 鈥?the
  * second invocation is a no-op.
  */
 export function installBuildMetadata(): void {
@@ -149,7 +152,7 @@ export function installBuildMetadata(): void {
   try {
     window.localStorage.setItem(LS_REVISION_KEY, rev)
   } catch {
-    // Storage can be unavailable (private mode, disabled cookies, …).
+    // Storage can be unavailable (private mode, disabled cookies, 鈥?.
   }
 
   // Single concise dev-console banner so the build is identifiable when

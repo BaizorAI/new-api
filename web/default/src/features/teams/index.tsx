@@ -162,7 +162,12 @@ function roleLabel(role: TeamRole, t: (key: string) => string) {
   }
 }
 
-export function Teams() {
+type TeamsProps = {
+  initialArea?: 'members' | 'settings'
+  initialTeamId?: number
+}
+
+export function Teams(props: TeamsProps) {
   const { t } = useTranslation()
   const [teams, setTeams] = useState<Team[]>([])
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null)
@@ -215,13 +220,20 @@ export function Teams() {
     try {
       const res = await listTeams()
       if (res.success && res.data) {
-        setTeams(res.data)
-        setSelectedTeamId((current) => current ?? res.data?.[0]?.id ?? null)
+        const nextTeams = res.data
+        setTeams(nextTeams)
+        setSelectedTeamId((current) => {
+          if (current) return current
+          const initialTeam = props.initialTeamId
+            ? nextTeams.find((team) => team.id === props.initialTeamId)
+            : undefined
+          return initialTeam?.id ?? nextTeams[0]?.id ?? null
+        })
       }
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [props.initialTeamId])
 
   const loadDetail = useCallback(async (teamId: number) => {
     const res = await getTeam(teamId)
@@ -233,6 +245,12 @@ export function Teams() {
   useEffect(() => {
     loadTeams()
   }, [loadTeams])
+
+  useEffect(() => {
+    if (!props.initialTeamId) return
+    if (!teams.some((team) => team.id === props.initialTeamId)) return
+    setSelectedTeamId(props.initialTeamId)
+  }, [props.initialTeamId, teams])
 
   useEffect(() => {
     async function loadTokenOptions() {
@@ -266,6 +284,18 @@ export function Teams() {
     }
   }, [loadDetail, selectedTeamId])
 
+  useEffect(() => {
+    if (!props.initialArea || !selectedTeamId || !detail) return
+
+    const elementId =
+      props.initialArea === 'members' ? 'team-members' : 'team-settings'
+    window.requestAnimationFrame(() => {
+      document.querySelector(`#${elementId}`)?.scrollIntoView({
+        block: 'start',
+        behavior: 'smooth',
+      })
+    })
+  }, [detail, props.initialArea, selectedTeamId])
   useEffect(() => {
     setMemberIdentifier('')
     setMemberCandidates([])
@@ -617,7 +647,7 @@ export function Teams() {
                   </div>
 
                   <div className='grid gap-4 xl:grid-cols-2'>
-                    <Card>
+                    <Card id='team-members'>
                       <CardHeader>
                         <CardTitle>{t('Members')}</CardTitle>
                         <CardDescription>
@@ -817,7 +847,7 @@ export function Teams() {
                       </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card id='team-settings'>
                       <CardHeader>
                         <CardTitle>{t('Team Quota')}</CardTitle>
                         <CardDescription>
@@ -858,7 +888,7 @@ export function Teams() {
                     </Card>
                   </div>
 
-                  <Card>
+                  <Card id='team-api-keys'>
                     <CardHeader className='flex flex-row items-center justify-between gap-3'>
                       <div>
                         <CardTitle>{t('Team API Keys')}</CardTitle>

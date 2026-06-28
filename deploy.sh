@@ -157,7 +157,55 @@ ensure_env_secret() {
   set_env_var "\$key" "\$value"
 }
 
+ensure_new_api_volume_line() {
+  line="\$1"
+  if sed -n '/^  new-api:/,/^  [^ ].*:/p' docker-compose.yml | grep -Fqx "      - \${line}"; then
+    return
+  fi
+
+  tmp_file="\$(mktemp)"
+  awk -v line="      - \${line}" '
+    BEGIN { in_new_api = 0; in_volumes = 0; inserted = 0 }
+    /^  new-api:/ { in_new_api = 1 }
+    in_new_api && /^  [^ ].*:/ && \$0 !~ /^  new-api:/ {
+      if (in_volumes && !inserted) {
+        print line
+        inserted = 1
+      }
+      in_new_api = 0
+      in_volumes = 0
+    }
+    in_new_api && in_volumes && /^[[:space:]]{4}[A-Za-z0-9_.-]+:/ {
+      if (!inserted) {
+        print line
+        inserted = 1
+      }
+      in_volumes = 0
+    }
+    { print }
+    in_new_api && /^[[:space:]]*volumes:[[:space:]]*$/ { in_volumes = 1 }
+  ' docker-compose.yml > "\$tmp_file"
+  mv "\$tmp_file" docker-compose.yml
+}
+
+preserve_web_assets() {
+  release_dir="web-assets/releases/${NEW_VERSION}"
+  mkdir -p "\$release_dir"
+
+  container_id="\$(docker create "${IMAGE_NAME}:${NEW_VERSION}")"
+  if docker cp "\${container_id}:/web/default/dist/." "\${release_dir}/"; then
+    ln -sfn "releases/${NEW_VERSION}" web-assets/current
+    chmod -R a+rX web-assets 2>/dev/null || true
+    echo "Preserved web assets in \${release_dir}."
+  else
+    echo "Warning: failed to preserve web assets from ${IMAGE_NAME}:${NEW_VERSION}."
+  fi
+  docker rm "\$container_id" >/dev/null
+}
+
 ensure_new_api_env_line 'SESSION_SECRET=\${SESSION_SECRET:-}' 'SESSION_SECRET'
+ensure_new_api_env_line 'WEB_ASSETS_DIR=\${WEB_ASSETS_DIR:-/app/web-assets}' 'WEB_ASSETS_DIR'
+ensure_new_api_volume_line './web-assets:/app/web-assets:ro'
 ensure_env_secret SESSION_SECRET
 archive_legacy_test_skill_sources() {
   data_dir="\$1"
@@ -369,6 +417,7 @@ if [ "${HERMES_SIDECAR_ENABLED}" = "true" ] && [ "${HERMES_COMPOSE_OVERLAY_ENABL
   fi
 fi
 docker compose \$COMPOSE_ARGS pull new-api
+preserve_web_assets
 if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
   docker compose \$COMPOSE_ARGS pull "${HERMES_SERVICE_NAME}"
 fi

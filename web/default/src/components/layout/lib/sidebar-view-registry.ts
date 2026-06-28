@@ -16,9 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type TFunction } from 'i18next'
+import type { TFunction } from 'i18next'
 
 import { SYSTEM_SETTINGS_VIEW } from '../config/system-settings.config'
+import { WORKBENCH_VIEW } from '../config/workbench.config'
 import type { NavGroup, SidebarView } from '../types'
 
 /**
@@ -30,7 +31,10 @@ import type { NavGroup, SidebarView } from '../types'
  *
  * Match priority is array order; the first matching `pathPattern` wins.
  */
-const SIDEBAR_VIEWS: readonly SidebarView[] = [SYSTEM_SETTINGS_VIEW]
+const SIDEBAR_VIEWS: readonly SidebarView[] = [
+  SYSTEM_SETTINGS_VIEW,
+  WORKBENCH_VIEW,
+]
 
 /**
  * Resolve the active nested view for the given path.

@@ -18,9 +18,21 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import { createFileRoute } from '@tanstack/react-router'
+import { z } from 'zod'
 
 import { Teams } from '@/features/teams'
 
-export const Route = createFileRoute('/_authenticated/teams/')({
-  component: Teams,
+const teamsSearchSchema = z.object({
+  team_id: z.coerce.number().int().positive().optional().catch(undefined),
+  area: z.enum(['members', 'settings']).optional().catch(undefined),
 })
+
+export const Route = createFileRoute('/_authenticated/teams/')({
+  validateSearch: teamsSearchSchema,
+  component: TeamsPage,
+})
+
+function TeamsPage() {
+  const { area, team_id } = Route.useSearch()
+  return <Teams initialArea={area} initialTeamId={team_id} />
+}

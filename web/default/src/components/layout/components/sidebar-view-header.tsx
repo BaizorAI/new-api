@@ -45,6 +45,8 @@ export function SidebarViewHeader(props: SidebarViewHeaderProps) {
   const { t } = useTranslation()
   const { setOpenMobile } = useSidebar()
 
+  if (!props.view.parent) return null
+
   return (
     <SidebarHeader className='border-sidebar-border border-b px-2 py-2'>
       <SidebarMenu>

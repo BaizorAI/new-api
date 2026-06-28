@@ -19,7 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import {
   Activity,
   Box,
-  BriefcaseBusiness,
   CreditCard,
   FileCheck2,
   FileText,
@@ -39,7 +38,6 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { IconHermes } from '@/assets/brand-icons'
 import type { SidebarData } from '@/components/layout/types'
 import { ROLE } from '@/lib/roles'
 
@@ -56,41 +54,17 @@ export function useSidebarData(): SidebarData {
   return {
     navGroups: [
       {
-        id: 'overview',
-        title: t('Overview'),
+        id: 'workspace',
+        title: t('Workspace'),
         items: [
           {
-            title: t('Workspace Home'),
+            title: t('Workbench'),
             description: t(
               'Continue from teams, skills, conversations and results.'
             ),
             url: '/team-workspace',
             icon: LayoutDashboard,
             configUrls: ['/team-workspace'],
-          },
-        ],
-      },
-      {
-        id: 'workbench',
-        title: t('Workbench'),
-        items: [
-          {
-            title: t('My Teams'),
-            description: t('Team collaboration workspace'),
-            icon: Users,
-            type: 'team-workspaces',
-          },
-          {
-            title: t('HermesAgent'),
-            description: t('Personal AI workspace'),
-            icon: IconHermes,
-            type: 'hermes-sessions',
-          },
-          {
-            title: t('My One-Person Company'),
-            description: t('Personal business and project workspace'),
-            url: '/one-person-company',
-            icon: BriefcaseBusiness,
           },
         ],
       },

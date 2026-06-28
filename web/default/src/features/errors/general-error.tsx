@@ -21,6 +21,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import { getRuntimeVersionState } from '@/lib/runtime-version'
 import { cn } from '@/lib/utils'
 
 const FEEDBACK_URL = 'https://github.com/BaizorAI/new-api/issues'
@@ -82,11 +83,34 @@ export function GeneralError({
   useEffect(() => {
     if (!chunkLoadError) return
 
-    const key = `chunk-load-reload:${window.location.pathname}`
-    if (sessionStorage.getItem(key) === '1') return
+    let cancelled = false
 
-    sessionStorage.setItem(key, '1')
-    window.location.reload()
+    async function recoverFromChunkLoadError(): Promise<void> {
+      const pathKey = `${window.location.pathname}${window.location.search}`
+
+      try {
+        const versionState = await getRuntimeVersionState()
+        const reloadKey = `chunk-load-reload:${pathKey}:${versionState.currentVersion}:${versionState.serverVersion ?? 'unknown'}`
+
+        if (cancelled || sessionStorage.getItem(reloadKey) === '1') return
+        if (!versionState.changed) return
+
+        sessionStorage.setItem(reloadKey, '1')
+        window.location.reload()
+      } catch {
+        const fallbackKey = `chunk-load-reload:${pathKey}:fallback`
+        if (cancelled || sessionStorage.getItem(fallbackKey) === '1') return
+
+        sessionStorage.setItem(fallbackKey, '1')
+        window.location.reload()
+      }
+    }
+
+    void recoverFromChunkLoadError()
+
+    return () => {
+      cancelled = true
+    }
   }, [chunkLoadError])
 
   return (

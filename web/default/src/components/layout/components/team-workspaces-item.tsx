@@ -23,7 +23,9 @@ import {
   FileCheck2,
   LayoutDashboard,
   MessageSquare,
+  Settings,
   Sparkles,
+  UserRound,
   Users,
 } from 'lucide-react'
 import { useMemo, type ElementType } from 'react'
@@ -35,6 +37,8 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import {
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   useSidebar,
@@ -61,6 +65,17 @@ export function TeamWorkspacesItem({ item }: { item: NavTeamWorkspaces }) {
 
   const isActive = normalizeHref(href).startsWith('/team-workspace')
   const handleNavigate = () => setOpenMobile(false)
+
+  if (item.variant === 'flat') {
+    return (
+      <FlatTeamWorkspaceItems
+        href={href}
+        isLoading={isLoading}
+        teams={teams}
+        onNavigate={handleNavigate}
+      />
+    )
+  }
 
   return (
     <SidebarCollapsibleShell
@@ -91,6 +106,111 @@ export function TeamWorkspacesItem({ item }: { item: NavTeamWorkspaces }) {
 }
 
 type TeamWorkspacePanel = 'sessions' | 'results' | 'skills'
+type TeamManagementArea = 'members' | 'settings'
+
+const TEAM_PANEL_CONFIG: Array<{
+  panel: TeamWorkspacePanel
+  titleKey: string
+  icon: ElementType
+}> = [
+  { panel: 'sessions', titleKey: 'Team sessions', icon: MessageSquare },
+  { panel: 'results', titleKey: 'Team results', icon: FileCheck2 },
+  { panel: 'skills', titleKey: 'Team skills', icon: Sparkles },
+]
+
+const TEAM_MANAGEMENT_CONFIG: Array<{
+  area: TeamManagementArea
+  titleKey: string
+  icon: ElementType
+}> = [
+  { area: 'members', titleKey: 'Team members', icon: UserRound },
+  { area: 'settings', titleKey: 'Team settings', icon: Settings },
+]
+
+function FlatTeamWorkspaceItems(props: {
+  href: string
+  isLoading: boolean
+  teams: Team[]
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+
+  if (props.isLoading) {
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton aria-disabled='true'>
+          <Users className='size-4' aria-hidden='true' />
+          <span>{t('Loading teams...')}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    )
+  }
+
+  if (props.teams.length === 0) {
+    return (
+      <>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            render={<Link to='/teams' onClick={props.onNavigate} />}
+          >
+            <Users className='size-4' aria-hidden='true' />
+            <span>{t('Team Management')}</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton aria-disabled='true'>
+            <span>{t('No teams yet')}</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </>
+    )
+  }
+
+  return (
+    <>
+      {props.teams.flatMap((team) => [
+        <SidebarMenuItem key={team.id}>
+          <SidebarMenuButton
+            isActive={isTeamUrlActive(props.href, team.id)}
+            tooltip={team.name}
+            render={
+              <Link
+                to='/team-workspace'
+                search={{ team_id: team.id }}
+                onClick={props.onNavigate}
+              />
+            }
+          >
+            <Building2 className='size-4' aria-hidden='true' />
+            <span>{team.name}</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>,
+        ...TEAM_PANEL_CONFIG.map((config) => (
+          <SidebarTeamPanelItem
+            key={`${team.id}-${config.panel}`}
+            href={props.href}
+            team={team}
+            panel={config.panel}
+            title={t(config.titleKey)}
+            icon={config.icon}
+            onNavigate={props.onNavigate}
+          />
+        )),
+        ...TEAM_MANAGEMENT_CONFIG.map((config) => (
+          <SidebarTeamManagementItem
+            key={`${team.id}-${config.area}`}
+            href={props.href}
+            team={team}
+            area={config.area}
+            title={t(config.titleKey)}
+            icon={config.icon}
+            onNavigate={props.onNavigate}
+          />
+        )),
+      ])}
+    </>
+  )
+}
 
 function SidebarTeamItems(props: {
   href: string
@@ -154,33 +274,17 @@ function SidebarTeamItems(props: {
           <span>{team.name}</span>
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>,
-      <SidebarTeamPanelItem
-        key={`${team.id}-sessions`}
-        href={props.href}
-        team={team}
-        panel='sessions'
-        title={t('Sessions')}
-        icon={MessageSquare}
-        onNavigate={props.onNavigate}
-      />,
-      <SidebarTeamPanelItem
-        key={`${team.id}-results`}
-        href={props.href}
-        team={team}
-        panel='results'
-        title={t('Results')}
-        icon={FileCheck2}
-        onNavigate={props.onNavigate}
-      />,
-      <SidebarTeamPanelItem
-        key={`${team.id}-skills`}
-        href={props.href}
-        team={team}
-        panel='skills'
-        title={t('Skills')}
-        icon={Sparkles}
-        onNavigate={props.onNavigate}
-      />,
+      ...TEAM_PANEL_CONFIG.map((config) => (
+        <SidebarTeamPanelItem
+          key={`${team.id}-${config.panel}`}
+          href={props.href}
+          team={team}
+          panel={config.panel}
+          title={t(config.titleKey)}
+          icon={config.icon}
+          onNavigate={props.onNavigate}
+        />
+      )),
     ]),
   ]
 }
@@ -203,6 +307,7 @@ function SidebarTeamOverviewItem(props: {
     </SidebarMenuSubItem>
   )
 }
+
 function SidebarTeamPanelItem(props: {
   href: string
   team: Team
@@ -220,6 +325,38 @@ function SidebarTeamPanelItem(props: {
           <Link
             to='/team-workspace'
             search={{ team_id: props.team.id, panel: props.panel }}
+            onClick={props.onNavigate}
+          />
+        }
+      >
+        <props.icon className='size-3.5' aria-hidden='true' />
+        <span>{props.title}</span>
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
+  )
+}
+
+function SidebarTeamManagementItem(props: {
+  href: string
+  team: Team
+  area: TeamManagementArea
+  title: string
+  icon: ElementType
+  onNavigate: () => void
+}) {
+  return (
+    <SidebarMenuSubItem>
+      <SidebarMenuSubButton
+        className='pl-7'
+        isActive={isTeamManagementUrlActive(
+          props.href,
+          props.team.id,
+          props.area
+        )}
+        render={
+          <Link
+            to='/teams'
+            search={{ team_id: props.team.id, area: props.area }}
             onClick={props.onNavigate}
           />
         }
@@ -304,33 +441,28 @@ function CollapsedTeamList(props: {
 
   return props.teams.flatMap((team) => [
     <DropdownMenuLabel key={`${team.id}-label`}>{team.name}</DropdownMenuLabel>,
-    <CollapsedTeamPanelItem
-      key={`${team.id}-sessions`}
-      href={props.href}
-      team={team}
-      panel='sessions'
-      title={t('Sessions')}
-      icon={MessageSquare}
-      onNavigate={props.onNavigate}
-    />,
-    <CollapsedTeamPanelItem
-      key={`${team.id}-results`}
-      href={props.href}
-      team={team}
-      panel='results'
-      title={t('Results')}
-      icon={FileCheck2}
-      onNavigate={props.onNavigate}
-    />,
-    <CollapsedTeamPanelItem
-      key={`${team.id}-skills`}
-      href={props.href}
-      team={team}
-      panel='skills'
-      title={t('Skills')}
-      icon={Sparkles}
-      onNavigate={props.onNavigate}
-    />,
+    ...TEAM_PANEL_CONFIG.map((config) => (
+      <CollapsedTeamPanelItem
+        key={`${team.id}-${config.panel}`}
+        href={props.href}
+        team={team}
+        panel={config.panel}
+        title={t(config.titleKey)}
+        icon={config.icon}
+        onNavigate={props.onNavigate}
+      />
+    )),
+    ...TEAM_MANAGEMENT_CONFIG.map((config) => (
+      <CollapsedTeamManagementItem
+        key={`${team.id}-${config.area}`}
+        href={props.href}
+        team={team}
+        area={config.area}
+        title={t(config.titleKey)}
+        icon={config.icon}
+        onNavigate={props.onNavigate}
+      />
+    )),
   ])
 }
 
@@ -363,6 +495,35 @@ function CollapsedTeamPanelItem(props: {
   )
 }
 
+function CollapsedTeamManagementItem(props: {
+  href: string
+  team: Team
+  area: TeamManagementArea
+  title: string
+  icon: ElementType
+  onNavigate: () => void
+}) {
+  return (
+    <DropdownMenuItem
+      render={
+        <Link
+          to='/teams'
+          search={{ team_id: props.team.id, area: props.area }}
+          className={
+            isTeamManagementUrlActive(props.href, props.team.id, props.area)
+              ? 'bg-secondary'
+              : ''
+          }
+          onClick={props.onNavigate}
+        />
+      }
+    >
+      <props.icon className='size-4' aria-hidden='true' />
+      <span className='max-w-52 text-wrap'>{props.title}</span>
+    </DropdownMenuItem>
+  )
+}
+
 function isTeamUrlActive(
   href: string,
   teamId?: number,
@@ -378,4 +539,16 @@ function isTeamUrlActive(
   if (activeTeamId !== String(teamId)) return false
   if (panel === undefined) return !activePanel
   return activePanel === panel
+}
+
+function isTeamManagementUrlActive(
+  href: string,
+  teamId: number,
+  area: TeamManagementArea
+): boolean {
+  if (normalizeHref(href) !== '/teams') return false
+
+  const search = href.split('?')[1] ?? ''
+  const params = new URLSearchParams(search)
+  return params.get('team_id') === String(teamId) && params.get('area') === area
 }

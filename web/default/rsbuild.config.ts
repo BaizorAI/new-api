@@ -1,5 +1,5 @@
-import path from 'path'
-import { fileURLToPath } from 'url'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { defineConfig, loadEnv } from '@rsbuild/core'
 import { pluginReact } from '@rsbuild/plugin-react'
@@ -13,8 +13,13 @@ export default defineConfig(({ envMode }) => {
     process.env.VITE_REACT_APP_SERVER_URL ||
     env.rawPublicVars.VITE_REACT_APP_SERVER_URL ||
     'http://localhost:3000'
+  const buildVersion =
+    process.env.VITE_REACT_APP_VERSION ||
+    env.rawPublicVars.VITE_REACT_APP_VERSION ||
+    '0000'
 
   const isProd = envMode === 'production'
+  const assetPrefix = isProd ? `/assets/${buildVersion}/` : '/'
   const devProxy = Object.fromEntries(
     (['/api', '/mj', '/pg'] as const).map((key) => [
       key,
@@ -73,10 +78,11 @@ export default defineConfig(({ envMode }) => {
       // Production optimizations
       minify: isProd,
       target: 'web',
+      assetPrefix,
       distPath: {
         root: 'dist',
       },
-      // Rely on Rsbuild default legalComments ("linked" → per-chunk *.LICENSE.txt) in all modes.
+      // Rely on Rsbuild default legalComments ("linked" -> per-chunk *.LICENSE.txt) in all modes.
       // Do not set "none" in production: that strips minifier-preserved third-party notices and
       // extracted license files, which some distributions require for open-source compliance.
     },

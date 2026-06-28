@@ -78,6 +78,7 @@ export type NavHermesSessions = BaseNavItem & {
  */
 export type NavTeamWorkspaces = BaseNavItem & {
   type: 'team-workspaces'
+  variant?: 'collapsible' | 'flat'
   url?: never
   items?: never
 }
@@ -166,8 +167,8 @@ export type SidebarView = {
   id: string
   /** Path matcher that activates this view */
   pathPattern: RegExp
-  /** Back-navigation descriptor; required for nested views */
-  parent: SidebarViewParent
+  /** Back-navigation descriptor; omitted for root-like contextual views */
+  parent?: SidebarViewParent
   /** Nav group builder, called per render with the active translator */
   getNavGroups: (t: TFunction) => NavGroup[]
 }
