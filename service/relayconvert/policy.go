@@ -1,4 +1,4 @@
-package openaicompat
+package relayconvert
 
 import "github.com/BaizorAI/new-api/setting/model_setting"
 
