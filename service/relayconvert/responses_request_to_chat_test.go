@@ -199,6 +199,54 @@ func TestResponsesRequestToChatCompletionsRequestToolsToolChoiceAndTextFormat(t 
 	assert.True(t, gjson.GetBytes(got.ResponseFormat.JsonSchema, "strict").Bool())
 }
 
+func TestResponsesRequestToChatCompletionsRequestFlattensNamespaceTools(t *testing.T) {
+	got, err := ResponsesRequestToChatCompletionsRequest(&dto.OpenAIResponsesRequest{
+		Model: "gpt-test",
+		Input: mustRawMessage(t, "hello"),
+		Tools: mustRawMessage(t, []map[string]any{
+			{
+				"type": "namespace",
+				"name": "workspace",
+				"tools": []map[string]any{
+					{
+						"type":        "function",
+						"name":        "shell_command",
+						"description": "Run a shell command",
+						"parameters": map[string]any{
+							"type": "object",
+						},
+					},
+					{
+						"type":  "custom",
+						"name":  "apply_patch",
+						"input": "patch",
+					},
+				},
+			},
+			{
+				"type":        "function",
+				"name":        "lookup",
+				"description": "Lookup data",
+				"parameters": map[string]any{
+					"type": "object",
+				},
+			},
+		}),
+	})
+	require.NoError(t, err)
+
+	require.Len(t, got.Tools, 3)
+	assert.Equal(t, "function", got.Tools[0].Type)
+	assert.Equal(t, "shell_command", got.Tools[0].Function.Name)
+	assert.Contains(t, got.Tools[0].Function.Description, "Run a shell command")
+	assert.Contains(t, got.Tools[0].Function.Description, "Namespace: workspace")
+	assert.Equal(t, dto.CustomType, got.Tools[1].Type)
+	assert.Equal(t, "custom", gjson.GetBytes(got.Tools[1].Custom, "type").String())
+	assert.Equal(t, "apply_patch", gjson.GetBytes(got.Tools[1].Custom, "name").String())
+	assert.Equal(t, "function", got.Tools[2].Type)
+	assert.Equal(t, "lookup", got.Tools[2].Function.Name)
+}
+
 func TestResponsesRequestToChatCompletionsRequestCustomToolCallPreservesRawShape(t *testing.T) {
 	got, err := ResponsesRequestToChatCompletionsRequest(&dto.OpenAIResponsesRequest{
 		Model: "gpt-test",

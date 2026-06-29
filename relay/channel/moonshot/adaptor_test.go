@@ -85,3 +85,78 @@ func TestConvertOpenAIRequestOtherMoonshotModelKeepsSamplingParams(t *testing.T)
 	require.NotNil(t, convertedRequest.TopP)
 	require.Equal(t, 1.0, *convertedRequest.TopP)
 }
+
+func TestGetModelListIncludesConfiguredKimiK27Code(t *testing.T) {
+	require.Contains(t, (&Adaptor{}).GetModelList(), "kimi-k2.7-code")
+}
+
+func TestConvertOpenAIRequestSanitizesMoonshotToolParameters(t *testing.T) {
+	request := &dto.GeneralOpenAIRequest{
+		Model: "kimi-k2.7-code",
+		Tools: []dto.ToolCallRequest{
+			{
+				Type: "function",
+				Function: dto.FunctionRequest{
+					Name: "shell_command",
+					Parameters: map[string]any{
+						"type": "object",
+						"properties": map[string]any{
+							"command": map[string]any{
+								"description": "Command to run",
+							},
+							"mode": map[string]any{
+								"type":     "string",
+								"nullable": true,
+								"enum":     []any{"safe", "", nil},
+							},
+							"timeout_ms": map[string]any{
+								"type": "integer",
+								"anyOf": []any{
+									map[string]any{"type": "integer"},
+									map[string]any{"type": "null"},
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				Type: "function",
+				Function: dto.FunctionRequest{
+					Name: "no_params",
+				},
+			},
+		},
+	}
+
+	converted, err := (&Adaptor{}).ConvertOpenAIRequest(nil, moonshotRelayInfo("kimi-k2.7-code"), request)
+
+	require.NoError(t, err)
+	convertedRequest, ok := converted.(*dto.GeneralOpenAIRequest)
+	require.True(t, ok)
+	require.Len(t, convertedRequest.Tools, 2)
+
+	params := convertedRequest.Tools[0].Function.Parameters.(map[string]any)
+	require.Equal(t, "object", params["type"])
+	properties := params["properties"].(map[string]any)
+	command := properties["command"].(map[string]any)
+	require.Equal(t, "string", command["type"])
+	mode := properties["mode"].(map[string]any)
+	require.NotContains(t, mode, "nullable")
+	require.Equal(t, []any{"safe"}, mode["enum"])
+	timeout := properties["timeout_ms"].(map[string]any)
+	require.Equal(t, "integer", timeout["type"])
+	require.NotContains(t, timeout, "anyOf")
+
+	noParams := convertedRequest.Tools[1].Function.Parameters.(map[string]any)
+	require.Equal(t, "object", noParams["type"])
+	require.Equal(t, map[string]any{}, noParams["properties"])
+}
+
+func moonshotRelayInfo(modelName string) *relaycommon.RelayInfo {
+	return &relaycommon.RelayInfo{
+		ChannelMeta: &relaycommon.ChannelMeta{
+			UpstreamModelName: modelName,
+		},
+	}
+}

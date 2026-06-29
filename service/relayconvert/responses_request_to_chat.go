@@ -319,7 +319,8 @@ func responsesRequestToolsToChat(raw json.RawMessage) ([]dto.ToolCallRequest, er
 	out := make([]dto.ToolCallRequest, 0, len(tools))
 	for _, tool := range tools {
 		toolType := strings.TrimSpace(common.Interface2String(tool["type"]))
-		if toolType == "function" {
+		switch toolType {
+		case "function":
 			out = append(out, dto.ToolCallRequest{
 				Type: "function",
 				Function: dto.FunctionRequest{
@@ -328,6 +329,13 @@ func responsesRequestToolsToChat(raw json.RawMessage) ([]dto.ToolCallRequest, er
 					Parameters:  tool["parameters"],
 				},
 			})
+			continue
+		case "namespace":
+			namespaceTools, err := responsesNamespaceToolsToChat(tool)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, namespaceTools...)
 			continue
 		}
 
@@ -341,6 +349,38 @@ func responsesRequestToolsToChat(raw json.RawMessage) ([]dto.ToolCallRequest, er
 		})
 	}
 	return out, nil
+}
+
+func responsesNamespaceToolsToChat(tool map[string]any) ([]dto.ToolCallRequest, error) {
+	rawTools, err := common.Marshal(tool["tools"])
+	if err != nil {
+		return nil, err
+	}
+	tools, err := responsesRequestToolsToChat(rawTools)
+	if err != nil {
+		return nil, err
+	}
+
+	namespace := strings.TrimSpace(common.Interface2String(tool["name"]))
+	if namespace == "" {
+		namespace = strings.TrimSpace(common.Interface2String(tool["namespace"]))
+	}
+	if namespace == "" {
+		return tools, nil
+	}
+
+	for i := range tools {
+		if tools[i].Type != "function" {
+			continue
+		}
+		description := strings.TrimSpace(tools[i].Function.Description)
+		if description == "" {
+			tools[i].Function.Description = "Namespace: " + namespace
+		} else {
+			tools[i].Function.Description = description + "\n\nNamespace: " + namespace
+		}
+	}
+	return tools, nil
 }
 
 func responsesRequestToolChoiceToChat(raw json.RawMessage) (any, error) {

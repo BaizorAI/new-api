@@ -2,6 +2,8 @@ package moonshot
 
 var ModelList = []string{
 	"kimi-k2.5",
+	"kimi-k2.6",
+	"kimi-k2.7-code",
 	"kimi-k2-0905-preview",
 	"kimi-k2-turbo-preview",
 	"kimi-k2-thinking",
