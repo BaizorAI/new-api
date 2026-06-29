@@ -3,7 +3,7 @@ package relayconvert
 import (
 	"testing"
 
-	"github.com/QuantumNous/new-api/dto"
+	"github.com/BaizorAI/new-api/dto"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

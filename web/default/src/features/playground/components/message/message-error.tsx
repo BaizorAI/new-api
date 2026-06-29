@@ -23,8 +23,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { MESSAGE_STATUS } from '../constants'
-import type { Message } from '../types'
+import { MESSAGE_STATUS } from '../../constants'
+import type { Message } from '../../types'
 
 interface MessageErrorProps {
   message: Message

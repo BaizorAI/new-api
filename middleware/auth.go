@@ -14,6 +14,7 @@ import (
 	"github.com/BaizorAI/new-api/logger"
 	"github.com/BaizorAI/new-api/model"
 	"github.com/BaizorAI/new-api/service"
+	authzservice "github.com/BaizorAI/new-api/service/authz"
 	"github.com/BaizorAI/new-api/setting/ratio_setting"
 	"github.com/BaizorAI/new-api/types"
 
@@ -319,6 +320,20 @@ func AdminAuth() func(c *gin.Context) {
 func RootAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		authHelper(c, common.RoleRootUser)
+	}
+}
+
+func RequirePermission(permission authzservice.Permission) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		if authzservice.Can(c.GetInt("id"), c.GetInt("role"), permission) {
+			c.Next()
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": common.TranslateMessage(c, i18n.MsgAuthInsufficientPrivilege),
+		})
+		c.Abort()
 	}
 }
 

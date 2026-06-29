@@ -13,6 +13,7 @@ import (
 	relaycommon "github.com/BaizorAI/new-api/relay/common"
 	"github.com/BaizorAI/new-api/relay/helper"
 	"github.com/BaizorAI/new-api/service"
+	"github.com/BaizorAI/new-api/service/relayconvert"
 	"github.com/BaizorAI/new-api/types"
 
 	"github.com/gin-gonic/gin"
@@ -546,5 +547,179 @@ func OaiResponsesToChatStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 	if info.RelayFormat == types.RelayFormatOpenAI {
 		helper.Done(c)
 	}
+	return usage, nil
+}
+
+func OaiResponsesToChatBufferedStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Response) (*dto.Usage, *types.NewAPIError) {
+	if resp == nil || resp.Body == nil {
+		return nil, types.NewOpenAIError(fmt.Errorf("invalid response"), types.ErrorCodeBadResponse, http.StatusInternalServerError)
+	}
+
+	defer service.CloseResponseBodyGracefully(resp)
+
+	responseID := helper.GetResponseID(c)
+	createdAt := time.Now().Unix()
+	model := info.UpstreamModelName
+	state := relayconvert.NewResponsesToChatStreamState(model, false)
+	streamErr := (*types.NewAPIError)(nil)
+	chunks := make([]dto.ChatCompletionsStreamResponse, 0)
+
+	helper.StreamScannerHandler(c, resp, info, func(data string, sr *helper.StreamResult) {
+		if streamErr != nil {
+			sr.Stop(streamErr)
+			return
+		}
+
+		var streamResp dto.ResponsesStreamResponse
+		if err := common.UnmarshalJsonStr(data, &streamResp); err != nil {
+			logger.LogError(c, "failed to unmarshal responses stream event: "+err.Error())
+			sr.Error(err)
+			return
+		}
+
+		converted, err := relayconvert.ResponsesStreamEventToChatChunks(&streamResp, state)
+		if err != nil {
+			streamErr = types.NewOpenAIError(err, types.ErrorCodeBadResponse, http.StatusInternalServerError)
+			sr.Stop(streamErr)
+			return
+		}
+		chunks = append(chunks, converted...)
+	})
+
+	if streamErr != nil {
+		return nil, streamErr
+	}
+	chunks = append(chunks, relayconvert.FinalizeResponsesToChatStream(state)...)
+
+	usage := state.Usage
+	var content strings.Builder
+	var reasoning strings.Builder
+	finishReason := "stop"
+	toolCallsByIndex := make(map[int]dto.ToolCallResponse)
+	maxToolIndex := -1
+
+	for _, chunk := range chunks {
+		if chunk.Id != "" {
+			responseID = chunk.Id
+		}
+		if chunk.Model != "" {
+			model = chunk.Model
+		}
+		if chunk.Created != 0 {
+			createdAt = chunk.Created
+		}
+		if chunk.Usage != nil {
+			usage = chunk.Usage
+		}
+		for _, choice := range chunk.Choices {
+			if choice.FinishReason != nil && *choice.FinishReason != "" {
+				finishReason = *choice.FinishReason
+			}
+			if text := choice.Delta.GetContentString(); text != "" {
+				content.WriteString(text)
+			}
+			if text := choice.Delta.GetReasoningContent(); text != "" {
+				reasoning.WriteString(text)
+			}
+			for _, toolDelta := range choice.Delta.ToolCalls {
+				index := len(toolCallsByIndex)
+				if toolDelta.Index != nil {
+					index = *toolDelta.Index
+				}
+				if index > maxToolIndex {
+					maxToolIndex = index
+				}
+				tool := toolCallsByIndex[index]
+				if toolDelta.ID != "" {
+					tool.ID = toolDelta.ID
+				}
+				if toolDelta.Type != nil {
+					tool.Type = toolDelta.Type
+				}
+				if tool.Type == nil {
+					tool.Type = "function"
+				}
+				if toolDelta.Function.Name != "" {
+					tool.Function.Name = toolDelta.Function.Name
+				}
+				if toolDelta.Function.Arguments != "" {
+					tool.Function.Arguments += toolDelta.Function.Arguments
+				}
+				toolCallsByIndex[index] = tool
+			}
+		}
+	}
+
+	if usage == nil || usage.TotalTokens == 0 {
+		var usageText strings.Builder
+		usageText.WriteString(content.String())
+		usageText.WriteString(reasoning.String())
+		for index := 0; index <= maxToolIndex; index++ {
+			tool, ok := toolCallsByIndex[index]
+			if !ok {
+				continue
+			}
+			usageText.WriteString(tool.Function.Name)
+			usageText.WriteString(tool.Function.Arguments)
+		}
+		usage = service.ResponseText2Usage(c, usageText.String(), info.UpstreamModelName, info.GetEstimatePromptTokens())
+	}
+
+	message := dto.Message{
+		Role:    "assistant",
+		Content: content.String(),
+	}
+	if reasoningText := reasoning.String(); reasoningText != "" {
+		message.ReasoningContent = &reasoningText
+	}
+	if maxToolIndex >= 0 {
+		toolCalls := make([]dto.ToolCallResponse, 0, len(toolCallsByIndex))
+		for index := 0; index <= maxToolIndex; index++ {
+			tool, ok := toolCallsByIndex[index]
+			if !ok {
+				continue
+			}
+			toolCalls = append(toolCalls, tool)
+		}
+		if len(toolCalls) > 0 {
+			message.SetToolCalls(toolCalls)
+			if finishReason == "stop" {
+				finishReason = "tool_calls"
+			}
+		}
+	}
+
+	chatResp := &dto.OpenAITextResponse{
+		Id:      responseID,
+		Object:  "chat.completion",
+		Created: createdAt,
+		Model:   model,
+		Choices: []dto.OpenAITextResponseChoice{
+			{
+				Index:        0,
+				Message:      message,
+				FinishReason: finishReason,
+			},
+		},
+		Usage: *usage,
+	}
+
+	var responseBody []byte
+	var err error
+	switch info.RelayFormat {
+	case types.RelayFormatClaude:
+		claudeResp := service.ResponseOpenAI2Claude(chatResp, info)
+		responseBody, err = common.Marshal(claudeResp)
+	case types.RelayFormatGemini:
+		geminiResp := service.ResponseOpenAI2Gemini(chatResp, info)
+		responseBody, err = common.Marshal(geminiResp)
+	default:
+		responseBody, err = common.Marshal(chatResp)
+	}
+	if err != nil {
+		return nil, types.NewOpenAIError(err, types.ErrorCodeJsonMarshalFailed, http.StatusInternalServerError)
+	}
+
+	service.IOCopyBytesGracefully(c, resp, responseBody)
 	return usage, nil
 }

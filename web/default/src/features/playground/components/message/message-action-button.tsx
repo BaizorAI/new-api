@@ -25,7 +25,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
-import { MESSAGE_ACTION_BUTTON_STYLES } from '../constants'
+import { MESSAGE_ACTION_BUTTON_STYLES } from '../../constants'
 
 interface MessageActionButtonProps {
   icon: LucideIcon

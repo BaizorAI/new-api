@@ -18,44 +18,43 @@ For commercial licensing, please contact support@quantumnous.com
 */
 'use client'
 
-import { type ComponentProps, memo } from 'react'
-import { Streamdown } from 'streamdown'
+import { memo, useMemo } from 'react'
+import { getMarkdown, parseMarkdownToStructure } from 'stream-markdown-parser'
 
 import { cn } from '@/lib/utils'
 
-type ResponseProps = ComponentProps<typeof Streamdown>
+import {
+  getMarkdownContent,
+  parseResponseContent,
+} from './response-content'
+import { renderChildren, renderFootnotes } from './response-renderer'
+import type { ResponseProps } from './response-types'
 
 export const Response = memo(
-  ({ className, children, ...props }: ResponseProps) => {
-    const stripCustomTags = (input: unknown): unknown => {
-      if (typeof input !== 'string') return input
-      return (
-        input
-          // Remove known AI custom wrapper tags but keep inner content
-          .replace(
-            /<\/?(conversation|conversationcontent|reasoning|reasoningcontent|reasoningtrigger|sources|sourcescontent|sourcestrigger|branch|branchmessages|branchnext|branchpage|branchprevious|branchselector|message|messagecontent)\b[^>]*>/gi,
-            ''
-          )
-          // Remove any stray <think> tags if they still appear
-          .replace(/<\/?think\b[^>]*>/gi, '')
-      )
-    }
-
-    const safeChildren = stripCustomTags(children) as string
+  ({ className, children, final = false }: ResponseProps) => {
+    const content = useMemo(() => getMarkdownContent(children), [children])
+    const parsed = useMemo(() => {
+      const markdown = getMarkdown('ai-response')
+      const nodes = parseMarkdownToStructure(content, markdown, { final })
+      return parseResponseContent(nodes)
+    }, [content, final])
 
     return (
-      <Streamdown
+      <div
         className={cn(
           'size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
           className
         )}
-        {...props}
       >
-        {safeChildren}
-      </Streamdown>
+        {renderChildren(parsed.bodyNodes)}
+        {renderFootnotes(parsed.footnotes)}
+      </div>
     )
   },
-  (prevProps, nextProps) => prevProps.children === nextProps.children
+  (prevProps, nextProps) =>
+    prevProps.children === nextProps.children &&
+    prevProps.className === nextProps.className &&
+    prevProps.final === nextProps.final
 )
 
 Response.displayName = 'Response'

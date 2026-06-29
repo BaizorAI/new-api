@@ -1,6 +1,76 @@
 package controller
 
-import "github.com/QuantumNous/new-api/model"
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/model"
+	"github.com/gin-gonic/gin"
+)
+
+type channelStatusUpdateRequest struct {
+	Status int `json:"status"`
+}
+
+type channelBatchStatusUpdateRequest struct {
+	Ids    []int `json:"ids"`
+	Status int   `json:"status"`
+}
+
+func isManageableChannelStatus(status int) bool {
+	return status == common.ChannelStatusEnabled || status == common.ChannelStatusManuallyDisabled
+}
+
+func UpdateChannelStatus(c *gin.Context) {
+	channelID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid id"})
+		return
+	}
+
+	var request channelStatusUpdateRequest
+	if err := c.ShouldBindJSON(&request); err != nil || !isManageableChannelStatus(request.Status) {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid status"})
+		return
+	}
+
+	if !model.UpdateChannelStatus(channelID, "", request.Status, "manual update") {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "channel status not changed"})
+		return
+	}
+	model.InitChannelCache()
+	recordManageAudit(c, "channel.status_update", map[string]interface{}{
+		"id":     channelID,
+		"status": request.Status,
+	})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+}
+
+func BatchUpdateChannelStatus(c *gin.Context) {
+	var request channelBatchStatusUpdateRequest
+	if err := c.ShouldBindJSON(&request); err != nil || len(request.Ids) == 0 || !isManageableChannelStatus(request.Status) {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid request"})
+		return
+	}
+
+	updated := 0
+	for _, channelID := range request.Ids {
+		if model.UpdateChannelStatus(channelID, "", request.Status, "manual batch update") {
+			updated++
+		}
+	}
+	model.InitChannelCache()
+	recordManageAudit(c, "channel.status_batch_update", map[string]interface{}{
+		"count":  updated,
+		"status": request.Status,
+	})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    updated,
+	})
+}
 
 func channelHasSensitiveChanges(channel *PatchChannel, origin *model.Channel, requestData map[string]any) bool {
 	if _, ok := requestData["type"]; ok && channel.Type != origin.Type {

@@ -3,7 +3,7 @@ package controller
 import (
 	"net/http"
 
-	"github.com/QuantumNous/new-api/service/authz"
+	"github.com/BaizorAI/new-api/service/authz"
 
 	"github.com/gin-gonic/gin"
 )
