@@ -127,7 +127,7 @@ func normalizeHermesDataPath(value string) (string, bool) {
 	return cleaned, true
 }
 
-func isHermesRootResultFileAllowed(relativePath string, userID int) bool {
+func isHermesIndexedResultFileAllowed(relativePath string, userID int) bool {
 	if _, ok := hermesAllowedRootFileExtensions[strings.ToLower(filepath.Ext(relativePath))]; !ok {
 		return false
 	}
@@ -190,8 +190,14 @@ func isHermesDataPathAllowed(relativePath string, userID int) bool {
 			return false
 		}
 		teamID, err := strconv.Atoi(parts[1])
-		if err != nil || teamID <= 0 || model.DB == nil {
+		if err != nil || teamID < 0 || model.DB == nil {
 			return false
+		}
+		if teamID == 0 {
+			if _, ok := hermesAllowedTopLevelDirs[parts[2]]; !ok {
+				return false
+			}
+			return isHermesIndexedResultFileAllowed(relativePath, userID)
 		}
 		if _, err := model.GetTeamMember(teamID, userID); err != nil {
 			return false
@@ -201,7 +207,7 @@ func isHermesDataPathAllowed(relativePath string, userID int) bool {
 	}
 
 	if len(parts) == 1 {
-		return isHermesRootResultFileAllowed(relativePath, userID)
+		return isHermesIndexedResultFileAllowed(relativePath, userID)
 	}
 
 	_, ok := hermesAllowedTopLevelDirs[parts[0]]

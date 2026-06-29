@@ -8,6 +8,7 @@ WORKDIR /opt/hermes
 COPY . /opt/hermes
 
 RUN set -eu; \
+    cp /opt/hermes/cli-config.baizor.yaml.example /opt/hermes/cli-config.yaml.example; \
     chmod +x /opt/hermes/hermes || true; \
     find /opt/hermes/docker -type f \( -name '*.sh' -o -path '*/run' -o -path '*/finish' \) -exec chmod +x {} +; \
     python -m py_compile \

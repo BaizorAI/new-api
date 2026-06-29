@@ -96,6 +96,39 @@ func TestHermesPlaygroundFileServesTeamArtifactForMember(t *testing.T) {
 	assert.Equal(t, "team report", recorder.Body.String())
 	assert.False(t, isHermesDataPathAllowed("teams/7/uploads/report.txt", 43))
 }
+
+func TestHermesPlaygroundFileServesIndexedPersonalTeamZeroArtifact(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := setupModelListControllerTestDB(t)
+	require.NoError(t, db.AutoMigrate(&model.HermesResult{}, &model.Team{}, &model.TeamMember{}))
+	root := t.TempDir()
+	targetDir := filepath.Join(root, "teams", "0", "workspaces", "anne_ski_training")
+	require.NoError(t, os.MkdirAll(targetDir, 0o755))
+	reportName := "安妮高管滑雪初学者培训方案.pptx"
+	require.NoError(t, os.WriteFile(filepath.Join(targetDir, reportName), []byte("slides"), 0o644))
+	t.Setenv("HERMES_DATA_DIR", root)
+	relativePath := "teams/0/workspaces/anne_ski_training/" + reportName
+	require.NoError(t, model.ReplaceHermesResultsForConversation(42, 0, "conversation-1", []model.HermesResult{{
+		Title:      "Slides",
+		FileName:   reportName,
+		Href:       "/pg/hermes/files/teams/0/workspaces/anne_ski_training/%E5%AE%89%E5%A6%AE%E9%AB%98%E7%AE%A1%E6%BB%91%E9%9B%AA%E5%88%9D%E5%AD%A6%E8%80%85%E5%9F%B9%E8%AE%AD%E6%96%B9%E6%A1%88.pptx",
+		ResultType: model.HermesResultTypePPT,
+		Source:     model.HermesResultSourceArtifact,
+	}}))
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodGet, "/pg/hermes/files/"+relativePath, nil)
+	c.Params = gin.Params{{Key: "path", Value: "/" + relativePath}}
+	c.Set("id", 42)
+
+	HermesPlaygroundFile(c)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "slides", recorder.Body.String())
+	assert.False(t, isHermesDataPathAllowed(relativePath, 43))
+}
+
 func TestHermesPlaygroundFileServesRootLevelResultFile(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := setupModelListControllerTestDB(t)
