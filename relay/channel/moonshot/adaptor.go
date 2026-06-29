@@ -28,6 +28,12 @@ const (
 	moonshotResponsesInputTypeCustomToolCall       = "custom_tool_call"
 	moonshotResponsesInputTypeCustomToolCallOutput = "custom_tool_call_output"
 	moonshotResponsesInputTypeFunctionCallOutput   = "function_call_output"
+	moonshotResponsesInputTypeFunctionCall         = "function_call"
+	moonshotResponsesInputTypeMessage              = "message"
+
+	moonshotKimiK2ContextWindowTokens = 262144
+	moonshotKimiK2SafetyReserveTokens = 24000
+	moonshotKimiK2DefaultOutputTokens = 4096
 )
 
 func (a *Adaptor) ConvertGeminiRequest(*gin.Context, *relaycommon.RelayInfo, *dto.GeminiChatRequest) (any, error) {
@@ -92,7 +98,7 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 	if info != nil && info.ChannelMeta != nil && info.UpstreamModelName != "" {
 		effectiveModel = info.UpstreamModelName
 	}
-	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(effectiveModel)), "kimi-k2") {
+	if isMoonshotKimiK2Model(effectiveModel) {
 		if request.Temperature != nil {
 			allowedTemperature := 1.0
 			request.Temperature = &allowedTemperature
@@ -101,9 +107,52 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 			allowedTopP := 0.95
 			request.TopP = &allowedTopP
 		}
+		if err := validateMoonshotKimiK2Context(info, request); err != nil {
+			return nil, err
+		}
 	}
 	filterMoonshotChatTools(request)
 	return request, nil
+}
+
+func isMoonshotKimiK2Model(model string) bool {
+	model = strings.ToLower(strings.TrimSpace(model))
+	model = strings.TrimPrefix(model, "moonshotai/")
+	return strings.HasPrefix(model, "kimi-k2")
+}
+
+func validateMoonshotKimiK2Context(info *relaycommon.RelayInfo, request *dto.GeneralOpenAIRequest) error {
+	if info == nil || request == nil {
+		return nil
+	}
+	estimatedPromptTokens := info.GetEstimatePromptTokens()
+	if estimatedPromptTokens <= 0 {
+		return nil
+	}
+
+	maxOutputTokens := int(request.GetMaxTokens())
+	if maxOutputTokens <= 0 {
+		maxOutputTokens = moonshotKimiK2DefaultOutputTokens
+	}
+
+	safeLimit := moonshotKimiK2ContextWindowTokens - moonshotKimiK2SafetyReserveTokens
+	estimatedTotalTokens := estimatedPromptTokens + maxOutputTokens
+	if estimatedTotalTokens <= safeLimit {
+		return nil
+	}
+
+	return types.NewErrorWithStatusCode(
+		fmt.Errorf(
+			"%s context limit exceeded for Moonshot: estimated input+output tokens %d exceeds safe limit %d (context window %d). Reduce input or max_output_tokens, or use a longer-context model",
+			strings.TrimSpace(request.Model),
+			estimatedTotalTokens,
+			safeLimit,
+			moonshotKimiK2ContextWindowTokens,
+		),
+		types.ErrorCodeInvalidRequest,
+		http.StatusBadRequest,
+		types.ErrOptionWithSkipRetry(),
+	)
 }
 
 func filterMoonshotChatTools(request *dto.GeneralOpenAIRequest) {
@@ -419,31 +468,105 @@ func filterMoonshotResponsesInput(raw []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	skippedCustomCallIDs := make(map[string]struct{})
+	skippedCallIDs := make(map[string]struct{})
 	for _, item := range items {
-		if strings.TrimSpace(common.Interface2String(item["type"])) != moonshotResponsesInputTypeCustomToolCall {
+		if !moonshotShouldSkipResponsesItem(item) {
 			continue
 		}
-		if callID := strings.TrimSpace(common.Interface2String(item["call_id"])); callID != "" {
-			skippedCustomCallIDs[callID] = struct{}{}
+		for _, key := range []string{"call_id", "id"} {
+			if callID := strings.TrimSpace(common.Interface2String(item[key])); callID != "" {
+				skippedCallIDs[callID] = struct{}{}
+			}
 		}
 	}
 
 	filtered := make([]map[string]any, 0, len(items))
 	for _, item := range items {
 		itemType := strings.TrimSpace(common.Interface2String(item["type"]))
-		switch itemType {
-		case moonshotResponsesInputTypeCustomToolCall, moonshotResponsesInputTypeCustomToolCallOutput:
+		if moonshotShouldSkipResponsesItem(item) {
 			continue
+		}
+		switch itemType {
 		case moonshotResponsesInputTypeFunctionCallOutput:
-			if _, ok := skippedCustomCallIDs[strings.TrimSpace(common.Interface2String(item["call_id"]))]; ok {
+			if _, ok := skippedCallIDs[strings.TrimSpace(common.Interface2String(item["call_id"]))]; ok {
 				continue
 			}
+		}
+		if moonshotIsResponsesMessageItem(item) {
+			sanitized, ok := sanitizeMoonshotResponsesMessageItem(item)
+			if !ok {
+				continue
+			}
+			item = sanitized
 		}
 		filtered = append(filtered, item)
 	}
 
 	return common.Marshal(filtered)
+}
+
+func moonshotShouldSkipResponsesItem(item map[string]any) bool {
+	itemType := strings.TrimSpace(common.Interface2String(item["type"]))
+	switch itemType {
+	case "", moonshotResponsesInputTypeMessage, moonshotResponsesInputTypeFunctionCall, moonshotResponsesInputTypeFunctionCallOutput:
+		return false
+	case moonshotResponsesInputTypeCustomToolCall, moonshotResponsesInputTypeCustomToolCallOutput:
+		return true
+	default:
+		return true
+	}
+}
+
+func moonshotIsResponsesMessageItem(item map[string]any) bool {
+	itemType := strings.TrimSpace(common.Interface2String(item["type"]))
+	return itemType == "" || itemType == moonshotResponsesInputTypeMessage
+}
+
+func sanitizeMoonshotResponsesMessageItem(item map[string]any) (map[string]any, bool) {
+	content, exists := item["content"]
+	if !exists {
+		return item, true
+	}
+
+	switch value := content.(type) {
+	case string:
+		return item, strings.TrimSpace(value) != ""
+	case []any:
+		filtered := sanitizeMoonshotResponsesContentParts(value)
+		if len(filtered) == 0 {
+			return nil, false
+		}
+		item["content"] = filtered
+		return item, true
+	case []map[string]any:
+		parts := make([]any, 0, len(value))
+		for _, part := range value {
+			parts = append(parts, part)
+		}
+		filtered := sanitizeMoonshotResponsesContentParts(parts)
+		if len(filtered) == 0 {
+			return nil, false
+		}
+		item["content"] = filtered
+		return item, true
+	default:
+		return item, true
+	}
+}
+
+func sanitizeMoonshotResponsesContentParts(parts []any) []any {
+	filtered := make([]any, 0, len(parts))
+	for _, rawPart := range parts {
+		part, ok := rawPart.(map[string]any)
+		if !ok {
+			continue
+		}
+		switch strings.TrimSpace(common.Interface2String(part["type"])) {
+		case "input_text", "output_text", "text":
+			filtered = append(filtered, part)
+		}
+	}
+	return filtered
 }
 
 func moonshotRawJSONPresent(raw []byte) bool {

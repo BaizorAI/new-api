@@ -1,6 +1,7 @@
 package moonshot
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -158,6 +159,79 @@ func TestConvertOpenAIResponsesRequestDropsCustomToolCallHistory(t *testing.T) {
 	assert.Equal(t, "lookup", toolCalls[0].Function.Name)
 	assert.Equal(t, "call_lookup", toolCalls[0].ID)
 	assert.False(t, gjson.GetBytes(toolCalls[0].Custom, "type").Exists())
+}
+
+func TestConvertOpenAIResponsesRequestDropsResponsesItemsUnsupportedByMoonshotChat(t *testing.T) {
+	req := dto.OpenAIResponsesRequest{
+		Model: "kimi-k2.7-code",
+		Input: mustMoonshotRawMessage(t, []map[string]any{
+			{
+				"type": "reasoning",
+				"text": "hidden chain",
+			},
+			{
+				"type": "computer_call",
+				"id":   "call_computer",
+			},
+			{
+				"type":    "custom_tool_call",
+				"call_id": "call_custom",
+				"name":    "apply_patch",
+				"input":   "patch body",
+			},
+			{
+				"type":    "function_call_output",
+				"call_id": "call_custom",
+				"output":  "custom result",
+			},
+			{
+				"type": "message",
+				"role": "user",
+				"content": []map[string]any{
+					{"type": "input_text", "text": "keep this"},
+					{"type": "input_file", "file_data": "unsupported"},
+					{"type": "input_audio", "input_audio": map[string]any{"data": "unsupported", "format": "wav"}},
+				},
+			},
+			{
+				"type": "message",
+				"role": "user",
+				"content": []map[string]any{
+					{"type": "input_file", "file_data": "drop whole message"},
+				},
+			},
+		}),
+	}
+
+	converted, err := (&Adaptor{}).ConvertOpenAIResponsesRequest(nil, moonshotResponsesRelayInfo(req.Model), req)
+
+	require.NoError(t, err)
+	chatReq, ok := converted.(*dto.GeneralOpenAIRequest)
+	require.True(t, ok)
+	require.Len(t, chatReq.Messages, 1)
+	assert.Equal(t, "user", chatReq.Messages[0].Role)
+	assert.Equal(t, "keep this", chatReq.Messages[0].StringContent())
+}
+
+func TestConvertOpenAIResponsesRequestRejectsKimiK2ContextAboveSafeLimit(t *testing.T) {
+	maxOutputTokens := uint(20_000)
+	req := dto.OpenAIResponsesRequest{
+		Model:           "kimi-k2.7-code",
+		Input:           mustMoonshotRawMessage(t, "hello"),
+		MaxOutputTokens: &maxOutputTokens,
+	}
+	info := moonshotResponsesRelayInfo(req.Model)
+	info.SetEstimatePromptTokens(moonshotKimiK2ContextWindowTokens - moonshotKimiK2SafetyReserveTokens - 10_000)
+
+	_, err := (&Adaptor{}).ConvertOpenAIResponsesRequest(nil, info, req)
+
+	require.Error(t, err)
+	var apiErr *types.NewAPIError
+	require.True(t, errors.As(err, &apiErr))
+	assert.Equal(t, http.StatusBadRequest, apiErr.StatusCode)
+	assert.Equal(t, types.ErrorCodeInvalidRequest, apiErr.GetErrorCode())
+	assert.Contains(t, apiErr.Error(), "context limit exceeded")
+	assert.True(t, types.IsSkipRetryError(apiErr))
 }
 
 func TestDoResponseConvertsChatCompletionToResponses(t *testing.T) {
