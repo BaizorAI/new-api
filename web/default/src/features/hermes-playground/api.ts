@@ -31,20 +31,26 @@ export interface CreateHermesSkillPayload {
 export interface HermesSkill {
   name: string
   description: string
+  descriptionZh?: string
   category?: string
   path?: string
   source: 'user' | 'team' | 'baizor' | 'system' | 'external' | 'unknown'
   ownerScope: 'user' | 'team' | 'baizor' | 'system' | 'external' | 'unknown'
   isUserCreated: boolean
+  usageGuide?: string
+  usageGuideZh?: string
 }
 
 export interface HermesToolset {
   name: string
   label: string
   description: string
+  descriptionZh?: string
   enabled: boolean
   configured: boolean
   tools: string[]
+  usageGuide?: string
+  usageGuideZh?: string
 }
 
 export type HermesWeixinStatusValue =
@@ -679,11 +685,14 @@ function normalizeSkillsResponse(payload: unknown): HermesSkill[] {
     return {
       name: stringFromUnknown(skill.name) || 'Unnamed skill',
       description: stringFromUnknown(skill.description),
+      descriptionZh: stringFromUnknown(skill.description_zh) || undefined,
       category: stringFromUnknown(skill.category) || undefined,
       path: stringFromUnknown(skill.path) || undefined,
       source,
       ownerScope,
       isUserCreated,
+      usageGuide: stringFromUnknown(skill.usage_guide) || undefined,
+      usageGuideZh: stringFromUnknown(skill.usage_guide_zh) || undefined,
     }
   })
 }
@@ -702,11 +711,14 @@ function normalizeToolsetsResponse(payload: unknown): HermesToolset[] {
         stringFromUnknown(toolset.name) ||
         'Unknown',
       description: stringFromUnknown(toolset.description),
+      descriptionZh: stringFromUnknown(toolset.description_zh) || undefined,
       enabled: booleanFromUnknown(toolset.enabled) ?? false,
       configured: booleanFromUnknown(toolset.configured) ?? false,
       tools: (arrayFromUnknown(toolset.tools) ?? [])
         .map((tool) => stringFromUnknown(tool))
         .filter((tool) => tool.length > 0),
+      usageGuide: stringFromUnknown(toolset.usage_guide) || undefined,
+      usageGuideZh: stringFromUnknown(toolset.usage_guide_zh) || undefined,
     }
   })
 }

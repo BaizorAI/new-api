@@ -9,6 +9,10 @@ func ChatCompletionsRequestToResponsesRequest(req *dto.GeneralOpenAIRequest) (*d
 	return relayconvert.ChatCompletionsRequestToResponsesRequest(req)
 }
 
+func ResponsesRequestToChatCompletionsRequest(req *dto.OpenAIResponsesRequest) (*dto.GeneralOpenAIRequest, error) {
+	return relayconvert.ResponsesRequestToChatCompletionsRequest(req)
+}
+
 func ChatCompletionsResponseToResponsesResponse(resp *dto.OpenAITextResponse, id string) (*dto.OpenAIResponsesResponse, *dto.Usage, error) {
 	return relayconvert.ChatCompletionsResponseToResponsesResponse(resp, id)
 }

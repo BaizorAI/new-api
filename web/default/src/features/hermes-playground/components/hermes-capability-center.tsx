@@ -117,6 +117,8 @@ type HermesCapabilityCenterWorkspaceProps = Omit<
 const EMPTY_SKILLS: HermesSkill[] = []
 const EMPTY_TOOLSETS: HermesToolset[] = []
 const ADMIN_MIN_ROLE = 10
+const ASCII_LETTER_PATTERN = /[A-Za-z]/
+const CJK_PATTERN = /[\u3400-\u9fff]/
 
 type SkillPublishOptions = {
   target: 'baizor' | 'team' | 'system'
@@ -671,10 +673,20 @@ interface SkillRowProps {
 }
 
 function SkillRow(props: SkillRowProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const referencePrompt = t('Use the "{{name}}" skill for this task.', {
     name: props.skill.name,
   })
+  const displayDescription = getLocalizedCapabilityText(
+    props.skill.description,
+    props.skill.descriptionZh,
+    i18n.language
+  )
+  const usageGuide = getLocalizedCapabilityText(
+    props.skill.usageGuide,
+    props.skill.usageGuideZh,
+    i18n.language
+  )
 
   const copyName = async () => {
     await navigator.clipboard.writeText(props.skill.name)
@@ -709,7 +721,7 @@ function SkillRow(props: SkillRowProps) {
             )}
           </div>
           <p className='text-muted-foreground line-clamp-2 text-xs'>
-            {props.skill.description || t('No description')}
+            {displayDescription || t('No description')}
           </p>
           {props.skill.path && (
             <p className='text-muted-foreground truncate font-mono text-[11px]'>
@@ -831,6 +843,16 @@ function SkillRow(props: SkillRowProps) {
             value={props.skill.path || t('None')}
           />
         </div>
+        {shouldShowChineseDescription(
+          props.skill.description,
+          props.skill.descriptionZh
+        ) && (
+          <CapabilityInfoBlock
+            title={t('Chinese description')}
+            content={props.skill.descriptionZh}
+          />
+        )}
+        <CapabilityInfoBlock title={t('Usage guide')} content={usageGuide} />
         <div className='space-y-1'>
           <div className='text-muted-foreground text-xs'>
             {t('Reference prompt')}
@@ -872,6 +894,20 @@ function SkillDetailItem(props: { label: string; value: string }) {
     <div className='min-w-0 rounded-md border px-2 py-1.5'>
       <div className='text-muted-foreground text-[11px]'>{props.label}</div>
       <div className='truncate text-xs'>{props.value}</div>
+    </div>
+  )
+}
+
+function CapabilityInfoBlock(props: {
+  title: string
+  content?: string
+}): ReactNode {
+  if (!props.content) return null
+
+  return (
+    <div className='bg-muted/35 rounded-md border px-2 py-1.5 text-xs'>
+      <div className='text-muted-foreground mb-1'>{props.title}</div>
+      <p className='leading-relaxed break-words'>{props.content}</p>
     </div>
   )
 }
@@ -953,7 +989,17 @@ function ToolPanel(props: ToolPanelProps) {
 }
 
 function ToolsetRow(props: { toolset: HermesToolset }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const displayDescription = getLocalizedCapabilityText(
+    props.toolset.description,
+    props.toolset.descriptionZh,
+    i18n.language
+  )
+  const usageGuide = getLocalizedCapabilityText(
+    props.toolset.usageGuide,
+    props.toolset.usageGuideZh,
+    i18n.language
+  )
 
   return (
     <details className='group rounded-lg border p-3'>
@@ -975,7 +1021,7 @@ function ToolsetRow(props: { toolset: HermesToolset }) {
             />
           </div>
           <p className='text-muted-foreground line-clamp-2 text-xs'>
-            {props.toolset.description || t('No description')}
+            {displayDescription || t('No description')}
           </p>
           <p className='text-muted-foreground text-xs'>
             {t('{{count}} tools', { count: props.toolset.tools.length })}
@@ -983,18 +1029,30 @@ function ToolsetRow(props: { toolset: HermesToolset }) {
         </div>
         <SlidersHorizontalIcon className='text-muted-foreground mt-0.5 size-4 shrink-0 transition-transform group-open:rotate-90' />
       </summary>
-      <div className='mt-3 flex flex-wrap gap-1.5'>
-        {props.toolset.tools.length === 0 ? (
-          <span className='text-muted-foreground text-xs'>
-            {t('No tools listed')}
-          </span>
-        ) : (
-          props.toolset.tools.map((tool) => (
-            <Badge key={tool} variant='outline'>
-              {tool}
-            </Badge>
-          ))
+      <div className='mt-3 space-y-3'>
+        {shouldShowChineseDescription(
+          props.toolset.description,
+          props.toolset.descriptionZh
+        ) && (
+          <CapabilityInfoBlock
+            title={t('Chinese description')}
+            content={props.toolset.descriptionZh}
+          />
         )}
+        <CapabilityInfoBlock title={t('Usage guide')} content={usageGuide} />
+        <div className='flex flex-wrap gap-1.5'>
+          {props.toolset.tools.length === 0 ? (
+            <span className='text-muted-foreground text-xs'>
+              {t('No tools listed')}
+            </span>
+          ) : (
+            props.toolset.tools.map((tool) => (
+              <Badge key={tool} variant='outline'>
+                {tool}
+              </Badge>
+            ))
+          )}
+        </div>
       </div>
     </details>
   )
@@ -1219,6 +1277,23 @@ function getToolsetFilterOptions(t: (key: string) => string) {
     { value: 'configured' as const, label: t('Configured') },
     { value: 'unconfigured' as const, label: t('Needs configuration') },
   ]
+}
+
+function getLocalizedCapabilityText(
+  value: string | undefined,
+  zhValue: string | undefined,
+  language: string
+): string {
+  if (language.toLowerCase().startsWith('zh') && zhValue) return zhValue
+  return value || zhValue || ''
+}
+
+function shouldShowChineseDescription(
+  value: string | undefined,
+  zhValue: string | undefined
+): boolean {
+  if (!value || !zhValue) return false
+  return ASCII_LETTER_PATTERN.test(value) && !CJK_PATTERN.test(value)
 }
 
 function getSkillSourceLabel(
