@@ -523,6 +523,8 @@ func moonshotIsResponsesMessageItem(item map[string]any) bool {
 }
 
 func sanitizeMoonshotResponsesMessageItem(item map[string]any) (map[string]any, bool) {
+	normalizeMoonshotResponsesMessageRole(item)
+
 	content, exists := item["content"]
 	if !exists {
 		return item, true
@@ -551,6 +553,18 @@ func sanitizeMoonshotResponsesMessageItem(item map[string]any) (map[string]any, 
 		return item, true
 	default:
 		return item, true
+	}
+}
+
+func normalizeMoonshotResponsesMessageRole(item map[string]any) {
+	role := strings.TrimSpace(common.Interface2String(item["role"]))
+	switch role {
+	case "", "system", "user", "assistant", "tool":
+		return
+	case "developer":
+		item["role"] = "system"
+	default:
+		item["role"] = "user"
 	}
 }
 

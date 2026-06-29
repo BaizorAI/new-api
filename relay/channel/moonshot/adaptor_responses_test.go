@@ -186,6 +186,20 @@ func TestConvertOpenAIResponsesRequestDropsResponsesItemsUnsupportedByMoonshotCh
 			},
 			{
 				"type": "message",
+				"role": "developer",
+				"content": []map[string]any{
+					{"type": "input_text", "text": "developer rules"},
+				},
+			},
+			{
+				"type": "message",
+				"role": "critic",
+				"content": []map[string]any{
+					{"type": "input_text", "text": "unknown role content"},
+				},
+			},
+			{
+				"type": "message",
 				"role": "user",
 				"content": []map[string]any{
 					{"type": "input_text", "text": "keep this"},
@@ -208,9 +222,13 @@ func TestConvertOpenAIResponsesRequestDropsResponsesItemsUnsupportedByMoonshotCh
 	require.NoError(t, err)
 	chatReq, ok := converted.(*dto.GeneralOpenAIRequest)
 	require.True(t, ok)
-	require.Len(t, chatReq.Messages, 1)
-	assert.Equal(t, "user", chatReq.Messages[0].Role)
-	assert.Equal(t, "keep this", chatReq.Messages[0].StringContent())
+	require.Len(t, chatReq.Messages, 3)
+	assert.Equal(t, "system", chatReq.Messages[0].Role)
+	assert.Equal(t, "developer rules", chatReq.Messages[0].StringContent())
+	assert.Equal(t, "user", chatReq.Messages[1].Role)
+	assert.Equal(t, "unknown role content", chatReq.Messages[1].StringContent())
+	assert.Equal(t, "user", chatReq.Messages[2].Role)
+	assert.Equal(t, "keep this", chatReq.Messages[2].StringContent())
 }
 
 func TestConvertOpenAIResponsesRequestRejectsKimiK2ContextAboveSafeLimit(t *testing.T) {
