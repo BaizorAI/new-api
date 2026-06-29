@@ -94,7 +94,7 @@ import {
   type HermesConversation,
 } from '@/features/hermes-playground/sessions'
 import { Playground } from '@/features/playground'
-import { DEFAULT_CONFIG } from '@/features/playground/constants'
+import { DEFAULT_CONFIG, ERROR_MESSAGES } from '@/features/playground/constants'
 import {
   createPlaygroundStorageKeys,
   loadMessages,
@@ -154,6 +154,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     id: string
     prompt: string
   } | null>(null)
+  const [playgroundRefreshKey, setPlaygroundRefreshKey] = useState(0)
   const teamPersistTimerRef = useRef<number | null>(null)
   const resultSyncTimerRef = useRef<number | null>(null)
 
@@ -481,7 +482,9 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const updateActiveSessionFromMessages = useCallback(
     (messages: Message[]) => {
       const now = Date.now()
-      const title = deriveConversationTitle(messages) ?? activeSession.title
+      const title = activeSession.titleEdited
+        ? activeSession.title
+        : (deriveConversationTitle(messages) ?? activeSession.title)
       const sessionToPersist = {
         ...activeSession,
         title,
@@ -693,6 +696,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       }
       if (task.conversationId === activeSession.id) {
         updateActiveSessionFromMessages(nextMessages)
+        setPlaygroundRefreshKey((value) => value + 1)
       }
     },
     [
@@ -703,6 +707,143 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       updateActiveSessionFromMessages,
     ]
   )
+
+  const markExecutionTaskRunning = useCallback(
+    (task: HermesExecutionTask) => {
+      if (task.status !== 'queued' && task.status !== 'running') return
+      const targetStorageScope = task.storageScope || activeSession.storageScope
+      const keys = createPlaygroundStorageKeys(targetStorageScope)
+      const existingMessages = loadMessages(keys) ?? []
+      let changed = false
+      const nextMessages = existingMessages.map((message) => {
+        if (
+          message.executionTaskId !== task.taskId ||
+          (message.status !== 'error' && message.status !== 'streaming')
+        ) {
+          return message
+        }
+
+        changed = true
+        return {
+          ...message,
+          versions:
+            message.status === 'error'
+              ? message.versions.map((version, index) =>
+                  index === 0 ? { ...version, content: '' } : version
+                )
+              : message.versions,
+          status: 'loading' as const,
+          errorCode: null,
+        }
+      })
+
+      if (!changed) return
+      saveMessages(nextMessages, keys)
+      if (task.conversationId === activeSession.id) {
+        updateActiveSessionFromMessages(nextMessages)
+        setPlaygroundRefreshKey((value) => value + 1)
+      }
+    },
+    [activeSession, updateActiveSessionFromMessages]
+  )
+
+  const markExecutionTaskFailed = useCallback(
+    (task: HermesExecutionTask) => {
+      if (task.status !== 'failed' && task.status !== 'canceled') return
+      const targetStorageScope = task.storageScope || activeSession.storageScope
+      const keys = createPlaygroundStorageKeys(targetStorageScope)
+      const existingMessages = loadMessages(keys) ?? []
+      let changed = false
+      const nextMessages = existingMessages.map((message) => {
+        if (message.executionTaskId !== task.taskId) return message
+
+        changed = true
+        return {
+          ...message,
+          versions: message.versions.map((version, index) =>
+            index === 0
+              ? {
+                  ...version,
+                  content: `${ERROR_MESSAGES.API_REQUEST_ERROR}: ${
+                    task.error || ERROR_MESSAGES.API_REQUEST_ERROR
+                  }`,
+                }
+              : version
+          ),
+          status: 'error' as const,
+          errorCode: `hermes_task_${task.status}`,
+        }
+      })
+
+      if (!changed) return
+      saveMessages(nextMessages, keys)
+      if (task.conversationId === activeSession.id) {
+        updateActiveSessionFromMessages(nextMessages)
+        setPlaygroundRefreshKey((value) => value + 1)
+      }
+    },
+    [activeSession, updateActiveSessionFromMessages]
+  )
+
+  const recoverActiveExecutionTasks = useCallback(async () => {
+    const messages =
+      loadMessages(createPlaygroundStorageKeys(activeSession.storageScope)) ??
+      []
+    const taskIds = getRecoverableExecutionTaskIds(messages)
+    if (taskIds.length === 0) return
+
+    await Promise.all(
+      taskIds.map(async (taskId) => {
+        try {
+          const task = await getHermesExecutionTask(taskId)
+          if (task.status === 'succeeded') {
+            applyExecutionTaskResult(task)
+            return
+          }
+          if (task.status === 'failed' || task.status === 'canceled') {
+            markExecutionTaskFailed(task)
+            return
+          }
+          markExecutionTaskRunning(task)
+        } catch {
+          // The task may still be running server-side; the next focus/interval
+          // pass will try again.
+        }
+      })
+    )
+    invalidateExecutionTasks()
+  }, [
+    activeSession.storageScope,
+    applyExecutionTaskResult,
+    invalidateExecutionTasks,
+    markExecutionTaskFailed,
+    markExecutionTaskRunning,
+  ])
+
+  useEffect(() => {
+    let cancelled = false
+    const recover = () => {
+      if (!cancelled) {
+        void recoverActiveExecutionTasks()
+      }
+    }
+    const recoverOnVisible = () => {
+      if (document.visibilityState === 'visible') {
+        recover()
+      }
+    }
+
+    recover()
+    const intervalId = window.setInterval(recover, 5000)
+    window.addEventListener('focus', recover)
+    document.addEventListener('visibilitychange', recoverOnVisible)
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', recover)
+      document.removeEventListener('visibilitychange', recoverOnVisible)
+    }
+  }, [recoverActiveExecutionTasks])
 
   const openExecutionTask = useCallback(
     async (task: HermesExecutionTask) => {
@@ -897,7 +1038,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   } else {
     workspaceContent = (
       <Playground
-        key={activeSession.storageScope}
+        key={`${activeSession.storageScope}:${playgroundRefreshKey}`}
         defaultConfig={defaultConfig}
         enableSlashCommands
         emptyModelsMessage={props.emptyModelsMessage}
@@ -1114,6 +1255,21 @@ function stringFromUnknown(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
+function getRecoverableExecutionTaskIds(messages: Message[]): string[] {
+  const taskIds = new Set<string>()
+  for (const message of messages) {
+    if (
+      message.from === 'assistant' &&
+      message.executionTaskId &&
+      !message.errorCode?.startsWith('hermes_task_') &&
+      message.status !== 'complete'
+    ) {
+      taskIds.add(message.executionTaskId)
+    }
+  }
+  return [...taskIds]
+}
+
 function normalizePersistedConversation(
   conversation: HermesTeamConversationRecord,
   baseScope: string
@@ -1121,6 +1277,7 @@ function normalizePersistedConversation(
   return {
     id: conversation.id,
     title: conversation.title,
+    titleEdited: conversation.titleEdited,
     storageScope:
       conversation.storageScope || `${baseScope}_session_${conversation.id}`,
     hermesSessionId: conversation.hermesSessionId || conversation.id,

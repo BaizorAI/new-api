@@ -12,6 +12,7 @@ type HermesTeamConversation struct {
 	TeamId          int    `json:"team_id" gorm:"uniqueIndex:idx_hermes_team_conversation;index"`
 	ConversationId  string `json:"id" gorm:"column:conversation_id;type:varchar(128);uniqueIndex:idx_hermes_team_conversation"`
 	Title           string `json:"title" gorm:"type:text"`
+	TitleEdited     bool   `json:"title_edited"`
 	StorageScope    string `json:"storage_scope" gorm:"type:varchar(255)"`
 	HermesSessionId string `json:"hermes_session_id" gorm:"type:varchar(255)"`
 	Messages        string `json:"-" gorm:"type:text"`
@@ -57,6 +58,7 @@ func UpsertHermesTeamConversation(conversation *HermesTeamConversation) error {
 
 		updates := map[string]interface{}{
 			"title":             conversation.Title,
+			"title_edited":      conversation.TitleEdited,
 			"storage_scope":     conversation.StorageScope,
 			"hermes_session_id": conversation.HermesSessionId,
 			"messages":          conversation.Messages,

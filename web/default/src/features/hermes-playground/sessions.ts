@@ -26,6 +26,7 @@ import type { Message } from '@/features/playground/types'
 export interface HermesConversation {
   id: string
   title: string
+  titleEdited?: boolean
   storageScope: string
   hermesSessionId: string
   createdAt: number

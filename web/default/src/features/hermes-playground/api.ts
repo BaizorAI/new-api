@@ -244,6 +244,7 @@ export async function upsertTeamHermesConversation(
     {
       id: conversation.id,
       title: conversation.title,
+      title_edited: Boolean(conversation.titleEdited),
       storage_scope: conversation.storageScope,
       hermes_session_id: conversation.hermesSessionId,
       pinned: Boolean(conversation.pinned),
@@ -612,6 +613,7 @@ function normalizeTeamConversationsResponse(
     return {
       id: stringFromUnknown(conversation.id),
       title: stringFromUnknown(conversation.title),
+      titleEdited: booleanFromUnknown(conversation.title_edited) ?? false,
       storageScope: stringFromUnknown(conversation.storage_scope),
       hermesSessionId: stringFromUnknown(conversation.hermes_session_id),
       createdAt: numberFromUnknown(conversation.created_at) ?? Date.now(),
@@ -744,9 +746,7 @@ function normalizeHermesMessageSessionsResponse(
   return rawSessions.map(normalizeHermesMessageSession)
 }
 
-function normalizeHermesMessageSession(
-  payload: unknown
-): HermesMessageSession {
+function normalizeHermesMessageSession(payload: unknown): HermesMessageSession {
   const session = asRecord(payload)
   const id = stringFromUnknown(session.id)
   return {

@@ -242,6 +242,7 @@ export function useChatHandler({
       }
 
       setIsExecutionTaskRunning(true)
+      let createdTask: HermesExecutionTask | null = null
       try {
         let task = await createHermesExecutionTask(
           {
@@ -258,6 +259,7 @@ export function useChatHandler({
             teamName: executionTaskContext.teamName,
           }
         )
+        createdTask = task
 
         executionTaskContext.onTaskCreated?.(task)
         onMessageUpdate((prev) =>
@@ -298,6 +300,9 @@ export function useChatHandler({
           }))
         )
       } catch (error: unknown) {
+        if (createdTask) {
+          return
+        }
         const { message, code } = extractChatError(error)
         handleStreamError(message, code)
       } finally {

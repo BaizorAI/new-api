@@ -139,9 +139,11 @@ export function HermesSessionsSheet(props: HermesSessionsSheetProps) {
   const submitRename = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!renamingSession) return
+    const title = renameValue.trim()
     props.onUpdateSession(renamingSession.id, (session) => ({
       ...session,
-      title: renameValue.trim(),
+      title,
+      titleEdited: title !== '',
     }))
     setRenamingSession(null)
     setRenameValue('')

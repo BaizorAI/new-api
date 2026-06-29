@@ -13,6 +13,7 @@ import (
 type hermesTeamConversationRequest struct {
 	Id              string `json:"id"`
 	Title           string `json:"title"`
+	TitleEdited     bool   `json:"title_edited"`
 	StorageScope    string `json:"storage_scope"`
 	HermesSessionId string `json:"hermes_session_id"`
 	Pinned          bool   `json:"pinned"`
@@ -23,6 +24,7 @@ type hermesTeamConversationRequest struct {
 type hermesTeamConversationResponse struct {
 	Id              string `json:"id"`
 	Title           string `json:"title"`
+	TitleEdited     bool   `json:"title_edited"`
 	StorageScope    string `json:"storage_scope"`
 	HermesSessionId string `json:"hermes_session_id"`
 	Pinned          bool   `json:"pinned"`
@@ -95,6 +97,7 @@ func UpsertTeamHermesConversation(c *gin.Context) {
 		TeamId:          team.Id,
 		ConversationId:  conversationID,
 		Title:           strings.TrimSpace(request.Title),
+		TitleEdited:     request.TitleEdited,
 		StorageScope:    strings.TrimSpace(request.StorageScope),
 		HermesSessionId: strings.TrimSpace(request.HermesSessionId),
 		Messages:        string(messages),
@@ -155,6 +158,7 @@ func buildHermesTeamConversationResponse(conversation model.HermesTeamConversati
 	return hermesTeamConversationResponse{
 		Id:              conversation.ConversationId,
 		Title:           conversation.Title,
+		TitleEdited:     conversation.TitleEdited,
 		StorageScope:    conversation.StorageScope,
 		HermesSessionId: conversation.HermesSessionId,
 		Pinned:          conversation.Pinned,
