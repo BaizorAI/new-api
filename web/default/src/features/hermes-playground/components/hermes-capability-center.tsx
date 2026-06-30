@@ -709,7 +709,7 @@ function SkillListItem(props: {
       type='button'
     >
       <div className='truncate text-sm font-medium leading-snug'>
-        {props.skill.name}
+        {props.skill.displayName || props.skill.name}
       </div>
       {description && (
         <div className='text-muted-foreground mt-0.5 line-clamp-1 text-xs'>
@@ -767,7 +767,12 @@ function SkillDetailPane(props: SkillDetailPaneProps) {
     <div className='flex min-w-0 flex-1 flex-col'>
       <div className='flex items-start justify-between gap-2 border-b p-4'>
         <div className='min-w-0'>
-          <h3 className='truncate text-base font-semibold'>{skill.name}</h3>
+          <h3 className='truncate text-base font-semibold'>
+            {skill.displayName || skill.name}
+          </h3>
+          {skill.displayName && (
+            <div className='text-muted-foreground mt-0.5 font-mono text-xs'>{skill.name}</div>
+          )}
           <div className='mt-1.5 flex flex-wrap gap-1.5'>
             <Badge variant={skill.isUserCreated ? 'default' : 'secondary'}>
               {getSkillSourceLabel(skill, t, props.selectedTeamName)}
@@ -914,7 +919,8 @@ function SkillDetailPane(props: SkillDetailPaneProps) {
 
 interface SkillRowProps {
   skill: HermesSkill
-  isAdmin: boolean  onEditSkill: (skill: HermesSkill, teamId?: number) => void
+  isAdmin: boolean
+  onEditSkill: (skill: HermesSkill, teamId?: number) => void
   onUseSkill: (skill: HermesSkill) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]

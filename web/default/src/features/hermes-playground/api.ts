@@ -30,6 +30,7 @@ export interface CreateHermesSkillPayload {
 
 export interface HermesSkill {
   name: string
+  displayName?: string
   description: string
   descriptionZh?: string
   category?: string
@@ -684,6 +685,7 @@ function normalizeSkillsResponse(payload: unknown): HermesSkill[] {
 
     return {
       name: stringFromUnknown(skill.name) || 'Unnamed skill',
+      displayName: stringFromUnknown(skill.display_name) || undefined,
       description: stringFromUnknown(skill.description),
       descriptionZh: stringFromUnknown(skill.description_zh) || undefined,
       category: stringFromUnknown(skill.category) || undefined,

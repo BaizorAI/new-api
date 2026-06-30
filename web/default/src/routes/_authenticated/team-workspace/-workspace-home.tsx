@@ -641,7 +641,7 @@ function SkillList(props: {
               key={`${skill.ownerScope}-${skill.name}`}
               className='bg-background rounded-lg border p-3'
             >
-              <div className='truncate text-sm font-medium'>{skill.name}</div>
+              <div className='truncate text-sm font-medium'>{skill.displayName || skill.name}</div>
               {skill.description ? (
                 <div className='text-muted-foreground mt-1 line-clamp-2 text-xs'>
                   {skill.description}
