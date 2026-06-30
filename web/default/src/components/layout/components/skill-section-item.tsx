@@ -16,10 +16,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from '@tanstack/react-router'
 import type { HermesSkill } from '@/features/hermes-playground/api'
 import { listHermesSkills } from '@/features/hermes-playground/api'
+import { listTeams } from '@/features/teams/api'
 import {
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -34,28 +36,52 @@ import type { NavHermesSkillSection } from '../types'
 import { checkIsActive } from '../lib/url-utils'
 import { SidebarCollapsibleShell } from './sidebar-collapsible-shell'
 
-function skillFilter(
-  section: NavHermesSkillSection['section']
-): (skill: HermesSkill) => boolean {
-  if (section === 'mine') {
-    return (s) => s.ownerScope === 'user' || s.source === 'user'
-  }
-  if (section === 'team') {
-    return (s) => s.ownerScope === 'team' || s.source === 'team'
-  }
-  return (s) => s.ownerScope === 'baizor' || s.source === 'baizor'
-}
-
 export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
   const href = useLocation({ select: (l) => l.href })
   const { setOpenMobile } = useSidebar()
+  const isTeamSection = item.section === 'team'
 
-  const { data: skills = [] } = useQuery({
+  const teamsQuery = useQuery({
+    queryKey: ['skill-section-teams'],
+    queryFn: listTeams,
+    enabled: isTeamSection,
+    staleTime: 60_000,
+  })
+  const teams = teamsQuery.data?.success ? (teamsQuery.data.data ?? []) : []
+
+  const teamSkillQueries = useQueries({
+    queries: isTeamSection
+      ? teams.map((team) => ({
+          queryKey: ['skill-section-team-skills', team.id],
+          queryFn: () => listHermesSkills({ teamId: team.id }).catch(() => []),
+          staleTime: 5 * 60 * 1000,
+        }))
+      : [],
+  })
+
+  const singleQuery = useQuery({
     queryKey: ['hermes-skill-section-sidebar', item.section],
     queryFn: () => listHermesSkills(),
-    select: (all) => all.filter(skillFilter(item.section)),
+    enabled: !isTeamSection,
     staleTime: 5 * 60 * 1000,
   })
+
+  const skills = useMemo<HermesSkill[]>(() => {
+    if (isTeamSection) {
+      const merged = teamSkillQueries.flatMap((q) => q.data ?? [])
+      const seen = new Set<string>()
+      return merged.filter((s) => {
+        if (seen.has(s.name)) return false
+        seen.add(s.name)
+        return true
+      })
+    }
+    const all = singleQuery.data ?? []
+    if (item.section === 'mine') {
+      return all.filter((s) => s.ownerScope === 'user' || s.source === 'user')
+    }
+    return all.filter((s) => s.ownerScope === 'baizor' || s.source === 'baizor')
+  }, [isTeamSection, teamSkillQueries, singleQuery.data, item.section])
 
   const skillUrl = (name: string) =>
     `/skill-workspace?skill=${encodeURIComponent(name)}` as const
@@ -69,10 +95,12 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
           {skills.map((skill) => {
             const url = skillUrl(skill.name)
             const subActive = checkIsActive(href, { url })
+            const desc = skill.descriptionZh || skill.description
             return (
               <SidebarMenuSubItem key={skill.name}>
                 <SidebarMenuSubButton
                   isActive={subActive}
+                  title={desc || (skill.displayName ?? skill.name)}
                   render={
                     <Link
                       aria-current={subActive ? 'page' : undefined}
@@ -81,9 +109,16 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
                     />
                   }
                 >
-                  <span className='min-w-0 flex-1 truncate'>
-                    {skill.displayName || skill.name}
-                  </span>
+                  <div className='flex min-w-0 flex-1 flex-col gap-0.5 py-0.5'>
+                    <span className='truncate text-sm leading-snug'>
+                      {skill.displayName || skill.name}
+                    </span>
+                    {desc && (
+                      <span className='text-muted-foreground line-clamp-2 text-xs leading-tight'>
+                        {desc}
+                      </span>
+                    )}
+                  </div>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             )
@@ -97,9 +132,11 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
           {skills.map((skill) => {
             const url = skillUrl(skill.name)
             const subActive = checkIsActive(href, { url })
+            const desc = skill.descriptionZh || skill.description
             return (
               <DropdownMenuItem
                 key={skill.name}
+                title={desc || (skill.displayName ?? skill.name)}
                 render={
                   <Link
                     className={subActive ? 'bg-secondary' : ''}
@@ -108,9 +145,16 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
                   />
                 }
               >
-                <span className='max-w-52 text-wrap'>
-                  {skill.displayName || skill.name}
-                </span>
+                <div className='flex flex-col gap-0.5'>
+                  <span className='max-w-52 text-wrap'>
+                    {skill.displayName || skill.name}
+                  </span>
+                  {desc && (
+                    <span className='text-muted-foreground line-clamp-2 max-w-52 text-xs'>
+                      {desc}
+                    </span>
+                  )}
+                </div>
               </DropdownMenuItem>
             )
           })}

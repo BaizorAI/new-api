@@ -131,13 +131,13 @@ export function useSidebarData(): SidebarData {
           {
             type: 'hermes-skill-section' as const,
             section: 'mine' as const,
-            title: t('My Skills'),
+            title: t('My skills'),
             icon: User,
           },
           {
             type: 'hermes-skill-section' as const,
             section: 'team' as const,
-            title: t('Team Skills'),
+            title: t('Team skills'),
             icon: Users,
           },
           {
