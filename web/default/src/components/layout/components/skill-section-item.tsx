@@ -33,31 +33,44 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { cn } from '@/lib/utils'
 import type { NavHermesSkillSection } from '../types'
 import { checkIsActive } from '../lib/url-utils'
 import { SidebarCollapsibleShell } from './sidebar-collapsible-shell'
 
 type TeamGroup = { team: Team; skills: HermesSkill[] }
 
+const SKILL_NODE_COLORS = [
+  'bg-blue-50/60 dark:bg-blue-950/30',
+  'bg-violet-50/60 dark:bg-violet-950/30',
+  'bg-emerald-50/60 dark:bg-emerald-950/30',
+  'bg-amber-50/60 dark:bg-amber-950/30',
+  'bg-rose-50/60 dark:bg-rose-950/30',
+  'bg-sky-50/60 dark:bg-sky-950/30',
+]
+
 function SkillSubItem({
   skill,
   url,
   href,
   onClose,
+  index,
 }: {
   skill: HermesSkill
   url: string
   href: string
   onClose: () => void
+  index: number
 }) {
   const subActive = checkIsActive(href, { url })
   const desc = skill.descriptionZh || skill.description
+  const colorClass = SKILL_NODE_COLORS[index % SKILL_NODE_COLORS.length]
   return (
     <SidebarMenuSubItem key={skill.name}>
       <SidebarMenuSubButton
         isActive={subActive}
         title={desc || (skill.displayName ?? skill.name)}
-        className={desc ? 'h-auto py-1.5' : undefined}
+        className={cn(desc && 'h-auto py-1.5', colorClass)}
         render={
           <Link
             aria-current={subActive ? 'page' : undefined}
@@ -151,13 +164,14 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
           <li className='text-muted-foreground/60 select-none px-2 pt-2 pb-0.5 text-[10px] font-semibold tracking-wider uppercase first:pt-1'>
             {team.name}
           </li>
-          {skills.map((skill) => (
+          {skills.map((skill, idx) => (
             <SkillSubItem
               key={skill.name}
               skill={skill}
               url={skillUrl(skill.name)}
               href={href}
               onClose={() => setOpenMobile(false)}
+              index={idx}
             />
           ))}
         </Fragment>
@@ -167,13 +181,14 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
 
   const expandedFlatContent = (
     <>
-      {flatSkills.map((skill) => (
+      {flatSkills.map((skill, idx) => (
         <SkillSubItem
           key={skill.name}
           skill={skill}
           url={skillUrl(skill.name)}
           href={href}
           onClose={() => setOpenMobile(false)}
+          index={idx}
         />
       ))}
     </>
