@@ -46,7 +46,7 @@ export function JilaiSkillsItem({ item }: { item: NavHermesJilaiSkills }) {
   })
 
   const skillUrl = (name: string) =>
-    `/hermes-playground?skill=${encodeURIComponent(name)}` as const
+    `/jilai-workspace?skill=${encodeURIComponent(name)}` as const
 
   return (
     <SidebarCollapsibleShell

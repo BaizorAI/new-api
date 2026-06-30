@@ -247,6 +247,10 @@ function resolveActiveRootGroup(
     return findGroup(navGroups, 'workbench')
   }
 
+  if (pathname === '/jilai-workspace') {
+    return findGroup(navGroups, 'skill-store')
+  }
+
   if (pathname === '/playground' || pathname.startsWith('/chat/')) {
     return findGroup(navGroups, 'model-playground')
   }

@@ -51,6 +51,7 @@ import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedOnePersonCompanyIndexRouteImport } from './routes/_authenticated/one-person-company/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
+import { Route as AuthenticatedJilaiWorkspaceIndexRouteImport } from './routes/_authenticated/jilai-workspace/index'
 import { Route as AuthenticatedHermesPlaygroundIndexRouteImport } from './routes/_authenticated/hermes-playground/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
@@ -295,6 +296,12 @@ const AuthenticatedKeysIndexRoute = AuthenticatedKeysIndexRouteImport.update({
   path: '/keys/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedJilaiWorkspaceIndexRoute =
+  AuthenticatedJilaiWorkspaceIndexRouteImport.update({
+    id: '/jilai-workspace/',
+    path: '/jilai-workspace/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedHermesPlaygroundIndexRoute =
   AuthenticatedHermesPlaygroundIndexRouteImport.update({
     id: '/hermes-playground/',
@@ -467,6 +474,7 @@ export interface FileRoutesByFullPath {
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/hermes-playground/': typeof AuthenticatedHermesPlaygroundIndexRoute
+  '/jilai-workspace/': typeof AuthenticatedJilaiWorkspaceIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
   '/one-person-company/': typeof AuthenticatedOnePersonCompanyIndexRoute
@@ -531,6 +539,7 @@ export interface FileRoutesByTo {
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/hermes-playground': typeof AuthenticatedHermesPlaygroundIndexRoute
+  '/jilai-workspace': typeof AuthenticatedJilaiWorkspaceIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
   '/one-person-company': typeof AuthenticatedOnePersonCompanyIndexRoute
@@ -599,6 +608,7 @@ export interface FileRoutesById {
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/hermes-playground/': typeof AuthenticatedHermesPlaygroundIndexRoute
+  '/_authenticated/jilai-workspace/': typeof AuthenticatedJilaiWorkspaceIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
   '/_authenticated/one-person-company/': typeof AuthenticatedOnePersonCompanyIndexRoute
@@ -666,6 +676,7 @@ export interface FileRouteTypes {
     | '/channels/'
     | '/dashboard/'
     | '/hermes-playground/'
+    | '/jilai-workspace/'
     | '/keys/'
     | '/models/'
     | '/one-person-company/'
@@ -730,6 +741,7 @@ export interface FileRouteTypes {
     | '/channels'
     | '/dashboard'
     | '/hermes-playground'
+    | '/jilai-workspace'
     | '/keys'
     | '/models'
     | '/one-person-company'
@@ -797,6 +809,7 @@ export interface FileRouteTypes {
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/hermes-playground/'
+    | '/_authenticated/jilai-workspace/'
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
     | '/_authenticated/one-person-company/'
@@ -1146,6 +1159,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKeysIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/jilai-workspace/': {
+      id: '/_authenticated/jilai-workspace/'
+      path: '/jilai-workspace'
+      fullPath: '/jilai-workspace/'
+      preLoaderRoute: typeof AuthenticatedJilaiWorkspaceIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/hermes-playground/': {
       id: '/_authenticated/hermes-playground/'
       path: '/hermes-playground'
@@ -1404,6 +1424,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedHermesPlaygroundIndexRoute: typeof AuthenticatedHermesPlaygroundIndexRoute
+  AuthenticatedJilaiWorkspaceIndexRoute: typeof AuthenticatedJilaiWorkspaceIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
   AuthenticatedOnePersonCompanyIndexRoute: typeof AuthenticatedOnePersonCompanyIndexRoute
@@ -1432,6 +1453,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedHermesPlaygroundIndexRoute:
     AuthenticatedHermesPlaygroundIndexRoute,
+  AuthenticatedJilaiWorkspaceIndexRoute: AuthenticatedJilaiWorkspaceIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
   AuthenticatedOnePersonCompanyIndexRoute:
