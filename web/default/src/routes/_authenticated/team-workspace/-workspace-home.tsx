@@ -175,6 +175,12 @@ export function WorkspaceHome() {
       (skill) => skill.ownerScope === 'baizor' || skill.source === 'baizor'
     )
     .slice(0, 4)
+  const jilaiSkills = skills
+    .filter(
+      (skill) =>
+        skill.ownerScope === 'external' || skill.source === 'external'
+    )
+    .slice(0, 4)
   const teamSkills = useMemo(() => {
     return dedupeSkills(teamSkillQueries.flatMap((query) => query.data ?? []))
       .filter((skill) => skill.ownerScope === 'team' || skill.source === 'team')
@@ -363,7 +369,7 @@ export function WorkspaceHome() {
                 )}
               >
                 <SkillScenarioGrid />
-                <div className='mt-3 grid gap-3 md:grid-cols-3'>
+                <div className='mt-3 grid gap-3 md:grid-cols-4'>
                   <SkillList
                     emptyText={t('Used skills will appear here')}
                     skills={recentSkills}
@@ -378,6 +384,11 @@ export function WorkspaceHome() {
                     emptyText={t('No Baizor shared skills yet')}
                     skills={baizorSkills}
                     title={t('Baizor shared skills')}
+                  />
+                  <SkillList
+                    emptyText={t('No Jilai Law Firm skills yet')}
+                    skills={jilaiSkills}
+                    title={t('Jilai Law Firm skills')}
                   />
                 </div>
               </Panel>

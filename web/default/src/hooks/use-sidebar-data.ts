@@ -36,6 +36,7 @@ import {
   Plug,
   QrCode,
   Radio,
+  Scale,
   ServerCog,
   Settings,
   Sparkles,
@@ -201,6 +202,12 @@ export function useSidebarData(): SidebarData {
             url: '/hermes-playground?panel=skills&section=baizor',
             configUrls: ['/hermes-playground'],
             icon: Sparkles,
+          },
+          {
+            title: t('Jilai Law Firm Skills'),
+            url: '/hermes-playground?panel=skills&section=jilai',
+            configUrls: ['/hermes-playground'],
+            icon: Scale,
           },
           {
             title: t('Built-in skills'),

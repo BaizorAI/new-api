@@ -18,20 +18,23 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import {
+  ArrowBigUpIcon,
+  ArrowLeftIcon,
   CheckCircle2Icon,
   ChevronRightIcon,
   CopyIcon,
+  MessageSquareIcon,
   MoreHorizontalIcon,
   PackagePlusIcon,
-  PlayIcon,
   PencilIcon,
+  PlayIcon,
   RefreshCwIcon,
   SearchIcon,
   SlidersHorizontalIcon,
   Trash2Icon,
   WrenchIcon,
   XCircleIcon,
-  ArrowBigUpIcon,
+  XIcon,
 } from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -83,8 +86,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Team } from '@/features/teams/types'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { cn } from '@/lib/utils'
+
 import {
-  deleteHermesSkill,
   promoteHermesSkill,
   listHermesSkills,
   listHermesToolsets,
@@ -304,6 +308,17 @@ function HermesCapabilityCenterContent(
       ),
     [skillSearch, skills]
   )
+  const jilaiSkills = useMemo(
+    () =>
+      filterSkills(
+        skills.filter(
+          (skill) =>
+            skill.source === 'external' || skill.ownerScope === 'external'
+        ),
+        skillSearch
+      ),
+    [skillSearch, skills]
+  )
   const systemSkills = useMemo(
     () =>
       filterSkills(
@@ -312,9 +327,11 @@ function HermesCapabilityCenterContent(
             skill.source !== 'user' &&
             skill.source !== 'team' &&
             skill.source !== 'baizor' &&
+            skill.source !== 'external' &&
             skill.ownerScope !== 'user' &&
             skill.ownerScope !== 'team' &&
-            skill.ownerScope !== 'baizor'
+            skill.ownerScope !== 'baizor' &&
+            skill.ownerScope !== 'external'
         ),
         skillSearch
       ),
@@ -421,6 +438,7 @@ function HermesCapabilityCenterContent(
               search={skillSearch}
               setSearch={setSkillSearch}
               baizorSkills={baizorSkills}
+              jilaiSkills={jilaiSkills}
               systemSkills={systemSkills}
               teamSkills={teamSkills}
               userSkills={userSkills}
@@ -482,6 +500,7 @@ interface SkillPanelProps {
   userSkills: HermesSkill[]
   teamSkills: HermesSkill[]
   baizorSkills: HermesSkill[]
+  jilaiSkills: HermesSkill[]
   systemSkills: HermesSkill[]
   search: string
   setSearch: (value: string) => void
@@ -504,6 +523,7 @@ interface SkillPanelProps {
 
 function SkillPanel(props: SkillPanelProps) {
   const { t } = useTranslation()
+  const [selectedSkill, setSelectedSkill] = useState<HermesSkill | null>(null)
 
   return (
     <div className='flex h-full min-h-0 flex-col'>
@@ -566,39 +586,54 @@ function SkillPanel(props: SkillPanelProps) {
         </div>
       </div>
 
-      <ScrollArea className='min-h-0 flex-1'>
-        <div className='space-y-5 p-4'>
-          {props.error && (
-            <CapabilityError
-              message={getErrorMessage(
-                props.error,
-                t('Failed to load Hermes skills')
-              )}
-            />
+      <div className='flex min-h-0 flex-1'>
+        <ScrollArea
+          className={cn(
+            'min-h-0',
+            selectedSkill ? 'w-56 shrink-0 border-r' : 'flex-1'
           )}
-          {props.isLoading && <LoadingRows />}
-          {!props.isLoading &&
-            !props.error &&
-            getOrderedSkillSections(props, t).map((section) => (
-              <SkillSection
-                emptyDescription={section.emptyDescription}
-                emptyTitle={section.emptyTitle}
-                isAdmin={props.isAdmin}
-                isFocused={section.isFocused}
-                key={section.id}
-                onDeleteSkill={props.onDeleteSkill}
-                onUseSkill={props.onUseSkill}
-                onEditSkill={props.onEditSkill}
-                manageableTeams={props.manageableTeams}
-                selectedTeamId={props.selectedTeamId}
-                selectedTeamName={props.selectedTeamName}
-                onPublishSkill={props.onPublishSkill}
-                skills={section.skills}
-                title={section.title}
+        >
+          <div className='space-y-4 p-3'>
+            {props.error && (
+              <CapabilityError
+                message={getErrorMessage(
+                  props.error,
+                  t('Failed to load Hermes skills')
+                )}
               />
-            ))}
-        </div>
-      </ScrollArea>
+            )}
+            {props.isLoading && <LoadingRows />}
+            {!props.isLoading &&
+              !props.error &&
+              getOrderedSkillSections(props, t).map((section) => (
+                <SkillSection
+                  emptyDescription={section.emptyDescription}
+                  emptyTitle={section.emptyTitle}
+                  isFocused={section.isFocused}
+                  key={section.id}
+                  onSelectSkill={setSelectedSkill}
+                  selectedSkill={selectedSkill}
+                  skills={section.skills}
+                  title={section.title}
+                />
+              ))}
+          </div>
+        </ScrollArea>
+        {selectedSkill && (
+          <SkillDetailPane
+            isAdmin={props.isAdmin}
+            manageableTeams={props.manageableTeams}
+            onClose={() => setSelectedSkill(null)}
+            onDeleteSkill={props.onDeleteSkill}
+            onEditSkill={props.onEditSkill}
+            onPublishSkill={props.onPublishSkill}
+            onUseSkill={props.onUseSkill}
+            selectedTeamId={props.selectedTeamId}
+            selectedTeamName={props.selectedTeamName}
+            skill={selectedSkill}
+          />
+        )}
+      </div>
     </div>
   )
 }
@@ -608,29 +643,25 @@ interface SkillSectionProps {
   skills: HermesSkill[]
   emptyTitle: string
   emptyDescription: string
-  isAdmin: boolean
   isFocused?: boolean
-  onEditSkill: (skill: HermesSkill, teamId?: number) => void
-  onUseSkill: (skill: HermesSkill) => void
-  onDeleteSkill: (skill: HermesSkill) => void
-  manageableTeams: Team[]
-  selectedTeamId: number
-  selectedTeamName: string
-  onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
+  selectedSkill: HermesSkill | null
+  onSelectSkill: (skill: HermesSkill) => void
 }
 
 function SkillSection(props: SkillSectionProps) {
   const { t } = useTranslation()
 
   return (
-    <section className='space-y-2'>
-      <div className='flex items-center justify-between'>
+    <section className='space-y-1'>
+      <div className='flex items-center justify-between px-1 pb-1'>
         <div className='flex min-w-0 items-center gap-2'>
-          <h3 className='truncate text-sm font-medium'>{props.title}</h3>
+          <h3 className='text-muted-foreground truncate text-xs font-medium uppercase tracking-wide'>
+            {props.title}
+          </h3>
           {props.isFocused && <Badge variant='secondary'>{t('Current')}</Badge>}
         </div>
         <span className='text-muted-foreground text-xs'>
-          {t('{{count}} items', { count: props.skills.length })}
+          {props.skills.length}
         </span>
       </div>
       {props.skills.length === 0 ? (
@@ -639,18 +670,15 @@ function SkillSection(props: SkillSectionProps) {
           title={props.emptyTitle}
         />
       ) : (
-        <div className='space-y-2'>
+        <div className='space-y-0.5'>
           {props.skills.map((skill) => (
-            <SkillRow
+            <SkillListItem
               key={`${skill.source}-${skill.path ?? skill.name}`}
-              isAdmin={props.isAdmin}
-              onDeleteSkill={props.onDeleteSkill}
-              onUseSkill={props.onUseSkill}
-              onEditSkill={props.onEditSkill}
-              manageableTeams={props.manageableTeams}
-              selectedTeamId={props.selectedTeamId}
-              selectedTeamName={props.selectedTeamName}
-              onPublishSkill={props.onPublishSkill}
+              isSelected={
+                props.selectedSkill?.path === skill.path &&
+                props.selectedSkill?.name === skill.name
+              }
+              onSelect={props.onSelectSkill}
               skill={skill}
             />
           ))}
@@ -660,10 +688,233 @@ function SkillSection(props: SkillSectionProps) {
   )
 }
 
-interface SkillRowProps {
+function SkillListItem(props: {
+  skill: HermesSkill
+  isSelected: boolean
+  onSelect: (skill: HermesSkill) => void
+}) {
+  const { i18n } = useTranslation()
+  const description = getLocalizedCapabilityText(
+    props.skill.description,
+    props.skill.descriptionZh,
+    i18n.language
+  )
+  return (
+    <button
+      className={cn(
+        'w-full rounded-md px-2.5 py-2 text-left transition-colors hover:bg-muted',
+        props.isSelected && 'bg-muted'
+      )}
+      onClick={() => props.onSelect(props.skill)}
+      type='button'
+    >
+      <div className='truncate text-sm font-medium leading-snug'>
+        {props.skill.name}
+      </div>
+      {description && (
+        <div className='text-muted-foreground mt-0.5 line-clamp-1 text-xs'>
+          {description}
+        </div>
+      )}
+    </button>
+  )
+}
+
+interface SkillDetailPaneProps {
   skill: HermesSkill
   isAdmin: boolean
+  onClose: () => void
+  onUseSkill: (skill: HermesSkill) => void
   onEditSkill: (skill: HermesSkill, teamId?: number) => void
+  onDeleteSkill: (skill: HermesSkill) => void
+  manageableTeams: Team[]
+  selectedTeamId: number
+  selectedTeamName: string
+  onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
+}
+
+function SkillDetailPane(props: SkillDetailPaneProps) {
+  const { t, i18n } = useTranslation()
+  const { skill } = props
+  const description = getLocalizedCapabilityText(
+    skill.description,
+    skill.descriptionZh,
+    i18n.language
+  )
+  const usageGuide = getLocalizedCapabilityText(
+    skill.usageGuide,
+    skill.usageGuideZh,
+    i18n.language
+  )
+  const referencePrompt = t('Use the "{{name}}" skill for this task.', {
+    name: skill.name,
+  })
+
+  const copyReference = async () => {
+    await navigator.clipboard.writeText(referencePrompt)
+    toast.success(t('Skill reference copied'))
+  }
+
+  const skillScope = getSkillScope(skill)
+  const canPublishToBaizor =
+    props.isAdmin &&
+    (skillScope === 'user' ||
+      (skillScope === 'team' && props.selectedTeamId > 0))
+  const canPublishToTeam = skillScope === 'user'
+  const isManageable = skill.isUserCreated || skillScope === 'user' || skillScope === 'team'
+
+  return (
+    <div className='flex min-w-0 flex-1 flex-col'>
+      <div className='flex items-start justify-between gap-2 border-b p-4'>
+        <div className='min-w-0'>
+          <h3 className='truncate text-base font-semibold'>{skill.name}</h3>
+          <div className='mt-1.5 flex flex-wrap gap-1.5'>
+            <Badge variant={skill.isUserCreated ? 'default' : 'secondary'}>
+              {getSkillSourceLabel(skill, t, props.selectedTeamName)}
+            </Badge>
+            {skill.category && (
+              <Badge variant='outline'>{skill.category}</Badge>
+            )}
+          </div>
+        </div>
+        <button
+          aria-label={t('Close')}
+          className='text-muted-foreground hover:bg-muted mt-0.5 shrink-0 rounded-md p-1 transition-colors'
+          onClick={props.onClose}
+          type='button'
+        >
+          <XIcon className='size-4' />
+        </button>
+      </div>
+
+      <ScrollArea className='min-h-0 flex-1'>
+        <div className='space-y-3 p-4'>
+          {description && (
+            <CapabilityInfoBlock
+              title={t('Description')}
+              content={description}
+            />
+          )}
+          {usageGuide && (
+            <CapabilityInfoBlock
+              title={t('Usage guide')}
+              content={usageGuide}
+            />
+          )}
+          <div className='space-y-1'>
+            <div className='text-muted-foreground text-xs'>
+              {t('Reference prompt')}
+            </div>
+            <div className='bg-muted/40 rounded-md border px-2 py-1.5 font-mono text-xs break-words'>
+              {referencePrompt}
+            </div>
+          </div>
+        </div>
+      </ScrollArea>
+
+      <div className='space-y-2 border-t p-4'>
+        <Button
+          className='w-full'
+          onClick={() => props.onUseSkill(skill)}
+          type='button'
+        >
+          <PlayIcon className='size-3.5' />
+          {t('Start using skill')}
+        </Button>
+        <div className='flex gap-2'>
+          <Button
+            className='flex-1'
+            onClick={() => props.onUseSkill(skill)}
+            size='sm'
+            type='button'
+            variant='outline'
+          >
+            <MessageSquareIcon className='size-3.5' />
+            {t('Chat')}
+          </Button>
+          <Button
+            className='flex-1'
+            onClick={props.onClose}
+            size='sm'
+            type='button'
+            variant='outline'
+          >
+            {t('Done')}
+          </Button>
+        </div>
+        {isManageable && (
+          <div className='flex gap-2 pt-1'>
+            <Button
+              className='flex-1'
+              onClick={() =>
+                props.onEditSkill(
+                  skill,
+                  getSkillTeamId(skill, props.selectedTeamId)
+                )
+              }
+              size='sm'
+              type='button'
+              variant='ghost'
+            >
+              <PencilIcon className='size-3.5' />
+              {t('Edit')}
+            </Button>
+            <Button
+              className='flex-1'
+              onClick={() => props.onDeleteSkill(skill)}
+              size='sm'
+              type='button'
+              variant='ghost'
+            >
+              <Trash2Icon className='size-3.5' />
+              {t('Delete')}
+            </Button>
+            {(canPublishToBaizor || canPublishToTeam) && (
+              <Button
+                className='flex-1'
+                onClick={() =>
+                  canPublishToBaizor &&
+                  props.onPublishSkill(skill, {
+                    target: 'baizor',
+                    sourceScope: skillScope === 'team' ? 'team' : 'user',
+                    teamId:
+                      skillScope === 'team'
+                        ? props.selectedTeamId
+                        : undefined,
+                    teamName:
+                      skillScope === 'team'
+                        ? props.selectedTeamName
+                        : undefined,
+                  })
+                }
+                size='sm'
+                type='button'
+                variant='ghost'
+              >
+                <ArrowBigUpIcon className='size-3.5' />
+                {t('Publish')}
+              </Button>
+            )}
+          </div>
+        )}
+        <Button
+          className='w-full'
+          onClick={copyReference}
+          size='sm'
+          type='button'
+          variant='ghost'
+        >
+          <CopyIcon className='size-3.5' />
+          {t('Copy reference')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface SkillRowProps {
+  skill: HermesSkill
+  isAdmin: boolean  onEditSkill: (skill: HermesSkill, teamId?: number) => void
   onUseSkill: (skill: HermesSkill) => void
   onDeleteSkill: (skill: HermesSkill) => void
   manageableTeams: Team[]
@@ -1145,6 +1396,14 @@ function getOrderedSkillSections(
       emptyTitle: t('No Baizor Skills'),
       emptyDescription: t('No Baizor Skills match the current search.'),
       isFocused: focusedSection === 'baizor',
+    },
+    {
+      id: 'jilai',
+      title: t('Jilai Law Firm Skills'),
+      skills: props.jilaiSkills,
+      emptyTitle: t('No Jilai Law Firm Skills'),
+      emptyDescription: t('No Jilai Law Firm skills match the current search.'),
+      isFocused: focusedSection === 'jilai',
     },
     {
       id: 'builtin',

@@ -20,6 +20,7 @@ export const HERMES_CAPABILITY_SECTIONS = [
   'mine',
   'team',
   'baizor',
+  'jilai',
   'builtin',
   'tools',
 ] as const
