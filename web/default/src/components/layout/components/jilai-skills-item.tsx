@@ -32,16 +32,8 @@ import { cn } from '@/lib/utils'
 import { listHermesSkills } from '@/features/hermes-playground/api'
 import type { NavHermesJilaiSkills } from '../types'
 import { checkIsActive } from '../lib/url-utils'
+import { SIDEBAR_NODE_COLORS } from '../constants'
 import { SidebarCollapsibleShell } from './sidebar-collapsible-shell'
-
-const SKILL_NODE_COLORS = [
-  'bg-blue-50/60 dark:bg-blue-950/30',
-  'bg-violet-50/60 dark:bg-violet-950/30',
-  'bg-emerald-50/60 dark:bg-emerald-950/30',
-  'bg-amber-50/60 dark:bg-amber-950/30',
-  'bg-rose-50/60 dark:bg-rose-950/30',
-  'bg-sky-50/60 dark:bg-sky-950/30',
-]
 
 export function JilaiSkillsItem({ item }: { item: NavHermesJilaiSkills }) {
   const href = useLocation({ select: (l) => l.href })
@@ -68,7 +60,7 @@ export function JilaiSkillsItem({ item }: { item: NavHermesJilaiSkills }) {
             const url = skillUrl(skill.name)
             const subActive = checkIsActive(href, { url })
             const desc = skill.descriptionZh || skill.description
-            const colorClass = SKILL_NODE_COLORS[idx % SKILL_NODE_COLORS.length]
+            const colorClass = SIDEBAR_NODE_COLORS[idx % SIDEBAR_NODE_COLORS.length]
             return (
               <SidebarMenuSubItem key={skill.name}>
                 <SidebarMenuSubButton

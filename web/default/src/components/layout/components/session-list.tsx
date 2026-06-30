@@ -52,8 +52,10 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
+import { cn } from '@/lib/utils'
 
 import type { SessionActions, SessionLike } from '../lib/session-list-core'
+import { SIDEBAR_NODE_COLORS } from '../constants'
 
 export type { SessionActions, SessionLike }
 
@@ -147,13 +149,14 @@ function SessionGroupExpanded<T extends SessionLike>(props: {
           {t(props.titleKey)}
         </div>
       </SidebarMenuSubItem>
-      {props.sessions.map((session) => (
+      {props.sessions.map((session, idx) => (
         <SessionItemExpanded
           key={session.id}
           baseUrl={props.baseUrl}
           session={session}
           active={props.activeSessionId === session.id}
           actions={props.actions}
+          index={idx}
         />
       ))}
     </>
@@ -194,8 +197,10 @@ function SessionItemExpanded<T extends SessionLike>(props: {
   session: T
   active: boolean
   actions: SessionActions<T>
+  index: number
 }) {
   const { t } = useTranslation()
+  const colorClass = SIDEBAR_NODE_COLORS[props.index % SIDEBAR_NODE_COLORS.length]
 
   return (
     <SidebarMenuSubItem className='group/session-item'>
@@ -207,7 +212,7 @@ function SessionItemExpanded<T extends SessionLike>(props: {
             onClick={() => props.actions.select(props.session.id)}
           />
         }
-        className='pr-7'
+        className={cn('pr-7', colorClass)}
       >
         {props.session.pinned && !props.session.archived ? (
           <Pin className='size-3.5' aria-hidden='true' />

@@ -36,18 +36,10 @@ import {
 import { cn } from '@/lib/utils'
 import type { NavHermesSkillSection } from '../types'
 import { checkIsActive } from '../lib/url-utils'
+import { SIDEBAR_NODE_COLORS } from '../constants'
 import { SidebarCollapsibleShell } from './sidebar-collapsible-shell'
 
 type TeamGroup = { team: Team; skills: HermesSkill[] }
-
-const SKILL_NODE_COLORS = [
-  'bg-blue-50/60 dark:bg-blue-950/30',
-  'bg-violet-50/60 dark:bg-violet-950/30',
-  'bg-emerald-50/60 dark:bg-emerald-950/30',
-  'bg-amber-50/60 dark:bg-amber-950/30',
-  'bg-rose-50/60 dark:bg-rose-950/30',
-  'bg-sky-50/60 dark:bg-sky-950/30',
-]
 
 function SkillSubItem({
   skill,
@@ -64,7 +56,7 @@ function SkillSubItem({
 }) {
   const subActive = checkIsActive(href, { url })
   const desc = skill.descriptionZh || skill.description
-  const colorClass = SKILL_NODE_COLORS[index % SKILL_NODE_COLORS.length]
+  const colorClass = SIDEBAR_NODE_COLORS[index % SIDEBAR_NODE_COLORS.length]
   return (
     <SidebarMenuSubItem key={skill.name}>
       <SidebarMenuSubButton

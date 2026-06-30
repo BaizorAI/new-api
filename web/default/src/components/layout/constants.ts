@@ -55,6 +55,19 @@ export const MOBILE_DRAWER_ANIMATION = {
 } as const
 
 /**
+ * Cycling background color classes for sidebar node items.
+ * Applied by index so adjacent items get distinct hues.
+ */
+export const SIDEBAR_NODE_COLORS = [
+  'bg-blue-50/60 dark:bg-blue-950/30',
+  'bg-violet-50/60 dark:bg-violet-950/30',
+  'bg-emerald-50/60 dark:bg-emerald-950/30',
+  'bg-amber-50/60 dark:bg-amber-950/30',
+  'bg-rose-50/60 dark:bg-rose-950/30',
+  'bg-sky-50/60 dark:bg-sky-950/30',
+] as const
+
+/**
  * Mobile drawer configuration
  */
 export const MOBILE_DRAWER_CONFIG = {

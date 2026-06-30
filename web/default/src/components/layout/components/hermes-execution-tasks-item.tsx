@@ -47,6 +47,7 @@ import { useAuthStore } from '@/stores/auth-store'
 
 import { normalizeHref } from '../lib/url-utils'
 import type { NavHermesExecutionTasks } from '../types'
+import { SIDEBAR_NODE_COLORS } from '../constants'
 import { SidebarCollapsibleShell } from './sidebar-collapsible-shell'
 
 export function HermesExecutionTasksItem(props: {
@@ -146,10 +147,11 @@ function ExpandedTasks(props: {
           </SidebarMenuSubButton>
         </SidebarMenuSubItem>
       ) : null}
-      {props.tasks.map((task) => (
+      {props.tasks.map((task, idx) => (
         <SidebarMenuSubItem key={task.taskId}>
           <SidebarMenuSubButton
             render={<Link to={props.destination} onClick={props.onNavigate} />}
+            className={SIDEBAR_NODE_COLORS[idx % SIDEBAR_NODE_COLORS.length]}
           >
             <TaskStatusIcon status={task.status} />
             <span className='min-w-0 flex-1 truncate'>

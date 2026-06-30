@@ -38,6 +38,7 @@ import {
 
 import { normalizeHref } from '../lib/url-utils'
 import type { NavChatPresets } from '../types'
+import { SIDEBAR_NODE_COLORS } from '../constants'
 import { SidebarCollapsibleShell } from './sidebar-collapsible-shell'
 
 export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
@@ -121,7 +122,7 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
       defaultOpen={isChatActive}
       expandedContent={
         <>
-          {visiblePresets.map((preset) => (
+          {visiblePresets.map((preset, idx) => (
             <ChatMenuItem
               key={preset.id}
               preset={preset}
@@ -129,6 +130,7 @@ export function ChatPresetsItem({ item }: { item: NavChatPresets }) {
               loading={loadingPresetId === preset.id}
               onOpen={handleOpenExternal}
               onNavigate={() => setOpenMobile(false)}
+              index={idx}
             />
           ))}
         </>
@@ -156,18 +158,22 @@ function ChatMenuItem({
   loading,
   onOpen,
   onNavigate,
+  index,
 }: {
   preset: ChatPreset
   active: boolean
   loading: boolean
   onOpen: (preset: ChatPreset) => void | Promise<void>
   onNavigate: () => void
+  index: number
 }) {
+  const colorClass = SIDEBAR_NODE_COLORS[index % SIDEBAR_NODE_COLORS.length]
   if (preset.type === 'web') {
     return (
       <SidebarMenuSubItem>
         <SidebarMenuSubButton
           isActive={active}
+          className={colorClass}
           render={
             <Link
               to='/chat/$chatId'
@@ -192,7 +198,7 @@ function ChatMenuItem({
         }}
         aria-disabled={loading ? 'true' : undefined}
         isActive={false}
-        className='justify-between'
+        className={`justify-between ${colorClass}`}
       >
         <span className='min-w-0 flex-1 truncate whitespace-nowrap'>
           {preset.name}
