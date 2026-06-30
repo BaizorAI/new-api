@@ -120,6 +120,7 @@ interface HermesAgentWorkspaceProps {
   initialPanel?: HermesPersonalPanel | HermesTeamPanel
   initialResultScope?: HermesResultScope
   initialResultType?: HermesResultType
+  initialSkill?: string
   initialTeamId?: number
   queryKeyPrefix: string
   suggestedPrompts?: HermesPromptSuggestion[]
@@ -923,6 +924,21 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     },
     [navigateToConversationWorkspace, t]
   )
+
+  // Auto-activate a skill passed via ?skill= URL param (e.g. from sidebar nav)
+  const triggeredSkillRef = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    if (!props.initialSkill) return
+    if (triggeredSkillRef.current === props.initialSkill) return
+    triggeredSkillRef.current = props.initialSkill
+    setQuickPromptRequest({
+      id: `skill-${props.initialSkill}-${Date.now()}`,
+      prompt: t('Use the "{{name}}" skill for this task.', {
+        name: props.initialSkill,
+      }),
+    })
+    navigateToConversationWorkspace()
+  }, [props.initialSkill, t, navigateToConversationWorkspace])
 
   const continueWithResult = useCallback(
     (prompt: string, session: HermesConversation) => {

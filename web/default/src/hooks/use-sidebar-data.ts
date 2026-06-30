@@ -204,9 +204,8 @@ export function useSidebarData(): SidebarData {
             icon: Sparkles,
           },
           {
+            type: 'hermes-jilai-skills' as const,
             title: t('Jilai Law Firm Skills'),
-            url: '/hermes-playground?panel=skills&section=jilai',
-            configUrls: ['/hermes-playground'],
             icon: Scale,
           },
           {

@@ -102,6 +102,15 @@ export type NavHermesExecutionTasks = BaseNavItem & {
 }
 
 /**
+ * Dynamic Jilai Law Firm skills list in sidebar.
+ */
+export type NavHermesJilaiSkills = BaseNavItem & {
+  type: 'hermes-jilai-skills'
+  url?: never
+  items?: never
+}
+
+/**
  * Navigation item union type
  */
 export type NavItem =
@@ -112,6 +121,7 @@ export type NavItem =
   | NavTeamWorkspaces
   | NavPlaygroundSessions
   | NavHermesExecutionTasks
+  | NavHermesJilaiSkills
 
 /**
  * Navigation group type - a group of navigation items in sidebar

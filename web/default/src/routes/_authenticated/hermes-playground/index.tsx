@@ -37,6 +37,7 @@ const hermesPlaygroundSearchSchema = z.object({
   scope: z.enum(HERMES_RESULT_SCOPES).optional().catch(undefined),
   type: z.enum(HERMES_RESULT_TYPES).optional().catch(undefined),
   category: z.string().optional().catch(undefined),
+  skill: z.string().optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/_authenticated/hermes-playground/')({
@@ -56,6 +57,7 @@ function HermesPlaygroundPage() {
     panel,
     scope,
     section,
+    skill,
     type: resultType,
   } = Route.useSearch()
   const capabilitySection = isHermesCapabilitySection(section)
@@ -73,6 +75,7 @@ function HermesPlaygroundPage() {
       initialPanel={panel}
       initialResultScope={scope}
       initialResultType={resultType}
+      initialSkill={skill}
       queryKeyPrefix='hermes-playground'
     />
   )

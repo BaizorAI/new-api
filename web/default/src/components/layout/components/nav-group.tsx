@@ -42,6 +42,7 @@ import type {
   NavCollapsible,
   NavHermesSessions,
   NavHermesExecutionTasks,
+  NavHermesJilaiSkills,
   NavPlaygroundSessions,
   NavTeamWorkspaces,
   NavLink,
@@ -50,6 +51,7 @@ import type {
 import { ChatPresetsItem } from './chat-presets-item'
 import { HermesExecutionTasksItem } from './hermes-execution-tasks-item'
 import { HermesSessionsItem } from './hermes-sessions-item'
+import { JilaiSkillsItem } from './jilai-skills-item'
 import { PlaygroundSessionsItem } from './playground-sessions-item'
 import { SidebarCollapsibleShell } from './sidebar-collapsible-shell'
 import { TeamWorkspacesItem } from './team-workspaces-item'
@@ -86,6 +88,15 @@ export function NavGroup({ title, items }: NavGroupProps) {
               <HermesExecutionTasksItem
                 key={key}
                 item={item as NavHermesExecutionTasks}
+              />
+            )
+          }
+
+          if (item.type === 'hermes-jilai-skills') {
+            return (
+              <JilaiSkillsItem
+                key={key}
+                item={item as NavHermesJilaiSkills}
               />
             )
           }
