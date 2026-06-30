@@ -237,7 +237,11 @@ function resolveActiveRootGroup(
   }
 
   if (pathname === '/hermes-playground') {
-    if (panel === 'skills') return findGroup(navGroups, 'skill-store')
+    if (panel === 'skills') {
+      if (section === 'builtin' || section === 'tools')
+        return findGroup(navGroups, 'settings')
+      return findGroup(navGroups, 'workbench')
+    }
     if (panel === 'results') return findGroup(navGroups, 'results-center')
     if (panel === 'messages') return findGroup(navGroups, 'message-platform')
     return findGroup(navGroups, 'workbench')
@@ -264,7 +268,7 @@ function resolveActiveRootGroup(
     return findGroup(navGroups, 'settings')
   }
 
-  if (pathname === '/profile' || pathname === '/wallet') {
+  if (pathname === '/profile' || pathname === '/wallet' || pathname === '/keys') {
     return findGroup(navGroups, 'personal-center')
   }
 
@@ -276,8 +280,11 @@ function resolveActiveRootGroup(
     return findGroup(navGroups, 'settings')
   }
 
+  if (pathname === '/dashboard/models') {
+    return findGroup(navGroups, 'model-playground')
+  }
+
   if (
-    pathname === '/keys' ||
     pathname === '/channels' ||
     pathname === '/users' ||
     pathname === '/redemption-codes' ||

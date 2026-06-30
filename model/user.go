@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/BaizorAI/new-api/common"
 	"github.com/BaizorAI/new-api/dto"
@@ -18,6 +20,25 @@ import (
 )
 
 const UserNameMaxLength = 20
+
+// userIdMu serialises user ID generation so concurrent registrations always
+// see the latest committed MAX(id) relative to each other's lock window.
+var userIdMu sync.Mutex
+
+// nextUserId generates the next user ID: max(current max id, 100000) + rand[1,100].
+// The mutex ensures two concurrent callers never compute the same base value.
+func nextUserId() (int, error) {
+	userIdMu.Lock()
+	defer userIdMu.Unlock()
+	var maxId int
+	if err := DB.Model(&User{}).Select("COALESCE(MAX(id), 100000)").Scan(&maxId).Error; err != nil {
+		return 0, err
+	}
+	if maxId < 100000 {
+		maxId = 100000
+	}
+	return maxId + rand.Intn(100) + 1, nil
+}
 
 // User if you add sensitive fields, don't forget to clean them in setupLogin function.
 // Otherwise, the sensitive information will be saved on local storage in plain text!
@@ -398,6 +419,11 @@ func (user *User) Insert(inviterId int) error {
 	//user.SetAccessToken(common.GetUUID())
 	user.AffCode = common.GetRandomString(4)
 
+	user.Id, err = nextUserId()
+	if err != nil {
+		return err
+	}
+
 	// 初始化用户设置，包括默认的边栏配置
 	if user.Setting == "" {
 		defaultSetting := dto.UserSetting{}
@@ -455,6 +481,12 @@ func (user *User) InsertWithTx(tx *gorm.DB, inviterId int) error {
 	}
 	user.Quota = common.QuotaForNewUser
 	user.AffCode = common.GetRandomString(4)
+
+	var idErr error
+	user.Id, idErr = nextUserId()
+	if idErr != nil {
+		return idErr
+	}
 
 	// 初始化用户设置
 	if user.Setting == "" {

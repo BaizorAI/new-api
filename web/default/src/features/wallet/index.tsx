@@ -72,10 +72,10 @@ function isWeChatBrowser(): boolean {
 
 interface WalletProps {
   initialShowHistory?: boolean
+  initialSection?: 'overview' | 'topup' | 'history' | 'affiliate'
 }
 
-export function Wallet(props: WalletProps) {
-  const { t } = useTranslation()
+export function Wallet(props: WalletProps) {  const { t } = useTranslation()
   const [user, setUser] = useState<UserWalletData | null>(null)
   const [userLoading, setUserLoading] = useState(true)
   const [teams, setTeams] = useState<Team[]>([])
@@ -185,6 +185,26 @@ export function Wallet(props: WalletProps) {
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [props.initialShowHistory])
+
+  useEffect(() => {
+    const section = props.initialSection
+    if (!section) return
+    if (section === 'history') {
+      setBillingDialogOpen(true)
+      return
+    }
+    const idMap: Record<string, string> = {
+      overview: 'wallet-overview',
+      topup: 'wallet-add-funds',
+      affiliate: 'wallet-affiliate',
+    }
+    const id = idMap[section]
+    if (!id) return
+    const timer = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 150)
+    return () => clearTimeout(timer)
+  }, [props.initialSection])
 
   // Initialize topup amount when topup info is loaded
   useEffect(() => {
@@ -360,13 +380,15 @@ export function Wallet(props: WalletProps) {
         <SectionPageLayout.Title>{t('Wallet')}</SectionPageLayout.Title>
         <SectionPageLayout.Content>
           <div className='mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-5'>
-            <WalletStatsCard user={user} loading={userLoading} />
-            <BillingOwnershipCard
+            <div id='wallet-overview' className='scroll-mt-4 flex flex-col gap-4 sm:gap-5'>
+              <WalletStatsCard user={user} loading={userLoading} />
+              <BillingOwnershipCard
               user={user}
               teams={teams}
               activeSubscriptions={activeSubscriptions}
               loading={userLoading || ownershipLoading}
             />
+            </div>
 
             <div
               className={
@@ -419,15 +441,17 @@ export function Wallet(props: WalletProps) {
               />
             </div>
 
-            <AffiliateRewardsCard
-              user={user}
-              affiliateLink={affiliateLink}
-              onTransfer={() => setTransferDialogOpen(true)}
-              complianceConfirmed={
-                topupInfo?.payment_compliance_confirmed !== false
-              }
-              loading={affiliateLoading}
-            />
+            <div id='wallet-affiliate' className='scroll-mt-4'>
+              <AffiliateRewardsCard
+                user={user}
+                affiliateLink={affiliateLink}
+                onTransfer={() => setTransferDialogOpen(true)}
+                complianceConfirmed={
+                  topupInfo?.payment_compliance_confirmed !== false
+                }
+                loading={affiliateLoading}
+              />
+            </div>
           </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>

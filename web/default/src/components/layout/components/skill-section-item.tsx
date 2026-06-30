@@ -16,12 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from '@tanstack/react-router'
 import type { HermesSkill } from '@/features/hermes-playground/api'
 import { listHermesSkills } from '@/features/hermes-playground/api'
 import { listTeams } from '@/features/teams/api'
+import type { Team } from '@/features/teams/types'
 import {
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -35,6 +36,50 @@ import {
 import type { NavHermesSkillSection } from '../types'
 import { checkIsActive } from '../lib/url-utils'
 import { SidebarCollapsibleShell } from './sidebar-collapsible-shell'
+
+type TeamGroup = { team: Team; skills: HermesSkill[] }
+
+function SkillSubItem({
+  skill,
+  url,
+  href,
+  onClose,
+}: {
+  skill: HermesSkill
+  url: string
+  href: string
+  onClose: () => void
+}) {
+  const subActive = checkIsActive(href, { url })
+  const desc = skill.descriptionZh || skill.description
+  return (
+    <SidebarMenuSubItem key={skill.name}>
+      <SidebarMenuSubButton
+        isActive={subActive}
+        title={desc || (skill.displayName ?? skill.name)}
+        className={desc ? 'h-auto py-1.5' : undefined}
+        render={
+          <Link
+            aria-current={subActive ? 'page' : undefined}
+            onClick={onClose}
+            to={url}
+          />
+        }
+      >
+        <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
+          <span className='truncate text-sm leading-snug'>
+            {skill.displayName || skill.name}
+          </span>
+          {desc && (
+            <span className='text-muted-foreground truncate text-xs leading-tight'>
+              {desc}
+            </span>
+          )}
+        </div>
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
+  )
+}
 
 export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
   const href = useLocation({ select: (l) => l.href })
@@ -66,69 +111,83 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
     staleTime: 5 * 60 * 1000,
   })
 
-  const skills = useMemo<HermesSkill[]>(() => {
-    if (isTeamSection) {
-      const merged = teamSkillQueries.flatMap((q) => q.data ?? [])
-      const seen = new Set<string>()
-      return merged.filter((s) => {
-        if (seen.has(s.name)) return false
-        seen.add(s.name)
-        return true
-      })
-    }
+  const teamGroups = useMemo<TeamGroup[]>(() => {
+    if (!isTeamSection) return []
+    return teams
+      .map((team, i) => ({ team, skills: teamSkillQueries[i]?.data ?? [] }))
+      .filter((g) => g.skills.length > 0)
+  }, [isTeamSection, teams, teamSkillQueries])
+
+  const flatSkills = useMemo<HermesSkill[]>(() => {
+    if (isTeamSection) return []
     const all = singleQuery.data ?? []
     if (item.section === 'mine') {
       return all.filter((s) => s.ownerScope === 'user' || s.source === 'user')
     }
     return all.filter((s) => s.ownerScope === 'baizor' || s.source === 'baizor')
-  }, [isTeamSection, teamSkillQueries, singleQuery.data, item.section])
+  }, [isTeamSection, singleQuery.data, item.section])
+
+  const isActive = isTeamSection
+    ? teamGroups.some(({ skills }) =>
+        skills.some((s) =>
+          checkIsActive(href, {
+            url: `/skill-workspace?skill=${encodeURIComponent(s.name)}`,
+          })
+        )
+      )
+    : flatSkills.some((s) =>
+        checkIsActive(href, {
+          url: `/skill-workspace?skill=${encodeURIComponent(s.name)}`,
+        })
+      )
 
   const skillUrl = (name: string) =>
     `/skill-workspace?skill=${encodeURIComponent(name)}` as const
 
-  return (
-    <SidebarCollapsibleShell
-      defaultOpen={false}
-      description={item.description}
-      expandedContent={
-        <>
-          {skills.map((skill) => {
-            const url = skillUrl(skill.name)
-            const subActive = checkIsActive(href, { url })
-            const desc = skill.descriptionZh || skill.description
-            return (
-              <SidebarMenuSubItem key={skill.name}>
-                <SidebarMenuSubButton
-                  isActive={subActive}
-                  title={desc || (skill.displayName ?? skill.name)}
-                  render={
-                    <Link
-                      aria-current={subActive ? 'page' : undefined}
-                      onClick={() => setOpenMobile(false)}
-                      to={url}
-                    />
-                  }
-                >
-                  <div className='flex min-w-0 flex-1 flex-col gap-0.5 py-0.5'>
-                    <span className='truncate text-sm leading-snug'>
-                      {skill.displayName || skill.name}
-                    </span>
-                    {desc && (
-                      <span className='text-muted-foreground line-clamp-2 text-xs leading-tight'>
-                        {desc}
-                      </span>
-                    )}
-                  </div>
-                </SidebarMenuSubButton>
-              </SidebarMenuSubItem>
-            )
-          })}
-        </>
-      }
-      collapsedContent={
-        <>
-          <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
+  const expandedTeamContent = (
+    <>
+      {teamGroups.map(({ team, skills }) => (
+        <Fragment key={team.id}>
+          <li className='text-muted-foreground/60 select-none px-2 pt-2 pb-0.5 text-[10px] font-semibold tracking-wider uppercase first:pt-1'>
+            {team.name}
+          </li>
+          {skills.map((skill) => (
+            <SkillSubItem
+              key={skill.name}
+              skill={skill}
+              url={skillUrl(skill.name)}
+              href={href}
+              onClose={() => setOpenMobile(false)}
+            />
+          ))}
+        </Fragment>
+      ))}
+    </>
+  )
+
+  const expandedFlatContent = (
+    <>
+      {flatSkills.map((skill) => (
+        <SkillSubItem
+          key={skill.name}
+          skill={skill}
+          url={skillUrl(skill.name)}
+          href={href}
+          onClose={() => setOpenMobile(false)}
+        />
+      ))}
+    </>
+  )
+
+  const collapsedTeamContent = (
+    <>
+      <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      {teamGroups.map(({ team, skills }) => (
+        <Fragment key={team.id}>
+          <DropdownMenuLabel className='text-muted-foreground/60 text-[10px] font-semibold tracking-wider uppercase'>
+            {team.name}
+          </DropdownMenuLabel>
           {skills.map((skill) => {
             const url = skillUrl(skill.name)
             const subActive = checkIsActive(href, { url })
@@ -150,7 +209,7 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
                     {skill.displayName || skill.name}
                   </span>
                   {desc && (
-                    <span className='text-muted-foreground line-clamp-2 max-w-52 text-xs'>
+                    <span className='text-muted-foreground max-w-52 truncate text-xs'>
                       {desc}
                     </span>
                   )}
@@ -158,13 +217,58 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
               </DropdownMenuItem>
             )
           })}
-        </>
+        </Fragment>
+      ))}
+    </>
+  )
+
+  const collapsedFlatContent = (
+    <>
+      <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      {flatSkills.map((skill) => {
+        const url = skillUrl(skill.name)
+        const subActive = checkIsActive(href, { url })
+        const desc = skill.descriptionZh || skill.description
+        return (
+          <DropdownMenuItem
+            key={skill.name}
+            title={desc || (skill.displayName ?? skill.name)}
+            render={
+              <Link
+                className={subActive ? 'bg-secondary' : ''}
+                onClick={() => setOpenMobile(false)}
+                to={url}
+              />
+            }
+          >
+            <div className='flex flex-col gap-0.5'>
+              <span className='max-w-52 text-wrap'>
+                {skill.displayName || skill.name}
+              </span>
+              {desc && (
+                <span className='text-muted-foreground max-w-52 truncate text-xs'>
+                  {desc}
+                </span>
+              )}
+            </div>
+          </DropdownMenuItem>
+        )
+      })}
+    </>
+  )
+
+  return (
+    <SidebarCollapsibleShell
+      defaultOpen={false}
+      description={item.description}
+      expandedContent={isTeamSection ? expandedTeamContent : expandedFlatContent}
+      collapsedContent={
+        isTeamSection ? collapsedTeamContent : collapsedFlatContent
       }
       icon={item.icon}
       id={`skill-section-${item.section}`}
-      isActive={skills.some((s) =>
-        checkIsActive(href, { url: skillUrl(s.name) })
-      )}
+      isActive={isActive}
       title={item.title}
     />
   )

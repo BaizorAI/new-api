@@ -57,10 +57,13 @@ export function JilaiSkillsItem({ item }: { item: NavHermesJilaiSkills }) {
           {skills.map((skill) => {
             const url = skillUrl(skill.name)
             const subActive = checkIsActive(href, { url })
+            const desc = skill.descriptionZh || skill.description
             return (
               <SidebarMenuSubItem key={skill.name}>
                 <SidebarMenuSubButton
                   isActive={subActive}
+                  title={desc || (skill.displayName ?? skill.name)}
+                  className={desc ? 'h-auto py-1.5' : undefined}
                   render={
                     <Link
                       aria-current={subActive ? 'page' : undefined}
@@ -69,9 +72,16 @@ export function JilaiSkillsItem({ item }: { item: NavHermesJilaiSkills }) {
                     />
                   }
                 >
-                  <span className='min-w-0 flex-1 truncate'>
-                    {skill.displayName || skill.name}
-                  </span>
+                  <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
+                    <span className='truncate text-sm leading-snug'>
+                      {skill.displayName || skill.name}
+                    </span>
+                    {desc && (
+                      <span className='text-muted-foreground truncate text-xs leading-tight'>
+                        {desc}
+                      </span>
+                    )}
+                  </div>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             )
@@ -85,9 +95,11 @@ export function JilaiSkillsItem({ item }: { item: NavHermesJilaiSkills }) {
           {skills.map((skill) => {
             const url = skillUrl(skill.name)
             const subActive = checkIsActive(href, { url })
+            const desc = skill.descriptionZh || skill.description
             return (
               <DropdownMenuItem
                 key={skill.name}
+                title={desc || (skill.displayName ?? skill.name)}
                 render={
                   <Link
                     className={subActive ? 'bg-secondary' : ''}
@@ -96,9 +108,16 @@ export function JilaiSkillsItem({ item }: { item: NavHermesJilaiSkills }) {
                   />
                 }
               >
-                <span className='max-w-52 text-wrap'>
-                  {skill.displayName || skill.name}
-                </span>
+                <div className='flex flex-col gap-0.5'>
+                  <span className='max-w-52 text-wrap'>
+                    {skill.displayName || skill.name}
+                  </span>
+                  {desc && (
+                    <span className='text-muted-foreground truncate max-w-52 text-xs'>
+                      {desc}
+                    </span>
+                  )}
+                </div>
               </DropdownMenuItem>
             )
           })}

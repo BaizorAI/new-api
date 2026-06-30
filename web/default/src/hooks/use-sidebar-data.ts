@@ -28,6 +28,7 @@ import {
   FileCheck2,
   FileText,
   FlaskConical,
+  Gift,
   History,
   Key,
   LayoutDashboard,
@@ -419,20 +420,33 @@ export function useSidebarData(): SidebarData {
             icon: User,
           },
           {
-            title: t('Wallet'),
+            title: t('Wallet Overview'),
             url: '/wallet',
+            configUrls: ['/wallet'],
             icon: Wallet,
+          },
+          {
+            title: t('Add Funds'),
+            url: '/wallet?section=topup',
+            configUrls: ['/wallet'],
+            icon: CreditCard,
+          },
+          {
+            title: t('Billing History'),
+            url: '/wallet?show_history=true',
+            configUrls: ['/wallet'],
+            icon: History,
+          },
+          {
+            title: t('Affiliate Rewards'),
+            url: '/wallet?section=affiliate',
+            configUrls: ['/wallet'],
+            icon: Gift,
           },
           {
             title: t('Access Keys'),
             url: '/keys',
             icon: Key,
-          },
-          {
-            title: t('Platform Overview'),
-            url: '/dashboard/overview',
-            configUrls: ['/dashboard'],
-            icon: Activity,
           },
           {
             title: t('Sidebar Personal Settings'),
