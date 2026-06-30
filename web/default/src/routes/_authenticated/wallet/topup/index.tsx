@@ -17,26 +17,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
 import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
-import { getSelf } from '@/lib/api'
 import { requestWeChatPay, requestWeChatJSAPIPay } from '@/features/wallet/api'
 import { BillingHistoryDialog } from '@/features/wallet/components/dialogs/billing-history-dialog'
 import { CreemConfirmDialog } from '@/features/wallet/components/dialogs/creem-confirm-dialog'
 import { PaymentConfirmDialog } from '@/features/wallet/components/dialogs/payment-confirm-dialog'
 import { WeChatPayDialog } from '@/features/wallet/components/dialogs/wechat-pay-dialog'
 import { RechargeFormCard } from '@/features/wallet/components/recharge-form-card'
-import { SubscriptionPlansCard } from '@/features/wallet/components/subscription-plans-card'
 import { DEFAULT_DISCOUNT_RATE } from '@/features/wallet/constants'
 import {
   useTopupInfo,
   usePayment,
-  useRedemption,
   useCreemPayment,
   useWaffoPayment,
   useWaffoPancakePayment,
@@ -67,13 +63,6 @@ function isWeChatBrowser(): boolean {
 function WalletTopupPage() {
   const { t } = useTranslation()
 
-  const { data: selfRes, refetch: refetchUser } = useQuery({
-    queryKey: ['wallet', 'self'],
-    queryFn: getSelf,
-    staleTime: 30_000,
-  })
-  const user = selfRes?.success ? selfRes.data : null
-
   const [topupAmount, setTopupAmount] = useState(0)
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null)
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
@@ -81,11 +70,9 @@ function WalletTopupPage() {
   const [paymentLoading, setPaymentLoading] = useState<string | null>(null)
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [billingDialogOpen, setBillingDialogOpen] = useState(false)
-  const [redemptionCode, setRedemptionCode] = useState('')
   const [creemDialogOpen, setCreemDialogOpen] = useState(false)
   const [selectedCreemProduct, setSelectedCreemProduct] =
     useState<CreemProduct | null>(null)
-  const [showSubscriptionPanel, setShowSubscriptionPanel] = useState(true)
 
   const [wechatPayDialogOpen, setWeChatPayDialogOpen] = useState(false)
   const [wechatPayCodeUrl, setWeChatPayCodeUrl] = useState('')
@@ -113,13 +100,11 @@ function WalletTopupPage() {
     calculatePaymentAmount,
     processPayment,
   } = usePayment()
-  const { redeeming, redeemCode } = useRedemption()
   const { processing: creemProcessing, processCreemPayment } = useCreemPayment()
   const { processWaffoPayment } = useWaffoPayment()
   const { processing: pancakeProcessing, processWaffoPancakePayment } =
     useWaffoPancakePayment()
 
-  // Initialize topup amount when topup info loads
   useEffect(() => {
     if (topupInfo && topupAmount === 0) {
       const minTopup = getMinTopupAmount(topupInfo)
@@ -163,19 +148,7 @@ function WalletTopupPage() {
     const success = isPancake
       ? await processWaffoPancakePayment(topupAmount)
       : await processPayment(topupAmount, selectedPaymentMethod.type)
-    if (success) {
-      setConfirmDialogOpen(false)
-      await refetchUser()
-    }
-  }
-
-  const handleRedeem = async () => {
-    if (!redemptionCode) return
-    const success = await redeemCode(redemptionCode)
-    if (success) {
-      setRedemptionCode('')
-      await refetchUser()
-    }
+    if (success) setConfirmDialogOpen(false)
   }
 
   const handleCreemProductSelect = (product: CreemProduct) => {
@@ -189,7 +162,6 @@ function WalletTopupPage() {
     if (success) {
       setCreemDialogOpen(false)
       setSelectedCreemProduct(null)
-      await refetchUser()
     }
   }
 
@@ -245,13 +217,7 @@ function WalletTopupPage() {
       <SectionPageLayout>
         <SectionPageLayout.Title>{t('Add Funds')}</SectionPageLayout.Title>
         <SectionPageLayout.Content>
-          <div
-            className={
-              showSubscriptionPanel
-                ? 'mx-auto grid w-full max-w-7xl gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] xl:items-start'
-                : 'mx-auto w-full max-w-3xl'
-            }
-          >
+          <div className='mx-auto w-full max-w-2xl'>
             <RechargeFormCard
               topupInfo={topupInfo}
               presetAmounts={presetAmounts}
@@ -263,10 +229,6 @@ function WalletTopupPage() {
               calculating={calculating}
               onPaymentMethodSelect={handlePaymentMethodSelect}
               paymentLoading={paymentLoading}
-              redemptionCode={redemptionCode}
-              onRedemptionCodeChange={setRedemptionCode}
-              onRedeem={handleRedeem}
-              redeeming={redeeming}
               topupLink={topupInfo?.topup_link}
               loading={topupLoading}
               priceRatio={(status?.price as number) || 1}
@@ -282,13 +244,6 @@ function WalletTopupPage() {
               enableWaffoPancakeTopup={topupInfo?.enable_waffo_pancake_topup}
               enableWeChatPayTopup={topupInfo?.enable_wechat_pay_topup}
               onWeChatPaySelect={handleWeChatPaySelect}
-            />
-
-            <SubscriptionPlansCard
-              topupInfo={topupInfo}
-              onAvailabilityChange={setShowSubscriptionPanel}
-              userQuota={user?.quota}
-              onPurchaseSuccess={refetchUser}
             />
           </div>
         </SectionPageLayout.Content>
@@ -326,7 +281,7 @@ function WalletTopupPage() {
         codeUrl={wechatPayCodeUrl}
         tradeNo={wechatPayTradeNo}
         amount={topupAmount}
-        onPaymentComplete={refetchUser}
+        onPaymentComplete={() => {}}
         mode={wechatPayMode}
         jsapiParams={wechatPayJSAPIParams}
       />

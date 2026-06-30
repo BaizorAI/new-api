@@ -433,6 +433,12 @@ export function useSidebarData(): SidebarData {
             icon: CreditCard,
           },
           {
+            title: t('Redemption Code'),
+            url: '/wallet/redeem',
+            configUrls: ['/wallet'],
+            icon: Ticket,
+          },
+          {
             title: t('Subscription Plans'),
             url: '/wallet/subscriptions',
             configUrls: ['/wallet'],

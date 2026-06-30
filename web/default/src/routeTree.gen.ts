@@ -64,6 +64,7 @@ import { Route as AuthenticatedChatChatIdRouteImport } from './routes/_authentic
 import { Route as authUserResetRouteImport } from './routes/(auth)/user/reset'
 import { Route as AuthenticatedWalletTopupIndexRouteImport } from './routes/_authenticated/wallet/topup/index'
 import { Route as AuthenticatedWalletSubscriptionsIndexRouteImport } from './routes/_authenticated/wallet/subscriptions/index'
+import { Route as AuthenticatedWalletRedeemIndexRouteImport } from './routes/_authenticated/wallet/redeem/index'
 import { Route as AuthenticatedWalletOverviewIndexRouteImport } from './routes/_authenticated/wallet/overview/index'
 import { Route as AuthenticatedWalletAffiliateIndexRouteImport } from './routes/_authenticated/wallet/affiliate/index'
 import { Route as AuthenticatedSystemSettingsSiteIndexRouteImport } from './routes/_authenticated/system-settings/site/index'
@@ -377,6 +378,12 @@ const AuthenticatedWalletSubscriptionsIndexRoute =
     path: '/wallet/subscriptions/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedWalletRedeemIndexRoute =
+  AuthenticatedWalletRedeemIndexRouteImport.update({
+    id: '/wallet/redeem/',
+    path: '/wallet/redeem/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedWalletOverviewIndexRoute =
   AuthenticatedWalletOverviewIndexRouteImport.update({
     id: '/wallet/overview/',
@@ -542,6 +549,7 @@ export interface FileRoutesByFullPath {
   '/system-settings/site/': typeof AuthenticatedSystemSettingsSiteIndexRoute
   '/wallet/affiliate/': typeof AuthenticatedWalletAffiliateIndexRoute
   '/wallet/overview/': typeof AuthenticatedWalletOverviewIndexRoute
+  '/wallet/redeem/': typeof AuthenticatedWalletRedeemIndexRoute
   '/wallet/subscriptions/': typeof AuthenticatedWalletSubscriptionsIndexRoute
   '/wallet/topup/': typeof AuthenticatedWalletTopupIndexRoute
 }
@@ -612,6 +620,7 @@ export interface FileRoutesByTo {
   '/system-settings/site': typeof AuthenticatedSystemSettingsSiteIndexRoute
   '/wallet/affiliate': typeof AuthenticatedWalletAffiliateIndexRoute
   '/wallet/overview': typeof AuthenticatedWalletOverviewIndexRoute
+  '/wallet/redeem': typeof AuthenticatedWalletRedeemIndexRoute
   '/wallet/subscriptions': typeof AuthenticatedWalletSubscriptionsIndexRoute
   '/wallet/topup': typeof AuthenticatedWalletTopupIndexRoute
 }
@@ -686,6 +695,7 @@ export interface FileRoutesById {
   '/_authenticated/system-settings/site/': typeof AuthenticatedSystemSettingsSiteIndexRoute
   '/_authenticated/wallet/affiliate/': typeof AuthenticatedWalletAffiliateIndexRoute
   '/_authenticated/wallet/overview/': typeof AuthenticatedWalletOverviewIndexRoute
+  '/_authenticated/wallet/redeem/': typeof AuthenticatedWalletRedeemIndexRoute
   '/_authenticated/wallet/subscriptions/': typeof AuthenticatedWalletSubscriptionsIndexRoute
   '/_authenticated/wallet/topup/': typeof AuthenticatedWalletTopupIndexRoute
 }
@@ -759,6 +769,7 @@ export interface FileRouteTypes {
     | '/system-settings/site/'
     | '/wallet/affiliate/'
     | '/wallet/overview/'
+    | '/wallet/redeem/'
     | '/wallet/subscriptions/'
     | '/wallet/topup/'
   fileRoutesByTo: FileRoutesByTo
@@ -829,6 +840,7 @@ export interface FileRouteTypes {
     | '/system-settings/site'
     | '/wallet/affiliate'
     | '/wallet/overview'
+    | '/wallet/redeem'
     | '/wallet/subscriptions'
     | '/wallet/topup'
   id:
@@ -902,6 +914,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system-settings/site/'
     | '/_authenticated/wallet/affiliate/'
     | '/_authenticated/wallet/overview/'
+    | '/_authenticated/wallet/redeem/'
     | '/_authenticated/wallet/subscriptions/'
     | '/_authenticated/wallet/topup/'
   fileRoutesById: FileRoutesById
@@ -1315,6 +1328,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWalletSubscriptionsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/wallet/redeem/': {
+      id: '/_authenticated/wallet/redeem/'
+      path: '/wallet/redeem'
+      fullPath: '/wallet/redeem/'
+      preLoaderRoute: typeof AuthenticatedWalletRedeemIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/wallet/overview/': {
       id: '/_authenticated/wallet/overview/'
       path: '/wallet/overview'
@@ -1541,6 +1561,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedWalletIndexRoute: typeof AuthenticatedWalletIndexRoute
   AuthenticatedWalletAffiliateIndexRoute: typeof AuthenticatedWalletAffiliateIndexRoute
   AuthenticatedWalletOverviewIndexRoute: typeof AuthenticatedWalletOverviewIndexRoute
+  AuthenticatedWalletRedeemIndexRoute: typeof AuthenticatedWalletRedeemIndexRoute
   AuthenticatedWalletSubscriptionsIndexRoute: typeof AuthenticatedWalletSubscriptionsIndexRoute
   AuthenticatedWalletTopupIndexRoute: typeof AuthenticatedWalletTopupIndexRoute
 }
@@ -1578,6 +1599,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedWalletAffiliateIndexRoute:
     AuthenticatedWalletAffiliateIndexRoute,
   AuthenticatedWalletOverviewIndexRoute: AuthenticatedWalletOverviewIndexRoute,
+  AuthenticatedWalletRedeemIndexRoute: AuthenticatedWalletRedeemIndexRoute,
   AuthenticatedWalletSubscriptionsIndexRoute:
     AuthenticatedWalletSubscriptionsIndexRoute,
   AuthenticatedWalletTopupIndexRoute: AuthenticatedWalletTopupIndexRoute,

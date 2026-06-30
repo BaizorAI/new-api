@@ -63,10 +63,10 @@ interface RechargeFormCardProps {
   calculating: boolean
   onPaymentMethodSelect: (method: PaymentMethod) => void
   paymentLoading: string | null
-  redemptionCode: string
-  onRedemptionCodeChange: (code: string) => void
-  onRedeem: () => void
-  redeeming: boolean
+  redemptionCode?: string
+  onRedemptionCodeChange?: (code: string) => void
+  onRedeem?: () => void
+  redeeming?: boolean
   topupLink?: string
   loading?: boolean
   priceRatio?: number
@@ -181,13 +181,15 @@ export function RechargeFormCard({
           </div>
 
           {/* Redemption Code Section Skeleton */}
-          <div className='space-y-3 border-t pt-8'>
-            <Skeleton className='h-3 w-24' />
-            <div className='flex gap-2'>
-              <Skeleton className='h-10 flex-1' />
-              <Skeleton className='h-10 w-20' />
+          {onRedeem && (
+            <div className='space-y-3 border-t pt-8'>
+              <Skeleton className='h-3 w-24' />
+              <div className='flex gap-2'>
+                <Skeleton className='h-10 flex-1' />
+                <Skeleton className='h-10 w-20' />
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     )
@@ -520,7 +522,7 @@ export function RechargeFormCard({
         )}
 
       {/* Redemption Code Section */}
-      {redemptionEnabled ? (
+      {onRedeem && (redemptionEnabled ? (
         <div className='space-y-2.5 border-t pt-4 sm:space-y-3 sm:pt-6'>
           <div className='flex items-center gap-2'>
             <Gift className='text-muted-foreground h-4 w-4' />
@@ -534,8 +536,8 @@ export function RechargeFormCard({
           <div className='grid grid-cols-[minmax(0,1fr)_auto] gap-2'>
             <Input
               id='redemption-code'
-              value={redemptionCode}
-              onChange={(e) => onRedemptionCodeChange(e.target.value)}
+              value={redemptionCode ?? ''}
+              onChange={(e) => onRedemptionCodeChange?.(e.target.value)}
               placeholder={t('Enter your redemption code')}
               className='h-9 min-w-0'
             />
@@ -572,7 +574,7 @@ export function RechargeFormCard({
             )}
           </AlertDescription>
         </Alert>
-      )}
+      ))}
     </TitledCard>
   )
 }
