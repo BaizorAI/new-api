@@ -111,6 +111,18 @@ export type NavHermesJilaiSkills = BaseNavItem & {
 }
 
 /**
+ * Dynamic skill section in sidebar — shows a filtered list of skills
+ * (by ownerScope) as collapsible child nodes. Each skill links to
+ * the dedicated /skill-workspace route.
+ */
+export type NavHermesSkillSection = BaseNavItem & {
+  type: 'hermes-skill-section'
+  section: 'mine' | 'team' | 'baizor'
+  url?: never
+  items?: never
+}
+
+/**
  * Navigation item union type
  */
 export type NavItem =
@@ -122,6 +134,7 @@ export type NavItem =
   | NavPlaygroundSessions
   | NavHermesExecutionTasks
   | NavHermesJilaiSkills
+  | NavHermesSkillSection
 
 /**
  * Navigation group type - a group of navigation items in sidebar

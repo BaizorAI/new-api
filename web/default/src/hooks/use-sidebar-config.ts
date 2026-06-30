@@ -212,6 +212,7 @@ type DynamicNavType =
   | 'hermes-execution-tasks'
   | 'hermes-jilai-skills'
   | 'hermes-sessions'
+  | 'hermes-skill-section'
   | 'team-workspaces'
   | 'playground-sessions'
 
@@ -220,6 +221,7 @@ const DYNAMIC_TYPE_TO_CONFIG_URL: Record<DynamicNavType, string> = {
   'hermes-execution-tasks': '/hermes-playground',
   'hermes-jilai-skills': '/hermes-playground',
   'hermes-sessions': '/hermes-playground',
+  'hermes-skill-section': '/hermes-playground',
   'team-workspaces': '/team-workspace',
   'playground-sessions': '/playground',
 }

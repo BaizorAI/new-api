@@ -129,6 +129,29 @@ export function useSidebarData(): SidebarData {
             icon: BriefcaseBusiness,
           },
           {
+            type: 'hermes-skill-section' as const,
+            section: 'mine' as const,
+            title: t('My Skills'),
+            icon: User,
+          },
+          {
+            type: 'hermes-skill-section' as const,
+            section: 'team' as const,
+            title: t('Team Skills'),
+            icon: Users,
+          },
+          {
+            type: 'hermes-skill-section' as const,
+            section: 'baizor' as const,
+            title: t('Baizor Skills'),
+            icon: Sparkles,
+          },
+          {
+            type: 'hermes-jilai-skills' as const,
+            title: t('Jilai Law Firm Skills'),
+            icon: Scale,
+          },
+          {
             title: t('Execution tasks'),
             description: t('View running, completed and failed agent tasks.'),
             type: 'hermes-execution-tasks',
@@ -139,18 +162,6 @@ export function useSidebarData(): SidebarData {
             url: '/hermes-playground?panel=results&scope=mine',
             configUrls: ['/hermes-playground'],
             icon: FileCheck2,
-          },
-          {
-            title: t('Skills'),
-            url: '/hermes-playground?panel=skills&section=mine',
-            configUrls: ['/hermes-playground'],
-            icon: Sparkles,
-          },
-          {
-            title: t('Tools'),
-            url: '/hermes-playground?panel=skills&section=tools',
-            configUrls: ['/hermes-playground'],
-            icon: Plug,
           },
         ],
       },
@@ -174,51 +185,6 @@ export function useSidebarData(): SidebarData {
             icon: Users,
             type: 'team-workspaces',
             variant: 'flat',
-          },
-        ],
-      },
-      {
-        id: 'skill-store',
-        title: t('Skill Store'),
-        description: t('Find and create reusable work skills.'),
-        icon: Sparkles,
-        url: '/hermes-playground?panel=skills',
-        position: 'top',
-        items: [
-          {
-            title: t('My skills'),
-            url: '/hermes-playground?panel=skills&section=mine',
-            configUrls: ['/hermes-playground'],
-            icon: User,
-          },
-          {
-            title: t('Team skills'),
-            url: '/hermes-playground?panel=skills&section=team',
-            configUrls: ['/hermes-playground'],
-            icon: Users,
-          },
-          {
-            title: t('Baizor Skills'),
-            url: '/hermes-playground?panel=skills&section=baizor',
-            configUrls: ['/hermes-playground'],
-            icon: Sparkles,
-          },
-          {
-            type: 'hermes-jilai-skills' as const,
-            title: t('Jilai Law Firm Skills'),
-            icon: Scale,
-          },
-          {
-            title: t('Built-in skills'),
-            url: '/hermes-playground?panel=skills&section=builtin',
-            configUrls: ['/hermes-playground'],
-            icon: Archive,
-          },
-          {
-            title: t('Tools'),
-            url: '/hermes-playground?panel=skills&section=tools',
-            configUrls: ['/hermes-playground'],
-            icon: Plug,
           },
         ],
       },
@@ -340,6 +306,7 @@ export function useSidebarData(): SidebarData {
         icon: ServerCog,
         url: '/dashboard/overview',
         position: 'bottom',
+        requiredRole: ROLE.ADMIN,
         items: [
           {
             title: t('Team Management'),
@@ -383,16 +350,6 @@ export function useSidebarData(): SidebarData {
             requiredRole: ROLE.SUPER_ADMIN,
           },
           {
-            title: t('Access Keys'),
-            url: '/keys',
-            icon: Key,
-          },
-          {
-            title: t('Platform Overview'),
-            url: '/dashboard/overview',
-            icon: Activity,
-          },
-          {
             title: t('Redeem codes'),
             url: '/redemption-codes',
             icon: Ticket,
@@ -427,6 +384,18 @@ export function useSidebarData(): SidebarData {
             icon: Settings,
           },
           {
+            title: t('HermesAgent Capability Center'),
+            url: '/hermes-playground?panel=skills&section=builtin',
+            configUrls: ['/hermes-playground'],
+            icon: Archive,
+          },
+          {
+            title: t('Hermes Tools'),
+            url: '/hermes-playground?panel=skills&section=tools',
+            configUrls: ['/hermes-playground'],
+            icon: Plug,
+          },
+          {
             title: t('System configuration'),
             url: '/system-settings/site',
             activeUrls: ['/system-settings'],
@@ -453,6 +422,17 @@ export function useSidebarData(): SidebarData {
             title: t('Wallet'),
             url: '/wallet',
             icon: Wallet,
+          },
+          {
+            title: t('Access Keys'),
+            url: '/keys',
+            icon: Key,
+          },
+          {
+            title: t('Platform Overview'),
+            url: '/dashboard/overview',
+            configUrls: ['/dashboard'],
+            icon: Activity,
           },
           {
             title: t('Sidebar Personal Settings'),
