@@ -456,7 +456,7 @@ export function WorkspaceHome() {
                       {t('Team work is paid by the selected team.')}
                     </p>
                   </div>
-                  <Button className='w-full' render={<Link to='/wallet' />}>
+                  <Button className='w-full' render={<Link to='/wallet/topup' />}>
                     {t('Top up')}
                     <ArrowRight data-icon='inline-end' />
                   </Button>

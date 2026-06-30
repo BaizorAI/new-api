@@ -4826,7 +4826,7 @@
     "Streaming": "流式输出",
     "Streaming, SSE and realtime support": "流式、SSE 和实时支持",
     "String Replace": "字符串替换",
-    "Stripe": "Stripe",
+    "Stripe": "Stripe支付",
     "Stripe API key (leave blank unless updating)": "Stripe API 密钥（除非更新，否则留空）",
     "Stripe Dashboard": "Stripe 控制面板",
     "Stripe Gateway": "Stripe 网关",

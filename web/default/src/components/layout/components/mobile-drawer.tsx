@@ -123,7 +123,7 @@ function MobileUserProfile({ user, onNavigate }: MobileUserProfileProps) {
         </Link>
 
         <Link
-          to='/wallet'
+          to='/wallet/overview'
           onClick={onNavigate}
           className='text-primary/60 hover:text-primary/80 border-border flex items-center gap-2.5 border-b p-2.5 transition-colors'
         >

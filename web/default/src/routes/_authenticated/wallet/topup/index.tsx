@@ -144,6 +144,13 @@ function WalletTopupPage() {
 
   const handlePaymentConfirm = async () => {
     if (!selectedPaymentMethod) return
+
+    if (selectedPaymentMethod.type === 'wechat_pay') {
+      setConfirmDialogOpen(false)
+      await handleWeChatPaySelect()
+      return
+    }
+
     const isPancake = isWaffoPancakePayment(selectedPaymentMethod.type)
     const success = isPancake
       ? await processWaffoPancakePayment(topupAmount)
@@ -243,7 +250,6 @@ function WalletTopupPage() {
               onWaffoMethodSelect={handleWaffoMethodSelect}
               enableWaffoPancakeTopup={topupInfo?.enable_waffo_pancake_topup}
               enableWeChatPayTopup={topupInfo?.enable_wechat_pay_topup}
-              onWeChatPaySelect={handleWeChatPaySelect}
             />
           </div>
         </SectionPageLayout.Content>

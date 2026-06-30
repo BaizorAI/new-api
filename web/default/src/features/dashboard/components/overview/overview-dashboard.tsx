@@ -82,7 +82,8 @@ const SETUP_GUIDE_CODE_PATTERN = [
 
 type DashboardActionPath =
   | '/keys'
-  | '/wallet'
+  | '/wallet/overview'
+  | '/wallet/topup'
   | '/playground'
   | '/channels'
   | '/usage-logs'
@@ -508,7 +509,7 @@ export function OverviewDashboard() {
       {
         title: t('Add credits'),
         description: t('Keep enough balance before production traffic'),
-        to: '/wallet',
+        to: '/wallet/topup',
         icon: CreditCard,
         completed: remainQuota > 0 || usedQuota > 0,
       },

@@ -81,7 +81,6 @@ interface RechargeFormCardProps {
   onWaffoMethodSelect?: (method: WaffoPayMethod, index: number) => void
   enableWaffoPancakeTopup?: boolean
   enableWeChatPayTopup?: boolean
-  onWeChatPaySelect?: () => void
 }
 
 export function RechargeFormCard({
@@ -113,7 +112,6 @@ export function RechargeFormCard({
   onWaffoMethodSelect,
   enableWaffoPancakeTopup,
   enableWeChatPayTopup,
-  onWeChatPaySelect,
 }: RechargeFormCardProps) {
   const { t } = useTranslation()
   const [localAmount, setLocalAmount] = useState(topupAmount.toString())
@@ -317,7 +315,7 @@ export function RechargeFormCard({
                 <Label className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
                   {t('Payment Method')}
                 </Label>
-                {hasStandardPaymentMethods ? (
+                {(hasStandardPaymentMethods || !!enableWeChatPayTopup) ? (
                   <div className='grid grid-cols-2 gap-1.5 sm:gap-3 lg:grid-cols-3'>
                     {topupInfo?.pay_methods
                       ?.filter((m) => m.type !== 'wechat_pay')
@@ -359,7 +357,7 @@ export function RechargeFormCard({
                             )}
                             <span className='flex min-w-0 flex-col items-start gap-0.5'>
                               <span className='max-w-full truncate'>
-                                {method.name}
+                                {t(method.name, { defaultValue: method.name })}
                               </span>
                               {disabledLabel && (
                                 <span className='text-muted-foreground max-w-full truncate text-[11px] leading-4 font-normal'>
@@ -381,6 +379,35 @@ export function RechargeFormCard({
                           button
                         )
                       })}
+
+                    {enableWeChatPayTopup && (
+                      <Button
+                        variant='outline'
+                        onClick={() =>
+                          onPaymentMethodSelect({
+                            type: 'wechat_pay',
+                            name: t('WeChat Pay'),
+                          } as PaymentMethod)
+                        }
+                        disabled={
+                          !topupAmount ||
+                          topupAmount < (topupInfo?.min_topup || 0) ||
+                          !!paymentLoading
+                        }
+                        className='min-h-14 min-w-0 justify-start gap-2 rounded-lg px-3 py-2 text-left'
+                      >
+                        {paymentLoading === 'wechat_pay' ? (
+                          <Loader2 className='h-4 w-4 animate-spin' />
+                        ) : (
+                          getPaymentIcon('wechat_pay')
+                        )}
+                        <span className='flex min-w-0 flex-col items-start gap-0.5'>
+                          <span className='max-w-full truncate'>
+                            {t('WeChat Pay')}
+                          </span>
+                        </span>
+                      </Button>
+                    )}
                   </div>
                 ) : hasWaffoPaymentMethods ? null : (
                   <Alert>
@@ -477,32 +504,6 @@ export function RechargeFormCard({
             )}
           </AlertDescription>
         </Alert>
-      )}
-
-      {/* WeChat Pay Section */}
-      {enableWeChatPayTopup && onWeChatPaySelect && (
-        <div className='space-y-2.5 border-t pt-4 sm:space-y-3 sm:pt-6'>
-          <Label className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
-            {t('WeChat Pay')}
-          </Label>
-          <Button
-            variant='outline'
-            onClick={onWeChatPaySelect}
-            disabled={
-              !topupAmount ||
-              topupAmount < (topupInfo?.min_topup || 0) ||
-              !!paymentLoading
-            }
-            className='h-11 w-full justify-start gap-2 rounded-lg'
-          >
-            {paymentLoading === 'wechat_pay' ? (
-              <Loader2 className='h-4 w-4 animate-spin' />
-            ) : (
-              getPaymentIcon('wechat_pay')
-            )}
-            <span>{t('Pay with WeChat')}</span>
-          </Button>
-        </div>
       )}
 
       {/* Creem Products Section */}

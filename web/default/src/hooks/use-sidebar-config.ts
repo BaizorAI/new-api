@@ -157,7 +157,7 @@ const MODULE_MATCHERS: ModuleMatcher[] = [
   { type: 'prefix', prefix: '/usage-logs', section: 'console', module: 'log' },
 
   // Personal
-  { type: 'exact', path: '/wallet', section: 'personal', module: 'topup' },
+  { type: 'prefix', prefix: '/wallet', section: 'personal', module: 'topup' },
   { type: 'exact', path: '/profile', section: 'personal', module: 'personal' },
 
   // Admin
