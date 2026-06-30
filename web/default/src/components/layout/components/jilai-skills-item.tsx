@@ -77,7 +77,7 @@ export function JilaiSkillsItem({ item }: { item: NavHermesJilaiSkills }) {
                       {skill.displayName || skill.name}
                     </span>
                     {desc && (
-                      <span className='text-muted-foreground truncate text-xs leading-tight'>
+                      <span className='text-muted-foreground line-clamp-2 text-xs leading-tight'>
                         {desc}
                       </span>
                     )}
