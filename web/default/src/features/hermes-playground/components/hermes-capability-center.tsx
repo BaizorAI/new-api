@@ -523,7 +523,6 @@ interface SkillPanelProps {
 
 function SkillPanel(props: SkillPanelProps) {
   const { t } = useTranslation()
-  const [selectedSkill, setSelectedSkill] = useState<HermesSkill | null>(null)
 
   return (
     <div className='flex h-full min-h-0 flex-col'>
@@ -587,12 +586,7 @@ function SkillPanel(props: SkillPanelProps) {
       </div>
 
       <div className='flex min-h-0 flex-1'>
-        <ScrollArea
-          className={cn(
-            'min-h-0',
-            selectedSkill ? 'w-56 shrink-0 border-r' : 'flex-1'
-          )}
-        >
+        <ScrollArea className='min-h-0 flex-1'>
           <div className='space-y-4 p-3'>
             {props.error && (
               <CapabilityError
@@ -609,30 +603,22 @@ function SkillPanel(props: SkillPanelProps) {
                 <SkillSection
                   emptyDescription={section.emptyDescription}
                   emptyTitle={section.emptyTitle}
+                  isAdmin={props.isAdmin}
                   isFocused={section.isFocused}
                   key={section.id}
-                  onSelectSkill={setSelectedSkill}
-                  selectedSkill={selectedSkill}
+                  manageableTeams={props.manageableTeams}
+                  onDeleteSkill={props.onDeleteSkill}
+                  onEditSkill={props.onEditSkill}
+                  onPublishSkill={props.onPublishSkill}
+                  onUseSkill={props.onUseSkill}
+                  selectedTeamId={props.selectedTeamId}
+                  selectedTeamName={props.selectedTeamName}
                   skills={section.skills}
                   title={section.title}
                 />
               ))}
           </div>
         </ScrollArea>
-        {selectedSkill && (
-          <SkillDetailPane
-            isAdmin={props.isAdmin}
-            manageableTeams={props.manageableTeams}
-            onClose={() => setSelectedSkill(null)}
-            onDeleteSkill={props.onDeleteSkill}
-            onEditSkill={props.onEditSkill}
-            onPublishSkill={props.onPublishSkill}
-            onUseSkill={props.onUseSkill}
-            selectedTeamId={props.selectedTeamId}
-            selectedTeamName={props.selectedTeamName}
-            skill={selectedSkill}
-          />
-        )}
       </div>
     </div>
   )
@@ -644,79 +630,147 @@ interface SkillSectionProps {
   emptyTitle: string
   emptyDescription: string
   isFocused?: boolean
-  selectedSkill: HermesSkill | null
-  onSelectSkill: (skill: HermesSkill) => void
+  isAdmin: boolean
+  onUseSkill: (skill: HermesSkill) => void
+  onEditSkill: (skill: HermesSkill, teamId?: number) => void
+  onDeleteSkill: (skill: HermesSkill) => void
+  manageableTeams: Team[]
+  selectedTeamId: number
+  selectedTeamName: string
+  onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }
 
 function SkillSection(props: SkillSectionProps) {
   const { t } = useTranslation()
+  const [isExpanded, setIsExpanded] = useState(true)
 
   return (
-    <section className='space-y-1'>
-      <div className='flex items-center justify-between px-1 pb-1'>
-        <div className='flex min-w-0 items-center gap-2'>
-          <h3 className='text-muted-foreground truncate text-xs font-medium uppercase tracking-wide'>
-            {props.title}
-          </h3>
-          {props.isFocused && <Badge variant='secondary'>{t('Current')}</Badge>}
-        </div>
-        <span className='text-muted-foreground text-xs'>
+    <section>
+      <button
+        className='hover:bg-muted/60 flex w-full items-center gap-1 rounded px-1 py-1.5 transition-colors'
+        onClick={() => setIsExpanded((v) => !v)}
+        type='button'
+      >
+        <ChevronRightIcon
+          className={cn(
+            'text-muted-foreground size-3.5 shrink-0 transition-transform',
+            isExpanded && 'rotate-90'
+          )}
+        />
+        <span className='text-muted-foreground min-w-0 flex-1 truncate text-left text-xs font-medium uppercase tracking-wide'>
+          {props.title}
+        </span>
+        {props.isFocused && <Badge variant='secondary'>{t('Current')}</Badge>}
+        <span className='text-muted-foreground shrink-0 text-xs'>
           {props.skills.length}
         </span>
-      </div>
-      {props.skills.length === 0 ? (
-        <CompactEmpty
-          description={props.emptyDescription}
-          title={props.emptyTitle}
-        />
-      ) : (
-        <div className='space-y-0.5'>
-          {props.skills.map((skill) => (
-            <SkillListItem
-              key={`${skill.source}-${skill.path ?? skill.name}`}
-              isSelected={
-                props.selectedSkill?.path === skill.path &&
-                props.selectedSkill?.name === skill.name
-              }
-              onSelect={props.onSelectSkill}
-              skill={skill}
-            />
-          ))}
+      </button>
+
+      {isExpanded && (
+        <div className='ml-3 border-l'>
+          {props.skills.length === 0 ? (
+            <div className='px-3 py-1.5'>
+              <CompactEmpty
+                description={props.emptyDescription}
+                title={props.emptyTitle}
+              />
+            </div>
+          ) : (
+            <div className='space-y-0.5 py-0.5 pl-1'>
+              {props.skills.map((skill) => (
+                <SkillNodeItem
+                  isAdmin={props.isAdmin}
+                  key={`${skill.source}-${skill.path ?? skill.name}`}
+                  manageableTeams={props.manageableTeams}
+                  onDeleteSkill={props.onDeleteSkill}
+                  onEditSkill={props.onEditSkill}
+                  onPublishSkill={props.onPublishSkill}
+                  onUseSkill={props.onUseSkill}
+                  selectedTeamId={props.selectedTeamId}
+                  selectedTeamName={props.selectedTeamName}
+                  skill={skill}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </section>
   )
 }
 
-function SkillListItem(props: {
+function SkillNodeItem(props: {
   skill: HermesSkill
-  isSelected: boolean
-  onSelect: (skill: HermesSkill) => void
+  isAdmin: boolean
+  onUseSkill: (skill: HermesSkill) => void
+  onEditSkill: (skill: HermesSkill, teamId?: number) => void
+  onDeleteSkill: (skill: HermesSkill) => void
+  manageableTeams: Team[]
+  selectedTeamId: number
+  selectedTeamName: string
+  onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
 }) {
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const { skill } = props
   const description = getLocalizedCapabilityText(
-    props.skill.description,
-    props.skill.descriptionZh,
+    skill.description,
+    skill.descriptionZh,
     i18n.language
   )
+  const skillScope = getSkillScope(skill)
+  const isManageable =
+    skill.isUserCreated || skillScope === 'user' || skillScope === 'team'
+
   return (
-    <button
-      className={cn(
-        'w-full rounded-md px-2.5 py-2 text-left transition-colors hover:bg-muted',
-        props.isSelected && 'bg-muted'
-      )}
-      onClick={() => props.onSelect(props.skill)}
-      type='button'
-    >
-      <div className='truncate text-sm font-medium leading-snug'>
-        {props.skill.displayName || props.skill.name}
-      </div>
-      {description && (
-        <div className='text-muted-foreground mt-0.5 line-clamp-1 text-xs'>
-          {description}
+    <div className='group relative flex items-start gap-1 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/60'>
+      {/* Action buttons: top-left, appear on hover */}
+      {isManageable && (
+        <div className='mt-0.5 flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover:opacity-100'>
+          <button
+            className='text-muted-foreground hover:bg-background hover:text-foreground rounded p-0.5 transition-colors'
+            onClick={(e) => {
+              e.stopPropagation()
+              props.onEditSkill(skill, getSkillTeamId(skill, props.selectedTeamId))
+            }}
+            title={t('Edit')}
+            type='button'
+          >
+            <PencilIcon className='size-3' />
+          </button>
+          <button
+            className='text-muted-foreground hover:bg-background hover:text-destructive rounded p-0.5 transition-colors'
+            onClick={(e) => {
+              e.stopPropagation()
+              props.onDeleteSkill(skill)
+            }}
+            title={t('Delete')}
+            type='button'
+          >
+            <Trash2Icon className='size-3' />
+          </button>
         </div>
       )}
-    </button>
+      {/* Skill body: click to use */}
+      <button
+        className='min-w-0 flex-1 text-left'
+        onClick={() => props.onUseSkill(skill)}
+        type='button'
+      >
+        <div className='truncate text-sm font-medium leading-snug'>
+          {skill.displayName || skill.name}
+        </div>
+        {skill.displayName && (
+          <div className='text-muted-foreground font-mono text-xs'>
+            {skill.name}
+          </div>
+        )}
+        {description && (
+          <div className='text-muted-foreground mt-0.5 line-clamp-2 text-xs'>
+            {description}
+          </div>
+        )}
+      </button>
+    </div>
   )
 }
 
