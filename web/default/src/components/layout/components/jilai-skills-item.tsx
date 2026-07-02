@@ -16,8 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useLocation } from '@tanstack/react-router'
+import { Link, useLocation, useNavigate } from '@tanstack/react-router'
+import { MessageCircle, Plus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -30,10 +33,156 @@ import {
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import { listHermesSkills } from '@/features/hermes-playground/api'
+import type { HermesSkill } from '@/features/hermes-playground/api'
+import { useAuthStore } from '@/stores/auth-store'
+import {
+  HERMES_SESSIONS_CHANGED_EVENT,
+  createHermesConversation,
+  getHermesBaseScope,
+  loadActiveConversationId,
+  peekHermesConversations,
+  saveActiveConversationId,
+  saveHermesConversations,
+  safeStorageScope,
+} from '@/features/hermes-playground/sessions'
 import type { NavHermesJilaiSkills } from '../types'
 import { checkIsActive } from '../lib/url-utils'
 import { SIDEBAR_NODE_COLORS } from '../constants'
 import { SidebarCollapsibleShell } from './sidebar-collapsible-shell'
+
+const MAX_SIDEBAR_SESSIONS = 5
+
+function JilaiSkillSubItem({
+  skill,
+  url,
+  href,
+  onClose,
+  index,
+}: {
+  skill: HermesSkill
+  url: string
+  href: string
+  onClose: () => void
+  index: number
+}) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const userId = useAuthStore((state) => state.auth.user?.id)
+
+  const baseScope = useMemo(
+    () => getHermesBaseScope(userId, `jilai_${safeStorageScope(skill.name)}`),
+    [userId, skill.name]
+  )
+  const subActive = checkIsActive(href, { url })
+  const colorClass = SIDEBAR_NODE_COLORS[index % SIDEBAR_NODE_COLORS.length]
+  const desc = skill.descriptionZh || skill.description
+
+  const [sessions, setSessions] = useState(() =>
+    peekHermesConversations(baseScope)
+  )
+  useEffect(() => {
+    setSessions(peekHermesConversations(baseScope))
+  }, [baseScope])
+  useEffect(() => {
+    const refresh = () => setSessions(peekHermesConversations(baseScope))
+    window.addEventListener(HERMES_SESSIONS_CHANGED_EVENT, refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener(HERMES_SESSIONS_CHANGED_EVENT, refresh)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [baseScope])
+
+  const visibleSessions = useMemo(
+    () => sessions.filter((s) => !s.archived).slice(0, MAX_SIDEBAR_SESSIONS),
+    [sessions]
+  )
+  const activeSessionId = useMemo(
+    () =>
+      sessions.length > 0
+        ? loadActiveConversationId(baseScope, sessions)
+        : null,
+    [baseScope, sessions]
+  )
+
+  const handleNewSession = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const newSession = createHermesConversation(baseScope)
+      const existing = peekHermesConversations(baseScope)
+      saveHermesConversations(baseScope, [newSession, ...existing])
+      saveActiveConversationId(baseScope, newSession.id)
+      onClose()
+      if (!subActive) void navigate({ to: url as never })
+    },
+    [baseScope, navigate, onClose, subActive, url]
+  )
+
+  const handleSelectSession = useCallback(
+    (sessionId: string) => {
+      saveActiveConversationId(baseScope, sessionId)
+      onClose()
+      if (!subActive) void navigate({ to: url as never })
+    },
+    [baseScope, navigate, onClose, subActive, url]
+  )
+
+  return (
+    <>
+      <SidebarMenuSubItem className='group/skill-item flex items-stretch'>
+        <SidebarMenuSubButton
+          isActive={subActive}
+          title={desc || (skill.displayName ?? skill.name)}
+          className={cn('min-w-0 flex-1', desc && 'h-auto py-1.5', colorClass)}
+          render={
+            <Link
+              aria-current={subActive ? 'page' : undefined}
+              onClick={onClose}
+              to={url}
+            />
+          }
+        >
+          <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
+            <span className='truncate text-sm leading-snug'>
+              {skill.displayName || skill.name}
+            </span>
+            {desc && (
+              <span className='text-muted-foreground line-clamp-2 text-xs leading-tight'>
+                {desc}
+              </span>
+            )}
+          </div>
+        </SidebarMenuSubButton>
+        <button
+          type='button'
+          aria-label={t('New chat')}
+          title={t('New chat')}
+          onClick={handleNewSession}
+          className='text-muted-foreground hover:text-foreground hover:bg-accent ml-0.5 shrink-0 self-center rounded px-1 py-1 opacity-0 transition-opacity group-hover/skill-item:opacity-100'
+        >
+          <Plus className='size-3.5' aria-hidden='true' />
+        </button>
+      </SidebarMenuSubItem>
+
+      {subActive &&
+        visibleSessions.map((session) => (
+          <SidebarMenuSubItem key={session.id} className='pl-5'>
+            <SidebarMenuSubButton
+              isActive={session.id === activeSessionId}
+              className='text-muted-foreground h-auto py-1'
+              onClick={() => handleSelectSession(session.id)}
+            >
+              <MessageCircle className='size-3 shrink-0' aria-hidden='true' />
+              <span className='line-clamp-1 min-w-0 text-xs'>
+                {session.title || t('New conversation')}
+              </span>
+            </SidebarMenuSubButton>
+          </SidebarMenuSubItem>
+        ))}
+    </>
+  )
+}
 
 export function JilaiSkillsItem({ item }: { item: NavHermesJilaiSkills }) {
   const href = useLocation({ select: (l) => l.href })
@@ -56,39 +205,16 @@ export function JilaiSkillsItem({ item }: { item: NavHermesJilaiSkills }) {
       description={item.description}
       expandedContent={
         <>
-          {skills.map((skill, idx) => {
-            const url = skillUrl(skill.name)
-            const subActive = checkIsActive(href, { url })
-            const desc = skill.descriptionZh || skill.description
-            const colorClass = SIDEBAR_NODE_COLORS[idx % SIDEBAR_NODE_COLORS.length]
-            return (
-              <SidebarMenuSubItem key={skill.name}>
-                <SidebarMenuSubButton
-                  isActive={subActive}
-                  title={desc || (skill.displayName ?? skill.name)}
-                  className={cn(desc && 'h-auto py-1.5', colorClass)}
-                  render={
-                    <Link
-                      aria-current={subActive ? 'page' : undefined}
-                      onClick={() => setOpenMobile(false)}
-                      to={url}
-                    />
-                  }
-                >
-                  <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
-                    <span className='truncate text-sm leading-snug'>
-                      {skill.displayName || skill.name}
-                    </span>
-                    {desc && (
-                      <span className='text-muted-foreground line-clamp-2 text-xs leading-tight'>
-                        {desc}
-                      </span>
-                    )}
-                  </div>
-                </SidebarMenuSubButton>
-              </SidebarMenuSubItem>
-            )
-          })}
+          {skills.map((skill, idx) => (
+            <JilaiSkillSubItem
+              key={skill.name}
+              skill={skill}
+              url={skillUrl(skill.name)}
+              href={href}
+              onClose={() => setOpenMobile(false)}
+              index={idx}
+            />
+          ))}
         </>
       }
       collapsedContent={

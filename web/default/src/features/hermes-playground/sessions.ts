@@ -98,6 +98,21 @@ export function createDefaultConversation(
   }
 }
 
+export function peekHermesConversations(
+  baseScope: string
+): HermesConversation[] {
+  try {
+    const saved = localStorage.getItem(conversationsStorageKey(baseScope))
+    if (saved) {
+      const parsed: unknown = JSON.parse(saved)
+      if (Array.isArray(parsed)) {
+        return parsed.filter(isHermesConversation)
+      }
+    }
+  } catch {}
+  return []
+}
+
 export function loadHermesConversations(
   baseScope: string
 ): HermesConversation[] {

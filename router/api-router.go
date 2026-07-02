@@ -266,6 +266,14 @@ func SetApiRouter(router *gin.Engine) {
 			teamRoute.POST("/:id/tokens/:token_id/key", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.GetTeamTokenKey)
 		}
 
+		userHermesRoute := apiRouter.Group("/user")
+		userHermesRoute.Use(middleware.UserAuth())
+		{
+			userHermesRoute.GET("/hermes/conversations", controller.ListUserHermesConversations)
+			userHermesRoute.PUT("/hermes/conversations/:conversation_id", controller.UpsertUserHermesConversation)
+			userHermesRoute.DELETE("/hermes/conversations/:conversation_id", controller.DeleteUserHermesConversation)
+		}
+
 		usageRoute := apiRouter.Group("/usage")
 		usageRoute.Use(middleware.CORS(), middleware.CriticalRateLimit())
 		{

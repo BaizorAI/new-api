@@ -47,6 +47,7 @@ import {
   createPlaygroundStorageKeys,
   loadMessages,
 } from '@/features/playground/lib'
+import { deleteUserHermesConversation } from '@/features/hermes-playground/api'
 
 import {
   useSessionList,
@@ -86,6 +87,7 @@ const HERMES_SESSION_LIST_ADAPTER: SessionListAdapter<HermesConversation> = {
       messages,
     }
   },
+  serverDelete: (sessionId) => deleteUserHermesConversation(sessionId).then(() => undefined),
 }
 
 export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {

@@ -110,6 +110,11 @@ export interface HermesTeamConversationRecord extends HermesConversation {
   updatedBy?: number
 }
 
+export interface HermesUserConversationRecord extends HermesConversation {
+  workspaceScope: string
+  messages: Message[]
+}
+
 export type HermesResultRecordType =
   | 'ppt'
   | 'report'
@@ -272,6 +277,53 @@ export async function deleteTeamHermesConversation(
 ) {
   const response = await api.delete(
     `/api/team/${teamId}/hermes/conversations/${encodeURIComponent(conversationId)}`,
+    {
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    }
+  )
+  return response.data
+}
+
+export async function listUserHermesConversations(
+  workspaceScope: string
+): Promise<HermesUserConversationRecord[]> {
+  const response = await api.get('/api/user/hermes/conversations', {
+    params: { scope: workspaceScope },
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  return normalizeUserConversationsResponse(response.data)
+}
+
+export async function upsertUserHermesConversation(
+  workspaceScope: string,
+  conversation: HermesUserConversationRecord
+) {
+  const response = await api.put(
+    `/api/user/hermes/conversations/${encodeURIComponent(conversation.id)}`,
+    {
+      id: conversation.id,
+      workspace_scope: workspaceScope,
+      title: conversation.title,
+      title_edited: Boolean(conversation.titleEdited),
+      storage_scope: conversation.storageScope,
+      hermes_session_id: conversation.hermesSessionId,
+      pinned: Boolean(conversation.pinned),
+      archived: Boolean(conversation.archived),
+      messages: conversation.messages,
+    },
+    {
+      skipBusinessError: true,
+      skipErrorHandler: true,
+    }
+  )
+  return response.data
+}
+
+export async function deleteUserHermesConversation(conversationId: string) {
+  const response = await api.delete(
+    `/api/user/hermes/conversations/${encodeURIComponent(conversationId)}`,
     {
       skipBusinessError: true,
       skipErrorHandler: true,
@@ -629,6 +681,31 @@ function normalizeTeamConversationsResponse(
       archived: booleanFromUnknown(conversation.archived) ?? false,
       createdBy: numberFromUnknown(conversation.created_by) ?? undefined,
       updatedBy: numberFromUnknown(conversation.updated_by) ?? undefined,
+      messages: (arrayFromUnknown(conversation.messages) ?? []) as Message[],
+    }
+  })
+}
+
+function normalizeUserConversationsResponse(
+  payload: unknown
+): HermesUserConversationRecord[] {
+  const record = asRecord(payload)
+  const rawConversations = arrayFromUnknown(record.data)
+  if (!rawConversations) return []
+
+  return rawConversations.map((item) => {
+    const conversation = asRecord(item)
+    return {
+      id: stringFromUnknown(conversation.id),
+      workspaceScope: stringFromUnknown(conversation.workspace_scope),
+      title: stringFromUnknown(conversation.title),
+      titleEdited: booleanFromUnknown(conversation.title_edited) ?? false,
+      storageScope: stringFromUnknown(conversation.storage_scope),
+      hermesSessionId: stringFromUnknown(conversation.hermes_session_id),
+      createdAt: numberFromUnknown(conversation.created_at) ?? Date.now(),
+      updatedAt: numberFromUnknown(conversation.updated_at) ?? Date.now(),
+      pinned: booleanFromUnknown(conversation.pinned) ?? false,
+      archived: booleanFromUnknown(conversation.archived) ?? false,
       messages: (arrayFromUnknown(conversation.messages) ?? []) as Message[],
     }
   })

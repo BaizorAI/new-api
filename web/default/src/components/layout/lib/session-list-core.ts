@@ -53,6 +53,7 @@ export type SessionListAdapter<T extends SessionLike> = {
   getCopyId: (session: T) => string
   exportFilenameFallback: string
   buildExportPayload: (session: T) => unknown
+  serverDelete?: (sessionId: string) => Promise<void>
 }
 
 export type SessionActions<T extends SessionLike> = {
@@ -174,6 +175,9 @@ export function useSessionList<T extends SessionLike>(
   const deleteSession = useCallback(
     (session: T) => {
       adapter.clearStorage(session)
+      if (adapter.serverDelete) {
+        void adapter.serverDelete(session.id).catch(() => {})
+      }
 
       if (sessions.length <= 1) {
         const nextSession = adapter.create(baseScope)

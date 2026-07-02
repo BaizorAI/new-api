@@ -3130,6 +3130,8 @@
     "New password must be different from current password": "新密码必须与当前密码不同",
     "New Playground Session": "New Playground Session",
     "New session": "新建会话",
+    "New chat": "新建聊天",
+    "New conversation": "新建对话",
     "New User Quota": "新用户配额",
     "New version available: {{version}}": "有新版本可用：{{version}}",
     "NewAPI": "NewAPI",

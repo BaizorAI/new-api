@@ -42,13 +42,17 @@ import {
 } from '@/components/ui/select'
 import {
   deleteTeamHermesConversation,
+  deleteUserHermesConversation,
   getHermesExecutionTask,
   listTeamHermesConversations,
+  listUserHermesConversations,
   syncHermesResults,
   upsertTeamHermesConversation,
+  upsertUserHermesConversation,
   type HermesExecutionTask,
   type HermesSkill,
   type HermesTeamConversationRecord,
+  type HermesUserConversationRecord,
 } from '@/features/hermes-playground/api'
 import {
   HermesCapabilityCenter,
@@ -157,6 +161,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   } | null>(null)
   const [playgroundRefreshKey, setPlaygroundRefreshKey] = useState(0)
   const teamPersistTimerRef = useRef<number | null>(null)
+  const userPersistTimerRef = useRef<number | null>(null)
   const resultSyncTimerRef = useRef<number | null>(null)
 
   const { data: teamsResponse, isLoading: isTeamsLoading } = useQuery({
@@ -203,6 +208,19 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     ],
     queryFn: () => listTeamHermesConversations(selectedTeamId),
     enabled: isTeamWorkspace && selectedTeamId > 0,
+  })
+
+  const userConversationsQuery = useQuery({
+    queryKey: [
+      props.queryKeyPrefix,
+      queryUserScope,
+      'user-conversations',
+      props.baseScopePrefix ?? 'hermes',
+    ],
+    queryFn: () =>
+      listUserHermesConversations(props.baseScopePrefix ?? 'hermes'),
+    enabled: !isTeamWorkspace,
+    staleTime: 60_000,
   })
 
   const baseScope = useMemo(() => {
@@ -266,6 +284,24 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     setSessions(nextSessions)
     setActiveSessionId(loadActiveConversationId(baseScope, nextSessions))
   }, [baseScope, isTeamWorkspace, selectedTeamId, teamConversationsQuery.data])
+
+  useEffect(() => {
+    if (isTeamWorkspace) return
+    if (!userConversationsQuery.data) return
+    if (userConversationsQuery.data.length === 0) return
+
+    const nextSessions = userConversationsQuery.data.map((conversation) => {
+      const session = normalizePersistedConversation(conversation, baseScope)
+      saveMessages(
+        conversation.messages,
+        createPlaygroundStorageKeys(session.storageScope)
+      )
+      return session
+    })
+    saveHermesConversations(baseScope, nextSessions)
+    setSessions(nextSessions)
+    setActiveSessionId(loadActiveConversationId(baseScope, nextSessions))
+  }, [baseScope, isTeamWorkspace, userConversationsQuery.data])
 
   const reloadSessions = useCallback(() => {
     const nextSessions = loadHermesConversations(baseScope)
@@ -408,6 +444,27 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     [isTeamWorkspace, selectedTeamId]
   )
 
+  const persistUserConversation = useCallback(
+    (session: HermesConversation, messages: Message[]) => {
+      if (isTeamWorkspace) return
+      if (userPersistTimerRef.current) {
+        window.clearTimeout(userPersistTimerRef.current)
+      }
+      userPersistTimerRef.current = window.setTimeout(() => {
+        const payload: HermesUserConversationRecord = {
+          ...session,
+          workspaceScope: props.baseScopePrefix ?? 'hermes',
+          messages,
+        }
+        void upsertUserHermesConversation(
+          props.baseScopePrefix ?? 'hermes',
+          payload
+        )
+      }, 800)
+    },
+    [isTeamWorkspace, props.baseScopePrefix]
+  )
+
   const syncResultsForSession = useCallback(
     (
       session: HermesConversation,
@@ -465,10 +522,32 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     [isTeamWorkspace, selectedTeamId, teamConversationsQuery]
   )
 
+  const persistUserConversationNow = useCallback(
+    async (session: HermesConversation) => {
+      if (isTeamWorkspace) return
+      const messages =
+        loadMessages(createPlaygroundStorageKeys(session.storageScope)) ?? []
+      const payload: HermesUserConversationRecord = {
+        ...session,
+        workspaceScope: props.baseScopePrefix ?? 'hermes',
+        messages,
+      }
+      await upsertUserHermesConversation(
+        props.baseScopePrefix ?? 'hermes',
+        payload
+      )
+      void userConversationsQuery.refetch()
+    },
+    [isTeamWorkspace, props.baseScopePrefix, userConversationsQuery]
+  )
+
   useEffect(() => {
     return () => {
       if (teamPersistTimerRef.current) {
         window.clearTimeout(teamPersistTimerRef.current)
+      }
+      if (userPersistTimerRef.current) {
+        window.clearTimeout(userPersistTimerRef.current)
       }
       if (resultSyncTimerRef.current) {
         window.clearTimeout(resultSyncTimerRef.current)
@@ -496,6 +575,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         updatedAt: now,
       }
       persistTeamConversation(sessionToPersist, messages)
+      persistUserConversation(sessionToPersist, messages)
       syncResultsForSession(sessionToPersist, messages)
 
       setSessions((prev) => {
@@ -518,7 +598,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         return next
       })
     },
-    [activeSession, baseScope, persistTeamConversation, syncResultsForSession]
+    [activeSession, baseScope, persistTeamConversation, persistUserConversation, syncResultsForSession]
   )
 
   const createSession = useCallback(() => {
@@ -557,8 +637,11 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       void persistTeamConversationNow(updatedSession).catch(() => {
         toast.error(t('Failed to save session'))
       })
+      void persistUserConversationNow(updatedSession).catch(() => {
+        toast.error(t('Failed to save session'))
+      })
     },
-    [baseScope, persistTeamConversationNow, sessions, t]
+    [baseScope, persistTeamConversationNow, persistUserConversationNow, sessions, t]
   )
 
   const deleteSession = useCallback(
@@ -592,6 +675,8 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         void deleteTeamHermesConversation(selectedTeamId, session.id)
           .then(() => teamConversationsQuery.refetch())
           .catch(() => toast.error(t('Failed to delete session')))
+      } else if (!isTeamWorkspace) {
+        void deleteUserHermesConversation(session.id).catch(() => {})
       }
     },
     [
@@ -599,6 +684,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       baseScope,
       isTeamWorkspace,
       persistTeamConversation,
+      persistUserConversation,
       selectedTeamId,
       sessions,
       t,
@@ -698,6 +784,15 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
           ...targetSession,
           messages: nextMessages,
         })
+      } else if (!isTeamWorkspace) {
+        void upsertUserHermesConversation(
+          props.baseScopePrefix ?? 'hermes',
+          {
+            ...targetSession,
+            workspaceScope: props.baseScopePrefix ?? 'hermes',
+            messages: nextMessages,
+          }
+        )
       }
       if (task.conversationId === activeSession.id) {
         updateActiveSessionFromMessages(nextMessages)
@@ -707,6 +802,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     [
       activeSession,
       isTeamWorkspace,
+      props.baseScopePrefix,
       selectedTeamId,
       sessions,
       updateActiveSessionFromMessages,
