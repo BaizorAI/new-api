@@ -2,6 +2,9 @@
 # new-api deployment script with optional Hermes sidecar support.
 set -e
 
+DEPLOY_START_TIME=$(date +%s)
+echo "Deployment started at: $(date -d @${DEPLOY_START_TIME} "+%Y-%m-%d %H:%M:%S")"
+
 INI_FILE="version.ini"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
 REMOTE_HOST="${REMOTE_HOST:-baizor}"
@@ -446,4 +449,11 @@ else
 fi
 REMOTEEOF
 
+DEPLOY_END_TIME=$(date +%s)
+DEPLOY_ELAPSED=$((DEPLOY_END_TIME - DEPLOY_START_TIME))
+DEPLOY_ELAPSED_MIN=$((DEPLOY_ELAPSED / 60))
+DEPLOY_ELAPSED_SEC=$((DEPLOY_ELAPSED % 60))
 echo "Deployment complete. Version: ${NEW_VERSION}"
+echo "Started at:   $(date -d @${DEPLOY_START_TIME} "+%Y-%m-%d %H:%M:%S")"
+echo "Finished at:  $(date -d @${DEPLOY_END_TIME} "+%Y-%m-%d %H:%M:%S")"
+echo "Elapsed time: ${DEPLOY_ELAPSED_MIN}m ${DEPLOY_ELAPSED_SEC}s"

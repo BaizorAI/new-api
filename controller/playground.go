@@ -398,6 +398,12 @@ func buildHermesPlaygroundAttributionHeaders(c *gin.Context, userId int) map[str
 		"X-Hermes-Session-Id":    sessionID,
 		"X-Hermes-Billing-Scope": billingScope,
 	}
+
+	activeSkill := strings.TrimSpace(c.GetHeader("X-Baizor-Hermes-Skill-Activate"))
+	if activeSkill != "" {
+		headers["X-Hermes-Active-Skill"] = activeSkill
+	}
+
 	if teamID > 0 {
 		headers["X-Hermes-Team-Id"] = strconv.Itoa(teamID)
 		if teamName != "" {

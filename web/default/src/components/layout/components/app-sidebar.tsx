@@ -227,6 +227,13 @@ function resolveActiveRootGroup(
   const section = params.get('section')
 
   if (pathname === '/team-workspace') {
+    if (panel === 'skills') {
+      if (section === 'builtin' || section === 'tools')
+        return findGroup(navGroups, 'settings')
+      return findGroup(navGroups, 'workbench')
+    }
+    if (panel === 'results') return findGroup(navGroups, 'results-center')
+    if (panel === 'messages') return findGroup(navGroups, 'message-platform')
     return params.has('team_id')
       ? findGroup(navGroups, 'team-collaboration')
       : findGroup(navGroups, 'overview')

@@ -78,6 +78,7 @@ function JilaiWorkspacePage() {
       defaultSystemPrompt={defaultSystemPrompt}
       emptyModelsMessage={t('No Hermes models available')}
       queryKeyPrefix={`jilai-workspace-${safeSkillName}`}
+      initialSkill={skillName}
     />
   )
 }

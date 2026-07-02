@@ -76,6 +76,7 @@ function SkillWorkspacePage() {
       defaultSystemPrompt={defaultSystemPrompt}
       emptyModelsMessage={t('No Hermes models available')}
       queryKeyPrefix={`skill-workspace-${safeSkillName}`}
+      initialSkill={skillName}
     />
   )
 }

@@ -368,6 +368,9 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     if (props.baseScopePrefix) {
       headers['X-Baizor-Hermes-Workspace'] = props.baseScopePrefix
     }
+    if (props.initialSkill) {
+      headers['X-Baizor-Hermes-Skill-Activate'] = props.initialSkill
+    }
     if (selectedTeamId > 0) {
       headers['X-Baizor-Team-Id'] = String(selectedTeamId)
       if (
@@ -383,6 +386,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   }, [
     activeHermesSessionId,
     props.baseScopePrefix,
+    props.initialSkill,
     selectedTeamId,
     selectedTeamName,
   ])
