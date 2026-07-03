@@ -1029,6 +1029,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         )
       }
       setIsExecutionTasksOpen(false)
+      navigateToConversationWorkspace()
     },
     [applyExecutionTaskResult, baseScope, sessions, t]
   )
