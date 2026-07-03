@@ -66,10 +66,82 @@ export function HermesExecutionTasksSheet(
   props: HermesExecutionTasksSheetProps
 ) {
   const { t } = useTranslation()
+
+  return (
+    <Sheet open={props.open} onOpenChange={props.onOpenChange}>
+      <SheetContent className='w-full gap-0 sm:max-w-xl' side='right'>
+        <SheetHeader className='border-b pr-12'>
+          <SheetTitle>{t('Execution tasks')}</SheetTitle>
+          <SheetDescription>
+            {t('Track running work and reopen the related workspace.')}
+          </SheetDescription>
+        </SheetHeader>
+
+        <ScrollArea className='min-h-0 flex-1'>
+          <HermesExecutionTaskList
+            teamId={props.teamId}
+            enabled={props.open}
+            onSelectTask={props.onSelectTask}
+            onOpenTaskResults={props.onOpenTaskResults}
+          />
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+/** Inline workspace version — renders directly without a sheet wrapper. */
+export interface HermesExecutionTasksWorkspaceProps {
+  userScope: string
+  teamId?: number
+  title?: string
+  description?: string
+  onSelectTask: (task: HermesExecutionTask) => void
+  onOpenTaskResults?: (task: HermesExecutionTask) => void
+}
+
+export function HermesExecutionTasksWorkspace(
+  props: HermesExecutionTasksWorkspaceProps
+) {
+  const { t } = useTranslation()
+
+  return (
+    <div className='flex size-full flex-col overflow-hidden'>
+      <div className='border-b px-6 py-4'>
+        <h2 className='text-lg font-semibold'>
+          {props.title || t('Execution tasks')}
+        </h2>
+        {props.description ? (
+          <p className='text-muted-foreground mt-1 text-sm'>
+            {props.description}
+          </p>
+        ) : null}
+      </div>
+      <ScrollArea className='min-h-0 flex-1'>
+        <div className='mx-auto max-w-3xl p-6'>
+          <HermesExecutionTaskList
+            teamId={props.teamId}
+            enabled
+            onSelectTask={props.onSelectTask}
+            onOpenTaskResults={props.onOpenTaskResults}
+          />
+        </div>
+      </ScrollArea>
+    </div>
+  )
+}
+
+function HermesExecutionTaskList(props: {
+  teamId?: number
+  enabled: boolean
+  onSelectTask: (task: HermesExecutionTask) => void
+  onOpenTaskResults?: (task: HermesExecutionTask) => void
+}) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const queryKey = [
     'hermes-execution-tasks',
-    props.userScope,
+    'workspace',
     props.teamId ?? 'personal',
   ]
 
@@ -77,8 +149,8 @@ export function HermesExecutionTasksSheet(
     queryKey,
     queryFn: () =>
       listHermesExecutionTasks({ teamId: props.teamId, limit: 50 }),
-    enabled: props.open,
-    refetchInterval: props.open ? 3000 : false,
+    enabled: props.enabled,
+    refetchInterval: props.enabled ? 3000 : false,
   })
 
   const retryMutation = useMutation({
@@ -97,102 +169,89 @@ export function HermesExecutionTasksSheet(
   const tasks = tasksQuery.data ?? []
 
   return (
-    <Sheet open={props.open} onOpenChange={props.onOpenChange}>
-      <SheetContent className='w-full gap-0 sm:max-w-xl' side='right'>
-        <SheetHeader className='border-b pr-12'>
-          <SheetTitle>{t('Execution tasks')}</SheetTitle>
-          <SheetDescription>
-            {t('Track running work and reopen the related workspace.')}
-          </SheetDescription>
-        </SheetHeader>
+    <div className='space-y-3'>
+      {tasks.length === 0 && !tasksQuery.isLoading ? (
+        <Empty className='min-h-48 rounded-lg border p-4'>
+          <EmptyMedia variant='icon'>
+            <Clock3Icon className='size-5' />
+          </EmptyMedia>
+          <EmptyTitle>{t('No execution tasks')}</EmptyTitle>
+          <EmptyDescription>
+            {t('Tasks started from Hermes will appear here.')}
+          </EmptyDescription>
+        </Empty>
+      ) : null}
 
-        <ScrollArea className='min-h-0 flex-1'>
-          <div className='space-y-3 p-4'>
-            {tasks.length === 0 && !tasksQuery.isLoading ? (
-              <Empty className='min-h-48 rounded-lg border p-4'>
-                <EmptyMedia variant='icon'>
-                  <Clock3Icon className='size-5' />
-                </EmptyMedia>
-                <EmptyTitle>{t('No execution tasks')}</EmptyTitle>
-                <EmptyDescription>
-                  {t('Tasks started from Hermes will appear here.')}
-                </EmptyDescription>
-              </Empty>
-            ) : null}
-
-            {tasks.map((task) => (
-              <article key={task.taskId} className='rounded-lg border p-4'>
-                <div className='flex items-start justify-between gap-3'>
-                  <div className='min-w-0 space-y-1'>
-                    <div className='flex flex-wrap items-center gap-2'>
-                      <h3 className='truncate text-sm font-medium'>
-                        {task.title || t('Hermes task')}
-                      </h3>
-                      <Badge variant={getStatusVariant(task.status)}>
-                        {getStatusLabel(task.status, t)}
-                      </Badge>
-                    </div>
-                    <p className='text-muted-foreground text-xs'>
-                      {formatTaskTime(task.createdAt)} · {task.progress}%
-                    </p>
-                    {task.error ? (
-                      <p className='text-destructive line-clamp-2 text-xs'>
-                        {task.error}
-                      </p>
-                    ) : null}
-                  </div>
-                  {getStatusIcon(task.status)}
-                </div>
-
-                <div className='bg-muted mt-3 h-1.5 overflow-hidden rounded-full'>
-                  <div
-                    className='bg-primary h-full rounded-full transition-all'
-                    style={{
-                      width: `${Math.min(Math.max(task.progress, 0), 100)}%`,
-                    }}
-                  />
-                </div>
-
-                <div className='mt-3 flex flex-wrap gap-2'>
-                  <Button
-                    onClick={() => props.onSelectTask(task)}
-                    size='sm'
-                    type='button'
-                    variant='outline'
-                  >
-                    <ExternalLinkIcon className='size-4' />
-                    {t('Open')}
-                  </Button>
-                  {props.onOpenTaskResults && task.conversationId ? (
-                    <Button
-                      onClick={() => props.onOpenTaskResults?.(task)}
-                      size='sm'
-                      type='button'
-                      variant='outline'
-                    >
-                      <FileCheck2Icon className='size-4' />
-                      {t('Open results')}
-                    </Button>
-                  ) : null}
-                  {(task.status === 'failed' || task.status === 'canceled') && (
-                    <Button
-                      disabled={retryMutation.isPending}
-                      onClick={() => retryMutation.mutate(task.taskId)}
-                      size='sm'
-                      type='button'
-                      variant='outline'
-                    >
-                      <RotateCcwIcon className='size-4' />
-                      {t('Retry')}
-                    </Button>
-                  )}
-                </div>
-              </article>
-            ))}
+      {tasks.map((task) => (
+        <article key={task.taskId} className='rounded-lg border p-4'>
+          <div className='flex items-start justify-between gap-3'>
+            <div className='min-w-0 space-y-1'>
+              <div className='flex flex-wrap items-center gap-2'>
+                <h3 className='truncate text-sm font-medium'>
+                  {task.title || t('Hermes task')}
+                </h3>
+                <Badge variant={getStatusVariant(task.status)}>
+                  {getStatusLabel(task.status, t)}
+                </Badge>
+              </div>
+              <p className='text-muted-foreground text-xs'>
+                {formatTaskTime(task.createdAt)} · {task.progress}%
+              </p>
+              {task.error ? (
+                <p className='text-destructive line-clamp-2 text-xs'>
+                  {task.error}
+                </p>
+              ) : null}
+            </div>
+            {getStatusIcon(task.status)}
           </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+
+          <div className='bg-muted mt-3 h-1.5 overflow-hidden rounded-full'>
+            <div
+              className='bg-primary h-full rounded-full transition-all'
+              style={{
+                width: `${Math.min(Math.max(task.progress, 0), 100)}%`,
+              }}
+            />
+          </div>
+
+          <div className='mt-3 flex flex-wrap gap-2'>
+            <Button
+              onClick={() => props.onSelectTask(task)}
+              size='sm'
+              type='button'
+              variant='outline'
+            >
+              <ExternalLinkIcon className='size-4' />
+              {t('Open')}
+            </Button>
+            {props.onOpenTaskResults && task.conversationId ? (
+              <Button
+                onClick={() => props.onOpenTaskResults?.(task)}
+                size='sm'
+                type='button'
+                variant='outline'
+              >
+                <FileCheck2Icon className='size-4' />
+                {t('Open results')}
+              </Button>
+            ) : null}
+            {(task.status === 'failed' || task.status === 'canceled') && (
+              <Button
+                disabled={retryMutation.isPending}
+                onClick={() => retryMutation.mutate(task.taskId)}
+                size='sm'
+                type='button'
+                variant='outline'
+              >
+                <RotateCcwIcon className='size-4' />
+                {t('Retry')}
+              </Button>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
   )
 }
 

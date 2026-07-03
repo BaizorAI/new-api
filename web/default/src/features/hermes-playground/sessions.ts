@@ -40,6 +40,8 @@ export const HERMES_CAPABILITIES_OPEN_EVENT = 'hermes-capabilities-open'
 export const HERMES_RESULTS_OPEN_EVENT = 'hermes-results-open'
 export const HERMES_MESSAGE_PLATFORMS_OPEN_EVENT =
   'hermes-message-platforms-open'
+export const HERMES_SKILL_DIALOG_OPEN_EVENT = 'hermes-skill-dialog-open'
+export const HERMES_SKILLS_CHANGED_EVENT = 'hermes-skills-changed'
 export const SESSION_TOUCH_INTERVAL_MS = 5000
 
 const HERMES_CAPABILITIES_OPEN_REQUEST_KEY = 'hermes_capabilities_open_request'
@@ -228,6 +230,12 @@ export function notifyHermesSessionsChanged(): void {
   })
 }
 
+export function notifyHermesSkillsChanged(): void {
+  queueMicrotask(() => {
+    window.dispatchEvent(new Event(HERMES_SKILLS_CHANGED_EVENT))
+  })
+}
+
 export function requestOpenHermesCapabilities(): void {
   try {
     sessionStorage.setItem(
@@ -295,6 +303,36 @@ export function consumeHermesMessagePlatformsOpenRequest(): boolean {
     return true
   } catch {
     return false
+  }
+}
+
+const HERMES_SKILL_DIALOG_OPEN_REQUEST_KEY = 'hermes_skill_dialog_open_request'
+
+export function requestOpenHermesSkillDialog(teamId?: number): void {
+  try {
+    sessionStorage.setItem(
+      HERMES_SKILL_DIALOG_OPEN_REQUEST_KEY,
+      String(teamId ?? '')
+    )
+  } catch {
+    // Fall through to event dispatch.
+  }
+  window.dispatchEvent(
+    new CustomEvent<{ teamId?: number }>(HERMES_SKILL_DIALOG_OPEN_EVENT, {
+      detail: teamId ? { teamId } : {},
+    })
+  )
+}
+
+export function consumeHermesSkillDialogOpenRequest(): number | undefined {
+  try {
+    const value = sessionStorage.getItem(HERMES_SKILL_DIALOG_OPEN_REQUEST_KEY)
+    if (value === null) return undefined
+    sessionStorage.removeItem(HERMES_SKILL_DIALOG_OPEN_REQUEST_KEY)
+    const parsed = Number(value)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+  } catch {
+    return undefined
   }
 }
 

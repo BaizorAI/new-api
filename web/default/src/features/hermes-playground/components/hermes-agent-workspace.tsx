@@ -58,7 +58,10 @@ import {
   HermesCapabilityCenter,
   HermesCapabilityCenterWorkspace,
 } from '@/features/hermes-playground/components/hermes-capability-center'
-import { HermesExecutionTasksSheet } from '@/features/hermes-playground/components/hermes-execution-tasks-sheet'
+import {
+  HermesExecutionTasksSheet,
+  HermesExecutionTasksWorkspace,
+} from '@/features/hermes-playground/components/hermes-execution-tasks-sheet'
 import {
   HermesMessagePlatforms,
   HermesMessagePlatformsWorkspace,
@@ -95,6 +98,9 @@ import {
   safeStorageScope,
   saveActiveConversationId,
   saveHermesConversations,
+  consumeHermesSkillDialogOpenRequest,
+  HERMES_SKILL_DIALOG_OPEN_EVENT,
+  notifyHermesSkillsChanged,
   SESSION_TOUCH_INTERVAL_MS,
   type HermesConversation,
 } from '@/features/hermes-playground/sessions'
@@ -324,8 +330,8 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   }, [reloadSessions])
 
   useEffect(() => {
-    if (props.initialPanel === 'tasks' && !isTeamWorkspace) {
-      setIsExecutionTasksOpen(true)
+    if (props.initialPanel === 'tasks') {
+      // Tasks panel renders inline — no sheet needed.
     }
   }, [isTeamWorkspace, props.initialPanel])
 
@@ -346,6 +352,10 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     if (consumeHermesMessagePlatformsOpenRequest()) {
       setIsMessagePlatformsOpen(true)
     }
+    const requestedSkillTeamId = consumeHermesSkillDialogOpenRequest()
+    if (requestedSkillTeamId !== undefined) {
+      openSkillDialog(requestedSkillTeamId)
+    }
 
     const openCapabilityCenter = () => setIsCapabilityCenterOpen(true)
     const openResults = () => {
@@ -353,6 +363,12 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       setIsResultsOpen(true)
     }
     const openMessagePlatforms = () => setIsMessagePlatformsOpen(true)
+    const openSkillDialogFromEvent = (e: Event) => {
+      const teamId = (e as CustomEvent<{ teamId?: number }>).detail?.teamId
+      setEditSkill(null)
+      setSkillDialogTeamId(teamId)
+      setIsSkillDialogOpen(true)
+    }
     window.addEventListener(
       HERMES_CAPABILITIES_OPEN_EVENT,
       openCapabilityCenter
@@ -361,6 +377,10 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     window.addEventListener(
       HERMES_MESSAGE_PLATFORMS_OPEN_EVENT,
       openMessagePlatforms
+    )
+    window.addEventListener(
+      HERMES_SKILL_DIALOG_OPEN_EVENT,
+      openSkillDialogFromEvent
     )
     return () => {
       window.removeEventListener(
@@ -371,6 +391,10 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       window.removeEventListener(
         HERMES_MESSAGE_PLATFORMS_OPEN_EVENT,
         openMessagePlatforms
+      )
+      window.removeEventListener(
+        HERMES_SKILL_DIALOG_OPEN_EVENT,
+        openSkillDialogFromEvent
       )
     }
   }, [])
@@ -1061,10 +1085,11 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     void queryClient.invalidateQueries({
       queryKey: ['hermes-capabilities', queryUserScope, 'skills'],
     })
+    notifyHermesSkillsChanged()
   }, [queryClient, queryUserScope])
 
   const startWithSkill = useCallback(
-    (skill: HermesSkill) => {
+    (_skill: HermesSkill) => {
       // Skill activation is handled by the X-Baizor-Hermes-Skill-Activate
       // request header in skill/jilai/team-skill workspaces. Don't
       // auto-submit a prompt — let the user type their own message.
@@ -1182,6 +1207,28 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
           saveActiveConversationId(baseScope, session.id)
           setActiveSessionId(session.id)
           navigateToConversationWorkspace()
+        }}
+      />
+    )
+  } else if (props.initialPanel === 'tasks') {
+    workspaceContent = (
+      <HermesExecutionTasksWorkspace
+        userScope={queryUserScope}
+        teamId={selectedTeamId > 0 ? selectedTeamId : undefined}
+        title={isTeamWorkspace ? t('Team tasks') : t('Execution tasks')}
+        description={
+          isTeamWorkspace && selectedTeam
+            ? t('Track running and completed tasks for {{team}}.', {
+                team: selectedTeam.name,
+              })
+            : t('Track running work and reopen the related workspace.')
+        }
+        onSelectTask={(task) => {
+          void openExecutionTask(task)
+        }}
+        onOpenTaskResults={(task) => {
+          setResultsTaskId(task.taskId)
+          setIsResultsOpen(true)
         }}
       />
     )

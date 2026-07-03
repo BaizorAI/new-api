@@ -17,11 +17,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import {
   Archive,
   ArchiveRestore,
+  ChevronDown,
+  ChevronRight,
   Copy,
   Download,
   ExternalLink,
@@ -65,6 +67,7 @@ import type { HermesSkill } from '@/features/hermes-playground/api'
 import { useAuthStore } from '@/stores/auth-store'
 import {
   HERMES_SESSIONS_CHANGED_EVENT,
+  HERMES_SKILLS_CHANGED_EVENT,
   clearConversationStorage,
   createHermesConversation,
   formatSessionTime,
@@ -107,6 +110,9 @@ function JilaiSkillSubItem({
   const colorClass = SIDEBAR_NODE_COLORS[index % SIDEBAR_NODE_COLORS.length]
   const desc = skill.descriptionZh || skill.description
 
+  // Fold state: auto-open when the user is on this skill's workspace.
+  const [open, setOpen] = useState(subActive)
+
   const [sessions, setSessions] = useState(() =>
     peekHermesConversations(baseScope)
   )
@@ -143,20 +149,9 @@ function JilaiSkillSubItem({
       const existing = peekHermesConversations(baseScope)
       saveHermesConversations(baseScope, [newSession, ...existing])
       saveActiveConversationId(baseScope, newSession.id)
-      // Just create the child node. The user clicks the sub-session
-      // entry to enter the workspace and type their own message.
-      // Skill activation is handled server-side via request headers.
+      setOpen(true)
     },
     [baseScope]
-  )
-
-  const handleSelectSession = useCallback(
-    (sessionId: string) => {
-      saveActiveConversationId(baseScope, sessionId)
-      onClose()
-      void navigate({ to: url as never })
-    },
-    [baseScope, navigate, onClose, url]
   )
 
   const reloadSessions = useCallback(() => {
@@ -166,6 +161,18 @@ function JilaiSkillSubItem({
   return (
     <>
       <SidebarMenuSubItem className='group/skill-item flex items-stretch'>
+        <button
+          type='button'
+          aria-label={open ? t('Collapse') : t('Expand')}
+          onClick={() => setOpen((v) => !v)}
+          className='hover:text-foreground text-muted-foreground/60 ml-0.5 mr-0 shrink-0 self-center rounded p-0.5'
+        >
+          {open ? (
+            <ChevronDown className='size-3' aria-hidden='true' />
+          ) : (
+            <ChevronRight className='size-3' aria-hidden='true' />
+          )}
+        </button>
         <SidebarMenuSubButton
           isActive={subActive}
           title={desc || (skill.displayName ?? skill.name)}
@@ -200,7 +207,7 @@ function JilaiSkillSubItem({
         </button>
       </SidebarMenuSubItem>
 
-      {subActive &&
+      {open &&
         visibleSessions.map((session) => (
           <JilaiSessionSubNode
             key={session.id}
@@ -424,6 +431,19 @@ function JilaiSessionSubNode({
 export function JilaiSkillsItem({ item }: { item: NavHermesJilaiSkills }) {
   const href = useLocation({ select: (l) => l.href })
   const { setOpenMobile } = useSidebar()
+  const queryClient = useQueryClient()
+
+  // Re-fetch skills when a new skill is created via the Add-skill dialog.
+  useEffect(() => {
+    const handler = () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['hermes-jilai-skills-sidebar'],
+      })
+    }
+    window.addEventListener(HERMES_SKILLS_CHANGED_EVENT, handler)
+    return () =>
+      window.removeEventListener(HERMES_SKILLS_CHANGED_EVENT, handler)
+  }, [queryClient])
 
   const { data: skills = [] } = useQuery({
     queryKey: ['hermes-jilai-skills-sidebar'],

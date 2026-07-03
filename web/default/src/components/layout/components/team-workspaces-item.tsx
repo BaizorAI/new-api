@@ -1205,6 +1205,7 @@ function NewTeamSessionSubItem(props: {
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const handleCreate = useCallback(
     (e: React.MouseEvent) => {
@@ -1215,13 +1216,22 @@ function NewTeamSessionSubItem(props: {
       const existing = peekHermesConversations(baseScope)
       saveHermesConversations(baseScope, [newSession, ...existing])
       saveActiveConversationId(baseScope, newSession.id)
+      // Persist to server immediately so the sidebar session list
+      // picks up the new node on next re-fetch.
+      void upsertTeamHermesConversation(props.team.id, {
+        ...newSession,
+        messages: [],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: ['sidebar', 'team-sessions', props.team.id],
+      })
       props.onNavigate()
       void navigate({
         to: '/team-workspace',
         search: { team_id: props.team.id },
       })
     },
-    [navigate, props]
+    [navigate, props, queryClient]
   )
 
   return (
@@ -1243,6 +1253,7 @@ function FlatNewTeamSessionItem(props: {
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const handleCreate = useCallback(() => {
     const baseScope = getTeamWorkspaceBaseScope(props.team.id)
@@ -1250,12 +1261,19 @@ function FlatNewTeamSessionItem(props: {
     const existing = peekHermesConversations(baseScope)
     saveHermesConversations(baseScope, [newSession, ...existing])
     saveActiveConversationId(baseScope, newSession.id)
+    void upsertTeamHermesConversation(props.team.id, {
+      ...newSession,
+      messages: [],
+    })
+    void queryClient.invalidateQueries({
+      queryKey: ['sidebar', 'team-sessions', props.team.id],
+    })
     props.onNavigate()
     void navigate({
       to: '/team-workspace',
       search: { team_id: props.team.id },
     })
-  }, [navigate, props])
+  }, [navigate, props, queryClient])
 
   return (
     <SidebarMenuItem>
@@ -1276,6 +1294,7 @@ function CollapsedNewTeamSessionItem(props: {
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const handleCreate = useCallback(() => {
     const baseScope = getTeamWorkspaceBaseScope(props.team.id)
@@ -1283,12 +1302,19 @@ function CollapsedNewTeamSessionItem(props: {
     const existing = peekHermesConversations(baseScope)
     saveHermesConversations(baseScope, [newSession, ...existing])
     saveActiveConversationId(baseScope, newSession.id)
+    void upsertTeamHermesConversation(props.team.id, {
+      ...newSession,
+      messages: [],
+    })
+    void queryClient.invalidateQueries({
+      queryKey: ['sidebar', 'team-sessions', props.team.id],
+    })
     props.onNavigate()
     void navigate({
       to: '/team-workspace',
       search: { team_id: props.team.id },
     })
-  }, [navigate, props])
+  }, [navigate, props, queryClient])
 
   return (
     <DropdownMenuItem onClick={handleCreate}>

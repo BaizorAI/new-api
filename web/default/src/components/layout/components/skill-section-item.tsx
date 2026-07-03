@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import {
   Archive,
@@ -29,6 +29,7 @@ import {
   ExternalLink,
   MessageCircle,
   MoreHorizontal,
+  PackagePlus,
   Pencil,
   Pin,
   PinOff,
@@ -71,12 +72,14 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 import {
   HERMES_SESSIONS_CHANGED_EVENT,
+  HERMES_SKILLS_CHANGED_EVENT,
   clearConversationStorage,
   createHermesConversation,
   formatSessionTime,
   getHermesBaseScope,
   loadActiveConversationId,
   peekHermesConversations,
+  requestOpenHermesSkillDialog,
   saveActiveConversationId,
   saveHermesConversations,
   safeStorageScope,
@@ -106,7 +109,6 @@ function SkillSubItem({
   teamId?: number
 }) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const userId = useAuthStore((state) => state.auth.user?.id)
   const isTeam = Boolean(teamId && teamId > 0)
 
@@ -120,6 +122,9 @@ function SkillSubItem({
   const subActive = checkIsActive(href, { url })
   const colorClass = SIDEBAR_NODE_COLORS[index % SIDEBAR_NODE_COLORS.length]
   const desc = skill.descriptionZh || skill.description
+
+  // Fold state: auto-open when the user is on this skill's workspace.
+  const [open, setOpen] = useState(subActive)
 
   const [sessions, setSessions] = useState(() =>
     peekHermesConversations(baseScope)
@@ -157,20 +162,9 @@ function SkillSubItem({
       const existing = peekHermesConversations(baseScope)
       saveHermesConversations(baseScope, [newSession, ...existing])
       saveActiveConversationId(baseScope, newSession.id)
-      // Just create the child node. The user clicks the sub-session
-      // entry to enter the workspace and type their own message.
-      // Skill activation is handled server-side via request headers.
+      setOpen(true)
     },
     [baseScope]
-  )
-
-  const handleSelectSession = useCallback(
-    (sessionId: string) => {
-      saveActiveConversationId(baseScope, sessionId)
-      onClose()
-      void navigate({ to: url as never })
-    },
-    [baseScope, navigate, onClose, url]
   )
 
   const reloadSessions = useCallback(() => {
@@ -180,6 +174,19 @@ function SkillSubItem({
   return (
     <>
       <SidebarMenuSubItem className='group/skill-item flex items-stretch'>
+        {/* Chevron toggle — independent from navigation */}
+        <button
+          type='button'
+          aria-label={open ? t('Collapse') : t('Expand')}
+          onClick={() => setOpen((v) => !v)}
+          className='hover:text-foreground text-muted-foreground/60 ml-0.5 mr-0 shrink-0 self-center rounded p-0.5'
+        >
+          {open ? (
+            <ChevronDown className='size-3' aria-hidden='true' />
+          ) : (
+            <ChevronRight className='size-3' aria-hidden='true' />
+          )}
+        </button>
         <SidebarMenuSubButton
           isActive={subActive}
           title={desc || (skill.displayName ?? skill.name)}
@@ -214,7 +221,7 @@ function SkillSubItem({
         </button>
       </SidebarMenuSubItem>
 
-      {subActive &&
+      {open &&
         visibleSessions.map((session) => (
           <SkillSessionSubNode
             key={session.id}
@@ -497,6 +504,7 @@ function TeamSkillGroup({
   href: string
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(true)
 
   const teamSkillUrl = (name: string) =>
@@ -531,14 +539,48 @@ function TeamSkillGroup({
             index={idx}
           />
         ))}
+      {open && (
+        <SidebarMenuSubItem>
+          <SidebarMenuSubButton
+            className='pl-7 text-muted-foreground cursor-pointer'
+            onClick={() => {
+              requestOpenHermesSkillDialog(team.id)
+              onClose()
+            }}
+          >
+            <PackagePlus className='size-3.5' aria-hidden='true' />
+            <span>{t('Add skill')}</span>
+          </SidebarMenuSubButton>
+        </SidebarMenuSubItem>
+      )}
     </>
   )
 }
 
 export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const href = useLocation({ select: (l) => l.href })
   const { setOpenMobile } = useSidebar()
   const isTeamSection = item.section === 'team'
+
+  // Re-fetch skills when a new skill is created via the Add-skill dialog.
+  useEffect(() => {
+    const handler = () => {
+      if (isTeamSection) {
+        void queryClient.invalidateQueries({
+          queryKey: ['skill-section-team-skills'],
+        })
+      } else {
+        void queryClient.invalidateQueries({
+          queryKey: ['hermes-skill-section-sidebar'],
+        })
+      }
+    }
+    window.addEventListener(HERMES_SKILLS_CHANGED_EVENT, handler)
+    return () =>
+      window.removeEventListener(HERMES_SKILLS_CHANGED_EVENT, handler)
+  }, [isTeamSection, queryClient])
 
   const teamsQuery = useQuery({
     queryKey: ['skill-section-teams'],
@@ -632,6 +674,18 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
           index={idx}
         />
       ))}
+      <SidebarMenuSubItem>
+        <SidebarMenuSubButton
+          className='text-muted-foreground cursor-pointer'
+          onClick={() => {
+            requestOpenHermesSkillDialog()
+            setOpenMobile(false)
+          }}
+        >
+          <PackagePlus className='size-3.5' aria-hidden='true' />
+          <span>{t('Add skill')}</span>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
     </>
   )
 
@@ -673,6 +727,15 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
               </DropdownMenuItem>
             )
           })}
+          <DropdownMenuItem
+            onClick={() => {
+              requestOpenHermesSkillDialog(team.id)
+              setOpenMobile(false)
+            }}
+          >
+            <PackagePlus className='size-4' aria-hidden='true' />
+            <span className='max-w-52 text-wrap'>{t('Add skill')}</span>
+          </DropdownMenuItem>
         </Fragment>
       ))}
     </>
@@ -711,6 +774,15 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
           </DropdownMenuItem>
         )
       })}
+      <DropdownMenuItem
+        onClick={() => {
+          requestOpenHermesSkillDialog()
+          setOpenMobile(false)
+        }}
+      >
+        <PackagePlus className='size-4' aria-hidden='true' />
+        <span className='max-w-52 text-wrap'>{t('Add skill')}</span>
+      </DropdownMenuItem>
     </>
   )
 
