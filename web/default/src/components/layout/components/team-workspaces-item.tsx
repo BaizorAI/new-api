@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { Link, useLocation } from '@tanstack/react-router'
+import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import {
   Building2,
   CheckCircle2,
@@ -27,12 +27,13 @@ import {
   ListChecks,
   Loader2,
   MessageSquare,
+  Plus,
   Sparkles,
   UserRound,
   Users,
   XCircle,
 } from 'lucide-react'
-import { useMemo, type ElementType } from 'react'
+import { useCallback, useMemo, type ElementType } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -56,9 +57,12 @@ import {
 } from '@/features/hermes-playground/api'
 import {
   activeConversationStorageKey,
+  createHermesConversation,
   formatSessionTime,
   loadActiveConversationId,
+  peekHermesConversations,
   saveActiveConversationId,
+  saveHermesConversations,
   sortSessions,
 } from '@/features/hermes-playground/sessions'
 import { listTeams } from '@/features/teams/api'
@@ -307,6 +311,10 @@ function FlatTeamSessionItems(props: {
           onNavigate={props.onNavigate}
         />
       ))}
+      <FlatNewTeamSessionItem
+        team={props.team}
+        onNavigate={props.onNavigate}
+      />
     </>
   )
 }
@@ -596,7 +604,7 @@ function SidebarTeamItems(props: {
           <span>{team.name}</span>
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>,
-      ...TEAM_PANEL_CONFIG.map((config) => (
+      ...TEAM_PANEL_CONFIG.flatMap((config) => [
         <SidebarTeamPanelItem
           key={`${team.id}-${config.panel}`}
           href={props.href}
@@ -605,8 +613,17 @@ function SidebarTeamItems(props: {
           title={t(config.titleKey)}
           icon={config.icon}
           onNavigate={props.onNavigate}
-        />
-      )),
+        />,
+        ...(config.panel === 'sessions'
+          ? [
+              <NewTeamSessionSubItem
+                key={`${team.id}-new-session`}
+                team={team}
+                onNavigate={props.onNavigate}
+              />,
+            ]
+          : []),
+      ]),
       ...TEAM_MANAGEMENT_CONFIG.map((config) => (
         <SidebarTeamManagementItem
           key={`${team.id}-${config.area}`}
@@ -774,7 +791,7 @@ function CollapsedTeamList(props: {
 
   return props.teams.flatMap((team) => [
     <DropdownMenuLabel key={`${team.id}-label`}>{team.name}</DropdownMenuLabel>,
-    ...TEAM_PANEL_CONFIG.map((config) => (
+    ...TEAM_PANEL_CONFIG.flatMap((config) => [
       <CollapsedTeamPanelItem
         key={`${team.id}-${config.panel}`}
         href={props.href}
@@ -783,8 +800,17 @@ function CollapsedTeamList(props: {
         title={t(config.titleKey)}
         icon={config.icon}
         onNavigate={props.onNavigate}
-      />
-    )),
+      />,
+      ...(config.panel === 'sessions'
+        ? [
+            <CollapsedNewTeamSessionItem
+              key={`${team.id}-new-session`}
+              team={team}
+              onNavigate={props.onNavigate}
+            />,
+          ]
+        : []),
+    ]),
     ...TEAM_MANAGEMENT_CONFIG.map((config) => (
       <CollapsedTeamManagementItem
         key={`${team.id}-${config.area}`}
@@ -853,6 +879,105 @@ function CollapsedTeamManagementItem(props: {
     >
       <props.icon className='size-4' aria-hidden='true' />
       <span className='max-w-52 text-wrap'>{props.title}</span>
+    </DropdownMenuItem>
+  )
+}
+
+function NewTeamSessionSubItem(props: {
+  team: Team
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+
+  const handleCreate = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const baseScope = getTeamWorkspaceBaseScope(props.team.id)
+      const newSession = createHermesConversation(baseScope)
+      const existing = peekHermesConversations(baseScope)
+      saveHermesConversations(baseScope, [newSession, ...existing])
+      saveActiveConversationId(baseScope, newSession.id)
+      props.onNavigate()
+      void navigate({
+        to: '/team-workspace',
+        search: { team_id: props.team.id },
+      })
+    },
+    [navigate, props]
+  )
+
+  return (
+    <SidebarMenuSubItem>
+      <SidebarMenuSubButton
+        className='pl-9 text-muted-foreground'
+        onClick={handleCreate}
+      >
+        <Plus className='size-3.5' aria-hidden='true' />
+        <span>{t('New session')}</span>
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
+  )
+}
+
+function FlatNewTeamSessionItem(props: {
+  team: Team
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+
+  const handleCreate = useCallback(() => {
+    const baseScope = getTeamWorkspaceBaseScope(props.team.id)
+    const newSession = createHermesConversation(baseScope)
+    const existing = peekHermesConversations(baseScope)
+    saveHermesConversations(baseScope, [newSession, ...existing])
+    saveActiveConversationId(baseScope, newSession.id)
+    props.onNavigate()
+    void navigate({
+      to: '/team-workspace',
+      search: { team_id: props.team.id },
+    })
+  }, [navigate, props])
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        className='text-muted-foreground pl-9'
+        onClick={handleCreate}
+      >
+        <Plus className='size-4' aria-hidden='true' />
+        <span>{t('New session')}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+}
+
+function CollapsedNewTeamSessionItem(props: {
+  team: Team
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+
+  const handleCreate = useCallback(() => {
+    const baseScope = getTeamWorkspaceBaseScope(props.team.id)
+    const newSession = createHermesConversation(baseScope)
+    const existing = peekHermesConversations(baseScope)
+    saveHermesConversations(baseScope, [newSession, ...existing])
+    saveActiveConversationId(baseScope, newSession.id)
+    props.onNavigate()
+    void navigate({
+      to: '/team-workspace',
+      search: { team_id: props.team.id },
+    })
+  }, [navigate, props])
+
+  return (
+    <DropdownMenuItem onClick={handleCreate}>
+      <Plus className='size-4' aria-hidden='true' />
+      <span className='max-w-52 text-wrap'>{t('New session')}</span>
     </DropdownMenuItem>
   )
 }

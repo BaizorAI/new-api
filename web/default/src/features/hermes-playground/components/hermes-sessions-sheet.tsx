@@ -230,6 +230,19 @@ export function HermesSessionsSheet(props: HermesSessionsSheetProps) {
                   />
                 ))
               )}
+              {props.sessions.length > 0 && (
+                <Button
+                  className='w-full'
+                  disabled={props.isLoading}
+                  onClick={props.onCreateSession}
+                  size='sm'
+                  type='button'
+                  variant='outline'
+                >
+                  <PlusIcon data-icon='inline-start' />
+                  {t('New session')}
+                </Button>
+              )}
             </div>
           </ScrollArea>
         </SheetContent>
@@ -315,6 +328,30 @@ function SessionCard(props: {
               {props.active ? (
                 <Badge variant='secondary'>{t('Current')}</Badge>
               ) : null}
+              <Button
+                aria-label={
+                  props.session.pinned ? t('Unpin') : t('Pin')
+                }
+                onClick={() => props.actions.pin(props.session)}
+                size='icon-sm'
+                type='button'
+                variant='ghost'
+              >
+                {props.session.pinned ? (
+                  <PinOffIcon className='size-3.5' />
+                ) : (
+                  <PinIcon className='size-3.5' />
+                )}
+              </Button>
+              <Button
+                aria-label={t('Delete')}
+                onClick={() => props.actions.delete(props.session)}
+                size='icon-sm'
+                type='button'
+                variant='ghost'
+              >
+                <Trash2Icon className='size-3.5' />
+              </Button>
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger
                   render={

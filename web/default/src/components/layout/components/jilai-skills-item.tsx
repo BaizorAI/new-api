@@ -113,10 +113,10 @@ function JilaiSkillSubItem({
       const existing = peekHermesConversations(baseScope)
       saveHermesConversations(baseScope, [newSession, ...existing])
       saveActiveConversationId(baseScope, newSession.id)
-      onClose()
-      if (!subActive) void navigate({ to: url as never })
+      // Don't navigate — just create the node and let the user
+      // click the sub-session entry when they're ready to use it.
     },
-    [baseScope, navigate, onClose, subActive, url]
+    [baseScope]
   )
 
   const handleSelectSession = useCallback(

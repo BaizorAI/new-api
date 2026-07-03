@@ -92,6 +92,7 @@ import {
   HERMES_SESSIONS_CHANGED_EVENT,
   loadActiveConversationId,
   loadHermesConversations,
+  safeStorageScope,
   saveActiveConversationId,
   saveHermesConversations,
   SESSION_TOUCH_INTERVAL_MS,
@@ -225,12 +226,16 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
 
   const baseScope = useMemo(() => {
     if (isTeamWorkspace) {
-      return selectedTeamId > 0
-        ? `team_workspace_team_${selectedTeamId}`
-        : 'team_workspace_pending'
+      if (selectedTeamId <= 0) return 'team_workspace_pending'
+      // Team skill workspaces scope sessions to team+skill so each
+      // skill gets its own conversation tree shared within the team.
+      if (props.initialSkill) {
+        return `team_workspace_team_${selectedTeamId}_skill_${safeStorageScope(props.initialSkill)}`
+      }
+      return `team_workspace_team_${selectedTeamId}`
     }
     return getHermesBaseScope(userId, props.baseScopePrefix)
-  }, [isTeamWorkspace, props.baseScopePrefix, selectedTeamId, userId])
+  }, [isTeamWorkspace, props.baseScopePrefix, props.initialSkill, selectedTeamId, userId])
 
   const [sessions, setSessions] = useState<HermesConversation[]>(() =>
     loadHermesConversations(baseScope)
@@ -325,6 +330,12 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   }, [isTeamWorkspace, props.initialPanel])
 
   useEffect(() => {
+    if (props.initialPanel === 'sessions' && isTeamWorkspace) {
+      setIsSessionsOpen(true)
+    }
+  }, [isTeamWorkspace, props.initialPanel])
+
+  useEffect(() => {
     if (consumeHermesCapabilitiesOpenRequest()) {
       setIsCapabilityCenterOpen(true)
     }
@@ -405,7 +416,19 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       headers['X-Baizor-Hermes-Workspace'] = props.baseScopePrefix
     }
     if (props.initialSkill) {
-      headers['X-Baizor-Hermes-Skill-Activate'] = props.initialSkill
+      // Skill, jilai, and team-skill workspaces always activate
+      // their designated skill. For hermes-playground the
+      // auto-submitted quick-prompt message handles skill
+      // activation so new sessions don't inherit the URL param
+      // as persistent context.
+      const prefix = props.baseScopePrefix ?? ''
+      if (
+        prefix.startsWith('skill_') ||
+        prefix.startsWith('jilai_') ||
+        prefix.startsWith('team_workspace_skill_')
+      ) {
+        headers['X-Baizor-Hermes-Skill-Activate'] = props.initialSkill
+      }
     }
     if (selectedTeamId > 0) {
       headers['X-Baizor-Team-Id'] = String(selectedTeamId)
@@ -997,13 +1020,42 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       if (selectedTeamId <= 0) return
       void navigate({
         to: '/team-workspace',
-        search: { team_id: selectedTeamId },
+        search: {
+          team_id: selectedTeamId,
+          ...(props.initialSkill ? { skill: props.initialSkill } : {}),
+        },
+      })
+      return
+    }
+
+    // Detect skill/jilai workspaces from baseScopePrefix so that
+    // navigating back from capability center, results, or skill
+    // activation returns to the correct workspace instead of always
+    // landing on /hermes-playground.
+    const prefix = props.baseScopePrefix ?? ''
+    if (prefix.startsWith('skill_') && props.initialSkill) {
+      void navigate({
+        to: '/skill-workspace',
+        search: { skill: props.initialSkill },
+      })
+      return
+    }
+    if (prefix.startsWith('jilai_') && props.initialSkill) {
+      void navigate({
+        to: '/jilai-workspace',
+        search: { skill: props.initialSkill },
       })
       return
     }
 
     void navigate({ to: '/hermes-playground' })
-  }, [isTeamWorkspace, navigate, selectedTeamId])
+  }, [
+    isTeamWorkspace,
+    navigate,
+    selectedTeamId,
+    props.baseScopePrefix,
+    props.initialSkill,
+  ])
 
   const handleSkillCreated = useCallback(() => {
     void queryClient.invalidateQueries({

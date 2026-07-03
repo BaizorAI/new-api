@@ -62,21 +62,28 @@ function SkillSubItem({
   href,
   onClose,
   index,
+  teamId,
 }: {
   skill: HermesSkill
   url: string
   href: string
   onClose: () => void
   index: number
+  teamId?: number
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const userId = useAuthStore((state) => state.auth.user?.id)
 
-  const baseScope = useMemo(
-    () => getHermesBaseScope(userId, `skill_${safeStorageScope(skill.name)}`),
-    [userId, skill.name]
-  )
+  // Team skills scope sessions to team+skill so conversations are
+  // shared within the team but isolated per skill.
+  const baseScope = useMemo(() => {
+    const safeName = safeStorageScope(skill.name)
+    if (teamId && teamId > 0) {
+      return `team_workspace_team_${teamId}_skill_${safeName}`
+    }
+    return getHermesBaseScope(userId, `skill_${safeName}`)
+  }, [skill.name, teamId, userId])
   const subActive = checkIsActive(href, { url })
   const colorClass = SIDEBAR_NODE_COLORS[index % SIDEBAR_NODE_COLORS.length]
   const desc = skill.descriptionZh || skill.description
@@ -117,10 +124,10 @@ function SkillSubItem({
       const existing = peekHermesConversations(baseScope)
       saveHermesConversations(baseScope, [newSession, ...existing])
       saveActiveConversationId(baseScope, newSession.id)
-      onClose()
-      if (!subActive) void navigate({ to: url as never })
+      // Don't navigate — just create the node and let the user
+      // click the sub-session entry when they're ready to use it.
     },
-    [baseScope, navigate, onClose, subActive, url]
+    [baseScope]
   )
 
   const handleSelectSession = useCallback(
@@ -234,22 +241,25 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
     return all.filter((s) => s.ownerScope === 'baizor' || s.source === 'baizor')
   }, [isTeamSection, singleQuery.data, item.section])
 
+  const skillUrl = (name: string) =>
+    `/skill-workspace?skill=${encodeURIComponent(name)}` as const
+
+  const teamSkillUrl = (teamId: number, name: string) =>
+    `/team-workspace?team_id=${teamId}&skill=${encodeURIComponent(name)}` as const
+
   const isActive = isTeamSection
-    ? teamGroups.some(({ skills }) =>
+    ? teamGroups.some(({ team, skills }) =>
         skills.some((s) =>
           checkIsActive(href, {
-            url: `/skill-workspace?skill=${encodeURIComponent(s.name)}`,
+            url: teamSkillUrl(team.id, s.name),
           })
         )
       )
     : flatSkills.some((s) =>
         checkIsActive(href, {
-          url: `/skill-workspace?skill=${encodeURIComponent(s.name)}`,
+          url: skillUrl(s.name),
         })
       )
-
-  const skillUrl = (name: string) =>
-    `/skill-workspace?skill=${encodeURIComponent(name)}` as const
 
   const expandedTeamContent = (
     <>
@@ -262,7 +272,8 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
             <SkillSubItem
               key={skill.name}
               skill={skill}
-              url={skillUrl(skill.name)}
+              teamId={team.id}
+              url={teamSkillUrl(team.id, skill.name)}
               href={href}
               onClose={() => setOpenMobile(false)}
               index={idx}
@@ -298,7 +309,7 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
             {team.name}
           </DropdownMenuLabel>
           {skills.map((skill) => {
-            const url = skillUrl(skill.name)
+            const url = teamSkillUrl(team.id, skill.name)
             const subActive = checkIsActive(href, { url })
             const desc = skill.descriptionZh || skill.description
             return (

@@ -25,6 +25,7 @@ import {
   HermesAgentWorkspace,
   type HermesPromptSuggestion,
 } from '@/features/hermes-playground/components/hermes-agent-workspace'
+import { safeStorageScope } from '@/features/hermes-playground/sessions'
 import {
   HERMES_RESULT_SCOPES,
   HERMES_RESULT_TYPES,
@@ -44,6 +45,7 @@ const teamWorkspaceSearchSchema = z.object({
   scope: z.enum(HERMES_RESULT_SCOPES).optional().catch(undefined),
   type: z.enum(HERMES_RESULT_TYPES).optional().catch(undefined),
   category: z.string().optional().catch(undefined),
+  skill: z.string().optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/_authenticated/team-workspace/')({
@@ -63,6 +65,7 @@ function TeamWorkspacePage() {
     panel,
     scope,
     section,
+    skill,
     team_id,
     type: resultType,
   } = Route.useSearch()
@@ -70,6 +73,23 @@ function TeamWorkspacePage() {
     ? section
     : undefined
   const messageSection = isHermesMessageSection(section) ? section : undefined
+
+  // When a skill is active in team workspace, scope sessions to the team+skill
+  // combination so conversations are shared within the team but isolated per skill.
+  const baseScopePrefix = skill
+    ? `team_workspace_skill_${safeStorageScope(skill)}`
+    : 'team_workspace'
+
+  const defaultSystemPrompt = skill
+    ? [
+        t('You are a team collaboration assistant. Use Chinese by default.'),
+        t('The team has activated the "{{skill}}" skill. Apply it to all tasks unless instructed otherwise.', { skill }),
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+    : t(
+        'You are a team collaboration assistant. Use Chinese by default. Help team members complete shared work through skills, tools, structured documents, task breakdowns, project plans, meeting summaries and delivery reviews. Keep outputs practical, traceable and suitable for team reuse.'
+      )
 
   const suggestedPrompts = useMemo<HermesPromptSuggestion[]>(
     () => [
@@ -119,10 +139,8 @@ function TeamWorkspacePage() {
 
   return (
     <HermesAgentWorkspace
-      baseScopePrefix='team_workspace'
-      defaultSystemPrompt={t(
-        'You are a team collaboration assistant. Use Chinese by default. Help team members complete shared work through skills, tools, structured documents, task breakdowns, project plans, meeting summaries and delivery reviews. Keep outputs practical, traceable and suitable for team reuse.'
-      )}
+      baseScopePrefix={baseScopePrefix}
+      defaultSystemPrompt={defaultSystemPrompt}
       emptyModelsMessage={t('No Hermes models available')}
       initialCapabilityCategory={category}
       initialCapabilitySection={capabilitySection}
@@ -130,6 +148,7 @@ function TeamWorkspacePage() {
       initialPanel={panel}
       initialResultScope={scope}
       initialResultType={resultType}
+      initialSkill={skill}
       initialTeamId={team_id}
       queryKeyPrefix='team-workspace'
       suggestedPrompts={suggestedPrompts}
