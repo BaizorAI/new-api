@@ -19,17 +19,49 @@ For commercial licensing, please contact support@quantumnous.com
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { MessageCircle, Plus } from 'lucide-react'
+import {
+  Archive,
+  ArchiveRestore,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  Download,
+  ExternalLink,
+  MessageCircle,
+  MoreHorizontal,
+  Pencil,
+  Pin,
+  PinOff,
+  Plus,
+  Trash2,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import type { HermesSkill } from '@/features/hermes-playground/api'
-import { listHermesSkills } from '@/features/hermes-playground/api'
+import {
+  deleteTeamHermesConversation,
+  listHermesSkills,
+  upsertTeamHermesConversation,
+} from '@/features/hermes-playground/api'
 import { listTeams } from '@/features/teams/api'
 import type { Team } from '@/features/teams/types'
+import { Button } from '@/components/ui/button'
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
 import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
@@ -39,7 +71,9 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 import {
   HERMES_SESSIONS_CHANGED_EVENT,
+  clearConversationStorage,
   createHermesConversation,
+  formatSessionTime,
   getHermesBaseScope,
   loadActiveConversationId,
   peekHermesConversations,
@@ -74,16 +108,15 @@ function SkillSubItem({
   const { t } = useTranslation()
   const navigate = useNavigate()
   const userId = useAuthStore((state) => state.auth.user?.id)
+  const isTeam = Boolean(teamId && teamId > 0)
 
-  // Team skills scope sessions to team+skill so conversations are
-  // shared within the team but isolated per skill.
   const baseScope = useMemo(() => {
     const safeName = safeStorageScope(skill.name)
-    if (teamId && teamId > 0) {
+    if (isTeam) {
       return `team_workspace_team_${teamId}_skill_${safeName}`
     }
     return getHermesBaseScope(userId, `skill_${safeName}`)
-  }, [skill.name, teamId, userId])
+  }, [skill.name, teamId, userId, isTeam])
   const subActive = checkIsActive(href, { url })
   const colorClass = SIDEBAR_NODE_COLORS[index % SIDEBAR_NODE_COLORS.length]
   const desc = skill.descriptionZh || skill.description
@@ -124,20 +157,24 @@ function SkillSubItem({
       const existing = peekHermesConversations(baseScope)
       saveHermesConversations(baseScope, [newSession, ...existing])
       saveActiveConversationId(baseScope, newSession.id)
-      // Don't navigate — just create the node and let the user
-      // click the sub-session entry when they're ready to use it.
+      onClose()
+      void navigate({ to: url as never })
     },
-    [baseScope]
+    [baseScope, navigate, onClose, url]
   )
 
   const handleSelectSession = useCallback(
     (sessionId: string) => {
       saveActiveConversationId(baseScope, sessionId)
       onClose()
-      if (!subActive) void navigate({ to: url as never })
+      void navigate({ to: url as never })
     },
-    [baseScope, navigate, onClose, subActive, url]
+    [baseScope, navigate, onClose, url]
   )
+
+  const reloadSessions = useCallback(() => {
+    setSessions(peekHermesConversations(baseScope))
+  }, [baseScope])
 
   return (
     <>
@@ -178,18 +215,320 @@ function SkillSubItem({
 
       {subActive &&
         visibleSessions.map((session) => (
-          <SidebarMenuSubItem key={session.id} className='pl-5'>
-            <SidebarMenuSubButton
-              isActive={session.id === activeSessionId}
-              className='text-muted-foreground h-auto py-1'
-              onClick={() => handleSelectSession(session.id)}
-            >
-              <MessageCircle className='size-3 shrink-0' aria-hidden='true' />
-              <span className='line-clamp-1 min-w-0 text-xs'>
-                {session.title || t('New conversation')}
-              </span>
-            </SidebarMenuSubButton>
-          </SidebarMenuSubItem>
+          <SkillSessionSubNode
+            key={session.id}
+            active={session.id === activeSessionId}
+            baseScope={baseScope}
+            isTeam={isTeam}
+            session={session}
+            teamId={teamId}
+            url={url}
+            onClose={onClose}
+            onMutated={reloadSessions}
+          />
+        ))}
+    </>
+  )
+}
+
+function SkillSessionSubNode({
+  active,
+  baseScope,
+  isTeam,
+  session,
+  teamId,
+  url,
+  onClose,
+  onMutated,
+}: {
+  active: boolean
+  baseScope: string
+  isTeam: boolean
+  session: ReturnType<typeof createHermesConversation>
+  teamId?: number
+  url: string
+  onClose: () => void
+  onMutated: () => void
+}) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
+
+  const refetch = useCallback(() => {
+    onMutated()
+  }, [onMutated])
+
+  const handleSelect = useCallback(() => {
+    saveActiveConversationId(baseScope, session.id)
+    onClose()
+    void navigate({ to: url as never })
+  }, [baseScope, session.id, navigate, onClose, url])
+
+  const handlePin = useCallback(() => {
+    const all = peekHermesConversations(baseScope)
+    const next = all.map((s) =>
+      s.id === session.id
+        ? { ...s, pinned: !session.pinned, archived: session.pinned ? session.archived : false, updatedAt: Date.now() }
+        : s
+    )
+    saveHermesConversations(baseScope, next)
+    void upsertSkillConversation(isTeam, teamId, next.find((s) => s.id === session.id))
+    refetch()
+  }, [baseScope, isTeam, refetch, session, teamId])
+
+  const handleCopyId = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(session.hermesSessionId || session.id)
+      toast.success(t('Copied to clipboard'))
+    } catch {
+      toast.error(t('Copy failed'))
+    }
+  }, [session.hermesSessionId, session.id, t])
+
+  const handleOpenInNewWindow = useCallback(() => {
+    saveActiveConversationId(baseScope, session.id)
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }, [baseScope, session.id, url])
+
+  const handleExport = useCallback(() => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      session,
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json',
+    })
+    const downloadUrl = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = downloadUrl
+    anchor.download =
+      (session.title || session.id).replaceAll(/[<>:"/\\|?*]/g, '_') ||
+      'session.json'
+    anchor.click()
+    URL.revokeObjectURL(downloadUrl)
+    toast.success(t('Exported'))
+  }, [session, t])
+
+  const handleRename = useCallback(() => {
+    setRenameValue(session.title)
+    setRenaming(true)
+    setMenuOpen(false)
+  }, [session.title])
+
+  const submitRename = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      const title = renameValue.trim()
+      const all = peekHermesConversations(baseScope)
+      const next = all.map((s) =>
+        s.id === session.id
+          ? { ...s, title, titleEdited: title !== '', updatedAt: Date.now() }
+          : s
+      )
+      saveHermesConversations(baseScope, next)
+      void upsertSkillConversation(isTeam, teamId, next.find((s) => s.id === session.id))
+      refetch()
+      setRenaming(false)
+      setRenameValue('')
+    },
+    [baseScope, isTeam, refetch, renameValue, session.id, teamId]
+  )
+
+  const handleArchive = useCallback(() => {
+    const all = peekHermesConversations(baseScope)
+    const next = all.map((s) =>
+      s.id === session.id
+        ? { ...s, archived: !session.archived, pinned: session.archived ? session.pinned : false, updatedAt: Date.now() }
+        : s
+    )
+    saveHermesConversations(baseScope, next)
+    void upsertSkillConversation(isTeam, teamId, next.find((s) => s.id === session.id))
+    refetch()
+  }, [baseScope, isTeam, refetch, session, teamId])
+
+  const handleDelete = useCallback(() => {
+    clearConversationStorage(session)
+    void deleteSkillConversation(isTeam, teamId, session.id)
+    const all = peekHermesConversations(baseScope)
+    const remaining = all.filter((s) => s.id !== session.id)
+    if (remaining.length === 0) {
+      const fresh = createHermesConversation(baseScope)
+      saveHermesConversations(baseScope, [fresh])
+    } else {
+      saveHermesConversations(baseScope, remaining)
+    }
+    refetch()
+  }, [baseScope, isTeam, refetch, session, teamId])
+
+  return (
+    <>
+      <SidebarMenuSubItem className='relative group/menu-parent pl-5'>
+        <SidebarMenuSubButton
+          isActive={active}
+          className='text-muted-foreground h-auto py-1'
+          onClick={handleSelect}
+        >
+          <MessageCircle className='size-3 shrink-0' aria-hidden='true' />
+          <span className='line-clamp-1 min-w-0 text-xs'>
+            {session.title || t('New conversation')}
+          </span>
+          <span className='text-muted-foreground/50 ml-1 shrink-0 text-[10px]'>
+            {formatSessionTime(session.updatedAt, t('Just now'))}
+          </span>
+        </SidebarMenuSubButton>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen} modal={false}>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                aria-label={t('Open menu')}
+                className='absolute top-0.5 right-0.5 size-5 opacity-0 group-hover/menu-parent:opacity-100'
+                onClick={(e) => e.stopPropagation()}
+                size='icon-sm'
+                type='button'
+                variant='ghost'
+              />
+            }
+          >
+            <MoreHorizontal className='size-3.5' aria-hidden='true' />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end' className='w-44'>
+            <DropdownMenuItem onClick={handlePin}>
+              {session.pinned ? (
+                <PinOff className='size-4' aria-hidden='true' />
+              ) : (
+                <Pin className='size-4' aria-hidden='true' />
+              )}
+              {session.pinned ? t('Unpin') : t('Pin')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleCopyId}>
+              <Copy className='size-4' aria-hidden='true' />
+              {t('Copy ID')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleOpenInNewWindow}>
+              <ExternalLink className='size-4' aria-hidden='true' />
+              {t('Open in new window')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExport}>
+              <Download className='size-4' aria-hidden='true' />
+              {t('Export')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleRename}>
+              <Pencil className='size-4' aria-hidden='true' />
+              {t('Rename')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleArchive}>
+              {session.archived ? (
+                <ArchiveRestore className='size-4' aria-hidden='true' />
+              ) : (
+                <Archive className='size-4' aria-hidden='true' />
+              )}
+              {session.archived ? t('Restore') : t('Archive')}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant='destructive' onClick={handleDelete}>
+              <Trash2 className='size-4' aria-hidden='true' />
+              {t('Delete')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuSubItem>
+
+      <Dialog open={renaming} onOpenChange={setRenaming}>
+        <DialogContent>
+          <form onSubmit={submitRename} className='space-y-4'>
+            <DialogHeader>
+              <DialogTitle>{t('Rename session')}</DialogTitle>
+            </DialogHeader>
+            <Input
+              aria-label={t('Session name')}
+              autoFocus
+              onChange={(e) => setRenameValue(e.target.value)}
+              value={renameValue}
+            />
+            <DialogFooter>
+              <Button
+                onClick={() => setRenaming(false)}
+                type='button'
+                variant='outline'
+              >
+                {t('Cancel')}
+              </Button>
+              <Button type='submit'>{t('Save')}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+async function upsertSkillConversation(
+  isTeam: boolean,
+  teamId: number | undefined,
+  session: ReturnType<typeof createHermesConversation> | undefined
+) {
+  if (!isTeam || !teamId || !session) return
+  void upsertTeamHermesConversation(teamId, {
+    ...session,
+    messages: [],
+  }).catch(() => {})
+}
+
+async function deleteSkillConversation(
+  isTeam: boolean,
+  teamId: number | undefined,
+  sessionId: string
+) {
+  if (!isTeam || !teamId) return
+  void deleteTeamHermesConversation(teamId, sessionId).catch(() => {})
+}
+
+function TeamSkillGroup({
+  team,
+  skills,
+  href,
+  onClose,
+}: {
+  team: Team
+  skills: HermesSkill[]
+  href: string
+  onClose: () => void
+}) {
+  const [open, setOpen] = useState(true)
+
+  const teamSkillUrl = (name: string) =>
+    `/team-workspace?team_id=${team.id}&skill=${encodeURIComponent(name)}` as const
+
+  return (
+    <>
+      <SidebarMenuSubItem>
+        <SidebarMenuSubButton
+          className='text-muted-foreground/70 cursor-pointer'
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? (
+            <ChevronDown className='size-3 shrink-0' aria-hidden='true' />
+          ) : (
+            <ChevronRight className='size-3 shrink-0' aria-hidden='true' />
+          )}
+          <span className='text-[11px] font-semibold tracking-wider uppercase'>
+            {team.name}
+          </span>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+      {open &&
+        skills.map((skill, idx) => (
+          <SkillSubItem
+            key={skill.name}
+            skill={skill}
+            teamId={team.id}
+            url={teamSkillUrl(skill.name)}
+            href={href}
+            onClose={onClose}
+            index={idx}
+          />
         ))}
     </>
   )
@@ -228,7 +567,12 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
   const teamGroups = useMemo<TeamGroup[]>(() => {
     if (!isTeamSection) return []
     return teams
-      .map((team, i) => ({ team, skills: teamSkillQueries[i]?.data ?? [] }))
+      .map((team, i) => ({
+        team,
+        skills: (teamSkillQueries[i]?.data ?? []).filter(
+          (s) => s.ownerScope === 'team' || s.source === 'team'
+        ),
+      }))
       .filter((g) => g.skills.length > 0)
   }, [isTeamSection, teams, teamSkillQueries])
 
@@ -264,22 +608,13 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
   const expandedTeamContent = (
     <>
       {teamGroups.map(({ team, skills }) => (
-        <Fragment key={team.id}>
-          <li className='text-muted-foreground/60 select-none px-2 pt-2 pb-0.5 text-[10px] font-semibold tracking-wider uppercase first:pt-1'>
-            {team.name}
-          </li>
-          {skills.map((skill, idx) => (
-            <SkillSubItem
-              key={skill.name}
-              skill={skill}
-              teamId={team.id}
-              url={teamSkillUrl(team.id, skill.name)}
-              href={href}
-              onClose={() => setOpenMobile(false)}
-              index={idx}
-            />
-          ))}
-        </Fragment>
+        <TeamSkillGroup
+          key={team.id}
+          team={team}
+          skills={skills}
+          href={href}
+          onClose={() => setOpenMobile(false)}
+        />
       ))}
     </>
   )

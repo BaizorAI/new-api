@@ -16,31 +16,54 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import {
+  Archive,
+  ArchiveRestore,
   Building2,
   CheckCircle2,
   Clock3,
+  Copy,
+  Download,
+  ExternalLink,
   FileCheck2,
   LayoutDashboard,
   ListChecks,
   Loader2,
   MessageSquare,
+  MoreHorizontal,
+  Pencil,
+  Pin,
+  PinOff,
   Plus,
   Sparkles,
+  Trash2,
   UserRound,
   Users,
   XCircle,
 } from 'lucide-react'
-import { useCallback, useMemo, type ElementType } from 'react'
+import { useCallback, useMemo, useState, type ElementType, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
+import { Button } from '@/components/ui/button'
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
 import {
   SidebarMenuButton,
   SidebarMenuItem,
@@ -49,14 +72,17 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import {
+  deleteTeamHermesConversation,
   listHermesExecutionTasks,
   listTeamHermesConversations,
+  upsertTeamHermesConversation,
   type HermesExecutionTask,
   type HermesExecutionTaskStatus,
   type HermesTeamConversationRecord,
 } from '@/features/hermes-playground/api'
 import {
   activeConversationStorageKey,
+  clearConversationStorage,
   createHermesConversation,
   formatSessionTime,
   loadActiveConversationId,
@@ -281,6 +307,10 @@ function FlatTeamSessionItems(props: {
         title={props.title}
         className='pl-6'
       />
+      <FlatNewTeamSessionItem
+        team={props.team}
+        onNavigate={props.onNavigate}
+      />
       {isLoading ? (
         <FlatSidebarMutedItem
           className='pl-9'
@@ -311,10 +341,6 @@ function FlatTeamSessionItems(props: {
           onNavigate={props.onNavigate}
         />
       ))}
-      <FlatNewTeamSessionItem
-        team={props.team}
-        onNavigate={props.onNavigate}
-      />
     </>
   )
 }
@@ -330,7 +356,7 @@ function FlatTeamSessionItem(props: {
   const title = props.session.title || t('New session')
 
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem className='relative group/menu-parent'>
       <SidebarMenuButton
         className='pl-9'
         isActive={props.active}
@@ -352,6 +378,11 @@ function FlatTeamSessionItem(props: {
           {formatSessionTime(props.session.updatedAt, t('Just now'))}
         </span>
       </SidebarMenuButton>
+      <TeamSessionMenu
+        baseScope={props.baseScope}
+        session={props.session}
+        team={props.team}
+      />
     </SidebarMenuItem>
   )
 }
@@ -365,7 +396,7 @@ function FlatTeamTaskItems(props: {
   const { t } = useTranslation()
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['sidebar', 'team-tasks', props.team.id],
-    queryFn: () => listHermesExecutionTasks({ teamId: props.team.id }),
+    queryFn: () => listHermesExecutionTasks({ teamId: props.team.id, limit: 5 }),
     refetchInterval: 5000,
   })
 
@@ -604,26 +635,43 @@ function SidebarTeamItems(props: {
           <span>{team.name}</span>
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>,
-      ...TEAM_PANEL_CONFIG.flatMap((config) => [
-        <SidebarTeamPanelItem
-          key={`${team.id}-${config.panel}`}
-          href={props.href}
-          team={team}
-          panel={config.panel}
-          title={t(config.titleKey)}
-          icon={config.icon}
-          onNavigate={props.onNavigate}
-        />,
-        ...(config.panel === 'sessions'
-          ? [
-              <NewTeamSessionSubItem
-                key={`${team.id}-new-session`}
-                team={team}
-                onNavigate={props.onNavigate}
-              />,
-            ]
-          : []),
-      ]),
+      ...TEAM_PANEL_CONFIG.flatMap((config) => {
+        if (config.panel === 'sessions') {
+          return [
+            <SidebarTeamPanelItem
+              key={`${team.id}-${config.panel}`}
+              href={props.href}
+              team={team}
+              panel={config.panel}
+              title={t(config.titleKey)}
+              icon={config.icon}
+              onNavigate={props.onNavigate}
+            />,
+            <NewTeamSessionSubItem
+              key={`${team.id}-new-session`}
+              team={team}
+              onNavigate={props.onNavigate}
+            />,
+            <SidebarTeamSessionItems
+              key={`${team.id}-session-items`}
+              href={props.href}
+              team={team}
+              onNavigate={props.onNavigate}
+            />,
+          ]
+        }
+        return [
+          <SidebarTeamPanelItem
+            key={`${team.id}-${config.panel}`}
+            href={props.href}
+            team={team}
+            panel={config.panel}
+            title={t(config.titleKey)}
+            icon={config.icon}
+            onNavigate={props.onNavigate}
+          />,
+        ]
+      }),
       ...TEAM_MANAGEMENT_CONFIG.map((config) => (
         <SidebarTeamManagementItem
           key={`${team.id}-${config.area}`}
@@ -637,6 +685,274 @@ function SidebarTeamItems(props: {
       )),
     ]),
   ]
+}
+
+function SidebarTeamSessionItems(props: {
+  href: string
+  team: Team
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+  const { data: sessions = [], isLoading } = useQuery({
+    queryKey: ['sidebar', 'team-sessions', props.team.id],
+    queryFn: () => listTeamHermesConversations(props.team.id),
+  })
+  const baseScope = getTeamWorkspaceBaseScope(props.team.id)
+  const visible = useMemo<HermesTeamConversationRecord[]>(
+    () =>
+      sortSessions(
+        sessions.filter((s) => !s.archived)
+      ) as HermesTeamConversationRecord[],
+    [sessions]
+  )
+  const activeId =
+    visible.length > 0 ? loadActiveConversationId(baseScope, visible) : ''
+
+  if (isLoading || visible.length === 0) return null
+
+  return (
+    <>
+      {visible.map((session) => (
+        <SidebarTeamSessionSubItem
+          key={session.id}
+          active={isTeamSessionActive(
+            props.href,
+            props.team.id,
+            activeId,
+            session.id
+          )}
+          baseScope={baseScope}
+          session={session}
+          team={props.team}
+          onNavigate={props.onNavigate}
+        />
+      ))}
+    </>
+  )
+}
+
+function SidebarTeamSessionSubItem(props: {
+  active: boolean
+  baseScope: string
+  session: HermesTeamConversationRecord
+  team: Team
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+  const title = props.session.title || t('New session')
+
+  return (
+    <SidebarMenuSubItem className='relative group/menu-parent'>
+      <SidebarMenuSubButton
+        className='pl-9'
+        isActive={props.active}
+        onClick={() => {
+          saveActiveConversationId(props.baseScope, props.session.id)
+          props.onNavigate()
+        }}
+      >
+        <MessageSquare className='size-3.5' aria-hidden='true' />
+        <span className='min-w-0 flex-1 truncate text-xs'>{title}</span>
+        <span className='text-muted-foreground shrink-0 text-[10px]'>
+          {formatSessionTime(props.session.updatedAt, t('Just now'))}
+        </span>
+      </SidebarMenuSubButton>
+      <TeamSessionMenu
+        baseScope={props.baseScope}
+        session={props.session}
+        team={props.team}
+      />
+    </SidebarMenuSubItem>
+  )
+}
+
+function TeamSessionMenu(props: {
+  baseScope: string
+  session: HermesTeamConversationRecord
+  team: Team
+}) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
+
+  const refetch = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: ['sidebar', 'team-sessions', props.team.id],
+    })
+  }, [queryClient, props.team.id])
+
+  const handlePin = useCallback(() => {
+    void upsertTeamHermesConversation(props.team.id, {
+      ...props.session,
+      pinned: !props.session.pinned,
+      archived: props.session.pinned ? props.session.archived : false,
+    }).then(refetch)
+  }, [props.session, props.team.id, refetch])
+
+  const handleCopyId = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(
+        props.session.hermesSessionId || props.session.id
+      )
+      toast.success(t('Copied to clipboard'))
+    } catch {
+      toast.error(t('Copy failed'))
+    }
+  }, [props.session.hermesSessionId, props.session.id, t])
+
+  const handleOpenInNewWindow = useCallback(() => {
+    saveActiveConversationId(props.baseScope, props.session.id)
+    window.open(
+      `/team-workspace?team_id=${props.team.id}`,
+      '_blank',
+      'noopener,noreferrer'
+    )
+  }, [props.baseScope, props.session.id, props.team.id])
+
+  const handleExport = useCallback(() => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      session: props.session,
+    }
+    downloadJson(payload, `${props.session.title || props.session.id}.json`)
+    toast.success(t('Exported'))
+  }, [props.session, t])
+
+  const handleArchive = useCallback(() => {
+    void upsertTeamHermesConversation(props.team.id, {
+      ...props.session,
+      archived: !props.session.archived,
+      pinned: props.session.archived ? props.session.pinned : false,
+    }).then(refetch)
+  }, [props.session, props.team.id, refetch])
+
+  const handleRename = useCallback(() => {
+    setRenameValue(props.session.title)
+    setRenaming(true)
+    setMenuOpen(false)
+  }, [props.session.title])
+
+  const submitRename = useCallback(
+    (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      const title = renameValue.trim()
+      void upsertTeamHermesConversation(props.team.id, {
+        ...props.session,
+        title,
+        titleEdited: title !== '',
+      }).then(refetch)
+      setRenaming(false)
+      setRenameValue('')
+    },
+    [props.session, props.team.id, refetch, renameValue]
+  )
+
+  const handleDelete = useCallback(() => {
+    clearConversationStorage(props.session)
+    void deleteTeamHermesConversation(props.team.id, props.session.id).then(
+      refetch
+    )
+  }, [props.session, props.team.id, refetch])
+
+  return (
+    <>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen} modal={false}>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              aria-label={t('Open menu')}
+              className='absolute top-0.5 right-0.5 size-5 opacity-0 group-hover/menu-parent:opacity-100'
+              onClick={(e) => e.stopPropagation()}
+              size='icon-sm'
+              type='button'
+              variant='ghost'
+            />
+          }
+        >
+          <MoreHorizontal className='size-3.5' aria-hidden='true' />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align='end' className='w-44'>
+          <DropdownMenuItem onClick={handlePin}>
+            {props.session.pinned ? (
+              <PinOff className='size-4' aria-hidden='true' />
+            ) : (
+              <Pin className='size-4' aria-hidden='true' />
+            )}
+            {props.session.pinned ? t('Unpin') : t('Pin')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleCopyId}>
+            <Copy className='size-4' aria-hidden='true' />
+            {t('Copy ID')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleOpenInNewWindow}>
+            <ExternalLink className='size-4' aria-hidden='true' />
+            {t('Open in new window')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleExport}>
+            <Download className='size-4' aria-hidden='true' />
+            {t('Export')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleRename}>
+            <Pencil className='size-4' aria-hidden='true' />
+            {t('Rename')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleArchive}>
+            {props.session.archived ? (
+              <ArchiveRestore className='size-4' aria-hidden='true' />
+            ) : (
+              <Archive className='size-4' aria-hidden='true' />
+            )}
+            {props.session.archived ? t('Restore') : t('Archive')}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant='destructive' onClick={handleDelete}>
+            <Trash2 className='size-4' aria-hidden='true' />
+            {t('Delete')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={renaming} onOpenChange={setRenaming}>
+        <DialogContent>
+          <form onSubmit={submitRename} className='space-y-4'>
+            <DialogHeader>
+              <DialogTitle>{t('Rename session')}</DialogTitle>
+            </DialogHeader>
+            <Input
+              aria-label={t('Session name')}
+              autoFocus
+              onChange={(e) => setRenameValue(e.target.value)}
+              value={renameValue}
+            />
+            <DialogFooter>
+              <Button
+                onClick={() => setRenaming(false)}
+                type='button'
+                variant='outline'
+              >
+                {t('Cancel')}
+              </Button>
+              <Button type='submit'>{t('Save')}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+function downloadJson(payload: unknown, filename: string): void {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: 'application/json',
+  })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename.replaceAll(/[<>:"/\\|?*]/g, '_') || 'session.json'
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 function SidebarTeamOverviewItem(props: {

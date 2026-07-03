@@ -16,16 +16,44 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { MessageCircle, Plus } from 'lucide-react'
+import {
+  Archive,
+  ArchiveRestore,
+  Copy,
+  Download,
+  ExternalLink,
+  MessageCircle,
+  MoreHorizontal,
+  Pencil,
+  Pin,
+  PinOff,
+  Plus,
+  Trash2,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
 import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
@@ -37,7 +65,9 @@ import type { HermesSkill } from '@/features/hermes-playground/api'
 import { useAuthStore } from '@/stores/auth-store'
 import {
   HERMES_SESSIONS_CHANGED_EVENT,
+  clearConversationStorage,
   createHermesConversation,
+  formatSessionTime,
   getHermesBaseScope,
   loadActiveConversationId,
   peekHermesConversations,
@@ -113,20 +143,24 @@ function JilaiSkillSubItem({
       const existing = peekHermesConversations(baseScope)
       saveHermesConversations(baseScope, [newSession, ...existing])
       saveActiveConversationId(baseScope, newSession.id)
-      // Don't navigate — just create the node and let the user
-      // click the sub-session entry when they're ready to use it.
+      onClose()
+      void navigate({ to: url as never })
     },
-    [baseScope]
+    [baseScope, navigate, onClose, url]
   )
 
   const handleSelectSession = useCallback(
     (sessionId: string) => {
       saveActiveConversationId(baseScope, sessionId)
       onClose()
-      if (!subActive) void navigate({ to: url as never })
+      void navigate({ to: url as never })
     },
-    [baseScope, navigate, onClose, subActive, url]
+    [baseScope, navigate, onClose, url]
   )
+
+  const reloadSessions = useCallback(() => {
+    setSessions(peekHermesConversations(baseScope))
+  }, [baseScope])
 
   return (
     <>
@@ -167,19 +201,221 @@ function JilaiSkillSubItem({
 
       {subActive &&
         visibleSessions.map((session) => (
-          <SidebarMenuSubItem key={session.id} className='pl-5'>
-            <SidebarMenuSubButton
-              isActive={session.id === activeSessionId}
-              className='text-muted-foreground h-auto py-1'
-              onClick={() => handleSelectSession(session.id)}
-            >
-              <MessageCircle className='size-3 shrink-0' aria-hidden='true' />
-              <span className='line-clamp-1 min-w-0 text-xs'>
-                {session.title || t('New conversation')}
-              </span>
-            </SidebarMenuSubButton>
-          </SidebarMenuSubItem>
+          <JilaiSessionSubNode
+            key={session.id}
+            active={session.id === activeSessionId}
+            baseScope={baseScope}
+            session={session}
+            url={url}
+            onClose={onClose}
+            onMutated={reloadSessions}
+          />
         ))}
+    </>
+  )
+}
+
+function JilaiSessionSubNode({
+  active,
+  baseScope,
+  session,
+  url,
+  onClose,
+  onMutated,
+}: {
+  active: boolean
+  baseScope: string
+  session: ReturnType<typeof createHermesConversation>
+  url: string
+  onClose: () => void
+  onMutated: () => void
+}) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
+
+  const handleSelect = useCallback(() => {
+    saveActiveConversationId(baseScope, session.id)
+    onClose()
+    void navigate({ to: url as never })
+  }, [baseScope, session.id, navigate, onClose, url])
+
+  const handlePin = useCallback(() => {
+    const all = peekHermesConversations(baseScope)
+    const next = all.map((s) =>
+      s.id === session.id
+        ? { ...s, pinned: !session.pinned, archived: session.pinned ? session.archived : false, updatedAt: Date.now() }
+        : s
+    )
+    saveHermesConversations(baseScope, next)
+    onMutated()
+  }, [baseScope, onMutated, session])
+
+  const handleCopyId = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(session.hermesSessionId || session.id)
+      toast.success(t('Copied to clipboard'))
+    } catch {
+      toast.error(t('Copy failed'))
+    }
+  }, [session.hermesSessionId, session.id, t])
+
+  const handleOpenInNewWindow = useCallback(() => {
+    saveActiveConversationId(baseScope, session.id)
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }, [baseScope, session.id, url])
+
+  const handleExport = useCallback(() => {
+    const payload = { exportedAt: new Date().toISOString(), session }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const downloadUrl = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = downloadUrl
+    anchor.download = (session.title || session.id).replaceAll(/[<>:"/\\|?*]/g, '_') || 'session.json'
+    anchor.click()
+    URL.revokeObjectURL(downloadUrl)
+    toast.success(t('Exported'))
+  }, [session, t])
+
+  const handleRename = useCallback(() => {
+    setRenameValue(session.title)
+    setRenaming(true)
+    setMenuOpen(false)
+  }, [session.title])
+
+  const submitRename = useCallback(
+    (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      const title = renameValue.trim()
+      const all = peekHermesConversations(baseScope)
+      const next = all.map((s) =>
+        s.id === session.id
+          ? { ...s, title, titleEdited: title !== '', updatedAt: Date.now() }
+          : s
+      )
+      saveHermesConversations(baseScope, next)
+      onMutated()
+      setRenaming(false)
+      setRenameValue('')
+    },
+    [baseScope, onMutated, renameValue, session.id]
+  )
+
+  const handleArchive = useCallback(() => {
+    const all = peekHermesConversations(baseScope)
+    const next = all.map((s) =>
+      s.id === session.id
+        ? { ...s, archived: !session.archived, pinned: session.archived ? session.pinned : false, updatedAt: Date.now() }
+        : s
+    )
+    saveHermesConversations(baseScope, next)
+    onMutated()
+  }, [baseScope, onMutated, session])
+
+  const handleDelete = useCallback(() => {
+    clearConversationStorage(session)
+    const all = peekHermesConversations(baseScope)
+    const remaining = all.filter((s) => s.id !== session.id)
+    saveHermesConversations(baseScope, remaining.length ? remaining : [createHermesConversation(baseScope)])
+    onMutated()
+  }, [baseScope, onMutated, session])
+
+  return (
+    <>
+      <SidebarMenuSubItem className='relative group/menu-parent pl-5'>
+        <SidebarMenuSubButton
+          isActive={active}
+          className='text-muted-foreground h-auto py-1'
+          onClick={handleSelect}
+        >
+          <MessageCircle className='size-3 shrink-0' aria-hidden='true' />
+          <span className='line-clamp-1 min-w-0 text-xs'>
+            {session.title || t('New conversation')}
+          </span>
+          <span className='text-muted-foreground/50 ml-1 shrink-0 text-[10px]'>
+            {formatSessionTime(session.updatedAt, t('Just now'))}
+          </span>
+        </SidebarMenuSubButton>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen} modal={false}>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                aria-label={t('Open menu')}
+                className='absolute top-0.5 right-0.5 size-5 opacity-0 group-hover/menu-parent:opacity-100'
+                onClick={(e) => e.stopPropagation()}
+                size='icon-sm'
+                type='button'
+                variant='ghost'
+              />
+            }
+          >
+            <MoreHorizontal className='size-3.5' aria-hidden='true' />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end' className='w-44'>
+            <DropdownMenuItem onClick={handlePin}>
+              {session.pinned ? (
+                <PinOff className='size-4' aria-hidden='true' />
+              ) : (
+                <Pin className='size-4' aria-hidden='true' />
+              )}
+              {session.pinned ? t('Unpin') : t('Pin')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleCopyId}>
+              <Copy className='size-4' aria-hidden='true' />
+              {t('Copy ID')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleOpenInNewWindow}>
+              <ExternalLink className='size-4' aria-hidden='true' />
+              {t('Open in new window')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExport}>
+              <Download className='size-4' aria-hidden='true' />
+              {t('Export')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleRename}>
+              <Pencil className='size-4' aria-hidden='true' />
+              {t('Rename')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleArchive}>
+              {session.archived ? (
+                <ArchiveRestore className='size-4' aria-hidden='true' />
+              ) : (
+                <Archive className='size-4' aria-hidden='true' />
+              )}
+              {session.archived ? t('Restore') : t('Archive')}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant='destructive' onClick={handleDelete}>
+              <Trash2 className='size-4' aria-hidden='true' />
+              {t('Delete')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuSubItem>
+
+      <Dialog open={renaming} onOpenChange={setRenaming}>
+        <DialogContent>
+          <form onSubmit={submitRename} className='space-y-4'>
+            <DialogHeader>
+              <DialogTitle>{t('Rename session')}</DialogTitle>
+            </DialogHeader>
+            <Input
+              aria-label={t('Session name')}
+              autoFocus
+              onChange={(e) => setRenameValue(e.target.value)}
+              value={renameValue}
+            />
+            <DialogFooter>
+              <Button onClick={() => setRenaming(false)} type='button' variant='outline'>
+                {t('Cancel')}
+              </Button>
+              <Button type='submit'>{t('Save')}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
