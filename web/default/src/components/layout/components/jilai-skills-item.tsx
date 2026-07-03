@@ -143,10 +143,11 @@ function JilaiSkillSubItem({
       const existing = peekHermesConversations(baseScope)
       saveHermesConversations(baseScope, [newSession, ...existing])
       saveActiveConversationId(baseScope, newSession.id)
-      onClose()
-      void navigate({ to: url as never })
+      // Just create the child node. The user clicks the sub-session
+      // entry to enter the workspace and type their own message.
+      // Skill activation is handled server-side via request headers.
     },
-    [baseScope, navigate, onClose, url]
+    [baseScope]
   )
 
   const handleSelectSession = useCallback(

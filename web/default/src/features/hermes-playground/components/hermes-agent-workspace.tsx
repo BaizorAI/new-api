@@ -1065,32 +1065,14 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
 
   const startWithSkill = useCallback(
     (skill: HermesSkill) => {
-      setQuickPromptRequest({
-        id: `${Date.now()}-${skill.name}`,
-        prompt: t('Use the "{{name}}" skill for this task.', {
-          name: skill.name,
-        }),
-      })
+      // Skill activation is handled by the X-Baizor-Hermes-Skill-Activate
+      // request header in skill/jilai/team-skill workspaces. Don't
+      // auto-submit a prompt — let the user type their own message.
       setIsCapabilityCenterOpen(false)
       navigateToConversationWorkspace()
     },
-    [navigateToConversationWorkspace, t]
+    [navigateToConversationWorkspace]
   )
-
-  // Auto-activate a skill passed via ?skill= URL param (e.g. from sidebar nav)
-  const triggeredSkillRef = useRef<string | undefined>(undefined)
-  useEffect(() => {
-    if (!props.initialSkill) return
-    if (triggeredSkillRef.current === props.initialSkill) return
-    triggeredSkillRef.current = props.initialSkill
-    setQuickPromptRequest({
-      id: `skill-${props.initialSkill}-${Date.now()}`,
-      prompt: t('Use the "{{name}}" skill for this task.', {
-        name: props.initialSkill,
-      }),
-    })
-    navigateToConversationWorkspace()
-  }, [props.initialSkill, t, navigateToConversationWorkspace])
 
   const continueWithResult = useCallback(
     (prompt: string, session: HermesConversation) => {
