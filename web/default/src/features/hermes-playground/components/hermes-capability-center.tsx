@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { formatRelativeTime, formatTimestamp } from '@/lib/format'
 import { useQuery } from '@tanstack/react-query'
 import {
   ArrowBigUpIcon,
@@ -689,6 +690,7 @@ function SkillSection(props: SkillSectionProps) {
                   selectedTeamId={props.selectedTeamId}
                   selectedTeamName={props.selectedTeamName}
                   skill={skill}
+                  time={skill.updatedAt}
                 />
               ))}
             </div>
@@ -709,6 +711,7 @@ function SkillNodeItem(props: {
   selectedTeamId: number
   selectedTeamName: string
   onPublishSkill: (skill: HermesSkill, options: SkillPublishOptions) => void
+  time?: number
 }) {
   const { t, i18n } = useTranslation()
   const { skill } = props
@@ -722,7 +725,7 @@ function SkillNodeItem(props: {
     skill.isUserCreated || skillScope === 'user' || skillScope === 'team'
 
   return (
-    <div className='group relative flex items-start gap-1 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/60'>
+    <div className='group relative flex flex-row items-start gap-2 rounded-md px-2 py-2 transition-colors hover:bg-muted/60'>
       {/* Action buttons: top-left, appear on hover */}
       {isManageable && (
         <div className='mt-0.5 flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover:opacity-100'>
@@ -751,11 +754,7 @@ function SkillNodeItem(props: {
         </div>
       )}
       {/* Skill body: click to use */}
-      <button
-        className='min-w-0 flex-1 text-left'
-        onClick={() => props.onUseSkill(skill)}
-        type='button'
-      >
+      <div className='min-w-0 flex-1'>
         <div className='truncate text-sm font-medium leading-snug'>
           {skill.displayName || skill.name}
         </div>
@@ -769,6 +768,19 @@ function SkillNodeItem(props: {
             {description}
           </div>
         )}
+        {props.time && (
+          <div className='text-muted-foreground mt-1 text-[11px]'>
+            {formatTimestamp(props.time)}
+          </div>
+        )}
+      </div>
+      <button
+        className='text-muted-foreground hover:text-foreground shrink-0 transition-colors'
+        onClick={() => props.onUseSkill(skill)}
+        title={t('Use skill')}
+        type='button'
+      >
+        <PlayIcon className='size-3.5' />
       </button>
     </div>
   )

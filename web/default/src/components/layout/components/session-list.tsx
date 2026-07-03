@@ -55,6 +55,7 @@ import {
 import { cn } from '@/lib/utils'
 
 import type { SessionActions, SessionLike } from '../lib/session-list-core'
+import { formatTimestamp } from '@/lib/format'
 import { SIDEBAR_NODE_COLORS } from '../constants'
 
 export type { SessionActions, SessionLike }
@@ -194,6 +195,7 @@ function SessionGroupCollapsed<T extends SessionLike>(props: {
 
 function SessionItemExpanded<T extends SessionLike>(props: {
   baseUrl: string
+  time?: number
   session: T
   active: boolean
   actions: SessionActions<T>
@@ -218,6 +220,11 @@ function SessionItemExpanded<T extends SessionLike>(props: {
           <Pin className='size-3.5' aria-hidden='true' />
         ) : null}
         <span>{props.session.title || t('New session')}</span>
+        {props.time && (
+          <div className='text-muted-foreground text-[11px] ml-1'>
+            {formatTimestamp(props.time)}
+          </div>
+        )}
       </SidebarMenuSubButton>
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger
