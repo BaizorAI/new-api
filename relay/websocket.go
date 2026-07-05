@@ -8,9 +8,7 @@ import (
 	"strings"
 
 	"github.com/BaizorAI/new-api/common"
-	"github.com/BaizorAI/new-api/constant"
 	"github.com/BaizorAI/new-api/dto"
-	"github.com/BaizorAI/new-api/middleware"
 	relaycommon "github.com/BaizorAI/new-api/relay/common"
 	"github.com/BaizorAI/new-api/relay/channel"
 	"github.com/BaizorAI/new-api/relay/helper"
@@ -56,35 +54,25 @@ func WssHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types.
 func WssResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types.NewAPIError) {
 	statusCodeMappingStr := c.GetString("status_code_mapping")
 
-	// Read the request body from the first WebSocket text frame sent by the client.
-	msgType, msgData, wsErr := info.ClientWs.ReadMessage()
-	if wsErr != nil {
-		return types.NewError(wsErr, types.ErrorCodeReadRequestBodyFailed, types.ErrOptionWithSkipRetry())
-	}
-	if msgType != websocket.TextMessage {
-		return types.NewError(
-			fmt.Errorf("expected text message, got type %d", msgType),
-			types.ErrorCodeInvalidRequest,
-			types.ErrOptionWithSkipRetry(),
-		)
-	}
-
-	// Codex does not include ?model= in the WebSocket URL, so Distribute defers channel
-	// selection. Extract the model from the frame JSON and select a channel now.
-	if _, hasChannel := common.GetContextKey(c, constant.ContextKeyChannelId); !hasChannel {
-		var frame struct {
-			Model string `json:"model"`
+	// The first WS frame may have been read early by controller/relay.go (for model
+	// extraction before ModelPriceHelper). Use that buffered data when present;
+	// otherwise read the frame now (covers the ?model= query-param case).
+	var msgData []byte
+	if stored, ok := c.Get("ws_responses_first_frame_data"); ok {
+		msgData = stored.([]byte)
+	} else {
+		msgType, frameData, wsErr := info.ClientWs.ReadMessage()
+		if wsErr != nil {
+			return types.NewError(wsErr, types.ErrorCodeReadRequestBodyFailed, types.ErrOptionWithSkipRetry())
 		}
-		if err := common.UnmarshalJsonStr(string(msgData), &frame); err != nil || frame.Model == "" {
+		if msgType != websocket.TextMessage {
 			return types.NewError(
-				fmt.Errorf("field model is required"),
+				fmt.Errorf("expected text message, got type %d", msgType),
 				types.ErrorCodeInvalidRequest,
 				types.ErrOptionWithSkipRetry(),
 			)
 		}
-		if selErr := middleware.SelectChannelForModel(c, frame.Model); selErr != nil {
-			return selErr
-		}
+		msgData = frameData
 	}
 
 	info.InitChannelMeta(c)

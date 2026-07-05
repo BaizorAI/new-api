@@ -84,6 +84,35 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			return
 		}
 		defer ws.Close()
+
+		// ResponsesWS: codex sends no ?model= in the URL, so Distribute deferred channel
+		// selection. Read the first WS frame now to extract the model and select a channel
+		// before ModelPriceHelper runs (which requires a non-empty relayInfo.OriginModelName).
+		if relayFormat == types.RelayFormatOpenAIResponsesWS {
+			if _, hasChannel := common.GetContextKey(c, constant.ContextKeyChannelId); !hasChannel {
+				msgType, msgData, wsErr := ws.ReadMessage()
+				if wsErr != nil {
+					newAPIError = types.NewError(wsErr, types.ErrorCodeReadRequestBodyFailed, types.ErrOptionWithSkipRetry())
+					return
+				}
+				if msgType != websocket.TextMessage {
+					newAPIError = types.NewError(fmt.Errorf("expected text message, got type %d", msgType), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
+					return
+				}
+				var frame struct {
+					Model string `json:"model"`
+				}
+				if parseErr := common.UnmarshalJsonStr(string(msgData), &frame); parseErr != nil || frame.Model == "" {
+					newAPIError = types.NewError(fmt.Errorf("field model is required"), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
+					return
+				}
+				if selErr := middleware.SelectChannelForModel(c, frame.Model); selErr != nil {
+					newAPIError = selErr
+					return
+				}
+				c.Set("ws_responses_first_frame_data", msgData)
+			}
+		}
 	}
 
 	defer func() {
