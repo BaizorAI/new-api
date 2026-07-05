@@ -355,8 +355,12 @@ func getModelRequest(c *gin.Context) (*ModelRequest, bool, error) {
 		modelRequest.Model = c.Query("model")
 	}
 	if strings.HasPrefix(c.Request.URL.Path, "/v1/responses") && c.Request.Method == http.MethodGet {
-		// WebSocket upgrade: model must come from ?model= query param
-		modelRequest.Model = c.Query("model")
+		if q := c.Query("model"); q != "" {
+			modelRequest.Model = q
+		} else {
+			// Model is in the first WebSocket frame; defer channel selection to WssResponsesHelper.
+			shouldSelectChannel = false
+		}
 	}
 	if strings.HasPrefix(c.Request.URL.Path, "/v1/moderations") {
 		if modelRequest.Model == "" {
@@ -505,6 +509,99 @@ func SetupContextForSelectedChannel(c *gin.Context, channel *model.Channel, mode
 	case constant.ChannelTypeCoze:
 		c.Set("bot_id", channel.Other)
 	}
+	return nil
+}
+
+// SelectChannelForModel selects a channel for modelName and sets it up in the gin context.
+// Used by WebSocket endpoints (e.g. WssResponsesHelper) where the model is not known until
+// the first WebSocket frame is received and channel selection must be deferred past Distribute.
+func SelectChannelForModel(c *gin.Context, modelName string) *types.NewAPIError {
+	if modelName == "" {
+		return types.NewError(errors.New(i18n.T(c, i18n.MsgDistributorModelNameRequired)), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
+	}
+
+	modelLimitEnable := common.GetContextKeyBool(c, constant.ContextKeyTokenModelLimitEnabled)
+	if modelLimitEnable {
+		s, ok := common.GetContextKey(c, constant.ContextKeyTokenModelLimit)
+		if !ok {
+			return types.NewError(errors.New(i18n.T(c, i18n.MsgDistributorTokenNoModelAccess)), types.ErrorCodeModelNotFound, types.ErrOptionWithSkipRetry())
+		}
+		tokenModelLimit, _ := s.(map[string]bool)
+		matchName := ratio_setting.FormatMatchingModelName(modelName)
+		if _, ok := tokenModelLimit[matchName]; !ok {
+			return types.NewError(
+				errors.New(i18n.T(c, i18n.MsgDistributorTokenModelForbidden, map[string]any{"Model": modelName})),
+				types.ErrorCodeModelNotFound,
+				types.ErrOptionWithSkipRetry(),
+			)
+		}
+	}
+
+	var ch *model.Channel
+	var selectGroup string
+	var err error
+	usingGroup := common.GetContextKeyString(c, constant.ContextKeyUsingGroup)
+
+	if preferredChannelID, found := service.GetPreferredChannelByAffinity(c, modelName, usingGroup); found {
+		affinityUsable := false
+		preferred, cacheErr := model.CacheGetChannel(preferredChannelID)
+		if cacheErr == nil && preferred != nil && preferred.Status == common.ChannelStatusEnabled &&
+			channelSupportsRequestPath(preferred, c.Request.URL.Path) {
+			if usingGroup == "auto" {
+				userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
+				for _, g := range service.GetUserAutoGroup(userGroup) {
+					if model.IsChannelEnabledForGroupModel(g, modelName, preferred.Id) {
+						selectGroup = g
+						common.SetContextKey(c, constant.ContextKeyAutoGroup, g)
+						ch = preferred
+						affinityUsable = true
+						service.MarkChannelAffinityUsed(c, g, preferred.Id)
+						break
+					}
+				}
+			} else if model.IsChannelEnabledForGroupModel(usingGroup, modelName, preferred.Id) {
+				ch = preferred
+				selectGroup = usingGroup
+				affinityUsable = true
+				service.MarkChannelAffinityUsed(c, usingGroup, preferred.Id)
+			}
+		}
+		if !affinityUsable && !service.ShouldKeepChannelAffinityOnChannelDisabled() {
+			service.ClearCurrentChannelAffinityCache(c)
+		}
+	}
+
+	if ch == nil {
+		ch, selectGroup, err = service.CacheGetRandomSatisfiedChannel(&service.RetryParam{
+			Ctx:         c,
+			ModelName:   modelName,
+			TokenGroup:  usingGroup,
+			RequestPath: c.Request.URL.Path,
+			Retry:       common.GetPointer(0),
+		})
+		if err != nil {
+			showGroup := usingGroup
+			if usingGroup == "auto" {
+				showGroup = fmt.Sprintf("auto(%s)", selectGroup)
+			}
+			return types.NewError(
+				errors.New(i18n.T(c, i18n.MsgDistributorGetChannelFailed, map[string]any{"Group": showGroup, "Model": modelName, "Error": err.Error()})),
+				types.ErrorCodeModelNotFound,
+			)
+		}
+		if ch == nil {
+			return types.NewError(
+				errors.New(i18n.T(c, i18n.MsgDistributorNoAvailableChannel, map[string]any{"Group": usingGroup, "Model": modelName})),
+				types.ErrorCodeModelNotFound,
+			)
+		}
+	}
+
+	common.SetContextKey(c, constant.ContextKeyRequestStartTime, time.Now())
+	if setupErr := SetupContextForSelectedChannel(c, ch, modelName); setupErr != nil {
+		return setupErr
+	}
+	service.RecordChannelAffinity(c, ch.Id)
 	return nil
 }
 
