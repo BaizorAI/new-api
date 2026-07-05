@@ -60,6 +60,10 @@ func ResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *
 		return types.NewError(fmt.Errorf("failed to copy request to GeneralOpenAIRequest: %w", err), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
 	}
 
+	// Strip codex-internal metadata fields (e.g. internal_chat_message_metadata_passthrough)
+	// that are injected by the codex CLI for client-side tracking but are unknown to upstream APIs.
+	request.StripInternalInputFields()
+
 	err = helper.ModelMappedHelper(c, info, request)
 	if err != nil {
 		return types.NewError(err, types.ErrorCodeChannelModelMappedError, types.ErrOptionWithSkipRetry())

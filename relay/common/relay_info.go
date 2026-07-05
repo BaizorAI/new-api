@@ -360,6 +360,18 @@ func GenRelayInfoWs(c *gin.Context, ws *websocket.Conn) *RelayInfo {
 	return info
 }
 
+func GenRelayInfoResponsesWS(c *gin.Context, ws *websocket.Conn) *RelayInfo {
+	info := genBaseRelayInfo(c, nil)
+	info.RelayFormat = types.RelayFormatOpenAIResponsesWS
+	info.ClientWs = ws
+	info.RelayMode = relayconstant.RelayModeResponses
+	info.IsStream = true
+	info.ResponsesUsageInfo = &ResponsesUsageInfo{
+		BuiltInTools: make(map[string]*BuildInToolInfo),
+	}
+	return info
+}
+
 func GenRelayInfoClaude(c *gin.Context, request dto.Request) *RelayInfo {
 	info := genBaseRelayInfo(c, request)
 	info.RelayFormat = types.RelayFormatClaude
@@ -561,6 +573,8 @@ func GenRelayInfo(c *gin.Context, relayFormat types.RelayFormat, request dto.Req
 		info = GenRelayInfoImage(c, request)
 	case types.RelayFormatOpenAIRealtime:
 		info = GenRelayInfoWs(c, ws)
+	case types.RelayFormatOpenAIResponsesWS:
+		info = GenRelayInfoResponsesWS(c, ws)
 	case types.RelayFormatClaude:
 		info = GenRelayInfoClaude(c, request)
 	case types.RelayFormatRerank:

@@ -1067,3 +1067,32 @@ func (r *OpenAIResponsesRequest) ParseInput() []MediaInput {
 
 	return mediaInputs
 }
+
+// StripInternalInputFields removes codex-internal fields (prefixed with "internal_") from
+// each item in the Input array. Codex CLI includes fields like
+// "internal_chat_message_metadata_passthrough" for client-side tracking; these are
+// not part of the public Responses API spec and upstream models reject them.
+func (r *OpenAIResponsesRequest) StripInternalInputFields() {
+	if r.Input == nil || common.GetJsonType(r.Input) != "array" {
+		return
+	}
+	var items []map[string]json.RawMessage
+	if err := common.Unmarshal(r.Input, &items); err != nil {
+		return
+	}
+	changed := false
+	for _, item := range items {
+		for k := range item {
+			if strings.HasPrefix(k, "internal_") {
+				delete(item, k)
+				changed = true
+			}
+		}
+	}
+	if !changed {
+		return
+	}
+	if cleaned, err := common.Marshal(items); err == nil {
+		r.Input = cleaned
+	}
+}
