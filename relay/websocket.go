@@ -85,6 +85,13 @@ func WssResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIErro
 	}
 	adaptor.Init(info)
 
+	// Log the first 400 bytes of the raw frame so we can see the exact format codex sends.
+	framePreview := string(msgData)
+	if len(framePreview) > 400 {
+		framePreview = framePreview[:400]
+	}
+	common.SysLog("WssResponsesHelper first frame: " + framePreview)
+
 	// codex WS Responses API protocol: first frame is a response.create event envelope
 	//   {"type":"response.create","response":{<actual Responses API request body>}}
 	// Extract the inner object so the upstream receives a plain Responses API request.
@@ -92,6 +99,14 @@ func WssResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIErro
 	if gjson.GetBytes(msgData, "type").String() == "response.create" {
 		if inner := gjson.GetBytes(msgData, "response"); inner.Exists() {
 			requestBody = []byte(inner.Raw)
+		}
+	}
+	// The Responses API create request body has no top-level "type" field.
+	// Strip it defensively to handle cases where the inner response object
+	// carries a discriminator (e.g. "type":"response") that upstreams reject.
+	if gjson.GetBytes(requestBody, "type").Exists() {
+		if updated, err := sjson.DeleteBytes(requestBody, "type"); err == nil {
+			requestBody = updated
 		}
 	}
 	// The upstream HTTP Responses API requires stream:true for SSE output.
