@@ -17,6 +17,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 func WssHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types.NewAPIError) {
@@ -83,13 +85,36 @@ func WssResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIErro
 	}
 	adaptor.Init(info)
 
+	// codex WS Responses API protocol: first frame is a response.create event envelope
+	//   {"type":"response.create","response":{<actual Responses API request body>}}
+	// Extract the inner object so the upstream receives a plain Responses API request.
+	requestBody := msgData
+	if gjson.GetBytes(msgData, "type").String() == "response.create" {
+		if inner := gjson.GetBytes(msgData, "response"); inner.Exists() {
+			requestBody = []byte(inner.Raw)
+		}
+	}
+	// The upstream HTTP Responses API requires stream:true for SSE output.
+	// Codex relies on the WS transport for streaming and may omit the field.
+	if !gjson.GetBytes(requestBody, "stream").Bool() {
+		if updated, err := sjson.SetBytes(requestBody, "stream", true); err == nil {
+			requestBody = updated
+		}
+	}
+	// Apply channel model mapping so the upstream receives the remapped model name.
+	if info.UpstreamModelName != "" {
+		if updated, err := sjson.SetBytes(requestBody, "model", info.UpstreamModelName); err == nil {
+			requestBody = updated
+		}
+	}
+
 	// Build the upstream HTTP POST URL via the adaptor.
 	fullRequestURL, urlErr := adaptor.GetRequestURL(info)
 	if urlErr != nil {
 		return types.NewError(urlErr, types.ErrorCodeDoRequestFailed, types.ErrOptionWithSkipRetry())
 	}
 
-	upstreamReq, reqErr := http.NewRequest(http.MethodPost, fullRequestURL, bytes.NewReader(msgData))
+	upstreamReq, reqErr := http.NewRequest(http.MethodPost, fullRequestURL, bytes.NewReader(requestBody))
 	if reqErr != nil {
 		return types.NewError(reqErr, types.ErrorCodeDoRequestFailed, types.ErrOptionWithSkipRetry())
 	}

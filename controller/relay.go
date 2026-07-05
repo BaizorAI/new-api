@@ -99,14 +99,31 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 					newAPIError = types.NewError(fmt.Errorf("expected text message, got type %d", msgType), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
 					return
 				}
+				// codex uses the WS Responses API protocol: first frame is
+				//   {"type":"response.create","response":{"model":"...","input":[...],...}}
+				// Fall back to a plain {"model":"..."} request for the ?model= path.
 				var frame struct {
-					Model string `json:"model"`
+					Type     string `json:"type"`
+					Model    string `json:"model"`
+					Response *struct {
+						Model string `json:"model"`
+					} `json:"response"`
 				}
-				if parseErr := common.UnmarshalJsonStr(string(msgData), &frame); parseErr != nil || frame.Model == "" {
+				if parseErr := common.UnmarshalJsonStr(string(msgData), &frame); parseErr != nil {
 					newAPIError = types.NewError(fmt.Errorf("field model is required"), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
 					return
 				}
-				if selErr := middleware.SelectChannelForModel(c, frame.Model); selErr != nil {
+				var frameModel string
+				if frame.Type == "response.create" && frame.Response != nil {
+					frameModel = frame.Response.Model
+				} else {
+					frameModel = frame.Model
+				}
+				if frameModel == "" {
+					newAPIError = types.NewError(fmt.Errorf("field model is required"), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
+					return
+				}
+				if selErr := middleware.SelectChannelForModel(c, frameModel); selErr != nil {
 					newAPIError = selErr
 					return
 				}
