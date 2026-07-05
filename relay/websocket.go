@@ -85,28 +85,36 @@ func WssResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIErro
 	}
 	adaptor.Init(info)
 
-	// Log the first 400 bytes of the raw frame so we can see the exact format codex sends.
-	framePreview := string(msgData)
-	if len(framePreview) > 400 {
-		framePreview = framePreview[:400]
-	}
-	common.SysLog("WssResponsesHelper first frame: " + framePreview)
-
-	// codex WS Responses API protocol: first frame is a response.create event envelope
-	//   {"type":"response.create","response":{<actual Responses API request body>}}
-	// Extract the inner object so the upstream receives a plain Responses API request.
+	// codex first frame: {"type":"response.create","model":"...","input":[...],...}
+	// The fields are flat at top level (no nested "response" wrapper).
+	// Strip "type" and forward the rest as a plain Responses API request body.
 	requestBody := msgData
-	if gjson.GetBytes(msgData, "type").String() == "response.create" {
-		if inner := gjson.GetBytes(msgData, "response"); inner.Exists() {
-			requestBody = []byte(inner.Raw)
-		}
-	}
-	// The Responses API create request body has no top-level "type" field.
-	// Strip it defensively to handle cases where the inner response object
-	// carries a discriminator (e.g. "type":"response") that upstreams reject.
 	if gjson.GetBytes(requestBody, "type").Exists() {
 		if updated, err := sjson.DeleteBytes(requestBody, "type"); err == nil {
 			requestBody = updated
+		}
+	}
+	// codex attaches OpenAI-internal fields (prefixed "internal_") to input items.
+	// Standard upstream Responses API providers reject them with 400.
+	var reqMap map[string]interface{}
+	if err := common.Unmarshal(requestBody, &reqMap); err == nil {
+		modified := false
+		if inputSlice, ok := reqMap["input"].([]interface{}); ok {
+			for _, item := range inputSlice {
+				if itemMap, ok := item.(map[string]interface{}); ok {
+					for k := range itemMap {
+						if strings.HasPrefix(k, "internal_") {
+							delete(itemMap, k)
+							modified = true
+						}
+					}
+				}
+			}
+		}
+		if modified {
+			if updated, err := common.Marshal(reqMap); err == nil {
+				requestBody = updated
+			}
 		}
 	}
 	// The upstream HTTP Responses API requires stream:true for SSE output.
