@@ -205,6 +205,19 @@ export type ModelSettings = {
   'claude.thinking_adapter_budget_tokens_percentage': number
   'grok.violation_deduction_enabled': boolean
   'grok.violation_deduction_amount': number
+  // CLI Default Models — shared & per-tool
+  'cli_default_model.model': string
+  'cli_default_model.haiku_model': string
+  'cli_default_model.sonnet_model': string
+  'cli_default_model.opus_model': string
+  // Codex parameters
+  'cli_default_model.codex_model': string
+  'cli_default_model.codex_full_auto': boolean
+  'cli_default_model.codex_reasoning_effort': string
+  // Claude parameters
+  'cli_default_model.claude_model': string
+  'cli_default_model.claude_max_turns': number
+  'cli_default_model.claude_permission_mode': string
   ModelPrice: string
   ModelRatio: string
   CacheRatio: string

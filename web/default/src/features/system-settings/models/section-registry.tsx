@@ -145,6 +145,18 @@ const MODELS_SECTIONS = [
             settings['cli_default_model.sonnet_model'] ?? '',
           'cli_default_model.opus_model':
             settings['cli_default_model.opus_model'] ?? '',
+          'cli_default_model.codex_model':
+            settings['cli_default_model.codex_model'] ?? '',
+          'cli_default_model.codex_full_auto':
+            settings['cli_default_model.codex_full_auto'] ?? true,
+          'cli_default_model.codex_reasoning_effort':
+            settings['cli_default_model.codex_reasoning_effort'] ?? 'medium',
+          'cli_default_model.claude_model':
+            settings['cli_default_model.claude_model'] ?? '',
+          'cli_default_model.claude_max_turns':
+            settings['cli_default_model.claude_max_turns'] ?? 0,
+          'cli_default_model.claude_permission_mode':
+            settings['cli_default_model.claude_permission_mode'] ?? 'bypassPermissions',
         }}
       />
     ),

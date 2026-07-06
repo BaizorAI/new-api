@@ -17,12 +17,26 @@ type CliLoginSubmitRequest struct {
 
 // CliLoginPollResponse is the response for polling a session.
 type CliLoginPollResponse struct {
-	Status      string `json:"status"`
-	Key         string `json:"key,omitempty"`
-	Model       string `json:"model,omitempty"`
+	Status string `json:"status"`
+	Key    string `json:"key,omitempty"`
+
+	// Shared default model
+	Model string `json:"model,omitempty"`
+
+	// Legacy tier aliases
 	HaikuModel  string `json:"haiku_model,omitempty"`
 	SonnetModel string `json:"sonnet_model,omitempty"`
 	OpusModel   string `json:"opus_model,omitempty"`
+
+	// Codex parameters
+	CodexModel           string `json:"codex_model,omitempty"`
+	CodexFullAuto        bool   `json:"codex_full_auto"`
+	CodexReasoningEffort string `json:"codex_reasoning_effort,omitempty"`
+
+	// Claude parameters
+	ClaudeModel          string `json:"claude_model,omitempty"`
+	ClaudeMaxTurns       int    `json:"claude_max_turns"`
+	ClaudePermissionMode string `json:"claude_permission_mode,omitempty"`
 }
 
 // SubmitCliKey handles POST /api/cli/submit — called by the frontend after a key is revealed.
@@ -69,13 +83,21 @@ func PollCliSession(c *gin.Context) {
 		Key:    session.Key,
 	}
 
-	// Include default model settings when session is done
+	// Include all tool settings when session is done
 	if session.Status == "done" {
 		cfg := model_setting.GetCliDefaultModelSettings()
 		resp.Model = cfg.Model
 		resp.HaikuModel = cfg.HaikuModel
 		resp.SonnetModel = cfg.SonnetModel
 		resp.OpusModel = cfg.OpusModel
+
+		resp.CodexModel = cfg.CodexModel
+		resp.CodexFullAuto = cfg.CodexFullAuto
+		resp.CodexReasoningEffort = cfg.CodexReasoningEffort
+
+		resp.ClaudeModel = cfg.ClaudeModel
+		resp.ClaudeMaxTurns = cfg.ClaudeMaxTurns
+		resp.ClaudePermissionMode = cfg.ClaudePermissionMode
 	}
 
 	c.JSON(http.StatusOK, gin.H{
