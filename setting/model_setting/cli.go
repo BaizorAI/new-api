@@ -2,6 +2,14 @@ package model_setting
 
 import "github.com/BaizorAI/new-api/setting/config"
 
+// CliModelInfo holds the context and output token limits for a single model.
+// Returned to the CLI on login so it can populate tool config files (e.g. codex
+// config.toml [model_info] sections) without hard-coding model metadata.
+type CliModelInfo struct {
+	ContextWindow   int `json:"context_window"`
+	MaxOutputTokens int `json:"max_output_tokens"`
+}
+
 // CliDefaultModelSettings defines which models and tool parameters the CLI
 // should use by default. All fields are returned to the CLI on login.
 type CliDefaultModelSettings struct {
@@ -28,6 +36,12 @@ type CliDefaultModelSettings struct {
 	ClaudeMaxTurns int `json:"claude_max_turns"`
 	// permission_mode: "default" | "acceptEdits" | "bypassPermissions"
 	ClaudePermissionMode string `json:"claude_permission_mode"`
+
+	// ── Model metadata ─────────────────────────────────────────────────────────
+	// ModelInfo maps model names to their context/output token limits.
+	// The CLI uses this to populate tool config files (e.g. codex [model_info]).
+	// Keys are the model name as used by the tool (e.g. "huazhen-v1").
+	ModelInfo map[string]CliModelInfo `json:"model_info"`
 }
 
 var defaultCliDefaultModelSettings = CliDefaultModelSettings{
@@ -43,6 +57,12 @@ var defaultCliDefaultModelSettings = CliDefaultModelSettings{
 	ClaudeModel:          "",
 	ClaudeMaxTurns:       0,
 	ClaudePermissionMode: "bypassPermissions",
+
+	ModelInfo: map[string]CliModelInfo{
+		"huazhen-v1":      {ContextWindow: 128000, MaxOutputTokens: 16384},
+		"huazhen-fable-5": {ContextWindow: 128000, MaxOutputTokens: 16384},
+		"huazhen3.6-35b":  {ContextWindow: 32768, MaxOutputTokens: 8192},
+	},
 }
 
 var cliDefaultModelSettings = defaultCliDefaultModelSettings

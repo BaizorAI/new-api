@@ -626,6 +626,17 @@ func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommo
 	if info != nil && request.Reasoning != nil && request.Reasoning.Effort != "" {
 		info.ReasoningEffort = request.Reasoning.Effort
 	}
+
+	// Normalize "developer" role → "system" for models that don't use the developer role
+	// (e.g. deepseek, any non-o-series / non-GPT-5 model behind an OpenAI-compatible channel).
+	upstreamModel := request.Model
+	if info != nil && info.UpstreamModelName != "" {
+		upstreamModel = info.UpstreamModelName
+	}
+	if !dto.ModelNeedsDeveloperRole(upstreamModel) {
+		request.NormalizeDeveloperRoleInInput()
+	}
+
 	return request, nil
 }
 

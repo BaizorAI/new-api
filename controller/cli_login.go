@@ -37,6 +37,10 @@ type CliLoginPollResponse struct {
 	ClaudeModel          string `json:"claude_model,omitempty"`
 	ClaudeMaxTurns       int    `json:"claude_max_turns"`
 	ClaudePermissionMode string `json:"claude_permission_mode,omitempty"`
+
+	// Model metadata: maps model name → {context_window, max_output_tokens}.
+	// The CLI uses this to populate tool config files (e.g. codex [model_info]).
+	ModelInfo map[string]model_setting.CliModelInfo `json:"model_info,omitempty"`
 }
 
 // SubmitCliKey handles POST /api/cli/submit — called by the frontend after a key is revealed.
@@ -98,6 +102,8 @@ func PollCliSession(c *gin.Context) {
 		resp.ClaudeModel = cfg.ClaudeModel
 		resp.ClaudeMaxTurns = cfg.ClaudeMaxTurns
 		resp.ClaudePermissionMode = cfg.ClaudePermissionMode
+
+		resp.ModelInfo = cfg.ModelInfo
 	}
 
 	c.JSON(http.StatusOK, gin.H{

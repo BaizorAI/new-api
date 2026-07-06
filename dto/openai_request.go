@@ -1096,3 +1096,49 @@ func (r *OpenAIResponsesRequest) StripInternalInputFields() {
 		r.Input = cleaned
 	}
 }
+
+// NormalizeDeveloperRoleInInput replaces the "developer" role with "system" in
+// all message items of the Input array. Call this before forwarding a Responses
+// API request to an upstream that does not support the "developer" role.
+func (r *OpenAIResponsesRequest) NormalizeDeveloperRoleInInput() {
+	if r.Input == nil || common.GetJsonType(r.Input) != "array" {
+		return
+	}
+	var items []map[string]json.RawMessage
+	if err := common.Unmarshal(r.Input, &items); err != nil {
+		return
+	}
+	changed := false
+	for _, item := range items {
+		roleRaw, ok := item["role"]
+		if !ok {
+			continue
+		}
+		var role string
+		if err := common.Unmarshal(roleRaw, &role); err != nil || role != "developer" {
+			continue
+		}
+		normalized, err := common.Marshal("system")
+		if err != nil {
+			continue
+		}
+		item["role"] = normalized
+		changed = true
+	}
+	if !changed {
+		return
+	}
+	if cleaned, err := common.Marshal(items); err == nil {
+		r.Input = cleaned
+	}
+}
+
+// ModelNeedsDeveloperRole reports whether the given upstream model name uses the
+// "developer" role instead of "system". Only certain OpenAI reasoning models and
+// GPT-5 series models need this; every other provider should receive "system".
+func ModelNeedsDeveloperRole(modelName string) bool {
+	if IsOpenAIReasoningOModel(modelName) {
+		return !strings.HasPrefix(modelName, "o1-mini") && !strings.HasPrefix(modelName, "o1-preview")
+	}
+	return IsOpenAIGPT5Model(modelName)
+}
