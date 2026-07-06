@@ -208,6 +208,7 @@ function findModuleConfig(
 }
 
 type DynamicNavType =
+  | 'blog-articles'
   | 'chat-presets'
   | 'hermes-execution-tasks'
   | 'hermes-jilai-skills'
@@ -217,6 +218,7 @@ type DynamicNavType =
   | 'playground-sessions'
 
 const DYNAMIC_TYPE_TO_CONFIG_URL: Record<DynamicNavType, string> = {
+  'blog-articles': '/blog-hall',
   'chat-presets': '/chat',
   'hermes-execution-tasks': '/hermes-playground',
   'hermes-jilai-skills': '/hermes-playground',
@@ -274,10 +276,11 @@ function parseUserSidebarConfig(
  * A null user config means "do not narrow" (legacy/empty users).
  */
 function isModuleEnabled(
-  url: string,
+  url: string | undefined,
   adminConfig: SidebarModulesAdminConfig,
   userConfig: SidebarModulesUserConfig
 ): boolean {
+  if (!url) return true
   const path = url.split('?')[0]?.split('#')[0] ?? url
   const mapping = findModuleConfig(path)
   if (!mapping) {

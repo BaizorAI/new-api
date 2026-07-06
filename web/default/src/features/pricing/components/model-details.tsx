@@ -1260,8 +1260,8 @@ export function ModelDetailsDrawer(props: ModelDetailsDrawerProps) {
 
 export function ModelDetails() {
   const { t } = useTranslation()
-  const { modelId } = useParams({ from: '/_authenticated/pricing/$modelId/' })
-  const search = useSearch({ from: '/_authenticated/pricing/$modelId/' })
+  const { modelId } = useParams({ from: '/pricing/$modelId/' })
+  const search = useSearch({ from: '/pricing/$modelId/' })
   const navigate = useNavigate()
 
   const {

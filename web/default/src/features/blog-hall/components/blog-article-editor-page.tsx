@@ -91,7 +91,7 @@ function articleToFormValues(a: BlogArticle): FormValues {
 
 export function BlogArticleEditorPage() {
   const { t } = useTranslation()
-  const { articleId } = useParams({ from: '/_authenticated/blog-hall/$articleId/' })
+  const { articleId } = useParams({ from: '/blog-hall/$articleId/' })
   const id = Number(articleId)
   const queryClient = useQueryClient()
   const [showPreview, setShowPreview] = useState(false)
