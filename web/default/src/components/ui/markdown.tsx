@@ -754,7 +754,10 @@ function renderMarkdown(markdown: string): string {
 }
 
 export function Markdown(props: MarkdownProps) {
-  const html = useMemo(() => renderMarkdown(props.children), [props.children])
+  const html = useMemo(
+    () => (props.children ? renderMarkdown(props.children) : ''),
+    [props.children]
+  )
 
   return (
     <div
