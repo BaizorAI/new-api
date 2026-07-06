@@ -19,7 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
 
 import {
@@ -148,17 +147,14 @@ export function Pricing() {
 
   if (isLoading) {
     return (
-      <PublicLayout showMainContainer={false}>
-        <div className='mx-auto w-full max-w-[1800px] px-3 pt-16 pb-8 sm:px-6 sm:pt-20 sm:pb-10 xl:px-8'>
-          <LoadingSkeleton viewMode={viewMode} />
-        </div>
-      </PublicLayout>
+      <div className='mx-auto w-full max-w-[1800px] px-3 pt-8 pb-8 sm:px-6 sm:pt-10 sm:pb-10 xl:px-8'>
+        <LoadingSkeleton viewMode={viewMode} />
+      </div>
     )
   }
 
   return (
-    <PublicLayout showMainContainer={false}>
-      <div className='relative'>
+    <div className='relative'>
         <div
           aria-hidden
           className='pointer-events-none absolute inset-x-0 top-0 h-[600px] opacity-20 dark:opacity-[0.10]'
@@ -174,8 +170,8 @@ export function Pricing() {
               'linear-gradient(to bottom, black 40%, transparent 100%)',
           }}
         />
-        <PageTransition className='relative mx-auto w-full max-w-[1800px] px-3 pt-16 pb-8 sm:px-6 sm:pt-20 sm:pb-10 xl:px-8'>
-          <header className='mx-auto mb-5 max-w-3xl pt-5 text-center sm:mb-10 sm:pt-10'>
+        <PageTransition className='relative mx-auto w-full max-w-[1800px] px-3 pt-4 pb-8 sm:px-6 sm:pt-6 sm:pb-10 xl:px-8'>
+          <header className='mx-auto mb-5 max-w-3xl text-center sm:mb-10'>
             <h1 className='text-[clamp(2rem,5.5vw,3.5rem)] leading-[1.15] font-bold tracking-tight'>
               {t('Model Square')}
             </h1>
@@ -281,7 +277,6 @@ export function Pricing() {
             />
           )}
         </PageTransition>
-      </div>
-    </PublicLayout>
+    </div>
   )
 }

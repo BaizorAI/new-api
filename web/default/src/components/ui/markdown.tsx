@@ -95,6 +95,8 @@ const allowedTags = [
   'circle',
   'defs',
   'ellipse',
+  'figure',
+  'figcaption',
   'line',
   'math',
   'marker',
@@ -622,6 +624,17 @@ markdownRenderer.code = (token: Tokens.Code): string => {
   return renderDefaultCode(token)
 }
 
+markdownRenderer.image = (token: Tokens.Image): string => {
+  const src = token.href ?? ''
+  const alt = escapeHtml(token.text ?? '')
+  const caption = token.title ? escapeHtml(token.title) : ''
+  const imgTag = `<img src="${src}" alt="${alt}">`
+  if (caption) {
+    return `<figure class="markdown-figure">${imgTag}<figcaption>${caption}</figcaption></figure>`
+  }
+  return imgTag
+}
+
 const markdownExtensions: MarkedExtension[] = [
   {
     walkTokens(token) {
@@ -758,6 +771,8 @@ export function Markdown(props: MarkdownProps) {
         'prose-table:border prose-thead:bg-muted',
         'prose-td:border prose-th:border prose-td:px-3 prose-th:px-3',
         'prose-img:rounded-lg prose-img:shadow-sm',
+        '[&_.markdown-figure]:my-6 [&_.markdown-figure]:text-center [&_.markdown-figure_img]:mx-auto',
+        '[&_.markdown-figure_figcaption]:mt-2 [&_.markdown-figure_figcaption]:text-sm [&_.markdown-figure_figcaption]:italic [&_.markdown-figure_figcaption]:text-muted-foreground',
         '[&_.katex-display]:my-4 [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden',
         '[&_.markdown-page-break]:my-6 [&_.markdown-page-break]:border-dashed',
         '[&_.markdown-diagram]:my-4 [&_.markdown-diagram]:overflow-x-auto [&_.markdown-diagram]:rounded-md [&_.markdown-diagram]:border [&_.markdown-diagram]:bg-background [&_.markdown-diagram]:p-4',

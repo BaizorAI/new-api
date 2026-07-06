@@ -3,6 +3,7 @@ package relay
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -122,6 +123,85 @@ func WssResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIErro
 	if !gjson.GetBytes(requestBody, "stream").Bool() {
 		if updated, err := sjson.SetBytes(requestBody, "stream", true); err == nil {
 			requestBody = updated
+		}
+	}
+	// Convert Responses API flat function tools → Chat Completions nested format.
+	// Also filter out non-function types (e.g. "namespace") that are codex-internal
+	// and not valid upstream tool types.
+	// Codex sends: {"type":"function","name":"...","description":"...","parameters":{...}}
+	// Upstream expects: {"type":"function","function":{"name":"...","description":"...","parameters":{...}}}
+	if toolsVal := gjson.GetBytes(requestBody, "tools"); toolsVal.IsArray() {
+		var tools []map[string]json.RawMessage
+		if err := common.Unmarshal([]byte(toolsVal.Raw), &tools); err == nil {
+			var filtered []map[string]json.RawMessage
+			changed := false
+			for _, tool := range tools {
+				var toolType string
+				if typeRaw, ok := tool["type"]; ok {
+					_ = common.Unmarshal(typeRaw, &toolType)
+				}
+				if toolType != "function" {
+					// Drop internal codex tool types (e.g. "namespace") that upstream doesn't accept.
+					changed = true
+					continue
+				}
+				if len(tool["function"]) == 0 {
+					// Wrap flat function definition into nested {"type":"function","function":{...}}.
+					funcBody := make(map[string]json.RawMessage, len(tool))
+					for k, v := range tool {
+						if k != "type" {
+							funcBody[k] = v
+						}
+					}
+					funcBodyBytes, err := common.Marshal(funcBody)
+					if err == nil {
+						tool = map[string]json.RawMessage{
+							"type":     tool["type"],
+							"function": funcBodyBytes,
+						}
+						changed = true
+					}
+				}
+				filtered = append(filtered, tool)
+			}
+			if changed {
+				if toolsBytes, err := common.Marshal(filtered); err == nil {
+					if updated, err := sjson.SetRawBytes(requestBody, "tools", toolsBytes); err == nil {
+						requestBody = updated
+					}
+				}
+			}
+		}
+	}
+	// Normalize "developer" role → "system" in Responses API input items.
+	// Codex sets the system prompt as role:"developer" for reasoning models; upstream
+	// providers that don't support this role (e.g. Claude, non-o-series OpenAI) reject the request.
+	if inputVal := gjson.GetBytes(requestBody, "input"); inputVal.IsArray() {
+		var items []map[string]json.RawMessage
+		if err := common.Unmarshal([]byte(inputVal.Raw), &items); err == nil {
+			changed := false
+			for _, item := range items {
+				roleRaw, ok := item["role"]
+				if !ok {
+					continue
+				}
+				var role string
+				if err := common.Unmarshal(roleRaw, &role); err != nil || role != "developer" {
+					continue
+				}
+				normalized, err := common.Marshal("system")
+				if err == nil {
+					item["role"] = normalized
+					changed = true
+				}
+			}
+			if changed {
+				if inputBytes, err := common.Marshal(items); err == nil {
+					if updated, err := sjson.SetRawBytes(requestBody, "input", inputBytes); err == nil {
+						requestBody = updated
+					}
+				}
+			}
 		}
 	}
 	// Apply channel model mapping so the upstream receives the remapped model name.

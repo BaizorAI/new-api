@@ -46,9 +46,11 @@ import type {
   NavHermesSkillSection,
   NavPlaygroundSessions,
   NavTeamWorkspaces,
+  NavBlogArticles,
   NavLink,
   NavGroup as NavGroupProps,
 } from '../types'
+import { BlogArticlesItem } from '@/features/blog-hall/components/blog-articles-sidebar-item'
 import { ChatPresetsItem } from './chat-presets-item'
 import { HermesExecutionTasksItem } from './hermes-execution-tasks-item'
 import { HermesSessionsItem } from './hermes-sessions-item'
@@ -77,6 +79,10 @@ export function NavGroup({ title, items }: NavGroupProps) {
           // Special handling: dynamic chat presets list
           if (item.type === 'chat-presets') {
             return <ChatPresetsItem key={key} item={item as NavChatPresets} />
+          }
+
+          if (item.type === 'blog-articles') {
+            return <BlogArticlesItem key={key} item={item as NavBlogArticles} />
           }
 
           if (item.type === 'hermes-sessions') {

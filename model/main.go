@@ -304,6 +304,7 @@ func migrateDB() error {
 		&SystemTask{},
 		&SystemTaskLock{},
 		&File{},
+		&BlogArticle{},
 	)
 	if err != nil {
 		return err

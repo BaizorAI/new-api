@@ -123,6 +123,16 @@ export type NavHermesSkillSection = BaseNavItem & {
 }
 
 /**
+ * Dynamic blog article list in sidebar — shows the current user's articles
+ * as collapsible child nodes. Each article links to /blog-hall/$articleId.
+ */
+export type NavBlogArticles = BaseNavItem & {
+  type: 'blog-articles'
+  url?: never
+  items?: never
+}
+
+/**
  * Navigation item union type
  */
 export type NavItem =
@@ -135,6 +145,7 @@ export type NavItem =
   | NavHermesExecutionTasks
   | NavHermesJilaiSkills
   | NavHermesSkillSection
+  | NavBlogArticles
 
 /**
  * Navigation group type - a group of navigation items in sidebar

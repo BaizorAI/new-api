@@ -278,7 +278,8 @@ function resolveActiveRootGroup(
   if (
     pathname === '/profile' ||
     pathname.startsWith('/wallet') ||
-    pathname === '/keys'
+    pathname === '/keys' ||
+    pathname === '/pricing'
   ) {
     return findGroup(navGroups, 'personal-center')
   }

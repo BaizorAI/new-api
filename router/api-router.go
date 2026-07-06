@@ -295,6 +295,22 @@ func SetApiRouter(router *gin.Engine) {
 			redemptionRoute.DELETE("/invalid", controller.DeleteInvalidRedemption)
 			redemptionRoute.DELETE("/:id", controller.DeleteRedemption)
 		}
+
+		// Public blog routes – no auth required, returns only published articles.
+		blogPublicRoute := apiRouter.Group("/blog/public")
+		{
+			blogPublicRoute.GET("/", controller.GetPublishedBlogArticles)
+			blogPublicRoute.GET("/:id", controller.GetPublishedBlogArticle)
+		}
+		blogRoute := apiRouter.Group("/blog")
+		blogRoute.Use(middleware.UserAuth())
+		{
+			blogRoute.GET("/", controller.GetAllBlogArticles)
+			blogRoute.GET("/:id", controller.GetBlogArticle)
+			blogRoute.POST("/", controller.CreateBlogArticle)
+			blogRoute.PUT("/:id", controller.UpdateBlogArticle)
+			blogRoute.DELETE("/:id", controller.DeleteBlogArticle)
+		}
 		logRoute := apiRouter.Group("/log")
 		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)
 		// Legacy synchronous direct-delete route used only by the classic frontend.

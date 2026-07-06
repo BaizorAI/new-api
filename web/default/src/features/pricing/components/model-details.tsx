@@ -37,7 +37,6 @@ import { CopyButton } from '@/components/copy-button'
 import { StaticDataTable } from '@/components/data-table'
 import { sideDrawerContentClassName } from '@/components/drawer-layout'
 import { GroupBadge } from '@/components/group-badge'
-import { PublicLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -1261,8 +1260,8 @@ export function ModelDetailsDrawer(props: ModelDetailsDrawerProps) {
 
 export function ModelDetails() {
   const { t } = useTranslation()
-  const { modelId } = useParams({ from: '/pricing/$modelId/' })
-  const search = useSearch({ from: '/pricing/$modelId/' })
+  const { modelId } = useParams({ from: '/_authenticated/pricing/$modelId/' })
+  const search = useSearch({ from: '/_authenticated/pricing/$modelId/' })
   const navigate = useNavigate()
 
   const {
@@ -1290,8 +1289,7 @@ export function ModelDetails() {
 
   if (isLoading) {
     return (
-      <PublicLayout>
-        <div className='mx-auto max-w-5xl px-4 sm:px-6'>
+      <div className='mx-auto max-w-5xl px-4 sm:px-6'>
           <Skeleton className='mb-4 h-5 w-16' />
           <div className='space-y-2'>
             <Skeleton className='h-7 w-64' />
@@ -1309,31 +1307,27 @@ export function ModelDetails() {
             ))}
           </div>
         </div>
-      </PublicLayout>
     )
   }
 
   if (!model) {
     return (
-      <PublicLayout>
-        <div className='mx-auto max-w-2xl px-4 text-center sm:px-6'>
-          <h2 className='mb-1 text-base font-semibold'>
-            {t('Model not found')}
-          </h2>
-          <p className='text-muted-foreground mb-4 text-sm'>
-            {t("The model you're looking for doesn't exist.")}
-          </p>
-          <Button onClick={handleBack} variant='outline' size='sm'>
-            {t('Back to Models')}
-          </Button>
-        </div>
-      </PublicLayout>
+      <div className='mx-auto max-w-2xl px-4 text-center sm:px-6'>
+        <h2 className='mb-1 text-base font-semibold'>
+          {t('Model not found')}
+        </h2>
+        <p className='text-muted-foreground mb-4 text-sm'>
+          {t("The model you're looking for doesn't exist.")}
+        </p>
+        <Button onClick={handleBack} variant='outline' size='sm'>
+          {t('Back to Models')}
+        </Button>
+      </div>
     )
   }
 
   return (
-    <PublicLayout>
-      <div className='mx-auto max-w-5xl px-4 sm:px-6'>
+    <div className='mx-auto max-w-5xl px-4 sm:px-6'>
         <Button
           variant='ghost'
           size='sm'
@@ -1361,6 +1355,5 @@ export function ModelDetails() {
           }
         />
       </div>
-    </PublicLayout>
   )
 }

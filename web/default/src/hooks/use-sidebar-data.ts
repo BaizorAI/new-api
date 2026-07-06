@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import {
   Archive,
   BriefcaseBusiness,
+  BookOpen,
   Box,
   CircleHelp,
   ClipboardList,
@@ -33,6 +34,7 @@ import {
   LayoutDashboard,
   ListChecks,
   MessageSquare,
+  PenLine,
   Radio,
   Scale,
   ServerCog,
@@ -227,6 +229,22 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
+        id: 'blog-hall',
+        title: t('Blog Hall'),
+        description: t('Write, edit and publish articles to Blog Hall.'),
+        icon: BookOpen,
+        url: '/blog-hall',
+        position: 'top',
+        items: [
+          {
+            title: t('Blog Hall'),
+            description: t('Write, edit and publish articles to Blog Hall.'),
+            type: 'blog-articles' as const,
+            icon: BookOpen,
+          },
+        ],
+      },
+      {
         id: 'management',
         title: t('Management'),
         description: t('Team, user, model and billing administration.'),
@@ -350,6 +368,11 @@ export function useSidebarData(): SidebarData {
             url: '/profile?section=profile',
             configUrls: ['/profile'],
             icon: User,
+          },
+          {
+            title: t('Model Square'),
+            url: '/pricing',
+            icon: Box,
           },
           {
             title: t('Wallet Overview'),
