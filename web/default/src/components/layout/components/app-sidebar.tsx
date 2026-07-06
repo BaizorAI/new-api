@@ -233,7 +233,7 @@ function resolveActiveRootGroup(
       return findGroup(navGroups, 'workbench')
     }
     if (panel === 'results') return findGroup(navGroups, 'results-center')
-    if (panel === 'messages') return findGroup(navGroups, 'message-platform')
+    if (panel === 'messages') return findGroup(navGroups, 'settings')
     return params.has('team_id')
       ? findGroup(navGroups, 'team-collaboration')
       : findGroup(navGroups, 'overview')
@@ -250,7 +250,7 @@ function resolveActiveRootGroup(
       return findGroup(navGroups, 'workbench')
     }
     if (panel === 'results') return findGroup(navGroups, 'results-center')
-    if (panel === 'messages') return findGroup(navGroups, 'message-platform')
+    if (panel === 'messages') return findGroup(navGroups, 'settings')
     return findGroup(navGroups, 'workbench')
   }
 
@@ -263,7 +263,7 @@ function resolveActiveRootGroup(
   }
 
   if (pathname === '/playground' || pathname.startsWith('/chat/')) {
-    return findGroup(navGroups, 'model-playground')
+    return findGroup(navGroups, 'settings')
   }
 
   if (
@@ -292,7 +292,7 @@ function resolveActiveRootGroup(
   }
 
   if (pathname === '/dashboard/models') {
-    return findGroup(navGroups, 'model-playground')
+    return findGroup(navGroups, 'settings')
   }
 
   if (

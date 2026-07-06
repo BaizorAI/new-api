@@ -17,7 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import {
-  Activity,
   Archive,
   BriefcaseBusiness,
   Box,
@@ -30,13 +29,10 @@ import {
   FileText,
   FlaskConical,
   Gift,
-  History,
   Key,
   LayoutDashboard,
   ListChecks,
   MessageSquare,
-  Plug,
-  QrCode,
   Radio,
   Scale,
   ServerCog,
@@ -231,77 +227,6 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        id: 'message-platform',
-        title: t('Message Platform'),
-        description: t('Connect external messages to the AI workspace.'),
-        icon: MessageSquare,
-        url: '/hermes-playground?panel=messages',
-        position: 'top',
-        items: [
-          {
-            title: t('Overview'),
-            url: '/hermes-playground?panel=messages',
-            configUrls: ['/hermes-playground'],
-            icon: LayoutDashboard,
-          },
-          {
-            title: t('WeChat'),
-            description: t(
-              'Connect WeChat so messages can enter your AI workspace.'
-            ),
-            url: '/hermes-playground?panel=messages&section=wechat',
-            configUrls: ['/hermes-playground'],
-            icon: QrCode,
-          },
-          {
-            title: t('Message history'),
-            url: '/hermes-playground?panel=messages&section=history',
-            configUrls: ['/hermes-playground'],
-            icon: History,
-          },
-          {
-            title: t('Connection status'),
-            url: '/hermes-playground?panel=messages&section=settings',
-            configUrls: ['/hermes-playground'],
-            icon: Radio,
-          },
-          {
-            title: t('Auto-reply settings'),
-            url: '/hermes-playground?panel=messages&section=settings',
-            configUrls: ['/hermes-playground'],
-            icon: Settings,
-          },
-        ],
-      },
-      {
-        id: 'model-playground',
-        title: t('Model Playground'),
-        description: t('Try models and compare model capabilities.'),
-        icon: FlaskConical,
-        url: '/playground',
-        position: 'top',
-        items: [
-          {
-            title: t('AI chat'),
-            url: '/playground',
-            icon: MessageSquare,
-            configUrls: ['/playground'],
-          },
-          {
-            title: t('Large model trial'),
-            url: '/playground',
-            icon: FlaskConical,
-            configUrls: ['/playground'],
-          },
-          {
-            title: t('Model capability comparison'),
-            url: '/dashboard/models',
-            icon: Activity,
-            configUrls: ['/dashboard'],
-          },
-        ],
-      },
-      {
         id: 'management',
         title: t('Management'),
         description: t('Team, user, model and billing administration.'),
@@ -374,6 +299,18 @@ export function useSidebarData(): SidebarData {
             icon: User,
           },
           {
+            title: t('Message Platform'),
+            url: '/hermes-playground?panel=messages',
+            configUrls: ['/hermes-playground'],
+            icon: MessageSquare,
+          },
+          {
+            title: t('Model Playground'),
+            url: '/playground',
+            configUrls: ['/playground'],
+            icon: FlaskConical,
+          },
+          {
             title: t('Security settings'),
             url: '/profile?section=security',
             configUrls: ['/profile'],
@@ -386,16 +323,10 @@ export function useSidebarData(): SidebarData {
             icon: Settings,
           },
           {
-            title: t('HermesAgent Capability Center'),
+            title: t('Hermes Capability Center'),
             url: '/hermes-playground?panel=skills&section=builtin',
             configUrls: ['/hermes-playground'],
             icon: Archive,
-          },
-          {
-            title: t('Hermes Tools'),
-            url: '/hermes-playground?panel=skills&section=tools',
-            configUrls: ['/hermes-playground'],
-            icon: Plug,
           },
           {
             title: t('System configuration'),

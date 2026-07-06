@@ -703,6 +703,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         setSessions([nextSession])
         setActiveSessionId(nextSession.id)
         persistTeamConversation(nextSession, [])
+        persistUserConversation(nextSession, [])
       } else {
         saveHermesConversations(baseScope, nextSessions)
         setSessions(nextSessions)
@@ -723,7 +724,9 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
           .then(() => teamConversationsQuery.refetch())
           .catch(() => toast.error(t('Failed to delete session')))
       } else if (!isTeamWorkspace) {
-        void deleteUserHermesConversation(session.id).catch(() => {})
+        void deleteUserHermesConversation(session.id)
+          .then(() => userConversationsQuery.refetch())
+          .catch(() => toast.error(t('Failed to delete session')))
       }
     },
     [
@@ -736,6 +739,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       sessions,
       t,
       teamConversationsQuery,
+      userConversationsQuery,
     ]
   )
 

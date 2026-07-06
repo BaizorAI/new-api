@@ -132,6 +132,10 @@ func DeleteUserHermesConversation(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	if err := model.DeleteHermesResultsForConversation(userId, 0, conversationID); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	common.ApiSuccess(c, nil)
 }
 
