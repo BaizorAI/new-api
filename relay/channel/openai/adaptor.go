@@ -370,6 +370,14 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 				request.Messages[0].Role = "developer"
 			}
 		}
+	} else {
+		// 上游不支持 developer role（非 o-series / 非 gpt-5 模型）时，
+		// 将客户端发来的 developer role 全部归一化为 system，避免上游反序列化报错。
+		for i := range request.Messages {
+			if request.Messages[i].Role == "developer" {
+				request.Messages[i].Role = "system"
+			}
+		}
 	}
 
 	return request, nil

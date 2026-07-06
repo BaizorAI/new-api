@@ -170,6 +170,11 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const teamPersistTimerRef = useRef<number | null>(null)
   const userPersistTimerRef = useRef<number | null>(null)
   const resultSyncTimerRef = useRef<number | null>(null)
+  // deletedSessions gates any upsert timer that fires after a delete is issued.
+  // upsertInFlight lets deleteSession await a racing in-flight upsert before
+  // issuing the DELETE request, so delete always arrives after upsert.
+  const deletedSessions = useRef(new Set<string>())
+  const upsertInFlight = useRef(new Map<string, Promise<void>>())
 
   const { data: teamsResponse, isLoading: isTeamsLoading } = useQuery({
     queryKey: [props.queryKeyPrefix, queryUserScope, 'teams'],
@@ -477,15 +482,22 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const persistTeamConversation = useCallback(
     (session: HermesConversation, messages: Message[]) => {
       if (!isTeamWorkspace || selectedTeamId <= 0) return
+      if (deletedSessions.current.has(session.id)) return
       if (teamPersistTimerRef.current) {
         window.clearTimeout(teamPersistTimerRef.current)
       }
       teamPersistTimerRef.current = window.setTimeout(() => {
+        if (deletedSessions.current.has(session.id)) return
         const payload: HermesTeamConversationRecord = {
           ...session,
           messages,
         }
-        void upsertTeamHermesConversation(selectedTeamId, payload)
+        const p = upsertTeamHermesConversation(selectedTeamId, payload)
+          .then(() => {})
+          .finally(() => {
+            upsertInFlight.current.delete(session.id)
+          })
+        upsertInFlight.current.set(session.id, p)
       }, 800)
     },
     [isTeamWorkspace, selectedTeamId]
@@ -494,19 +506,26 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const persistUserConversation = useCallback(
     (session: HermesConversation, messages: Message[]) => {
       if (isTeamWorkspace) return
+      if (deletedSessions.current.has(session.id)) return
       if (userPersistTimerRef.current) {
         window.clearTimeout(userPersistTimerRef.current)
       }
       userPersistTimerRef.current = window.setTimeout(() => {
+        if (deletedSessions.current.has(session.id)) return
         const payload: HermesUserConversationRecord = {
           ...session,
           workspaceScope: props.baseScopePrefix ?? 'hermes',
           messages,
         }
-        void upsertUserHermesConversation(
+        const p = upsertUserHermesConversation(
           props.baseScopePrefix ?? 'hermes',
           payload
         )
+          .then(() => {})
+          .finally(() => {
+            upsertInFlight.current.delete(session.id)
+          })
+        upsertInFlight.current.set(session.id, p)
       }, 800)
     },
     [isTeamWorkspace, props.baseScopePrefix]
@@ -693,8 +712,13 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
 
   const deleteSession = useCallback(
     (session: HermesConversation) => {
-      clearConversationStorage(session)
+      // Gate: any timer that fires after this point will see the session in
+      // deletedSessions and skip the upsert. Also clears any pending timer
+      // for this session via the check inside persist callbacks.
+      deletedSessions.current.add(session.id)
 
+      // Optimistic UI update — synchronous so the user sees it immediately.
+      clearConversationStorage(session)
       const nextSessions = sessions.filter((item) => item.id !== session.id)
       if (nextSessions.length === 0) {
         const nextSession = createHermesConversation(baseScope)
@@ -707,7 +731,6 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       } else {
         saveHermesConversations(baseScope, nextSessions)
         setSessions(nextSessions)
-
         if (activeSessionId === session.id) {
           const nextActive =
             nextSessions.find((item) => !item.archived)?.id ??
@@ -719,15 +742,22 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         }
       }
 
-      if (isTeamWorkspace && selectedTeamId > 0) {
-        void deleteTeamHermesConversation(selectedTeamId, session.id)
-          .then(() => teamConversationsQuery.refetch())
-          .catch(() => toast.error(t('Failed to delete session')))
-      } else if (!isTeamWorkspace) {
-        void deleteUserHermesConversation(session.id)
-          .then(() => userConversationsQuery.refetch())
-          .catch(() => toast.error(t('Failed to delete session')))
-      }
+      // Server operations: first await any in-flight upsert for this session so
+      // DELETE always arrives after UPSERT, then issue the delete.
+      void (async () => {
+        await upsertInFlight.current.get(session.id)?.catch(() => {})
+        try {
+          if (isTeamWorkspace && selectedTeamId > 0) {
+            await deleteTeamHermesConversation(selectedTeamId, session.id)
+            void teamConversationsQuery.refetch()
+          } else if (!isTeamWorkspace) {
+            await deleteUserHermesConversation(session.id)
+            void userConversationsQuery.refetch()
+          }
+        } catch {
+          toast.error(t('Failed to delete session'))
+        }
+      })()
     },
     [
       activeSessionId,
