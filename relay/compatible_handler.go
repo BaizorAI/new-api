@@ -65,6 +65,11 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 
 	info.ShouldIncludeUsage = includeUsage
 
+	// Normalize non-standard roles (e.g. "developer" → "system") before adaptor
+	// dispatch so every channel receives canonical Chat Completions roles.
+	// Adaptors that need provider-specific roles (OpenAI o-series) re-promote afterward.
+	request.NormalizeChatMessageRoles()
+
 	adaptor := GetAdaptor(info.ApiType)
 	if adaptor == nil {
 		return types.NewError(fmt.Errorf("invalid api type: %d", info.ApiType), types.ErrorCodeInvalidApiType, types.ErrOptionWithSkipRetry())

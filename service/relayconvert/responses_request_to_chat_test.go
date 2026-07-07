@@ -272,6 +272,54 @@ func TestResponsesRequestToChatCompletionsRequestCustomToolCallPreservesRawShape
 	assert.Equal(t, "patch body", gjson.GetBytes(toolCalls[0].Custom, "input").String())
 }
 
+func TestResponsesRequestToChatCompletionsRequestNormalizesDeveloperToSystem(t *testing.T) {
+	got, err := ResponsesRequestToChatCompletionsRequest(&dto.OpenAIResponsesRequest{
+		Model: "deepseek-v4",
+		Input: mustRawMessage(t, []map[string]any{
+			{
+				"role":    "developer",
+				"content": "You are a helpful assistant.",
+			},
+			{
+				"role":    "user",
+				"content": "Hello",
+			},
+		}),
+	})
+	require.NoError(t, err)
+
+	require.Len(t, got.Messages, 2)
+	assert.Equal(t, "system", got.Messages[0].Role, "developer role must be normalized to system")
+	assert.Equal(t, "You are a helpful assistant.", got.Messages[0].StringContent())
+	assert.Equal(t, "user", got.Messages[1].Role)
+	assert.Equal(t, "Hello", got.Messages[1].StringContent())
+}
+
+func TestResponsesRequestToChatCompletionsRequestDropsBuiltInTools(t *testing.T) {
+	got, err := ResponsesRequestToChatCompletionsRequest(&dto.OpenAIResponsesRequest{
+		Model: "deepseek-v4",
+		Input: mustRawMessage(t, "hello"),
+		Tools: mustRawMessage(t, []map[string]any{
+			{
+				"type":        "function",
+				"name":        "shell_command",
+				"description": "Run a shell command",
+				"parameters":  map[string]any{"type": "object"},
+			},
+			{"type": "web_search"},
+			{"type": "file_search"},
+			{"type": "code_interpreter"},
+			{"type": "computer_use"},
+		}),
+	})
+	require.NoError(t, err)
+
+	// Only the function tool should survive; built-in tools are dropped.
+	require.Len(t, got.Tools, 1)
+	assert.Equal(t, "function", got.Tools[0].Type)
+	assert.Equal(t, "shell_command", got.Tools[0].Function.Name)
+}
+
 func TestResponsesRequestToChatCompletionsRequestRejectsStatefulFields(t *testing.T) {
 	tests := []struct {
 		name string

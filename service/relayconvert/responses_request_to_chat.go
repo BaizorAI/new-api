@@ -176,6 +176,13 @@ func responsesInputItemToChatMessages(item map[string]any, messages []dto.Messag
 	if role == "" {
 		role = "user"
 	}
+	// Normalize "developer" → "system": the Responses API uses "developer" for
+	// the system-level role, but Chat Completions providers (DeepSeek, etc.) only
+	// accept "system".  Channels that genuinely need "developer" (OpenAI o-series,
+	// GPT-5) re-promote it in their own adaptor after this conversion.
+	if role == "developer" {
+		role = "system"
+	}
 	content, err := responsesInputContentToChatContent(item["content"])
 	if err != nil {
 		return nil, err
@@ -329,24 +336,27 @@ func responsesRequestToolsToChat(raw json.RawMessage) ([]dto.ToolCallRequest, er
 					Parameters:  tool["parameters"],
 				},
 			})
-			continue
 		case "namespace":
 			namespaceTools, err := responsesNamespaceToolsToChat(tool)
 			if err != nil {
 				return nil, err
 			}
 			out = append(out, namespaceTools...)
-			continue
+		case dto.CustomType:
+			rawTool, err := common.Marshal(tool)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, dto.ToolCallRequest{
+				Type:   toolType,
+				Custom: rawTool,
+			})
+		default:
+			// Drop Responses API built-in tools (web_search, file_search,
+			// code_interpreter, computer_use, etc.) that have no Chat
+			// Completions equivalent.  The WebSocket path applies the same
+			// filter in relay/websocket.go.
 		}
-
-		rawTool, err := common.Marshal(tool)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, dto.ToolCallRequest{
-			Type:   toolType,
-			Custom: rawTool,
-		})
 	}
 	return out, nil
 }

@@ -234,6 +234,20 @@ func (r *GeneralOpenAIRequest) GetSystemRoleName() string {
 	return "system"
 }
 
+// NormalizeChatMessageRoles maps non-standard roles to canonical Chat Completions
+// roles (system, user, assistant, tool). Channels that need provider-specific roles
+// (e.g. OpenAI o-series "developer") re-promote in their own adaptor after this.
+func (r *GeneralOpenAIRequest) NormalizeChatMessageRoles() {
+	for i := range r.Messages {
+		switch r.Messages[i].Role {
+		case "developer":
+			r.Messages[i].Role = "system"
+		case "":
+			r.Messages[i].Role = "user"
+		}
+	}
+}
+
 const CustomType = "custom"
 
 type ToolCallRequest struct {
