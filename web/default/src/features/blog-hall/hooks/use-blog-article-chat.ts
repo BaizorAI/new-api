@@ -137,8 +137,10 @@ export function useBlogArticleChat({
         payload,
         requestHeaders,
         // onUpdate
-        (_type, chunk) => {
-          streamedContentRef.current += chunk
+        (type, chunk) => {
+          if (type === 'content') {
+            streamedContentRef.current += chunk
+          }
           setMessages((prev) => {
             const last = prev[prev.length - 1]
             if (!last || last.role !== 'assistant') return prev
