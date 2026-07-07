@@ -258,6 +258,10 @@ function resolveActiveRootGroup(
     return findGroup(navGroups, 'workbench')
   }
 
+  if (pathname.startsWith('/blog-hall')) {
+    return findGroup(navGroups, 'blog-hall')
+  }
+
   if (pathname === '/jilai-workspace' || pathname === '/skill-workspace') {
     return findGroup(navGroups, 'workbench')
   }

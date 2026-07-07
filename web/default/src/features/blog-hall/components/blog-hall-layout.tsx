@@ -19,26 +19,11 @@ For commercial licensing, please contact support@quantumnous.com
 import { Outlet } from '@tanstack/react-router'
 
 import { Main } from '@/components/layout'
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '@/components/ui/resizable'
-
-import { BlogArticleListPanel } from './blog-article-list-panel'
 
 export function BlogHallLayout() {
   return (
     <Main className='p-0'>
-      <ResizablePanelGroup orientation='horizontal'>
-        <ResizablePanel defaultSize={25} minSize={18} maxSize={35}>
-          <BlogArticleListPanel />
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={75}>
-          <Outlet />
-        </ResizablePanel>
-      </ResizablePanelGroup>
+      <Outlet />
     </Main>
   )
 }

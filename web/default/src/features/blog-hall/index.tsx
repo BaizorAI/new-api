@@ -16,21 +16,117 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useQueryClient } from '@tanstack/react-query'
 import { BookOpen } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
+import {
+  PromptInput,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  type PromptInputMessage,
+} from '@/components/ai-elements/prompt-input'
+import { Markdown } from '@/components/ui/markdown'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { useStreamRequest } from '@/features/playground/hooks/use-stream-request'
+import { getOrCreatePlaygroundSessionId } from '@/features/playground/lib/storage'
+import type { ChatCompletionRequest } from '@/features/playground/types'
+import { useAuthStore } from '@/stores/auth-store'
 
 export function BlogHall() {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const { sendStreamRequest } = useStreamRequest()
+  const [streamingContent, setStreamingContent] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
+
+  const hermesSessionId = useMemo(() => {
+    const userId = useAuthStore.getState().auth.user?.id ?? 'anon'
+    return getOrCreatePlaygroundSessionId(`skill_blog_user_${userId}`)
+  }, [])
+
+  const requestHeaders = useMemo<Record<string, string>>(
+    () => ({
+      'X-Baizor-Playground': 'hermes',
+      'X-Baizor-Hermes-Session': hermesSessionId,
+      'X-Baizor-Hermes-Workspace': 'skill_blog',
+      'X-Baizor-Hermes-Skill-Activate': 'blog',
+    }),
+    [hermesSessionId]
+  )
+
+  const handleSubmit = useCallback(
+    (message: PromptInputMessage) => {
+      const text = (message.text ?? '').trim()
+      if (!text || isStreaming) return
+
+      setStreamingContent('')
+      setIsStreaming(true)
+
+      const payload: ChatCompletionRequest = {
+        model: 'huayu-v2',
+        messages: [{ role: 'user', content: text }],
+        stream: true,
+      }
+
+      sendStreamRequest(
+        payload,
+        requestHeaders,
+        (_type, chunk) => {
+          setStreamingContent((prev) => prev + chunk)
+        },
+        () => {
+          setIsStreaming(false)
+          void queryClient.invalidateQueries({
+            queryKey: ['blog-articles-sidebar'],
+          })
+        },
+        () => {
+          setIsStreaming(false)
+        }
+      )
+    },
+    [isStreaming, queryClient, requestHeaders, sendStreamRequest]
+  )
 
   return (
-    <div className='flex h-full flex-col items-center justify-center gap-4 text-center'>
-      <BookOpen
-        className='text-muted-foreground/40 size-12'
-        aria-hidden='true'
-      />
-      <p className='text-muted-foreground text-sm'>
-        {t('Select or create an article to get started.')}
-      </p>
+    <div className='flex h-full flex-col'>
+      {/* Content area */}
+      <ScrollArea className='flex-1'>
+        {streamingContent ? (
+          <div className='prose dark:prose-invert mx-auto max-w-3xl p-6'>
+            <Markdown content={streamingContent} />
+          </div>
+        ) : (
+          <div className='flex h-full flex-col items-center justify-center gap-4 text-center'>
+            <BookOpen
+              className='text-muted-foreground/40 size-12'
+              aria-hidden='true'
+            />
+            <p className='text-muted-foreground text-sm'>
+              {t('Enter a topic below to create a new article.')}
+            </p>
+          </div>
+        )}
+      </ScrollArea>
+
+      {/* Chat input */}
+      <div className='border-border shrink-0 border-t p-3'>
+        <PromptInput
+          onSubmit={handleSubmit}
+          className='rounded-lg border shadow-sm'
+        >
+          <PromptInputTextarea
+            placeholder={t('Enter a topic to create an article...')}
+            className='min-h-[40px] resize-none text-sm'
+          />
+          <PromptInputFooter className='justify-end p-1'>
+            <PromptInputSubmit className='size-7' />
+          </PromptInputFooter>
+        </PromptInput>
+      </div>
     </div>
   )
 }

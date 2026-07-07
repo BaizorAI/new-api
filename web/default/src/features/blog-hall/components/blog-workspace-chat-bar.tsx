@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useQueryClient } from '@tanstack/react-query'
 import { SquareIcon, XIcon } from 'lucide-react'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -37,6 +38,7 @@ import { BlogWorkspaceChatMessages } from './blog-workspace-chat-messages'
 
 export function BlogWorkspaceChatBar() {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const {
     content,
     setContent,
@@ -45,11 +47,22 @@ export function BlogWorkspaceChatBar() {
     selectParagraph,
   } = useBlogWorkspace()
 
+  const handleStreamComplete = useCallback(
+    (responseContent: string) => {
+      if (responseContent.trim()) {
+        setContent(responseContent)
+      }
+      void queryClient.invalidateQueries({ queryKey: ['blog-articles-sidebar'] })
+    },
+    [queryClient, setContent]
+  )
+
   const { messages, sendMessage, stopGeneration, isStreaming } =
     useBlogArticleChat({
       content,
       selectedParagraphIndex,
       selectedParagraphText,
+      onComplete: handleStreamComplete,
     })
 
   const handleSubmit = useCallback(
@@ -106,7 +119,7 @@ export function BlogWorkspaceChatBar() {
                 ? t('Ask AI to edit paragraph {{n}}...', {
                     n: selectedParagraphIndex + 1,
                   })
-                : t('Ask AI to help with your article...')
+                : t('Enter a topic to create or edit an article...')
             }
             className='min-h-[40px] resize-none text-sm'
           />

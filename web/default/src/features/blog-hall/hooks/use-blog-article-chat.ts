@@ -17,10 +17,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { nanoid } from 'nanoid'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 
 import { useStreamRequest } from '@/features/playground/hooks/use-stream-request'
+import { getOrCreatePlaygroundSessionId } from '@/features/playground/lib/storage'
 import type { ChatCompletionRequest } from '@/features/playground/types'
+import { useAuthStore } from '@/stores/auth-store'
 
 export interface BlogChatMessage {
   id: string
@@ -36,17 +38,35 @@ interface UseBlogArticleChatOptions {
   content: string
   selectedParagraphIndex: number | null
   selectedParagraphText: string | null
+  onComplete?: (responseContent: string) => void
 }
 
 export function useBlogArticleChat({
-  model = 'gpt-4o-mini',
+  model = 'huayu-v2',
   content,
   selectedParagraphIndex,
   selectedParagraphText,
+  onComplete,
 }: UseBlogArticleChatOptions) {
   const [messages, setMessages] = useState<BlogChatMessage[]>([])
   const { sendStreamRequest, stopStream } = useStreamRequest()
   const isStreamingRef = useRef(false)
+  const streamedContentRef = useRef('')
+
+  const hermesSessionId = useMemo(() => {
+    const userId = useAuthStore.getState().auth.user?.id ?? 'anon'
+    return getOrCreatePlaygroundSessionId(`skill_blog_user_${userId}`)
+  }, [])
+
+  const requestHeaders = useMemo<Record<string, string>>(
+    () => ({
+      'X-Baizor-Playground': 'hermes',
+      'X-Baizor-Hermes-Session': hermesSessionId,
+      'X-Baizor-Hermes-Workspace': 'skill_blog',
+      'X-Baizor-Hermes-Skill-Activate': 'blog',
+    }),
+    [hermesSessionId]
+  )
 
   const sendMessage = useCallback(
     (text: string) => {
@@ -72,16 +92,30 @@ export function useBlogArticleChat({
 
       setMessages((prev) => [...prev, userMessage, assistantMessage])
       isStreamingRef.current = true
+      streamedContentRef.current = ''
 
-      const systemPrompt = buildSystemPrompt(
-        content,
-        selectedParagraphIndex,
-        selectedParagraphText
-      )
+      const chatMessages: ChatCompletionRequest['messages'] = []
 
-      const chatMessages: ChatCompletionRequest['messages'] = [
-        { role: 'system', content: systemPrompt },
-      ]
+      // Include article context and paragraph selection as system context
+      if (content || (selectedParagraphIndex !== null && selectedParagraphText)) {
+        const contextParts: string[] = []
+        if (content) {
+          const truncated =
+            content.length > 4000
+              ? content.slice(0, 4000) + '\n\n[...truncated]'
+              : content
+          contextParts.push('## Current article content:', '', truncated)
+        }
+        if (selectedParagraphIndex !== null && selectedParagraphText) {
+          contextParts.push(
+            '',
+            `## Selected paragraph (index ${selectedParagraphIndex}):`,
+            '',
+            selectedParagraphText
+          )
+        }
+        chatMessages.push({ role: 'system', content: contextParts.join('\n') })
+      }
 
       // Include recent chat history for context
       for (const msg of messages.slice(-6)) {
@@ -101,9 +135,10 @@ export function useBlogArticleChat({
 
       sendStreamRequest(
         payload,
-        undefined,
+        requestHeaders,
         // onUpdate
         (_type, chunk) => {
+          streamedContentRef.current += chunk
           setMessages((prev) => {
             const last = prev[prev.length - 1]
             if (!last || last.role !== 'assistant') return prev
@@ -124,6 +159,7 @@ export function useBlogArticleChat({
               { ...last, status: 'complete' },
             ]
           })
+          onComplete?.(streamedContentRef.current)
         },
         // onError
         (error) => {
@@ -147,6 +183,8 @@ export function useBlogArticleChat({
       content,
       messages,
       model,
+      onComplete,
+      requestHeaders,
       selectedParagraphIndex,
       selectedParagraphText,
       sendStreamRequest,
@@ -181,42 +219,4 @@ export function useBlogArticleChat({
     clearMessages,
     isStreaming,
   }
-}
-
-function buildSystemPrompt(
-  articleContent: string,
-  paragraphIndex: number | null,
-  paragraphText: string | null
-): string {
-  const parts = [
-    'You are an AI writing assistant helping edit a blog article.',
-    'The user may ask you to rewrite, improve, expand, or modify parts of the article.',
-    '',
-    'When you produce revised text for a paragraph, wrap it in a fenced code block with the language `revised-paragraph` like this:',
-    '```revised-paragraph',
-    'Your revised text here...',
-    '```',
-    '',
-    'This allows the system to offer an "Apply" button to replace the selected paragraph.',
-    '',
-  ]
-
-  if (articleContent) {
-    const truncated =
-      articleContent.length > 4000
-        ? articleContent.slice(0, 4000) + '\n\n[...truncated]'
-        : articleContent
-    parts.push('## Current article content:', '', truncated, '')
-  }
-
-  if (paragraphIndex !== null && paragraphText) {
-    parts.push(
-      `## Selected paragraph (index ${paragraphIndex}):`,
-      '',
-      paragraphText,
-      ''
-    )
-  }
-
-  return parts.join('\n')
 }
