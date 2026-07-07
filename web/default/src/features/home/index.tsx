@@ -26,6 +26,7 @@ import {
   HermesAgent,
   Hero,
   HowItWorks,
+  HuayuClient,
   Stats,
 } from './components'
 
@@ -38,6 +39,7 @@ export function Home() {
       <Hero isAuthenticated={isAuthenticated} />
       <Stats />
       <Features />
+      <HuayuClient />
       <HermesAgent />
       <HowItWorks />
       <CTA isAuthenticated={isAuthenticated} />

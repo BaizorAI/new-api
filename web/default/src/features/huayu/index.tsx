@@ -21,6 +21,7 @@ import {
   ArrowRight,
   Command,
   Download,
+  GitBranch,
   Globe,
   Keyboard,
   LogIn,
@@ -118,8 +119,8 @@ const steps = [
   },
   {
     num: '3',
-    title: 'Launch workstation',
-    desc: 'Run huayu to start the TUI workstation.',
+    title: 'Launch client',
+    desc: 'Run huayu to start the TUI client.',
     cmd: 'huayu',
   },
 ] as const
@@ -148,11 +149,11 @@ function Huayu() {
             </div>
           </div>
           <h1 className='text-4xl font-bold tracking-tight md:text-5xl'>
-            {t('Huayu AI Workstation')}
+            {t('Huayu AI Client')}
           </h1>
           <p className='text-muted-foreground mx-auto mt-4 max-w-2xl text-lg leading-relaxed'>
             {t(
-              'Huayu is an AI coding workstation for baizor.com. A Rust TUI terminal app that integrates Codex and Claude Code into a unified interactive interface.'
+              'Huayu is an AI client for baizor.com. A Rust TUI terminal app that integrates Codex and Claude Code into a unified interactive interface.'
             )}
           </p>
           <div className='mt-8 flex flex-wrap items-center justify-center gap-3'>
@@ -160,7 +161,7 @@ function Huayu() {
               className='group rounded-lg'
               render={
                 <a
-                  href='https://github.com/BaizorAI/huayu'
+                  href='https://github.com/BaizorAI/huayu-cli/'
                   target='_blank'
                   rel='noopener noreferrer'
                 />
@@ -444,6 +445,34 @@ function Huayu() {
           </div>
         </AnimateInView>
 
+        {/* Open source */}
+        <AnimateInView delay={100}>
+          <div className='border-border/40 bg-muted/20 rounded-2xl border p-8 md:p-10'>
+            <div className='mb-6 flex items-center gap-3'>
+              <div className='flex size-12 items-center justify-center rounded-2xl border border-emerald-500/15 bg-emerald-500/5'>
+                <GitBranch className='size-6 text-emerald-500' />
+              </div>
+              <h2 className='text-xl font-bold'>{t('Open source')}</h2>
+            </div>
+            <p className='text-muted-foreground mb-6'>
+              {t('The source code is open on GitHub.')}
+            </p>
+            <Button
+              className='group rounded-lg'
+              render={
+                <a
+                  href='https://github.com/BaizorAI/huayu-cli/'
+                  target='_blank'
+                  rel='noopener noreferrer'
+                />
+              }
+            >
+              {t('View source on GitHub')}
+              <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
+            </Button>
+          </div>
+        </AnimateInView>
+
         {/* CTA */}
         <AnimateInView delay={100} className='text-center'>
           <div className='border-border/40 bg-muted/20 rounded-2xl border p-10'>
@@ -461,7 +490,7 @@ function Huayu() {
                 className='group rounded-lg'
                 render={
                   <a
-                    href='https://github.com/BaizorAI/huayu'
+                    href='https://github.com/BaizorAI/huayu-cli/'
                     target='_blank'
                     rel='noopener noreferrer'
                   />
@@ -475,7 +504,7 @@ function Huayu() {
                 className='border-border/50 hover:border-border hover:bg-muted/50 rounded-lg'
                 render={
                   <a
-                    href='https://github.com/BaizorAI/huayu/releases'
+                    href='https://github.com/BaizorAI/huayu-cli/releases'
                     target='_blank'
                     rel='noopener noreferrer'
                   />

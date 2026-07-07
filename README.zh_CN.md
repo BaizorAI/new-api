@@ -47,7 +47,7 @@
   <a href="#-主要特性">主要特性</a> •
   <a href="#-部署">部署</a> •
   <a href="#%EF%B8%8F-baizorai-cli">BaizorAi CLI</a> •
-  <a href="#-华宇AI工作站">华宇AI工作站</a> •
+  <a href="#-华宇AI客户端">华宇AI客户端</a> •
   <a href="#-文档">文档</a> •
   <a href="#-帮助支持">帮助</a>
 </p>
@@ -474,9 +474,9 @@ BaizorAi "审查 main.go 中的安全问题"
 
 ---
 
-## 🏗️ 华宇AI工作站
+## 🏗️ 华宇AI客户端
 
-**华宇 (huayu)** 是面向 [baizor.com](https://baizor.com) 的 **AI 编码工作站**，以 Rust TUI 终端应用形式将 **Codex** 与 **Claude Code** 整合为统一交互界面。
+**华宇 (huayu)** 是面向 [baizor.com](https://baizor.com) 的 **AI 客户端**，以 Rust TUI 终端应用形式将 **Codex** 与 **Claude Code** 整合为统一交互界面。
 
 ### 💡 核心价值
 
@@ -504,7 +504,7 @@ irm https://baizor.com/install/huayu.ps1 | iex
 ```bash
 huayu login        # 浏览器登录 baizor.com
 huayu status       # 查看配置与工具状态
-huayu              # 启动 TUI 工作站
+huayu              # 启动 TUI 客户端
 ```
 
 ### ✨ 功能特性
@@ -560,7 +560,7 @@ huayu              # 启动 TUI 工作站
 
 | 项目 | 说明 |
 |------|------|
-| [华宇 huayu](https://github.com/BaizorAI/huayu) | AI 编码工作站 — Codex + Claude Code 统一 TUI |
+| [华宇 huayu](https://github.com/BaizorAI/huayu) | AI 客户端 — Codex + Claude Code 统一 TUI |
 | [new-api-key-tool](https://github.com/Calcium-Ion/new-api-key-tool) | Key 额度查询工具 |
 | [new-api-horizon](https://github.com/Calcium-Ion/new-api-horizon) | New API 高性能优化版 |
 
