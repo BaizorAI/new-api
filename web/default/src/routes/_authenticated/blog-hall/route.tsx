@@ -18,8 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute } from '@tanstack/react-router'
 
-import { BlogHall } from '@/features/blog-hall'
+import { BlogHallLayout } from '@/features/blog-hall/components/blog-hall-layout'
 
-export const Route = createFileRoute('/_authenticated/blog-hall/')({
-  component: BlogHall,
+export const Route = createFileRoute('/_authenticated/blog-hall')({
+  component: BlogHallLayout,
 })

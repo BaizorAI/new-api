@@ -18,8 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute } from '@tanstack/react-router'
 
-import { BlogArticleEditorPage } from '@/features/blog-hall/components/blog-article-editor-page'
+import { BlogArticleWorkspace } from '@/features/blog-hall/components/blog-article-workspace'
 
 export const Route = createFileRoute('/_authenticated/blog-hall/$articleId/')({
-  component: BlogArticleEditorPage,
+  component: BlogArticleWorkspace,
 })

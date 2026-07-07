@@ -10,8 +10,8 @@ import (
 
 	"github.com/BaizorAI/new-api/common"
 	"github.com/BaizorAI/new-api/dto"
-	relaycommon "github.com/BaizorAI/new-api/relay/common"
 	"github.com/BaizorAI/new-api/relay/channel"
+	relaycommon "github.com/BaizorAI/new-api/relay/common"
 	"github.com/BaizorAI/new-api/relay/helper"
 	"github.com/BaizorAI/new-api/service"
 	"github.com/BaizorAI/new-api/types"
@@ -86,15 +86,68 @@ func WssResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIErro
 	}
 	adaptor.Init(info)
 
-	// codex first frame: {"type":"response.create","model":"...","input":[...],...}
-	// The fields are flat at top level (no nested "response" wrapper).
-	// Strip "type" and forward the rest as a plain Responses API request body.
+	requestBody := prepareResponsesWSRequestBody(msgData, info.UpstreamModelName)
+
+	// Build the upstream HTTP POST URL via the adaptor.
+	fullRequestURL, urlErr := adaptor.GetRequestURL(info)
+	if urlErr != nil {
+		return types.NewError(urlErr, types.ErrorCodeDoRequestFailed, types.ErrOptionWithSkipRetry())
+	}
+
+	upstreamReq, reqErr := http.NewRequest(http.MethodPost, fullRequestURL, bytes.NewReader(requestBody))
+	if reqErr != nil {
+		return types.NewError(reqErr, types.ErrorCodeDoRequestFailed, types.ErrOptionWithSkipRetry())
+	}
+	if hErr := adaptor.SetupRequestHeader(c, &upstreamReq.Header, info); hErr != nil {
+		return types.NewError(hErr, types.ErrorCodeDoRequestFailed, types.ErrOptionWithSkipRetry())
+	}
+	upstreamReq.Header.Set("Content-Type", "application/json")
+	upstreamReq.Header.Set("Accept", "text/event-stream")
+
+	headerOverride, hoErr := channel.ResolveHeaderOverride(info, c)
+	if hoErr != nil {
+		return types.NewError(hoErr, types.ErrorCodeChannelHeaderOverrideInvalid, types.ErrOptionWithSkipRetry())
+	}
+	for k, v := range headerOverride {
+		upstreamReq.Header.Set(k, v)
+	}
+
+	resp, rErr := channel.DoRequest(c, upstreamReq, info)
+	if rErr != nil {
+		return types.NewError(rErr, types.ErrorCodeDoRequestFailed)
+	}
+	defer service.CloseResponseBodyGracefully(resp)
+
+	if resp.StatusCode != http.StatusOK {
+		apiErr := service.RelayErrorHandler(c.Request.Context(), resp, false)
+		service.ResetStatusCode(apiErr, statusCodeMappingStr)
+		return apiErr
+	}
+
+	usage, newAPIError := streamResponsesSSEtoWS(c, info, resp)
+	if newAPIError != nil {
+		service.ResetStatusCode(newAPIError, statusCodeMappingStr)
+		return newAPIError
+	}
+
+	service.PostTextConsumeQuota(c, info, usage, nil)
+	return nil
+}
+
+func prepareResponsesWSRequestBody(msgData []byte, upstreamModelName string) []byte {
+	// Codex may send either:
+	//   {"type":"response.create","response":{"model":"...","input":[...]}}
+	// or the older flat shape:
+	//   {"type":"response.create","model":"...","input":[...]}
 	requestBody := msgData
-	if gjson.GetBytes(requestBody, "type").Exists() {
+	if response := gjson.GetBytes(msgData, "response"); gjson.GetBytes(msgData, "type").String() == "response.create" && response.IsObject() {
+		requestBody = []byte(response.Raw)
+	} else if gjson.GetBytes(requestBody, "type").Exists() {
 		if updated, err := sjson.DeleteBytes(requestBody, "type"); err == nil {
 			requestBody = updated
 		}
 	}
+
 	// codex attaches OpenAI-internal fields (prefixed "internal_") to input items.
 	// Standard upstream Responses API providers reject them with 400.
 	var reqMap map[string]interface{}
@@ -204,57 +257,12 @@ func WssResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIErro
 			}
 		}
 	}
-	// Apply channel model mapping so the upstream receives the remapped model name.
-	if info.UpstreamModelName != "" {
-		if updated, err := sjson.SetBytes(requestBody, "model", info.UpstreamModelName); err == nil {
+	if upstreamModelName != "" {
+		if updated, err := sjson.SetBytes(requestBody, "model", upstreamModelName); err == nil {
 			requestBody = updated
 		}
 	}
-
-	// Build the upstream HTTP POST URL via the adaptor.
-	fullRequestURL, urlErr := adaptor.GetRequestURL(info)
-	if urlErr != nil {
-		return types.NewError(urlErr, types.ErrorCodeDoRequestFailed, types.ErrOptionWithSkipRetry())
-	}
-
-	upstreamReq, reqErr := http.NewRequest(http.MethodPost, fullRequestURL, bytes.NewReader(requestBody))
-	if reqErr != nil {
-		return types.NewError(reqErr, types.ErrorCodeDoRequestFailed, types.ErrOptionWithSkipRetry())
-	}
-	if hErr := adaptor.SetupRequestHeader(c, &upstreamReq.Header, info); hErr != nil {
-		return types.NewError(hErr, types.ErrorCodeDoRequestFailed, types.ErrOptionWithSkipRetry())
-	}
-	upstreamReq.Header.Set("Content-Type", "application/json")
-	upstreamReq.Header.Set("Accept", "text/event-stream")
-
-	headerOverride, hoErr := channel.ResolveHeaderOverride(info, c)
-	if hoErr != nil {
-		return types.NewError(hoErr, types.ErrorCodeChannelHeaderOverrideInvalid, types.ErrOptionWithSkipRetry())
-	}
-	for k, v := range headerOverride {
-		upstreamReq.Header.Set(k, v)
-	}
-
-	resp, rErr := channel.DoRequest(c, upstreamReq, info)
-	if rErr != nil {
-		return types.NewError(rErr, types.ErrorCodeDoRequestFailed)
-	}
-	defer service.CloseResponseBodyGracefully(resp)
-
-	if resp.StatusCode != http.StatusOK {
-		apiErr := service.RelayErrorHandler(c.Request.Context(), resp, false)
-		service.ResetStatusCode(apiErr, statusCodeMappingStr)
-		return apiErr
-	}
-
-	usage, newAPIError := streamResponsesSSEtoWS(c, info, resp)
-	if newAPIError != nil {
-		service.ResetStatusCode(newAPIError, statusCodeMappingStr)
-		return newAPIError
-	}
-
-	service.PostTextConsumeQuota(c, info, usage, nil)
-	return nil
+	return requestBody
 }
 
 // streamResponsesSSEtoWS reads the upstream SSE stream and forwards each JSON

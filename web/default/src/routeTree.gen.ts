@@ -36,6 +36,7 @@ import { Route as authOtpRouteImport } from './routes/(auth)/otp'
 import { Route as authOauthRouteImport } from './routes/(auth)/oauth'
 import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
 import { Route as AuthenticatedSystemSettingsRouteRouteImport } from './routes/_authenticated/system-settings/route'
+import { Route as AuthenticatedBlogHallRouteRouteImport } from './routes/_authenticated/blog-hall/route'
 import { Route as BlogArticleIdIndexRouteImport } from './routes/blog/$articleId/index'
 import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenticated/wallet/index'
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
@@ -220,6 +221,12 @@ const AuthenticatedSystemSettingsRouteRoute =
     path: '/system-settings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedBlogHallRouteRoute =
+  AuthenticatedBlogHallRouteRouteImport.update({
+    id: '/blog-hall',
+    path: '/blog-hall',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const BlogArticleIdIndexRoute = BlogArticleIdIndexRouteImport.update({
   id: '/blog/$articleId/',
   path: '/blog/$articleId/',
@@ -344,9 +351,9 @@ const AuthenticatedChannelsIndexRoute =
   } as any)
 const AuthenticatedBlogHallIndexRoute =
   AuthenticatedBlogHallIndexRouteImport.update({
-    id: '/blog-hall/',
-    path: '/blog-hall/',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedBlogHallRouteRoute,
   } as any)
 const AuthenticatedUsageLogsSectionRoute =
   AuthenticatedUsageLogsSectionRouteImport.update({
@@ -462,9 +469,9 @@ const AuthenticatedPricingModelIdIndexRoute =
   } as any)
 const AuthenticatedBlogHallArticleIdIndexRoute =
   AuthenticatedBlogHallArticleIdIndexRouteImport.update({
-    id: '/blog-hall/$articleId/',
-    path: '/blog-hall/$articleId/',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/$articleId/',
+    path: '/$articleId/',
+    getParentRoute: () => AuthenticatedBlogHallRouteRoute,
   } as any)
 const AuthenticatedSystemSettingsSiteSectionRoute =
   AuthenticatedSystemSettingsSiteSectionRouteImport.update({
@@ -513,6 +520,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/user-agreement': typeof UserAgreementRoute
+  '/blog-hall': typeof AuthenticatedBlogHallRouteRouteWithChildren
   '/system-settings': typeof AuthenticatedSystemSettingsRouteRouteWithChildren
   '/forgot-password': typeof authForgotPasswordRoute
   '/oauth': typeof authOauthRoute
@@ -667,6 +675,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/user-agreement': typeof UserAgreementRoute
+  '/_authenticated/blog-hall': typeof AuthenticatedBlogHallRouteRouteWithChildren
   '/_authenticated/system-settings': typeof AuthenticatedSystemSettingsRouteRouteWithChildren
   '/(auth)/forgot-password': typeof authForgotPasswordRoute
   '/(auth)/oauth': typeof authOauthRoute
@@ -745,6 +754,7 @@ export interface FileRouteTypes {
     | '/'
     | '/privacy-policy'
     | '/user-agreement'
+    | '/blog-hall'
     | '/system-settings'
     | '/forgot-password'
     | '/oauth'
@@ -898,6 +908,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/privacy-policy'
     | '/user-agreement'
+    | '/_authenticated/blog-hall'
     | '/_authenticated/system-settings'
     | '/(auth)/forgot-password'
     | '/(auth)/oauth'
@@ -1184,6 +1195,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemSettingsRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/blog-hall': {
+      id: '/_authenticated/blog-hall'
+      path: '/blog-hall'
+      fullPath: '/blog-hall'
+      preLoaderRoute: typeof AuthenticatedBlogHallRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/blog/$articleId/': {
       id: '/blog/$articleId/'
       path: '/blog/$articleId'
@@ -1333,10 +1351,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/blog-hall/': {
       id: '/_authenticated/blog-hall/'
-      path: '/blog-hall'
+      path: '/'
       fullPath: '/blog-hall/'
       preLoaderRoute: typeof AuthenticatedBlogHallIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedBlogHallRouteRoute
     }
     '/_authenticated/usage-logs/$section': {
       id: '/_authenticated/usage-logs/$section'
@@ -1473,10 +1491,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/blog-hall/$articleId/': {
       id: '/_authenticated/blog-hall/$articleId/'
-      path: '/blog-hall/$articleId'
+      path: '/$articleId'
       fullPath: '/blog-hall/$articleId/'
       preLoaderRoute: typeof AuthenticatedBlogHallArticleIdIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedBlogHallRouteRoute
     }
     '/_authenticated/system-settings/site/$section': {
       id: '/_authenticated/system-settings/site/$section'
@@ -1556,6 +1574,23 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
   authRouteRouteChildren,
 )
 
+interface AuthenticatedBlogHallRouteRouteChildren {
+  AuthenticatedBlogHallIndexRoute: typeof AuthenticatedBlogHallIndexRoute
+  AuthenticatedBlogHallArticleIdIndexRoute: typeof AuthenticatedBlogHallArticleIdIndexRoute
+}
+
+const AuthenticatedBlogHallRouteRouteChildren: AuthenticatedBlogHallRouteRouteChildren =
+  {
+    AuthenticatedBlogHallIndexRoute: AuthenticatedBlogHallIndexRoute,
+    AuthenticatedBlogHallArticleIdIndexRoute:
+      AuthenticatedBlogHallArticleIdIndexRoute,
+  }
+
+const AuthenticatedBlogHallRouteRouteWithChildren =
+  AuthenticatedBlogHallRouteRoute._addFileChildren(
+    AuthenticatedBlogHallRouteRouteChildren,
+  )
+
 interface AuthenticatedSystemSettingsRouteRouteChildren {
   AuthenticatedSystemSettingsIndexRoute: typeof AuthenticatedSystemSettingsIndexRoute
   AuthenticatedSystemSettingsAuthSectionRoute: typeof AuthenticatedSystemSettingsAuthSectionRoute
@@ -1614,6 +1649,7 @@ const AuthenticatedSystemSettingsRouteRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedBlogHallRouteRoute: typeof AuthenticatedBlogHallRouteRouteWithChildren
   AuthenticatedSystemSettingsRouteRoute: typeof AuthenticatedSystemSettingsRouteRouteWithChildren
   AuthenticatedChat2linkRoute: typeof AuthenticatedChat2linkRoute
   AuthenticatedChatChatIdRoute: typeof AuthenticatedChatChatIdRoute
@@ -1621,7 +1657,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
-  AuthenticatedBlogHallIndexRoute: typeof AuthenticatedBlogHallIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedHermesPlaygroundIndexRoute: typeof AuthenticatedHermesPlaygroundIndexRoute
@@ -1641,7 +1676,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsageLogsIndexRoute: typeof AuthenticatedUsageLogsIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
   AuthenticatedWalletIndexRoute: typeof AuthenticatedWalletIndexRoute
-  AuthenticatedBlogHallArticleIdIndexRoute: typeof AuthenticatedBlogHallArticleIdIndexRoute
   AuthenticatedPricingModelIdIndexRoute: typeof AuthenticatedPricingModelIdIndexRoute
   AuthenticatedWalletAffiliateIndexRoute: typeof AuthenticatedWalletAffiliateIndexRoute
   AuthenticatedWalletOverviewIndexRoute: typeof AuthenticatedWalletOverviewIndexRoute
@@ -1651,6 +1685,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedBlogHallRouteRoute: AuthenticatedBlogHallRouteRouteWithChildren,
   AuthenticatedSystemSettingsRouteRoute:
     AuthenticatedSystemSettingsRouteRouteWithChildren,
   AuthenticatedChat2linkRoute: AuthenticatedChat2linkRoute,
@@ -1659,7 +1694,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
-  AuthenticatedBlogHallIndexRoute: AuthenticatedBlogHallIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedHermesPlaygroundIndexRoute:
@@ -1682,8 +1716,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsageLogsIndexRoute: AuthenticatedUsageLogsIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
   AuthenticatedWalletIndexRoute: AuthenticatedWalletIndexRoute,
-  AuthenticatedBlogHallArticleIdIndexRoute:
-    AuthenticatedBlogHallArticleIdIndexRoute,
   AuthenticatedPricingModelIdIndexRoute: AuthenticatedPricingModelIdIndexRoute,
   AuthenticatedWalletAffiliateIndexRoute:
     AuthenticatedWalletAffiliateIndexRoute,
