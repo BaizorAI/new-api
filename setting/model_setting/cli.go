@@ -40,15 +40,15 @@ type CliDefaultModelSettings struct {
 	// ── Model metadata ─────────────────────────────────────────────────────────
 	// ModelInfo maps model names to their context/output token limits.
 	// The CLI uses this to populate tool config files (e.g. codex [model_info]).
-	// Keys are the model name as used by the tool (e.g. "huazhen-v1").
+	// Keys are the model name as used by the tool (e.g. "huayu-v2").
 	ModelInfo map[string]CliModelInfo `json:"model_info"`
 }
 
 var defaultCliDefaultModelSettings = CliDefaultModelSettings{
-	Model:       "huazhen-v1",
-	HaikuModel:  "huazhen-v1",
-	SonnetModel: "huazhen-fable-5",
-	OpusModel:   "huazhen-fable-5",
+	Model:       "huayu-v2",
+	HaikuModel:  "huayu-v2",
+	SonnetModel: "huayu-v2",
+	OpusModel:   "huayu-v2-max",
 
 	CodexModel:           "",
 	CodexFullAuto:        true,
@@ -59,9 +59,9 @@ var defaultCliDefaultModelSettings = CliDefaultModelSettings{
 	ClaudePermissionMode: "bypassPermissions",
 
 	ModelInfo: map[string]CliModelInfo{
-		"huazhen-v1":      {ContextWindow: 128000, MaxOutputTokens: 16384},
-		"huazhen-fable-5": {ContextWindow: 128000, MaxOutputTokens: 16384},
-		"huazhen3.6-35b":  {ContextWindow: 32768, MaxOutputTokens: 8192},
+		"huayu-v2":       {ContextWindow: 128000, MaxOutputTokens: 16384},
+		"huayu-v2-max":   {ContextWindow: 128000, MaxOutputTokens: 16384},
+		"huayu-v2-flash": {ContextWindow: 32768, MaxOutputTokens: 8192},
 	},
 }
 

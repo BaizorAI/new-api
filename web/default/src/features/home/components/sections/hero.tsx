@@ -35,6 +35,7 @@ const capabilityKeys = [
   'Team Workspace',
   'Model Experience',
   'Reusable skills',
+  'Blog Hall',
 ] as const
 
 export function Hero(props: HeroProps) {

@@ -90,7 +90,7 @@ function PlaygroundPage() {
   const defaultConfig = useMemo(
     () => ({
       ...DEFAULT_CONFIG,
-      model: 'huazhen3.6-35b',
+      model: 'huayu-v2-flash',
     }),
     []
   )

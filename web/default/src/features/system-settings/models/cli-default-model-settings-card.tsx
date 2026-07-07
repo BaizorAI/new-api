@@ -188,7 +188,7 @@ export function CliDefaultModelSettingsCard(props: Props) {
           />
           <FormDescription className='mb-4'>
             {t(
-              'Default models and parameters returned to huazhen on login. Settings take effect on the next login.'
+              'Default models and parameters returned to huayu on login. Settings take effect on the next login.'
             )}
           </FormDescription>
 

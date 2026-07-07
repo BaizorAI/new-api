@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -47,6 +47,7 @@ import {
 import type { NavBlogArticles } from '@/components/layout/types'
 import { SidebarCollapsibleShell } from '@/components/layout/components/sidebar-collapsible-shell'
 import { createBlogArticle, deleteBlogArticle, getBlogArticles } from '../api'
+import { groupArticlesByTime } from '../lib/time-groups'
 
 type Props = { item: NavBlogArticles }
 
@@ -68,6 +69,7 @@ export function BlogArticlesItem({ item }: Props) {
   })
 
   const articles = data?.data?.items ?? []
+  const timeGroups = useMemo(() => groupArticlesByTime(articles), [articles])
 
   const handleCreate = async () => {
     if (isCreating) return
@@ -127,40 +129,47 @@ export function BlogArticlesItem({ item }: Props) {
         </SidebarMenuSubItem>
       )}
 
-      {articles.map((article) => {
-        const isActive =
-          href === `/blog-hall/${article.id}` ||
-          href === `/blog-hall/${article.id}/`
-        return (
-          <SidebarMenuSubItem key={article.id}>
-            <SidebarMenuSubButton
-              isActive={isActive}
-              render={
-                <Link
-                  to='/blog-hall/$articleId'
-                  params={{ articleId: String(article.id) }}
-                  onClick={() => setOpenMobile(false)}
-                  aria-current={isActive ? 'page' : undefined}
-                />
-              }
-            >
-              <span className='min-w-0 flex-1 truncate'>{article.title}</span>
-            </SidebarMenuSubButton>
-            <SidebarMenuAction
-              showOnHover
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setDeletingId(article.id)
-              }}
-              aria-label={t('Delete')}
-              title={t('Delete')}
-            >
-              <Trash2 className='size-3.5' aria-hidden='true' />
-            </SidebarMenuAction>
-          </SidebarMenuSubItem>
-        )
-      })}
+      {timeGroups.map((group) => (
+        <SidebarMenuSubItem key={group.labelKey}>
+          <span className='text-muted-foreground px-2 pt-2 pb-0.5 text-[10px] font-medium uppercase tracking-wider'>
+            {t(group.labelKey)}
+          </span>
+          {group.articles.map((article) => {
+            const isActive =
+              href === `/blog-hall/${article.id}` ||
+              href === `/blog-hall/${article.id}/`
+            return (
+              <SidebarMenuSubItem key={article.id}>
+                <SidebarMenuSubButton
+                  isActive={isActive}
+                  render={
+                    <Link
+                      to='/blog-hall/$articleId'
+                      params={{ articleId: String(article.id) }}
+                      onClick={() => setOpenMobile(false)}
+                      aria-current={isActive ? 'page' : undefined}
+                    />
+                  }
+                >
+                  <span className='min-w-0 flex-1 truncate'>{article.title}</span>
+                </SidebarMenuSubButton>
+                <SidebarMenuAction
+                  showOnHover
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setDeletingId(article.id)
+                  }}
+                  aria-label={t('Delete')}
+                  title={t('Delete')}
+                >
+                  <Trash2 className='size-3.5' aria-hidden='true' />
+                </SidebarMenuAction>
+              </SidebarMenuSubItem>
+            )
+          })}
+        </SidebarMenuSubItem>
+      ))}
     </>
   )
 

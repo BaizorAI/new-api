@@ -70,6 +70,16 @@ export function BlogArticlePage() {
 
         {article && (
           <article>
+            {/* Cover image */}
+            {article.cover_image && (
+              <img
+                src={article.cover_image}
+                alt={article.title}
+                className='mb-6 w-full rounded-lg object-cover'
+                style={{ maxHeight: '400px' }}
+              />
+            )}
+
             {/* Title */}
             <h1 className='mb-4 text-3xl font-bold leading-tight'>
               {article.title}

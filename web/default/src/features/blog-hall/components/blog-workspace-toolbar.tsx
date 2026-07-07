@@ -16,10 +16,19 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { ImageIcon, Send } from 'lucide-react'
+import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -35,8 +44,26 @@ import type { BlogArticleStatus } from '../types'
 
 export function BlogWorkspaceToolbar() {
   const { t } = useTranslation()
-  const { title, setTitle, status, setStatus, save, isSaving, isDirty } =
-    useBlogWorkspace()
+  const {
+    title,
+    setTitle,
+    coverImage,
+    setCoverImage,
+    status,
+    setStatus,
+    save,
+    isSaving,
+    isDirty,
+  } = useBlogWorkspace()
+
+  const isPublished = status === 'published'
+
+  const handlePublishToggle = useCallback(() => {
+    const nextStatus: BlogArticleStatus = isPublished ? 'draft' : 'published'
+    setStatus(nextStatus)
+    // Save immediately with the new status
+    setTimeout(() => void save(), 0)
+  }, [isPublished, setStatus, save])
 
   return (
     <div className='border-border flex shrink-0 items-center gap-3 border-b px-4 py-2'>
@@ -65,12 +92,57 @@ export function BlogWorkspaceToolbar() {
         placeholder={t('Article title...')}
       />
 
+      <Popover>
+        <PopoverTrigger
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
+            coverImage
+              ? 'border-primary/50 text-primary bg-primary/5'
+              : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+          aria-label={t('Cover image')}
+        >
+          <ImageIcon className='size-4' />
+        </PopoverTrigger>
+        <PopoverContent align='end' className='w-80'>
+          <PopoverHeader>
+            <PopoverTitle>{t('Cover image')}</PopoverTitle>
+          </PopoverHeader>
+          <Input
+            value={coverImage}
+            onChange={(e) => setCoverImage(e.target.value)}
+            placeholder={t('Enter image URL...')}
+            className='text-xs'
+          />
+          {coverImage && (
+            <img
+              src={coverImage}
+              alt={t('Cover preview')}
+              className='mt-1 max-h-32 w-full rounded-md object-cover'
+              onError={(e) => {
+                ;(e.target as HTMLImageElement).style.display = 'none'
+              }}
+            />
+          )}
+        </PopoverContent>
+      </Popover>
+
       <Button
         size='sm'
+        variant='outline'
         disabled={isSaving || !isDirty}
         onClick={() => void save()}
       >
         {isSaving ? t('Saving...') : t('Save')}
+      </Button>
+
+      <Button
+        size='sm'
+        variant={isPublished ? 'outline' : 'default'}
+        disabled={isSaving}
+        onClick={handlePublishToggle}
+      >
+        <Send className='size-3.5' aria-hidden='true' />
+        {isPublished ? t('Unpublish') : t('Publish')}
       </Button>
     </div>
   )

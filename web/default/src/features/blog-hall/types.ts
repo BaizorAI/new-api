@@ -28,6 +28,7 @@ export const blogArticleSchema = z.object({
   title: z.string(),
   summary: z.string(),
   content: z.string(),
+  cover_image: z.string().optional().default(''),
   tags: z.array(z.string()),
   status: z.enum(['draft', 'published', 'archived']),
   created_time: z.number(),
@@ -70,6 +71,7 @@ export interface BlogArticleFormData {
   title: string
   summary: string
   content: string
+  cover_image?: string
   tags: string[]
   status: BlogArticleStatus
 }

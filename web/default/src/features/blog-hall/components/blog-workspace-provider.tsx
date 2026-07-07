@@ -43,6 +43,8 @@ interface BlogWorkspaceContextType {
   setTitle: (title: string) => void
   summary: string
   setSummary: (summary: string) => void
+  coverImage: string
+  setCoverImage: (coverImage: string) => void
   tags: string
   setTags: (tags: string) => void
   status: BlogArticleStatus
@@ -89,6 +91,7 @@ export function BlogWorkspaceProvider({
   const [content, setContent] = useState('')
   const [title, setTitle] = useState('')
   const [summary, setSummary] = useState('')
+  const [coverImage, setCoverImage] = useState('')
   const [tags, setTags] = useState('')
   const [status, setStatus] = useState<BlogArticleStatus>('draft')
   const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<number | null>(null)
@@ -101,6 +104,7 @@ export function BlogWorkspaceProvider({
       setContent(article.content)
       setTitle(article.title)
       setSummary(article.summary)
+      setCoverImage(article.cover_image ?? '')
       setTags(article.tags.join(', '))
       setStatus(article.status)
       setInitialized(true)
@@ -118,6 +122,7 @@ export function BlogWorkspaceProvider({
     (content !== article.content ||
       title !== article.title ||
       summary !== article.summary ||
+      coverImage !== (article.cover_image ?? '') ||
       tags !== article.tags.join(', ') ||
       status !== article.status)
 
@@ -138,6 +143,7 @@ export function BlogWorkspaceProvider({
         title,
         summary,
         content,
+        cover_image: coverImage,
         tags: parsedTags,
         status,
       })
@@ -149,7 +155,7 @@ export function BlogWorkspaceProvider({
     } finally {
       setIsSaving(false)
     }
-  }, [article, articleId, content, isSaving, queryClient, status, summary, t, tags, title])
+  }, [article, articleId, content, coverImage, isSaving, queryClient, status, summary, t, tags, title])
 
   const selectParagraph = useCallback((index: number | null) => {
     setSelectedParagraphIndex((prev) => (prev === index ? null : index))
@@ -167,6 +173,8 @@ export function BlogWorkspaceProvider({
         setTitle,
         summary,
         setSummary,
+        coverImage,
+        setCoverImage,
         tags,
         setTags,
         status,

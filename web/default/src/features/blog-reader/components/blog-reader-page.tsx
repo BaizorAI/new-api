@@ -122,38 +122,47 @@ function ArticleCard({ article }: { article: BlogArticle }) {
       params={{ articleId: String(article.id) }}
       className='block'
     >
-      <article className='group border-border bg-card hover:border-primary/50 rounded-lg border p-6 transition-colors'>
-        <div className='mb-2 flex items-start justify-between gap-4'>
-          <h2 className='text-card-foreground group-hover:text-primary text-xl font-semibold leading-snug transition-colors'>
-            {article.title}
-          </h2>
-          <time className='text-muted-foreground shrink-0 font-mono text-xs'>
-            {formatTimestampToDate(article.published_at || article.created_time)}
-          </time>
-        </div>
-
-        {article.summary && (
-          <p className='text-muted-foreground mb-3 line-clamp-2 text-sm'>
-            {article.summary}
-          </p>
+      <article className='group border-border bg-card hover:border-primary/50 rounded-lg border overflow-hidden transition-colors'>
+        {article.cover_image && (
+          <img
+            src={article.cover_image}
+            alt={article.title}
+            className='h-48 w-full object-cover'
+          />
         )}
-
-        {article.tags.length > 0 && (
-          <div className='flex flex-wrap gap-1'>
-            {article.tags.slice(0, 5).map((tag) => (
-              <StatusBadge
-                key={tag}
-                label={tag}
-                variant='neutral'
-                copyable={false}
-                className='text-xs'
-              />
-            ))}
+        <div className='p-6'>
+          <div className='mb-2 flex items-start justify-between gap-4'>
+            <h2 className='text-card-foreground group-hover:text-primary text-xl font-semibold leading-snug transition-colors'>
+              {article.title}
+            </h2>
+            <time className='text-muted-foreground shrink-0 font-mono text-xs'>
+              {formatTimestampToDate(article.published_at || article.created_time)}
+            </time>
           </div>
-        )}
 
-        <div className='text-primary/70 mt-3 text-sm font-medium'>
-          {t('Read article')} →
+          {article.summary && (
+            <p className='text-muted-foreground mb-3 line-clamp-2 text-sm'>
+              {article.summary}
+            </p>
+          )}
+
+          {article.tags.length > 0 && (
+            <div className='flex flex-wrap gap-1'>
+              {article.tags.slice(0, 5).map((tag) => (
+                <StatusBadge
+                  key={tag}
+                  label={tag}
+                  variant='neutral'
+                  copyable={false}
+                  className='text-xs'
+                />
+              ))}
+            </div>
+          )}
+
+          <div className='text-primary/70 mt-3 text-sm font-medium'>
+            {t('Read article')} →
+          </div>
         </div>
       </article>
     </Link>

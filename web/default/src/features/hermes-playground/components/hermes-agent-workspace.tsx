@@ -424,7 +424,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const defaultConfig = useMemo(
     () => ({
       ...DEFAULT_CONFIG,
-      model: 'huazhen-fable-5',
+      model: 'huayu-v2',
       systemPrompt: [props.defaultSystemPrompt, teamContextPrompt]
         .filter(Boolean)
         .join('\n\n'),
