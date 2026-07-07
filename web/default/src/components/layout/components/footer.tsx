@@ -214,6 +214,10 @@ export function Footer(props: FooterProps) {
             text: t('footer.columns.related.links.newApiKeyTool'),
             href: 'https://github.com/Calcium-Ion/new-api-key-tool',
           },
+          {
+            text: t('footer.columns.related.links.huayu'),
+            href: 'https://github.com/BaizorAI/huayu',
+          },
         ],
       },
     ],

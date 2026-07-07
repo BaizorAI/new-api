@@ -103,11 +103,22 @@ export const CodeBlock = ({
 
   useEffect(() => {
     let cancelled = false
-    highlightCode(code, language, showLineNumbers).then((next) => {
-      if (!cancelled) {
-        setHtml(next)
-      }
-    })
+    highlightCode(code, language, showLineNumbers)
+      .then((next) => {
+        if (!cancelled) {
+          setHtml(next)
+        }
+      })
+      .catch(() => {
+        // Fallback to plain text when the language is not in the Shiki bundle
+        if (!cancelled) {
+          const escaped = code
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+          setHtml(`<pre><code>${escaped}</code></pre>`)
+        }
+      })
     return () => {
       cancelled = true
     }

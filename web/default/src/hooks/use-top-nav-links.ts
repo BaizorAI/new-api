@@ -80,6 +80,8 @@ export function useTopNavLinks(): TopNavLink[] {
 
   links.push({ title: t('Blog'), href: '/blog' })
 
+  links.push({ title: t('Huayu'), href: '/huayu' })
+
   const rankings = modules?.rankings
   if (rankings && typeof rankings === 'object' && rankings.enabled) {
     const requiresAuth = rankings.requireAuth && !isAuthed

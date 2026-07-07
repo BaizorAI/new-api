@@ -16,6 +16,7 @@ import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
+import { Route as HuayuIndexRouteImport } from './routes/huayu/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as AboutIndexRouteImport } from './routes/about/index'
@@ -118,6 +119,11 @@ const SetupIndexRoute = SetupIndexRouteImport.update({
 const RankingsIndexRoute = RankingsIndexRouteImport.update({
   id: '/rankings/',
   path: '/rankings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HuayuIndexRoute = HuayuIndexRouteImport.update({
+  id: '/huayu/',
+  path: '/huayu/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
@@ -541,6 +547,7 @@ export interface FileRoutesByFullPath {
   '/about/': typeof AboutIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/huayu/': typeof HuayuIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/user/reset': typeof authUserResetRoute
@@ -616,6 +623,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutIndexRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
+  '/huayu': typeof HuayuIndexRoute
   '/rankings': typeof RankingsIndexRoute
   '/setup': typeof SetupIndexRoute
   '/user/reset': typeof authUserResetRoute
@@ -696,6 +704,7 @@ export interface FileRoutesById {
   '/about/': typeof AboutIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/huayu/': typeof HuayuIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/(auth)/user/reset': typeof authUserResetRoute
@@ -775,6 +784,7 @@ export interface FileRouteTypes {
     | '/about/'
     | '/blog/'
     | '/docs/'
+    | '/huayu/'
     | '/rankings/'
     | '/setup/'
     | '/user/reset'
@@ -850,6 +860,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/blog'
     | '/docs'
+    | '/huayu'
     | '/rankings'
     | '/setup'
     | '/user/reset'
@@ -929,6 +940,7 @@ export interface FileRouteTypes {
     | '/about/'
     | '/blog/'
     | '/docs/'
+    | '/huayu/'
     | '/rankings/'
     | '/setup/'
     | '/(auth)/user/reset'
@@ -999,6 +1011,7 @@ export interface RootRouteChildren {
   AboutIndexRoute: typeof AboutIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
+  HuayuIndexRoute: typeof HuayuIndexRoute
   RankingsIndexRoute: typeof RankingsIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
   BlogArticleIdIndexRoute: typeof BlogArticleIdIndexRoute
@@ -1053,6 +1066,13 @@ declare module '@tanstack/react-router' {
       path: '/rankings'
       fullPath: '/rankings/'
       preLoaderRoute: typeof RankingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/huayu/': {
+      id: '/huayu/'
+      path: '/huayu'
+      fullPath: '/huayu/'
+      preLoaderRoute: typeof HuayuIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/': {
@@ -1746,6 +1766,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutIndexRoute: AboutIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
+  HuayuIndexRoute: HuayuIndexRoute,
   RankingsIndexRoute: RankingsIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
   BlogArticleIdIndexRoute: BlogArticleIdIndexRoute,
