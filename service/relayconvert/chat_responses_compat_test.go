@@ -87,17 +87,18 @@ func TestResponsesResponseToChatCompletionsPreservesTextAndToolCalls(t *testing.
 }
 
 func TestResponsesResponseToChatCompletionsPreservesReasoningSummary(t *testing.T) {
+	summary := []dto.ResponsesReasoningSummaryPart{
+		{Type: "summary_text", Text: "first summary"},
+		{Type: "summary_text", Text: "\n\nsecond summary"},
+	}
 	resp := &dto.OpenAIResponsesResponse{
 		ID:     "resp_1",
 		Model:  "gpt-test",
 		Status: []byte(`"completed"`),
 		Output: []dto.ResponsesOutput{
 			{
-				Type: responsesOutputTypeReasoning,
-				Content: []dto.ResponsesOutputContent{
-					{Type: "summary_text", Text: "first summary"},
-					{Type: "summary_text", Text: "\n\nsecond summary"},
-				},
+				Type:    responsesOutputTypeReasoning,
+				Summary: &summary,
 			},
 			{
 				Type: responsesOutputTypeMessage,
@@ -113,6 +114,27 @@ func TestResponsesResponseToChatCompletionsPreservesReasoningSummary(t *testing.
 	require.NoError(t, err)
 	assert.Equal(t, "first summary\n\nsecond summary", chat.Choices[0].Message.GetReasoningContent())
 	assert.Equal(t, "final", chat.Choices[0].Message.StringContent())
+}
+
+func TestResponsesResponseToChatCompletionsReasoningContentFallback(t *testing.T) {
+	// Backward compatibility: reasoning stored in Content (legacy format)
+	resp := &dto.OpenAIResponsesResponse{
+		ID:     "resp_2",
+		Model:  "gpt-test",
+		Status: []byte(`"completed"`),
+		Output: []dto.ResponsesOutput{
+			{
+				Type: responsesOutputTypeReasoning,
+				Content: []dto.ResponsesOutputContent{
+					{Type: "summary_text", Text: "legacy reasoning"},
+				},
+			},
+		},
+	}
+
+	chat, _, err := ResponsesResponseToChatCompletionsResponse(resp, "chatcmpl_2")
+	require.NoError(t, err)
+	assert.Equal(t, "legacy reasoning", chat.Choices[0].Message.GetReasoningContent())
 }
 
 func TestResponsesFinishReasonFromIncompleteStatus(t *testing.T) {
@@ -534,6 +556,110 @@ func TestChatCompletionsStreamToResponsesEventsAggregatesUsageAndToolArgs(t *tes
 	require.Len(t, events[9].Payload.Response.Output, 2)
 	assert.Equal(t, "hello", events[9].Payload.Response.Output[0].Content[0].Text)
 	assert.Equal(t, `"{\"q\":\"x\"}"`, string(events[9].Payload.Response.Output[1].Arguments))
+}
+
+func TestChatCompletionsStreamToResponsesReasoningSummaryEmitsPartEvents(t *testing.T) {
+	state := NewChatToResponsesStreamState("resp_1", "gpt-test")
+	state.Created = 100
+
+	var events []ChatToResponsesStreamEvent
+
+	// First chunk: reasoning content delta — should trigger output_item.added +
+	// reasoning_summary_part.added + reasoning_summary_text.delta
+	events = append(events, mustResponsesEventsFromChatChunk(t, state, &dto.ChatCompletionsStreamResponse{
+		Id:      "chatcmpl_1",
+		Model:   "gpt-test",
+		Created: 100,
+		Choices: []dto.ChatCompletionsStreamResponseChoice{
+			{Index: 0, Delta: dto.ChatCompletionsStreamResponseChoiceDelta{
+				ReasoningContent: lo.ToPtr("thinking step 1"),
+			}},
+		},
+	})...)
+
+	// Second chunk: more reasoning content
+	events = append(events, mustResponsesEventsFromChatChunk(t, state, &dto.ChatCompletionsStreamResponse{
+		Choices: []dto.ChatCompletionsStreamResponseChoice{
+			{Index: 0, Delta: dto.ChatCompletionsStreamResponseChoiceDelta{
+				ReasoningContent: lo.ToPtr(" and step 2"),
+			}},
+		},
+	})...)
+
+	// Third chunk: finish reason
+	finishReason := "stop"
+	events = append(events, mustResponsesEventsFromChatChunk(t, state, &dto.ChatCompletionsStreamResponse{
+		Choices: []dto.ChatCompletionsStreamResponseChoice{
+			{Index: 0, FinishReason: &finishReason},
+		},
+	})...)
+
+	// Finalize
+	events = append(events, FinalizeChatCompletionsStreamToResponses(state)...)
+
+	// Extract event types for assertion
+	types := make([]string, len(events))
+	for i, e := range events {
+		types[i] = e.Type
+	}
+
+	// Verify the complete reasoning summary event sequence:
+	// 1. response.created
+	// 2. response.output_item.added        (reasoning output item)
+	// 3. response.reasoning_summary_part.added  (opens the summary part)
+	// 4. response.reasoning_summary_text.delta  (first delta)
+	// 5. response.reasoning_summary_text.delta  (second delta)
+	// 6. response.reasoning_summary_text.done   (closes text)
+	// 7. response.reasoning_summary_part.done   (closes part)
+	// 8. response.output_item.done              (closes reasoning item)
+	// 9. response.completed
+	expectedTypes := []string{
+		responsesEventCreated,
+		responsesEventOutputItemAdded,
+		responsesEventReasoningSummaryPartAdd,
+		responsesEventReasoningSummaryDelta,
+		responsesEventReasoningSummaryDelta,
+		responsesEventReasoningSummaryDone,
+		responsesEventReasoningSummaryPartDone,
+		responsesEventOutputItemDone,
+		responsesEventCompleted,
+	}
+	assert.Equal(t, expectedTypes, types, "reasoning summary event sequence must match OpenAI Responses API protocol")
+
+	// Verify the part.added event has empty text (initial state)
+	partAdded := events[2].Payload
+	require.NotNil(t, partAdded.Part)
+	assert.Equal(t, "summary_text", partAdded.Part.Type)
+	assert.Equal(t, "", partAdded.Part.Text)
+
+	// Verify delta payloads carry the correct text fragments
+	assert.Equal(t, "thinking step 1", events[3].Payload.Delta)
+	assert.Equal(t, " and step 2", events[4].Payload.Delta)
+
+	// Verify reasoning_summary_text.done carries the full accumulated text
+	summaryDone := events[5].Payload
+	require.NotNil(t, summaryDone.Part)
+	assert.Equal(t, "thinking step 1 and step 2", summaryDone.Part.Text)
+
+	// Verify reasoning_summary_part.done also carries the full text
+	partDone := events[6].Payload
+	require.NotNil(t, partDone.Part)
+	assert.Equal(t, "thinking step 1 and step 2", partDone.Part.Text)
+
+	// Verify the final completed response includes reasoning output with summary
+	require.NotNil(t, events[8].Payload.Response)
+	require.Len(t, events[8].Payload.Response.Output, 1)
+	assert.Equal(t, responsesOutputTypeReasoning, events[8].Payload.Response.Output[0].Type)
+	require.NotNil(t, events[8].Payload.Response.Output[0].Summary)
+	require.Len(t, *events[8].Payload.Response.Output[0].Summary, 1)
+	assert.Equal(t, "thinking step 1 and step 2", (*events[8].Payload.Response.Output[0].Summary)[0].Text)
+
+	// Verify output_item.added carries summary field (required by Codex CLI)
+	addedItem := events[1].Payload.Item
+	require.NotNil(t, addedItem)
+	require.NotNil(t, addedItem.Summary, "reasoning output_item.added must include summary field for Codex CLI compatibility")
+	assert.Empty(t, *addedItem.Summary)
+	assert.Empty(t, addedItem.Role, "reasoning items must not have role field")
 }
 
 func assistantMessageWithTool(content string, id string, name string, args string) dto.Message {

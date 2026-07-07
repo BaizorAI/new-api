@@ -9,6 +9,8 @@ docs
 .gocache
 baizor-ocr-service/
 hermes-agent/
+huayu/
+deploy/
 *.log
 /web/node_modules
 /web/default/node_modules

@@ -27,6 +27,8 @@ const (
 	responsesEventCustomToolInputDone      = "response.custom_tool_call_input.done"
 	responsesEventReasoningSummaryDelta    = "response.reasoning_summary_text.delta"
 	responsesEventReasoningSummaryDone     = "response.reasoning_summary_text.done"
+	responsesEventReasoningSummaryPartAdd  = "response.reasoning_summary_part.added"
+	responsesEventReasoningSummaryPartDone = "response.reasoning_summary_part.done"
 	responsesEventReasoningTextDelta       = "response.reasoning_text.delta"
 	responsesEventReasoningTextDone        = "response.reasoning_text.done"
 	responsesOutputTypeFunctionCall        = "function_call"
@@ -203,9 +205,19 @@ func ExtractReasoningTextFromResponses(resp *dto.OpenAIResponsesResponse) string
 		if out.Type != responsesOutputTypeReasoning {
 			continue
 		}
-		for _, c := range out.Content {
-			if c.Text != "" {
-				sb.WriteString(c.Text)
+		// Prefer summary (OpenAI's canonical field for reasoning items),
+		// fall back to content for backward compatibility.
+		if out.Summary != nil {
+			for _, s := range *out.Summary {
+				if s.Text != "" {
+					sb.WriteString(s.Text)
+				}
+			}
+		} else {
+			for _, c := range out.Content {
+				if c.Text != "" {
+					sb.WriteString(c.Text)
+				}
 			}
 		}
 	}
@@ -285,6 +297,9 @@ func ResponsesStreamEventToChatChunks(event *dto.ResponsesStreamResponse, state 
 		if state.hasSentReasoning {
 			state.needsReasoningSummaryBreak = true
 		}
+		return nil, nil
+	case responsesEventReasoningSummaryPartAdd, responsesEventReasoningSummaryPartDone:
+		// Structural bookkeeping events; no content to convert.
 		return nil, nil
 	case responsesEventOutputTextDelta:
 		return state.textDelta(event.Delta), nil
@@ -381,9 +396,17 @@ func (s *ResponsesToChatStreamState) terminalOutputChunks(response *dto.OpenAIRe
 			chunks = append(chunks, s.textDelta(text.String())...)
 		case out.Type == responsesOutputTypeReasoning && !s.hasSentReasoning:
 			var reasoning strings.Builder
-			for _, c := range out.Content {
-				if c.Text != "" {
-					reasoning.WriteString(c.Text)
+			if out.Summary != nil {
+				for _, s := range *out.Summary {
+					if s.Text != "" {
+						reasoning.WriteString(s.Text)
+					}
+				}
+			} else {
+				for _, c := range out.Content {
+					if c.Text != "" {
+						reasoning.WriteString(c.Text)
+					}
 				}
 			}
 			chunks = append(chunks, s.reasoningDelta(reasoning.String())...)
@@ -807,11 +830,12 @@ func (a *ResponsesBufferedAccumulator) BuildOutput() []dto.ResponsesOutput {
 	}
 	out := make([]dto.ResponsesOutput, 0, 2+len(a.tools))
 	if a.reasoning.Len() > 0 {
+		summary := []dto.ResponsesReasoningSummaryPart{
+			{Type: "summary_text", Text: a.reasoning.String()},
+		}
 		out = append(out, dto.ResponsesOutput{
-			Type: responsesOutputTypeReasoning,
-			Content: []dto.ResponsesOutputContent{
-				{Type: "summary_text", Text: a.reasoning.String()},
-			},
+			Type:    responsesOutputTypeReasoning,
+			Summary: &summary,
 		})
 	}
 	if a.text.Len() > 0 {

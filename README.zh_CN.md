@@ -47,6 +47,7 @@
   <a href="#-主要特性">主要特性</a> •
   <a href="#-部署">部署</a> •
   <a href="#%EF%B8%8F-baizorai-cli">BaizorAi CLI</a> •
+  <a href="#-华宇AI工作站">华宇AI工作站</a> •
   <a href="#-文档">文档</a> •
   <a href="#-帮助支持">帮助</a>
 </p>
@@ -473,6 +474,79 @@ BaizorAi "审查 main.go 中的安全问题"
 
 ---
 
+## 🏗️ 华宇AI工作站
+
+**华宇 (huayu)** 是面向 [baizor.com](https://baizor.com) 的 **AI 编码工作站**，以 Rust TUI 终端应用形式将 **Codex** 与 **Claude Code** 整合为统一交互界面。
+
+### 💡 核心价值
+
+| 痛点 | 解决方案 |
+|------|---------|
+| Codex / Claude 需分别安装，依赖 Node.js | 内嵌锁定版本二进制，零外部依赖 |
+| 两个工具交互方式不同，学习成本高 | 统一 TUI 界面 + 一致快捷键体系 |
+| API Key 配置繁琐 | 浏览器 OAuth 一键登录，自动生成所有配置 |
+| 安装门槛高 | 一行命令完成安装，无需管理员权限 |
+
+### 🚀 安装
+
+**Windows（一键安装）：**
+
+```powershell
+irm https://baizor.com/install/huayu.ps1 | iex
+```
+
+**macOS / Linux：**
+
+从 [GitHub Releases](https://github.com/BaizorAI/huayu/releases) 下载对应平台的 `tar.gz`，解压并放入 PATH。
+
+### 🎯 快速上手
+
+```bash
+huayu login        # 浏览器登录 baizor.com
+huayu status       # 查看配置与工具状态
+huayu              # 启动 TUI 工作站
+```
+
+### ✨ 功能特性
+
+| 特性 | 说明 |
+|------|------|
+| 🖥️ 统一 TUI | Codex 与 Claude Code 双引擎，`Tab` 一键切换 |
+| 🔐 一键登录 | 浏览器 OAuth 登录 baizor.com，自动配置所有 API Key |
+| 📦 零依赖安装 | 无需 Node.js / npm，捆绑锁定版本工具二进制 |
+| ⌨️ Slash 命令 | `/switch`、`/model`、`/update`、`/status` 等命令体系 |
+| 🔄 智能构建 | 源码指纹检测，自动 bump 版本号 |
+| 🌐 跨平台 | Windows x64 / Linux x64+aarch64 / macOS x64+aarch64 |
+
+### 🖥️ 界面预览
+
+```
+┌── 华宇 huayu | codex [Tab切换] | huayu-v2 | ●连接中 ──────────┐
+│                                                                │
+├──────────────────────────────┬─────────────────────────────────┤
+│  主工作区 (左 ~70%)            │  帮助与参考 (右 ~30%)            │
+│  执行日志、AI 输出、文件事件   │  快捷键速查 / 最近命令           │
+├──────────────────────────────┴─────────────────────────────────┤
+│  输入框: /help                                                  │
+│  [Enter]发送 [Shift+Enter]换行 [Tab]切换工具 [Alt+Q]退出        │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### ⌨️ 常用快捷键
+
+| 快捷键 | 功能 |
+|--------|------|
+| `Enter` | 发送消息 / 执行命令 |
+| `Tab` | 切换 Codex ↔ Claude |
+| `Shift+Enter` | 输入框换行 |
+| `Esc` | 取消当前任务 / 关闭弹窗 |
+| `Alt+Q` | 退出程序 |
+| `↑ / ↓` | 输入历史导航 |
+
+📖 详细文档请参考 [华宇 GitHub 仓库](https://github.com/BaizorAI/huayu)
+
+---
+
 ## 🔗 相关项目
 
 ### 上游项目
@@ -486,6 +560,7 @@ BaizorAi "审查 main.go 中的安全问题"
 
 | 项目 | 说明 |
 |------|------|
+| [华宇 huayu](https://github.com/BaizorAI/huayu) | AI 编码工作站 — Codex + Claude Code 统一 TUI |
 | [new-api-key-tool](https://github.com/Calcium-Ion/new-api-key-tool) | Key 额度查询工具 |
 | [new-api-horizon](https://github.com/Calcium-Ion/new-api-horizon) | New API 高性能优化版 |
 
