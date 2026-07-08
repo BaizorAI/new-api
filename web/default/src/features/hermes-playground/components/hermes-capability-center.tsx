@@ -90,6 +90,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { cn } from '@/lib/utils'
 
 import {
+  deleteHermesSkill,
   promoteHermesSkill,
   listHermesSkills,
   listHermesToolsets,
@@ -721,13 +722,14 @@ function SkillNodeItem(props: {
     i18n.language
   )
   const skillScope = getSkillScope(skill)
-  const isManageable =
-    skill.isUserCreated || skillScope === 'user' || skillScope === 'team'
+  const isTeamSkill = skillScope === 'team'
+  const isUserSkill = skillScope === 'user' || skill.isUserCreated
+  const canManage = isUserSkill || (isTeamSkill && props.isAdmin)
 
   return (
     <div className='group relative flex flex-row items-start gap-2 rounded-md px-2 py-2 transition-colors hover:bg-muted/60'>
       {/* Action buttons: top-left, appear on hover */}
-      {isManageable && (
+      {canManage && (
         <div className='mt-0.5 flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover:opacity-100'>
           <button
             className='text-muted-foreground hover:bg-background hover:text-foreground rounded p-0.5 transition-colors'
@@ -740,6 +742,38 @@ function SkillNodeItem(props: {
           >
             <PencilIcon className='size-3' />
           </button>
+          {isUserSkill && props.manageableTeams.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className='text-muted-foreground hover:bg-background hover:text-foreground rounded p-0.5 transition-colors'
+                  onClick={(e) => e.stopPropagation()}
+                  title={t('Publish to team')}
+                  type='button'
+                >
+                  <ArrowBigUpIcon className='size-3' />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='start'>
+                {props.manageableTeams.map((team) => (
+                  <DropdownMenuItem
+                    key={team.id}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      props.onPublishSkill(skill, {
+                        target: 'team',
+                        sourceScope: 'user',
+                        teamId: team.id,
+                        teamName: team.name,
+                      })
+                    }}
+                  >
+                    {team.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <button
             className='text-muted-foreground hover:bg-background hover:text-destructive rounded p-0.5 transition-colors'
             onClick={(e) => {
@@ -827,7 +861,9 @@ function SkillDetailPane(props: SkillDetailPaneProps) {
     (skillScope === 'user' ||
       (skillScope === 'team' && props.selectedTeamId > 0))
   const canPublishToTeam = skillScope === 'user'
-  const isManageable = skill.isUserCreated || skillScope === 'user' || skillScope === 'team'
+  const isTeamSkill = skillScope === 'team'
+  const isUserSkill = skillScope === 'user' || skill.isUserCreated
+  const isManageable = isUserSkill || (isTeamSkill && props.isAdmin)
 
   return (
     <div className='flex min-w-0 flex-1 flex-col'>
@@ -941,30 +977,56 @@ function SkillDetailPane(props: SkillDetailPaneProps) {
               {t('Delete')}
             </Button>
             {(canPublishToBaizor || canPublishToTeam) && (
-              <Button
-                className='flex-1'
-                onClick={() =>
-                  canPublishToBaizor &&
-                  props.onPublishSkill(skill, {
-                    target: 'baizor',
-                    sourceScope: skillScope === 'team' ? 'team' : 'user',
-                    teamId:
-                      skillScope === 'team'
-                        ? props.selectedTeamId
-                        : undefined,
-                    teamName:
-                      skillScope === 'team'
-                        ? props.selectedTeamName
-                        : undefined,
-                  })
-                }
-                size='sm'
-                type='button'
-                variant='ghost'
-              >
-                <ArrowBigUpIcon className='size-3.5' />
-                {t('Publish')}
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    className='flex-1'
+                    size='sm'
+                    type='button'
+                    variant='ghost'
+                  >
+                    <ArrowBigUpIcon className='size-3.5' />
+                    {t('Publish')}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end'>
+                  {canPublishToTeam && props.manageableTeams.map((team) => (
+                    <DropdownMenuItem
+                      key={team.id}
+                      onClick={() =>
+                        props.onPublishSkill(skill, {
+                          target: 'team',
+                          sourceScope: 'user',
+                          teamId: team.id,
+                          teamName: team.name,
+                        })
+                      }
+                    >
+                      {t('Publish to {{name}}', { name: team.name })}
+                    </DropdownMenuItem>
+                  ))}
+                  {canPublishToBaizor && (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        props.onPublishSkill(skill, {
+                          target: 'baizor',
+                          sourceScope: skillScope === 'team' ? 'team' : 'user',
+                          teamId:
+                            skillScope === 'team'
+                              ? props.selectedTeamId
+                              : undefined,
+                          teamName:
+                            skillScope === 'team'
+                              ? props.selectedTeamName
+                              : undefined,
+                        })
+                      }
+                    >
+                      {t('Publish to Baizor')}
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         )}

@@ -288,14 +288,17 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     if (!teamConversationsQuery.data) return
     if (teamConversationsQuery.data.length === 0) return
 
-    const nextSessions = teamConversationsQuery.data.map((conversation) => {
-      const session = normalizePersistedConversation(conversation, baseScope)
-      saveMessages(
-        conversation.messages,
-        createPlaygroundStorageKeys(session.storageScope)
-      )
-      return session
-    })
+    const nextSessions = teamConversationsQuery.data
+      .filter((conversation) => !deletedSessions.current.has(conversation.id))
+      .map((conversation) => {
+        const session = normalizePersistedConversation(conversation, baseScope)
+        saveMessages(
+          conversation.messages,
+          createPlaygroundStorageKeys(session.storageScope)
+        )
+        return session
+      })
+    if (nextSessions.length === 0) return
     saveHermesConversations(baseScope, nextSessions)
     setSessions(nextSessions)
     setActiveSessionId(loadActiveConversationId(baseScope, nextSessions))
@@ -306,14 +309,17 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     if (!userConversationsQuery.data) return
     if (userConversationsQuery.data.length === 0) return
 
-    const nextSessions = userConversationsQuery.data.map((conversation) => {
-      const session = normalizePersistedConversation(conversation, baseScope)
-      saveMessages(
-        conversation.messages,
-        createPlaygroundStorageKeys(session.storageScope)
-      )
-      return session
-    })
+    const nextSessions = userConversationsQuery.data
+      .filter((conversation) => !deletedSessions.current.has(conversation.id))
+      .map((conversation) => {
+        const session = normalizePersistedConversation(conversation, baseScope)
+        saveMessages(
+          conversation.messages,
+          createPlaygroundStorageKeys(session.storageScope)
+        )
+        return session
+      })
+    if (nextSessions.length === 0) return
     saveHermesConversations(baseScope, nextSessions)
     setSessions(nextSessions)
     setActiveSessionId(loadActiveConversationId(baseScope, nextSessions))
@@ -1124,14 +1130,44 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   }, [queryClient, queryUserScope])
 
   const startWithSkill = useCallback(
-    (_skill: HermesSkill) => {
-      // Skill activation is handled by the X-Baizor-Hermes-Skill-Activate
-      // request header in skill/jilai/team-skill workspaces. Don't
-      // auto-submit a prompt — let the user type their own message.
+    (skill: HermesSkill) => {
       setIsCapabilityCenterOpen(false)
+
+      // Route to the skill's dedicated workspace based on owner scope so
+      // each skill gets its own isolated conversation tree.
+      if (
+        skill.ownerScope === 'user' ||
+        skill.source === 'user' ||
+        skill.isUserCreated
+      ) {
+        void navigate({
+          to: '/skill-workspace',
+          search: { skill: skill.name },
+        })
+        return
+      }
+
+      if (
+        (skill.ownerScope === 'team' || skill.source === 'team') &&
+        isTeamWorkspace &&
+        selectedTeamId > 0
+      ) {
+        void navigate({
+          to: '/team-workspace',
+          search: { team_id: selectedTeamId, skill: skill.name },
+        })
+        return
+      }
+
+      // For baizor/system/external skills without a dedicated workspace,
+      // inject a skill invocation prompt in the current conversation.
+      setQuickPromptRequest({
+        id: `skill-${Date.now()}-${skill.name}`,
+        prompt: `/skill ${skill.name} `,
+      })
       navigateToConversationWorkspace()
     },
-    [navigateToConversationWorkspace]
+    [isTeamWorkspace, navigate, navigateToConversationWorkspace, selectedTeamId]
   )
 
   const continueWithResult = useCallback(

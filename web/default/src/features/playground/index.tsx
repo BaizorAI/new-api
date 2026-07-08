@@ -282,7 +282,7 @@ export function Playground(props: PlaygroundProps = {}) {
         case 'retry':
           handleRetryLatest()
           break
-        case 'skill':
+        case 'addSkill':
           props.onAddSkill?.()
           break
       }

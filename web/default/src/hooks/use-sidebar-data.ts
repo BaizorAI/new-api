@@ -186,6 +186,12 @@ export function useSidebarData(): SidebarData {
             type: 'team-workspaces',
             variant: 'flat',
           },
+          {
+            title: t('Team tasks'),
+            description: t('View team execution tasks and progress.'),
+            type: 'hermes-execution-tasks',
+            icon: ListChecks,
+          },
         ],
       },
       {

@@ -72,7 +72,7 @@ import {
 
 import type { ModelOption, GroupOption } from '../types'
 
-export type PlaygroundSlashAction = 'new' | 'save' | 'retry' | 'skill'
+export type PlaygroundSlashAction = 'new' | 'save' | 'retry' | 'addSkill'
 
 interface PlaygroundInputProps {
   onSubmit: (text: string, files?: PromptInputSubmittedFile[]) => void
@@ -146,11 +146,18 @@ export function PlaygroundInput({
         action: 'retry' as const,
       },
       {
-        icon: PackagePlusIcon,
+        icon: WandSparklesIcon,
         command: '/skill',
+        label: t('Use skill'),
+        description: t('Invoke a Hermes skill by name, e.g. /skill report'),
+        prefix: '/skill ',
+      },
+      {
+        icon: PackagePlusIcon,
+        command: '/add-skill',
         label: t('Add Hermes skill'),
         description: t('Create a reusable Hermes skill'),
-        action: 'skill' as const,
+        action: 'addSkill' as const,
       },
       {
         icon: TerminalIcon,
@@ -268,6 +275,8 @@ export function PlaygroundInput({
         const command = filteredSlashCommands[activeCommandIndex]
         if (command?.action) {
           runSlashAction(command.action)
+        } else if ('prefix' in command && command.prefix) {
+          applySlashCommand(command.prefix)
         } else if (command?.prompt) {
           applySlashCommand(command.prompt)
         }
@@ -331,6 +340,8 @@ export function PlaygroundInput({
                     onClick={() => {
                       if (item.action) {
                         runSlashAction(item.action)
+                      } else if ('prefix' in item && item.prefix) {
+                        applySlashCommand(item.prefix)
                       } else if (item.prompt) {
                         applySlashCommand(item.prompt)
                       }
