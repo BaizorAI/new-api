@@ -430,6 +430,7 @@ function HermesCapabilityCenterContent(
               error={skillsQuery.error}
               isLoading={skillsQuery.isLoading}
               isAdmin={isAdmin}
+              isSysAdmin={isSysAdmin}
               onAddSkill={props.onAddSkill}
               onUseSkill={props.onUseSkill}
               onDeleteSkill={setDeletingSkill}
@@ -514,6 +515,7 @@ interface SkillPanelProps {
   isLoading: boolean
   error: Error | null
   isAdmin: boolean
+  isSysAdmin: boolean
   onAddSkill: () => void
   onUseSkill: (skill: HermesSkill) => void
   onEditSkill: (skill: HermesSkill, teamId?: number) => void
@@ -611,6 +613,7 @@ function SkillPanel(props: SkillPanelProps) {
                   emptyDescription={section.emptyDescription}
                   emptyTitle={section.emptyTitle}
                   isAdmin={props.isAdmin}
+                  isSysAdmin={props.isSysAdmin}
                   isFocused={section.isFocused}
                   key={section.id}
                   manageableTeams={props.manageableTeams}
@@ -638,6 +641,7 @@ interface SkillSectionProps {
   emptyDescription: string
   isFocused?: boolean
   isAdmin: boolean
+  isSysAdmin: boolean
   onUseSkill: (skill: HermesSkill) => void
   onEditSkill: (skill: HermesSkill, teamId?: number) => void
   onDeleteSkill: (skill: HermesSkill) => void
@@ -687,6 +691,7 @@ function SkillSection(props: SkillSectionProps) {
               {props.skills.map((skill) => (
                 <SkillNodeItem
                   isAdmin={props.isAdmin}
+                  isSysAdmin={props.isSysAdmin}
                   key={`${skill.source}-${skill.path ?? skill.name}`}
                   manageableTeams={props.manageableTeams}
                   onDeleteSkill={props.onDeleteSkill}
@@ -710,6 +715,7 @@ function SkillSection(props: SkillSectionProps) {
 function SkillNodeItem(props: {
   skill: HermesSkill
   isAdmin: boolean
+  isSysAdmin: boolean
   onUseSkill: (skill: HermesSkill) => void
   onEditSkill: (skill: HermesSkill, teamId?: number) => void
   onDeleteSkill: (skill: HermesSkill) => void
@@ -729,7 +735,8 @@ function SkillNodeItem(props: {
   const skillScope = getSkillScope(skill)
   const isTeamSkill = skillScope === 'team'
   const isUserSkill = skillScope === 'user' || skill.isUserCreated
-  const canManage = isUserSkill || (isTeamSkill && props.isAdmin)
+  const canManage =
+    isUserSkill || (isTeamSkill && props.isAdmin) || props.isSysAdmin
 
   return (
     <div className='group relative flex flex-row items-start gap-2 rounded-md px-2 py-2 transition-colors hover:bg-muted/60'>
@@ -828,6 +835,7 @@ function SkillNodeItem(props: {
 interface SkillDetailPaneProps {
   skill: HermesSkill
   isAdmin: boolean
+  isSysAdmin: boolean
   onClose: () => void
   onUseSkill: (skill: HermesSkill) => void
   onEditSkill: (skill: HermesSkill, teamId?: number) => void
@@ -868,7 +876,8 @@ function SkillDetailPane(props: SkillDetailPaneProps) {
   const canPublishToTeam = skillScope === 'user'
   const isTeamSkill = skillScope === 'team'
   const isUserSkill = skillScope === 'user' || skill.isUserCreated
-  const isManageable = isUserSkill || (isTeamSkill && props.isAdmin)
+  const isManageable =
+    isUserSkill || (isTeamSkill && props.isAdmin) || props.isSysAdmin
 
   return (
     <div className='flex min-w-0 flex-1 flex-col'>

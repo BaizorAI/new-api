@@ -78,6 +78,7 @@ import {
   formatSessionTime,
   getHermesBaseScope,
   loadActiveConversationId,
+  notifyHermesSessionDeleted,
   peekHermesConversations,
   requestOpenHermesSkillDialog,
   saveActiveConversationId,
@@ -358,6 +359,7 @@ function SkillSessionSubNode({
 
   const handleDelete = useCallback(() => {
     clearConversationStorage(session)
+    notifyHermesSessionDeleted(session.id)
     void deleteSkillConversation(isTeam, teamId, session.id)
     const all = peekHermesConversations(baseScope)
     const remaining = all.filter((s) => s.id !== session.id)

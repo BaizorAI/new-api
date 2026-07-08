@@ -102,6 +102,7 @@ import {
   consumeHermesSkillDialogOpenRequest,
   HERMES_SKILL_DIALOG_OPEN_EVENT,
   notifyHermesSkillsChanged,
+  loadPersistedDeletedSessionIds,
   SESSION_TOUCH_INTERVAL_MS,
   type HermesConversation,
 } from '@/features/hermes-playground/sessions'
@@ -174,7 +175,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   // deletedSessions gates any upsert timer that fires after a delete is issued.
   // upsertInFlight lets deleteSession await a racing in-flight upsert before
   // issuing the DELETE request, so delete always arrives after upsert.
-  const deletedSessions = useRef(new Set<string>())
+  const deletedSessions = useRef(new Set<string>(loadPersistedDeletedSessionIds()))
   const upsertInFlight = useRef(new Map<string, Promise<void>>())
 
   const { data: teamsResponse, isLoading: isTeamsLoading } = useQuery({

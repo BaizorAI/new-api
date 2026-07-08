@@ -232,11 +232,62 @@ export function notifyHermesSessionsChanged(): void {
 }
 
 export function notifyHermesSessionDeleted(sessionId: string): void {
+  persistDeletedSessionId(sessionId)
   queueMicrotask(() => {
     window.dispatchEvent(
       new CustomEvent(HERMES_SESSION_DELETED_EVENT, { detail: sessionId })
     )
   })
+}
+
+const DELETED_SESSIONS_STORAGE_KEY = 'hermes_deleted_sessions_v1'
+const DELETED_SESSION_TTL_MS = 5 * 60 * 1000 // 5 minutes
+
+/**
+ * Persist a deleted session ID in localStorage so the workspace's server-sync
+ * effect can filter it out even after a page refresh.  Entries expire after
+ * {@link DELETED_SESSION_TTL_MS} so the set stays bounded.
+ */
+function persistDeletedSessionId(sessionId: string): void {
+  try {
+    const entries = loadDeletedSessionEntries()
+    entries.push({ id: sessionId, ts: Date.now() })
+    localStorage.setItem(DELETED_SESSIONS_STORAGE_KEY, JSON.stringify(entries))
+  } catch {
+    // Best effort — the in-memory ref is still the primary guard.
+  }
+}
+
+type DeletedSessionEntry = { id: string; ts: number }
+
+function loadDeletedSessionEntries(): DeletedSessionEntry[] {
+  try {
+    const raw = localStorage.getItem(DELETED_SESSIONS_STORAGE_KEY)
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    const now = Date.now()
+    return parsed.filter(
+      (entry): entry is DeletedSessionEntry =>
+        typeof entry === 'object' &&
+        entry !== null &&
+        typeof (entry as DeletedSessionEntry).id === 'string' &&
+        typeof (entry as DeletedSessionEntry).ts === 'number' &&
+        now - (entry as DeletedSessionEntry).ts < DELETED_SESSION_TTL_MS
+    )
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Return all session IDs that were recently deleted (within the TTL window).
+ * Used by the workspace to seed its `deletedSessions` ref on mount so
+ * server-synced conversations don't re-hydrate deleted sessions after refresh.
+ */
+export function loadPersistedDeletedSessionIds(): Set<string> {
+  const entries = loadDeletedSessionEntries()
+  return new Set(entries.map((entry) => entry.id))
 }
 
 export function notifyHermesSkillsChanged(): void {

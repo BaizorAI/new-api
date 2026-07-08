@@ -87,6 +87,14 @@ if [ "$HERMES_SIDECAR_ENABLED" = "true" ]; then
     echo "Skipping Hermes image build; using configured image: ${HERMES_IMAGE}"
   elif [ -n "$HERMES_BUILD_CONTEXT" ]; then
     echo "Building Hermes image: ${HERMES_IMAGE}"
+
+    # Remove directories that cause Docker BuildKit xattr failures on Windows.
+    # .dockerignore already excludes them but BuildKit reads xattr before
+    # applying .dockerignore, so a locked .pytest_cache blocks the build.
+    for dirty_dir in .pytest_cache __pycache__ .mypy_cache; do
+      find "$HERMES_BUILD_CONTEXT" -type d -name "$dirty_dir" -exec rm -rf {} + 2>/dev/null || true
+    done
+
     HERMES_DOCKERFILE_ARGS=()
     if [ -n "$HERMES_DOCKERFILE" ]; then
       HERMES_DOCKERFILE_ARGS=(-f "$HERMES_DOCKERFILE")
