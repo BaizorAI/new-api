@@ -1,4 +1,4 @@
-/*
+﻿/*
 Copyright (C) 2023-2026 QuantumNous
 
 This program is free software: you can redistribute it and/or modify
@@ -153,7 +153,15 @@ export function BlogArticleMutateDrawer({
       if (isUpdate && currentRow) {
         const result = await updateBlogArticle(currentRow.id, payload)
         if (result.success) {
-          toast.success(t(SUCCESS_MESSAGES.ARTICLE_UPDATED))
+          const prevStatus = currentRow.status
+          const newStatus = data.status
+          if (prevStatus !== newStatus && newStatus === 'published') {
+            toast.success(t(SUCCESS_MESSAGES.ARTICLE_PUBLISHED))
+          } else if (prevStatus !== newStatus && prevStatus === 'published') {
+            toast.success(t(SUCCESS_MESSAGES.ARTICLE_UNPUBLISHED))
+          } else {
+            toast.success(t(SUCCESS_MESSAGES.ARTICLE_UPDATED))
+          }
           onOpenChange(false)
           triggerRefresh()
         }

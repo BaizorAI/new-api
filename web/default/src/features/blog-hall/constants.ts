@@ -60,4 +60,6 @@ export const SUCCESS_MESSAGES = {
   ARTICLE_CREATED: 'Article created.',
   ARTICLE_UPDATED: 'Article updated.',
   ARTICLE_DELETED: 'Article deleted.',
+  ARTICLE_PUBLISHED: 'Article published.',
+  ARTICLE_UNPUBLISHED: 'Article unpublished.',
 } as const
