@@ -189,7 +189,7 @@ export function useSidebarData(): SidebarData {
           {
             title: t('Team tasks'),
             description: t('View team execution tasks and progress.'),
-            type: 'hermes-execution-tasks',
+            url: '/hermes-playground?panel=tasks',
             icon: ListChecks,
           },
         ],

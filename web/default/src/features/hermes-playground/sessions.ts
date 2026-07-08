@@ -36,6 +36,7 @@ export interface HermesConversation {
 }
 
 export const HERMES_SESSIONS_CHANGED_EVENT = 'hermes-sessions-changed'
+export const HERMES_SESSION_DELETED_EVENT = 'hermes-session-deleted'
 export const HERMES_CAPABILITIES_OPEN_EVENT = 'hermes-capabilities-open'
 export const HERMES_RESULTS_OPEN_EVENT = 'hermes-results-open'
 export const HERMES_MESSAGE_PLATFORMS_OPEN_EVENT =
@@ -227,6 +228,14 @@ export function formatSessionTime(timestamp: number, justNow: string): string {
 export function notifyHermesSessionsChanged(): void {
   queueMicrotask(() => {
     window.dispatchEvent(new Event(HERMES_SESSIONS_CHANGED_EVENT))
+  })
+}
+
+export function notifyHermesSessionDeleted(sessionId: string): void {
+  queueMicrotask(() => {
+    window.dispatchEvent(
+      new CustomEvent(HERMES_SESSION_DELETED_EVENT, { detail: sessionId })
+    )
   })
 }
 

@@ -93,6 +93,7 @@ import {
   HERMES_MESSAGE_PLATFORMS_OPEN_EVENT,
   HERMES_RESULTS_OPEN_EVENT,
   HERMES_SESSIONS_CHANGED_EVENT,
+  HERMES_SESSION_DELETED_EVENT,
   loadActiveConversationId,
   loadHermesConversations,
   safeStorageScope,
@@ -339,6 +340,17 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       window.removeEventListener('storage', reloadSessions)
     }
   }, [reloadSessions])
+
+  useEffect(() => {
+    const onSessionDeleted = (e: Event) => {
+      const sessionId = (e as CustomEvent<string>).detail
+      if (sessionId) deletedSessions.current.add(sessionId)
+    }
+    window.addEventListener(HERMES_SESSION_DELETED_EVENT, onSessionDeleted)
+    return () => {
+      window.removeEventListener(HERMES_SESSION_DELETED_EVENT, onSessionDeleted)
+    }
+  }, [])
 
   useEffect(() => {
     if (props.initialPanel === 'tasks') {

@@ -392,7 +392,12 @@ function HermesCapabilityCenterContent(
     }
   }
 
-  const isAdmin = role >= ADMIN_MIN_ROLE
+  const isSysAdmin = role >= ADMIN_MIN_ROLE
+  const isActiveTeamAdmin = useMemo(() => {
+    const activeTeam = props.teams.find((team) => team.id === activeTeamId)
+    return activeTeam ? canManageTeam(activeTeam.role) : false
+  }, [activeTeamId, props.teams])
+  const isAdmin = isSysAdmin || isActiveTeamAdmin
 
   return (
     <>

@@ -41,6 +41,7 @@ import {
   saveActiveConversationId,
   saveHermesConversations,
   sortSessions,
+  notifyHermesSessionDeleted,
   type HermesConversation,
 } from '@/features/hermes-playground/sessions'
 import {
@@ -87,7 +88,10 @@ const HERMES_SESSION_LIST_ADAPTER: SessionListAdapter<HermesConversation> = {
       messages,
     }
   },
-  serverDelete: (sessionId) => deleteUserHermesConversation(sessionId).then(() => undefined),
+  serverDelete: (sessionId) => {
+    notifyHermesSessionDeleted(sessionId)
+    return deleteUserHermesConversation(sessionId).then(() => undefined)
+  },
 }
 
 export function HermesSessionsItem({ item }: { item: NavHermesSessions }) {
