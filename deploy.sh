@@ -57,6 +57,7 @@ fi
 echo "Pulling latest code from branch: ${DEPLOY_BRANCH}"
 git checkout "$DEPLOY_BRANCH" 2>/dev/null || true
 git pull origin "$DEPLOY_BRANCH" || { echo "git pull origin ${DEPLOY_BRANCH} failed"; exit 1; }
+git submodule update --init --recursive 2>/dev/null || true
 
 MAJOR="$(echo "$CURRENT_VERSION" | awk -F. '{print $1}')"
 MINOR="$(echo "$CURRENT_VERSION" | awk -F. '{print $2}')"
