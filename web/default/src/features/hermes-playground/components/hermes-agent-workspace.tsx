@@ -459,6 +459,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     const headers: Record<string, string> = {
       'X-Baizor-Playground': 'hermes',
       'X-Baizor-Hermes-Session': activeHermesSessionId,
+      'X-Baizor-Smart-Route': 'auto',
     }
     if (props.baseScopePrefix) {
       headers['X-Baizor-Hermes-Workspace'] = props.baseScopePrefix

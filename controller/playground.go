@@ -404,6 +404,11 @@ func buildHermesPlaygroundAttributionHeaders(c *gin.Context, userId int) map[str
 		headers["X-Hermes-Active-Skill"] = activeSkill
 	}
 
+	smartRoute := strings.TrimSpace(c.GetHeader("X-Baizor-Smart-Route"))
+	if smartRoute != "" {
+		headers["X-Hermes-Smart-Route"] = smartRoute
+	}
+
 	if teamID > 0 {
 		headers["X-Hermes-Team-Id"] = strconv.Itoa(teamID)
 		if teamName != "" {
