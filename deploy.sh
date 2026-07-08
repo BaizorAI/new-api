@@ -88,18 +88,18 @@ if [ "$HERMES_SIDECAR_ENABLED" = "true" ]; then
   elif [ -n "$HERMES_BUILD_CONTEXT" ]; then
     echo "Building Hermes image: ${HERMES_IMAGE}"
 
-    # Remove directories that cause Docker BuildKit xattr failures on Windows.
-    # .dockerignore already excludes them but BuildKit reads xattr before
-    # applying .dockerignore, so a locked .pytest_cache blocks the build.
-    for dirty_dir in .pytest_cache __pycache__ .mypy_cache; do
-      find "$HERMES_BUILD_CONTEXT" -type d -name "$dirty_dir" -exec rm -rf {} + 2>/dev/null || true
-    done
-
-    HERMES_DOCKERFILE_ARGS=()
-    if [ -n "$HERMES_DOCKERFILE" ]; then
-      HERMES_DOCKERFILE_ARGS=(-f "$HERMES_DOCKERFILE")
-    fi
-    docker build --pull --no-cache "${HERMES_DOCKERFILE_ARGS[@]}" -t "$HERMES_IMAGE" "$HERMES_BUILD_CONTEXT" || { echo "Hermes image build failed"; exit 1; }
+    # On Windows, .pytest_cache / __pycache__ may be permission-locked so
+    # neither rm nor Docker context scanning can access them.  Build from a
+    # tar context that excludes these directories entirely.
+    _hermes_df="${HERMES_DOCKERFILE:-Dockerfile}"
+    _hermes_df_base="$(basename "$_hermes_df")"
+    cp "$_hermes_df" "$HERMES_BUILD_CONTEXT/$_hermes_df_base" 2>/dev/null || true
+    tar -cf - -C "$HERMES_BUILD_CONTEXT" \
+      --exclude='.pytest_cache' --exclude='__pycache__' --exclude='.mypy_cache' \
+      --exclude='.git' --exclude='*.pyc' . | \
+      docker build --pull --no-cache -f "$_hermes_df_base" -t "$HERMES_IMAGE" - \
+      || { rm -f "$HERMES_BUILD_CONTEXT/$_hermes_df_base"; echo "Hermes image build failed"; exit 1; }
+    rm -f "$HERMES_BUILD_CONTEXT/$_hermes_df_base"
     docker push "$HERMES_IMAGE"
   else
     echo "Hermes sidecar uses configured image: ${HERMES_IMAGE}"
