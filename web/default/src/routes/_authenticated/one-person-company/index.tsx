@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { z } from 'zod'
 
 import {
   HermesAgentWorkspace,
@@ -26,7 +27,24 @@ import {
 } from '@/features/hermes-playground/components/hermes-agent-workspace'
 import { isSidebarModuleEnabled } from '@/lib/nav-modules'
 
+const DEPARTMENTS = ['marketing', 'ops', 'design', 'rd'] as const
+type Department = (typeof DEPARTMENTS)[number]
+
+const onePersonCompanySearchSchema = z.object({
+  dept: z.enum(DEPARTMENTS).optional().catch(undefined),
+})
+
+const DEPARTMENT_ROLE_KEYS: Record<Department, string> = {
+  marketing:
+    'Marketing role focus: market research, positioning, customer acquisition, content, leads and brand.',
+  ops: 'Operations role focus: daily planning, client delivery, process, finance and weekly review.',
+  design:
+    'Design role focus: brand identity, visual assets, landing pages and creative output.',
+  rd: 'R&D role focus: technical planning, prototyping, build tasks and code quality.',
+}
+
 export const Route = createFileRoute('/_authenticated/one-person-company/')({
+  validateSearch: onePersonCompanySearchSchema,
   beforeLoad: () => {
     if (!isSidebarModuleEnabled('chat', 'one_person_company')) {
       throw redirect({ to: '/dashboard' })
@@ -37,6 +55,22 @@ export const Route = createFileRoute('/_authenticated/one-person-company/')({
 
 function OnePersonCompanyPage() {
   const { t } = useTranslation()
+  const { dept } = Route.useSearch()
+
+  const baseScopePrefix = dept
+    ? `one_person_company_${dept}`
+    : 'one_person_company'
+  const queryKeyPrefix = dept
+    ? `one-person-company-${dept}`
+    : 'one-person-company'
+
+  const defaultSystemPrompt = useMemo(() => {
+    const base = t(
+      'You are a one-person company operating assistant. Use Chinese by default. Focus on practical business outcomes: positioning, offers, customer acquisition, sales follow-up, delivery, finance and review. Prefer structured tables, checklists, documents and executable next actions. Avoid vague advice.'
+    )
+    if (!dept) return base
+    return `${base}\n\n${t(DEPARTMENT_ROLE_KEYS[dept])}`
+  }, [dept, t])
 
   const suggestedPrompts = useMemo<HermesPromptSuggestion[]>(
     () => [
@@ -82,12 +116,10 @@ function OnePersonCompanyPage() {
 
   return (
     <HermesAgentWorkspace
-      baseScopePrefix='one_person_company'
-      defaultSystemPrompt={t(
-        'You are a one-person company operating assistant. Use Chinese by default. Focus on practical business outcomes: positioning, offers, customer acquisition, sales follow-up, delivery, finance and review. Prefer structured tables, checklists, documents and executable next actions. Avoid vague advice.'
-      )}
+      baseScopePrefix={baseScopePrefix}
+      defaultSystemPrompt={defaultSystemPrompt}
       emptyModelsMessage={t('No Hermes models available')}
-      queryKeyPrefix='one-person-company'
+      queryKeyPrefix={queryKeyPrefix}
       suggestedPrompts={suggestedPrompts}
     />
   )

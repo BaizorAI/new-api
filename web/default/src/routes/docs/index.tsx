@@ -41,7 +41,7 @@ const docSections = [
     icon: <BookOpen className='size-5 text-sky-500' />,
     title: 'Start with workspaces',
     desc: 'Choose the place where work happens first: personal work, team collaboration or HermesAgent sessions.',
-    items: ['My Teams', 'My One-Person Company', 'HermesAgent'],
+    items: ['My Teams', 'One-Person Company', 'HermesAgent'],
   },
   {
     icon: <Bot className='size-5 text-teal-500' />,
@@ -169,7 +169,7 @@ function DocsPage() {
                     {t('Create your workspace')}:&nbsp;
                   </strong>
                   {t(
-                    'Start with My Teams, My One-Person Company or HermesAgent depending on whether the work is shared, personal or agent-driven.'
+                    'Start with My Teams, One-Person Company or HermesAgent depending on whether the work is shared, personal or agent-driven.'
                   )}
                 </li>
                 <li>

@@ -94,6 +94,10 @@ type TeamGroup = { team: Team; skills: HermesSkill[] }
 
 const MAX_SIDEBAR_SESSIONS = 5
 
+// Temporarily hide the Jilai Law Firm (external) skills from the sidebar
+// library. Flip back to true to restore the "More skills" group.
+const SHOW_JILAI_IN_LIBRARY = false
+
 function SkillSubItem({
   skill,
   url,
@@ -578,7 +582,7 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
   const { setOpenMobile } = useSidebar()
   const isTeamSection = item.section === 'team'
   const isLibrary = item.section === 'library'
-  const needsTeamSkills = isTeamSection || isLibrary
+  const needsTeamSkills = isTeamSection
 
   // Re-fetch skills when a new skill is created via the Add-skill dialog.
   useEffect(() => {
@@ -653,9 +657,11 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
       baizor: all.filter(
         (s) => s.ownerScope === 'baizor' || s.source === 'baizor'
       ),
-      jilai: all.filter(
-        (s) => s.ownerScope === 'external' || s.source === 'external'
-      ),
+      jilai: SHOW_JILAI_IN_LIBRARY
+        ? all.filter(
+            (s) => s.ownerScope === 'external' || s.source === 'external'
+          )
+        : [],
     }
   }, [isLibrary, singleQuery.data])
 
@@ -679,11 +685,6 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
             ) ||
             libraryGroups.jilai.some((s) =>
               checkIsActive(href, { url: jilaiSkillUrl(s.name) })
-            ) ||
-            teamGroups.some(({ team, skills }) =>
-              skills.some((s) =>
-                checkIsActive(href, { url: teamSkillUrl(team.id, s.name) })
-              )
             ))
       )
     : isTeamSection
@@ -863,29 +864,6 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
           <span>{t('Add skill')}</span>
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>
-      <LibraryGroupLabel title={t('Baizor Skills')} />
-      {libraryGroups.baizor.map((skill, idx) => (
-        <SkillSubItem
-          key={`baizor-${skill.name}`}
-          skill={skill}
-          url={skillUrl(skill.name)}
-          href={href}
-          onClose={() => setOpenMobile(false)}
-          index={idx}
-        />
-      ))}
-      {teamGroups.length > 0 ? (
-        <LibraryGroupLabel title={t('Team skills')} />
-      ) : null}
-      {teamGroups.map(({ team, skills }) => (
-        <TeamSkillGroup
-          key={team.id}
-          team={team}
-          skills={skills}
-          href={href}
-          onClose={() => setOpenMobile(false)}
-        />
-      ))}
       {libraryGroups.jilai.length > 0 ? (
         <>
           <LibraryGroupLabel title={t('More skills')} />
@@ -950,34 +928,6 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
         <PackagePlus className='size-4' aria-hidden='true' />
         <span className='max-w-52 text-wrap'>{t('Add skill')}</span>
       </DropdownMenuItem>
-      {libraryGroups.baizor.length > 0 ? (
-        <>
-          <DropdownMenuLabel className='text-muted-foreground/60 text-[10px] font-semibold tracking-wider uppercase'>
-            {t('Baizor Skills')}
-          </DropdownMenuLabel>
-          {libraryGroups.baizor.map((skill) =>
-            renderCollapsedSkillLink(
-              `baizor-${skill.name}`,
-              skillUrl(skill.name),
-              skill.displayName || skill.name
-            )
-          )}
-        </>
-      ) : null}
-      {teamGroups.map(({ team, skills }) => (
-        <Fragment key={team.id}>
-          <DropdownMenuLabel className='text-muted-foreground/60 text-[10px] font-semibold tracking-wider uppercase'>
-            {team.name}
-          </DropdownMenuLabel>
-          {skills.map((skill) =>
-            renderCollapsedSkillLink(
-              `${team.id}-${skill.name}`,
-              teamSkillUrl(team.id, skill.name),
-              skill.displayName || skill.name
-            )
-          )}
-        </Fragment>
-      ))}
       {libraryGroups.jilai.length > 0 ? (
         <>
           <DropdownMenuLabel className='text-muted-foreground/60 text-[10px] font-semibold tracking-wider uppercase'>

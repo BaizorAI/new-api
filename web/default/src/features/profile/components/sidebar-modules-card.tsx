@@ -67,7 +67,7 @@ export function SidebarModulesCard() {
         },
         {
           key: 'one_person_company',
-          title: t('My One-Person Company'),
+          title: t('One-Person Company'),
           description: t('Hermes-powered solo business workspace'),
         },
         {

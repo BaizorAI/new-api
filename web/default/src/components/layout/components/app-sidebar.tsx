@@ -232,7 +232,7 @@ function resolveActiveRootGroup(
         return findGroup(navGroups, 'settings')
       return findGroup(navGroups, 'workbench')
     }
-    if (panel === 'results') return findGroup(navGroups, 'results-center')
+    if (panel === 'results') return findGroup(navGroups, 'team-collaboration')
     if (panel === 'messages') return findGroup(navGroups, 'settings')
     return params.has('team_id')
       ? findGroup(navGroups, 'team-collaboration')
@@ -249,13 +249,13 @@ function resolveActiveRootGroup(
         return findGroup(navGroups, 'settings')
       return findGroup(navGroups, 'workbench')
     }
-    if (panel === 'results') return findGroup(navGroups, 'results-center')
+    if (panel === 'results') return findGroup(navGroups, 'workbench')
     if (panel === 'messages') return findGroup(navGroups, 'settings')
     return findGroup(navGroups, 'workbench')
   }
 
   if (pathname === '/one-person-company') {
-    return findGroup(navGroups, 'workbench')
+    return findGroup(navGroups, 'one-person-company')
   }
 
   if (pathname.startsWith('/blog-hall')) {

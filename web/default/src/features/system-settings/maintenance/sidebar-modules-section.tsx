@@ -93,7 +93,7 @@ export function SidebarModulesSection({
         description: t('Run isolated Hermes agent sessions in the browser.'),
       },
       one_person_company: {
-        title: t('My One-Person Company'),
+        title: t('One-Person Company'),
         description: t(
           'Run a Hermes-powered operating workspace for solo business work.'
         ),

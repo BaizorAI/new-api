@@ -33,7 +33,7 @@ type WorkbenchPreviewProps = {
 
 const workspaceTabs = [
   { key: 'My Teams', icon: Users },
-  { key: 'My One-Person Company', icon: Sparkles },
+  { key: 'One-Person Company', icon: Sparkles },
   { key: 'HermesAgent', icon: MessageSquare },
 ] as const
 
