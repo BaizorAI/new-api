@@ -68,6 +68,21 @@ export const SIDEBAR_NODE_COLORS = [
 ] as const
 
 /**
+ * Cycling icon (text) color classes for sidebar item icons.
+ * Applied by index so adjacent items get distinct hues.
+ */
+export const SIDEBAR_ICON_COLORS = [
+  'text-sky-500',
+  'text-violet-500',
+  'text-emerald-500',
+  'text-amber-500',
+  'text-rose-500',
+  'text-pink-500',
+  'text-cyan-500',
+  'text-indigo-500',
+] as const
+
+/**
  * Mobile drawer configuration
  */
 export const MOBILE_DRAWER_CONFIG = {

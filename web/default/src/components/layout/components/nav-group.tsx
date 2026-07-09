@@ -36,7 +36,9 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 
+import { cn } from '@/lib/utils'
 import { checkIsActive } from '../lib/url-utils'
+import { SIDEBAR_ICON_COLORS } from '../constants'
 import type {
   NavChatPresets,
   NavCollapsible,
@@ -73,7 +75,7 @@ export function NavGroup({ title, items }: NavGroupProps) {
         {title}
       </SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => {
+        {items.map((item, idx) => {
           const key = `${item.title}-${item.url || item.type}`
 
           // Special handling: dynamic chat presets list
@@ -135,8 +137,16 @@ export function NavGroup({ title, items }: NavGroupProps) {
 
           // If no sub-items, render regular link
           if (!item.items) {
+            const linkColor =
+              (item as NavLink).color ??
+              SIDEBAR_ICON_COLORS[idx % SIDEBAR_ICON_COLORS.length]
             return (
-              <SidebarMenuLink key={key} item={item as NavLink} href={href} />
+              <SidebarMenuLink
+                key={key}
+                item={item as NavLink}
+                href={href}
+                color={linkColor}
+              />
             )
           }
 
@@ -164,7 +174,15 @@ function NavBadge({ children }: { children: ReactNode }) {
 /**
  * Sidebar menu link item
  */
-function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
+function SidebarMenuLink({
+  item,
+  href,
+  color,
+}: {
+  item: NavLink
+  href: string
+  color?: string
+}) {
   const { setOpenMobile } = useSidebar()
   const isActive = checkIsActive(href, item)
 
@@ -182,7 +200,7 @@ function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
           />
         }
       >
-        {item.icon && <item.icon className='shrink-0' aria-hidden='true' />}
+        {item.icon && <item.icon className={cn('shrink-0', color)} aria-hidden='true' />}
         <span className='min-w-0 flex-1 truncate'>{item.title}</span>
         {item.badge && <NavBadge>{item.badge}</NavBadge>}
       </SidebarMenuButton>
@@ -219,7 +237,7 @@ function SidebarMenuCollapsible({
       defaultOpen={isSubItemActive}
       expandedContent={
         <>
-          {item.items.map((subItem) => {
+          {item.items.map((subItem, subIdx) => {
             const subActive = checkIsActive(href, subItem)
             return (
               <SidebarMenuSubItem key={subItem.title}>
@@ -234,7 +252,15 @@ function SidebarMenuCollapsible({
                   }
                 >
                   {subItem.icon && (
-                    <subItem.icon className='shrink-0' aria-hidden='true' />
+                    <subItem.icon
+                      className={cn(
+                        'shrink-0',
+                        SIDEBAR_ICON_COLORS[
+                          subIdx % SIDEBAR_ICON_COLORS.length
+                        ]
+                      )}
+                      aria-hidden='true'
+                    />
                   )}
                   <span className='min-w-0 flex-1 truncate'>
                     {subItem.title}
@@ -252,7 +278,7 @@ function SidebarMenuCollapsible({
             {item.title} {item.badge ? `(${item.badge})` : ''}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {item.items.map((sub) => {
+          {item.items.map((sub, subIdx) => {
             const subActive = checkIsActive(href, sub)
             return (
               <DropdownMenuItem
@@ -266,7 +292,7 @@ function SidebarMenuCollapsible({
                   />
                 }
               >
-                {sub.icon && <sub.icon aria-hidden='true' />}
+                {sub.icon && <sub.icon className={cn(SIDEBAR_ICON_COLORS[subIdx % SIDEBAR_ICON_COLORS.length])} aria-hidden='true' />}
                 <span className='max-w-52 text-wrap'>{sub.title}</span>
                 {sub.badge && (
                   <span className='ms-auto text-xs'>{sub.badge}</span>

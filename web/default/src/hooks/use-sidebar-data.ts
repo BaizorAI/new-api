@@ -20,6 +20,7 @@ import {
   Archive,
   BriefcaseBusiness,
   BookOpen,
+  Building2,
   Box,
   CircleHelp,
   Code2,
@@ -68,6 +69,7 @@ export function useSidebarData(): SidebarData {
         title: t('Overview'),
         description: t('Start from recent work, results, skills and quota.'),
         icon: LayoutDashboard,
+        iconColor: 'text-sky-500',
         url: '/team-workspace',
         position: 'top',
         items: [
@@ -107,6 +109,7 @@ export function useSidebarData(): SidebarData {
         title: t('Workbench'),
         description: t('Personal agent work and execution tasks.'),
         icon: BriefcaseBusiness,
+        iconColor: 'text-amber-500',
         url: '/hermes-playground',
         position: 'top',
         items: [
@@ -149,7 +152,8 @@ export function useSidebarData(): SidebarData {
         id: 'one-person-company',
         title: t('One-Person Company'),
         description: t('Run your solo business by department.'),
-        icon: BriefcaseBusiness,
+        icon: Building2,
+        iconColor: 'text-violet-500',
         url: '/one-person-company',
         position: 'top',
         items: [
@@ -180,6 +184,7 @@ export function useSidebarData(): SidebarData {
         title: t('Team Collaboration'),
         description: t('Shared team sessions, results, skills and tasks.'),
         icon: Users,
+        iconColor: 'text-emerald-500',
         url: '/teams',
         position: 'top',
         items: [
@@ -203,6 +208,7 @@ export function useSidebarData(): SidebarData {
         title: t('Blog Hall'),
         description: t('Write, edit and publish articles to Blog Hall.'),
         icon: BookOpen,
+        iconColor: 'text-pink-500',
         url: '/blog-hall',
         position: 'top',
         items: [
@@ -219,6 +225,7 @@ export function useSidebarData(): SidebarData {
         title: t('Management'),
         description: t('Team, user, model and billing administration.'),
         icon: ServerCog,
+        iconColor: 'text-slate-500',
         url: '/dashboard/overview',
         position: 'bottom',
         requiredRole: ROLE.ADMIN,
@@ -272,6 +279,7 @@ export function useSidebarData(): SidebarData {
         title: t('Settings'),
         description: t('Account, security, preferences and system settings.'),
         icon: Settings,
+        iconColor: 'text-zinc-500',
         url: '/profile?section=account',
         position: 'bottom',
         items: [
@@ -325,6 +333,7 @@ export function useSidebarData(): SidebarData {
         title: t('Personal Center'),
         description: t('Profile, wallet and personal navigation settings.'),
         icon: User,
+        iconColor: 'text-cyan-500',
         url: '/profile?section=profile',
         position: 'bottom',
         items: [
@@ -387,6 +396,7 @@ export function useSidebarData(): SidebarData {
         title: t('Help / Docs'),
         description: t('Open product help and documentation.'),
         icon: CircleHelp,
+        iconColor: 'text-indigo-500',
         url: '/docs',
         position: 'bottom',
         items: [

@@ -182,7 +182,7 @@ function ProductRailItem(props: { group: NavGroup; isActive: boolean }) {
           />
         }
       >
-        {Icon ? <Icon className='size-5 shrink-0' aria-hidden='true' /> : null}
+        {Icon ? <Icon className={cn('size-5 shrink-0', !props.isActive && props.group.iconColor)} aria-hidden='true' /> : null}
         <span className='sr-only'>{props.group.title}</span>
       </SidebarMenuButton>
     </SidebarMenuItem>

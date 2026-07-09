@@ -27,6 +27,7 @@ type BaseNavItem = {
   description?: string
   badge?: string
   icon?: React.ElementType
+  color?: string
   activeUrls?: (LinkProps['to'] | (string & {}))[]
   configUrls?: (LinkProps['to'] | (string & {}))[]
   /**
@@ -155,6 +156,7 @@ export type NavGroup = {
   title: string
   description?: string
   icon?: React.ElementType
+  iconColor?: string
   url?: LinkProps['to'] | (string & {})
   position?: 'top' | 'bottom'
   items: NavItem[]
