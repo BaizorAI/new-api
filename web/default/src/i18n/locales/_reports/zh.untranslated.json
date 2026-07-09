@@ -1,0 +1,22 @@
+{
+  "Administration": "Administration",
+  "AI Workspaces": "AI Workspaces",
+  "Claude Model": "Claude 模型",
+  "Claude Parameters": "Claude 参数",
+  "CLI Default Models": "CLI 默认模型",
+  "Codex Model": "Codex 模型",
+  "Codex Parameters": "Codex 参数",
+  "Controls tool permission prompting in claude": "控制 claude 工具权限的提示方式",
+  "Default models and parameters returned to huayu on login. Settings take effect on the next login.": "登录时返回给 huayu 的默认模型和参数，下次登录后生效。",
+  "Maps to -c reasoning_effort=... in codex": "对应 codex 的 -c reasoning_effort=... 参数",
+  "Maximum agentic turns (--max-turns). 0 = unlimited.": "最大 agent 轮次 (--max-turns)，0 = 不限制。",
+  "New Hermes Session": "New Hermes Session",
+  "New Playground Session": "New Playground Session",
+  "Overrides Default Model for claude. Leave empty to use Default Model.": "覆盖 claude 专用模型，留空则使用默认模型。",
+  "Overrides Default Model for codex. Leave empty to use Default Model.": "覆盖 codex 专用模型，留空则使用默认模型。",
+  "Pass --dangerously-bypass-approvals-and-sandbox to codex": "向 codex 传入 --dangerously-bypass-approvals-and-sandbox",
+  "Realtime": "Realtime",
+  "Rerank": "Rerank",
+  "Responses": "Responses",
+  "Sidecar": "Sidecar"
+}

@@ -57,6 +57,7 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
     enabled: true,
     topup: true,
     personal: true,
+    usage_log: true,
   },
   admin: {
     enabled: true,
@@ -159,6 +160,12 @@ const MODULE_MATCHERS: ModuleMatcher[] = [
   // Personal
   { type: 'prefix', prefix: '/wallet', section: 'personal', module: 'topup' },
   { type: 'exact', path: '/profile', section: 'personal', module: 'personal' },
+  {
+    type: 'exact',
+    path: '/my-usage-logs',
+    section: 'personal',
+    module: 'usage_log',
+  },
 
   // Admin
   { type: 'exact', path: '/channels', section: 'admin', module: 'channel' },

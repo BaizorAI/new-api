@@ -34,6 +34,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import {
+  SidebarMenuBadge,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   useSidebar,
@@ -58,8 +59,7 @@ export function HermesExecutionTasksItem(props: {
   const userId = useAuthStore((state) => state.auth.user?.id)
   const { isMobile, setOpenMobile, state } = useSidebar()
   const normalizedPathname = normalizeHref(pathname)
-  const teamId = getActiveTeamId(href)
-  const destination = getTasksDestination(normalizedPathname, teamId)
+  const destination = getTasksDestination(normalizedPathname)
   const isActive = isTasksActive(href)
   const isWorkspace =
     normalizedPathname === '/hermes-playground' ||
@@ -71,16 +71,18 @@ export function HermesExecutionTasksItem(props: {
       'sidebar',
       'hermes-execution-tasks',
       userId ?? 'anonymous',
-      teamId ?? 'personal',
+      'personal',
     ],
-    queryFn: () => listHermesExecutionTasks({ teamId, limit: 5 }),
+    queryFn: () => listHermesExecutionTasks({ limit: 5 }),
     enabled: shouldLoad,
     refetchInterval: shouldLoad ? 5000 : false,
   })
 
-  const tasks = useMemo(
-    () => (tasksQuery.data ?? []).slice(0, 5),
-    [tasksQuery.data]
+  const rawTasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
+  const tasks = useMemo(() => sortTasksByPriority(rawTasks).slice(0, 5), [rawTasks])
+  const activeCount = useMemo(
+    () => rawTasks.filter((task) => task.status === 'running' || task.status === 'queued').length,
+    [rawTasks]
   )
   const handleNavigate = () => setOpenMobile(false)
 
@@ -92,6 +94,7 @@ export function HermesExecutionTasksItem(props: {
       description={props.item.description}
       isActive={isActive}
       defaultOpen={isActive}
+      action={activeCount > 0 ? <SidebarMenuBadge>{activeCount}</SidebarMenuBadge> : null}
       expandedContent={
         <ExpandedTasks
           destination={destination}
@@ -238,19 +241,26 @@ function TaskStatusIcon(props: { status: HermesExecutionTaskStatus }) {
   )
 }
 
-function getActiveTeamId(href: string): number | undefined {
-  const params = new URLSearchParams(href.split('?')[1]?.split('#')[0] ?? '')
-  const rawTeamId = params.get('team_id')
-  if (!rawTeamId) return undefined
-  const teamId = Number(rawTeamId)
-  return Number.isFinite(teamId) && teamId > 0 ? teamId : undefined
-}
-
-function getTasksDestination(pathname: string, teamId: number | undefined) {
-  if (pathname === '/team-workspace' && teamId) {
-    return `/team-workspace?team_id=${encodeURIComponent(teamId)}&panel=tasks`
+function getTasksDestination(pathname: string) {
+  if (pathname === '/team-workspace') {
+    return '/team-workspace?panel=tasks'
   }
   return '/hermes-playground?panel=tasks'
+}
+
+function sortTasksByPriority(tasks: HermesExecutionTask[]): HermesExecutionTask[] {
+  const statusOrder: Record<HermesExecutionTaskStatus, number> = {
+    queued: 0,
+    running: 1,
+    succeeded: 2,
+    failed: 3,
+    canceled: 4,
+  }
+  return [...tasks].sort((a, b) => {
+    const orderDiff = statusOrder[a.status] - statusOrder[b.status]
+    if (orderDiff !== 0) return orderDiff
+    return (b.updatedAt ?? 0) - (a.updatedAt ?? 0)
+  })
 }
 
 function isTasksActive(href: string): boolean {

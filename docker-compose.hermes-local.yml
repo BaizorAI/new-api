@@ -1,0 +1,46 @@
+# 本地混合部署：Hermes-Agent 走 Docker，New-Api 走 `go run main.go`
+#
+# 1. 启动 Hermes-Agent：
+#    docker compose -f docker-compose.hermes-local.yml up -d
+#
+# 2. 启动 New-Api（在另一个终端）：
+#    $env:HERMES_API_SERVER_URL="http://localhost:8642"
+#    $env:HERMES_API_SERVER_KEY="7d4a551de0f1148f65d62e9f294e1c35982fe5c3bb9afe0e7be1c8d1f3c6d9fe"
+#    $env:SQLITE_PATH="./data/one-api.db"
+#    go run main.go
+#
+# 3. 浏览器访问 http://localhost:3000
+#
+# 说明：
+# - SQLite 是文件型数据库，无需单独容器；New-Api 首次运行会自动创建 SQLITE_PATH 指定的文件。
+# - 如需 Redis，可额外启动一个 redis 容器，或在 .env 中设置 REDIS_CONN_STRING。
+# - HERMES_INFERENCE_API_KEY 是 Hermes 调用 New-Api 时用的 Key；若暂时不需要，可留空，
+#   待 New-Api 创建好令牌后再回填并重启 Hermes。
+
+services:
+  baizor-hermes:
+    # 如果本地源码有修改且网络允许，可取消下面 build 块注释从源码构建：
+    # build:
+    #   context: ./hermes-agent
+    #   dockerfile: Dockerfile
+    image: ${HERMES_IMAGE:-ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.17}
+    container_name: baizor-hermes
+    restart: unless-stopped
+    command: ["gateway", "run"]
+    ports:
+      - "${HERMES_API_SERVER_PORT:-8642}:8642"
+    volumes:
+      - ./hermes-data:/opt/data
+    environment:
+      - HERMES_UID=${HERMES_UID:-10000}
+      - HERMES_GID=${HERMES_GID:-10000}
+      - API_SERVER_HOST=0.0.0.0
+      - API_SERVER_PORT=${HERMES_API_SERVER_PORT:-8642}
+      - API_SERVER_KEY=${HERMES_API_SERVER_KEY:-7d4a551de0f1148f65d62e9f294e1c35982fe5c3bb9afe0e7be1c8d1f3c6d9fe}
+      # Hermes 调用本机 New-Api：Windows/macOS 用 host.docker.internal，Linux 可用 host 网络或 172.17.0.1
+      - HERMES_INFERENCE_BASE_URL=${HERMES_INFERENCE_BASE_URL:-http://host.docker.internal:3000/v1}
+      - HERMES_INFERENCE_API_KEY=${HERMES_INFERENCE_API_KEY:-change-me}
+      - OPENAI_BASE_URL=${HERMES_INFERENCE_BASE_URL:-http://host.docker.internal:3000/v1}
+      - OPENAI_API_KEY=${HERMES_INFERENCE_API_KEY:-}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,host.docker.internal}
+      - no_proxy=${no_proxy:-localhost,127.0.0.1,host.docker.internal}

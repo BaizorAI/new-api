@@ -17,7 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -29,6 +28,7 @@ import {
 } from '@/components/data-table'
 import { useMediaQuery } from '@/hooks'
 import { useIsAdmin } from '@/hooks/use-admin'
+import type { NavigateFn } from '@/hooks/use-table-url-state'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { cn } from '@/lib/utils'
 
@@ -44,7 +44,7 @@ import { CommonLogsFilterBar } from './common-logs-filter-bar'
 import { TaskLogsFilterBar } from './task-logs-filter-bar'
 import { UsageLogsMobileList } from './usage-logs-mobile-card'
 
-const route = getRouteApi('/_authenticated/usage-logs/$section')
+
 
 const logTypeRowTint: Record<number, string> = {
   [LOG_TYPE_ENUM.ERROR]: 'bg-rose-50/40 dark:bg-rose-950/20',
@@ -65,13 +65,21 @@ function deserializeLogTypeFilter(value: unknown): unknown[] {
 
 interface UsageLogsTableProps {
   logCategory: LogCategory
+  isAdmin?: boolean
+  searchParams: Record<string, unknown>
+  navigate: NavigateFn
 }
 
-export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
+export function UsageLogsTable({
+  logCategory,
+  isAdmin: isAdminProp,
+  searchParams,
+  navigate,
+}: UsageLogsTableProps) {
   const { t } = useTranslation()
-  const isAdmin = useIsAdmin()
+  const isAdminFromHook = useIsAdmin()
+  const isAdmin = isAdminProp ?? isAdminFromHook
   const isMobile = useMediaQuery('(max-width: 640px)')
-  const searchParams = route.useSearch()
 
   const {
     columnFilters,
@@ -80,8 +88,8 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
     onPaginationChange,
     ensurePageInRange,
   } = useTableUrlState({
-    search: route.useSearch(),
-    navigate: route.useNavigate(),
+    search: searchParams,
+    navigate: navigate,
     pagination: { defaultPage: 1, defaultPageSize: isMobile ? 20 : 100 },
     globalFilter: { enabled: false },
     columnFilters: [
@@ -195,7 +203,12 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
       }
       toolbar={
         isCommon ? (
-          <CommonLogsFilterBar table={table} />
+          <CommonLogsFilterBar
+            table={table}
+            isAdmin={isAdmin}
+            searchParams={searchParams}
+            navigate={navigate}
+          />
         ) : (
           <TaskLogsFilterBar table={table} logCategory={logCategory} />
         )

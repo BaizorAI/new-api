@@ -97,6 +97,12 @@ import {
   type HermesSkill,
   type HermesToolset,
 } from '../api'
+import {
+  HERMES_CAPABILITY_FILTER,
+  isBackupSkillCategory,
+  isBackupSkillSection,
+  isBackupToolset,
+} from '../lib/capability-filter'
 import type { HermesCapabilitySection } from '../lib/workspace-panel-controller'
 
 type HermesCapabilityTab = 'skills' | 'tools'
@@ -532,6 +538,25 @@ interface SkillPanelProps {
 
 function SkillPanel(props: SkillPanelProps) {
   const { t } = useTranslation()
+  const orderedSections = getOrderedSkillSections(props, t)
+  const relevantSections: OrderedSkillSection[] = []
+  const backupSkills: HermesSkill[] = []
+
+  for (const section of orderedSections) {
+    if (isBackupSkillSection(section.id)) {
+      backupSkills.push(...section.skills)
+      continue
+    }
+    const sectionRelevant: HermesSkill[] = []
+    for (const skill of section.skills) {
+      if (isBackupSkillCategory(skill.category)) {
+        backupSkills.push(skill)
+      } else {
+        sectionRelevant.push(skill)
+      }
+    }
+    relevantSections.push({ ...section, skills: sectionRelevant })
+  }
 
   return (
     <div className='flex h-full min-h-0 flex-col'>
@@ -608,7 +633,7 @@ function SkillPanel(props: SkillPanelProps) {
             {props.isLoading && <LoadingRows />}
             {!props.isLoading &&
               !props.error &&
-              getOrderedSkillSections(props, t).map((section) => (
+              relevantSections.map((section) => (
                 <SkillSection
                   emptyDescription={section.emptyDescription}
                   emptyTitle={section.emptyTitle}
@@ -627,6 +652,25 @@ function SkillPanel(props: SkillPanelProps) {
                   title={section.title}
                 />
               ))}
+            {!props.isLoading && !props.error && backupSkills.length > 0 && (
+              <SkillSection
+                emptyDescription={t(
+                  'Backup skills are hidden from the main list.'
+                )}
+                emptyTitle={t('No backup skills')}
+                isAdmin={props.isAdmin}
+                isSysAdmin={props.isSysAdmin}
+                manageableTeams={props.manageableTeams}
+                onDeleteSkill={props.onDeleteSkill}
+                onEditSkill={props.onEditSkill}
+                onPublishSkill={props.onPublishSkill}
+                onUseSkill={props.onUseSkill}
+                selectedTeamId={props.selectedTeamId}
+                selectedTeamName={props.selectedTeamName}
+                skills={backupSkills}
+                title={t('Backup skills')}
+              />
+            )}
           </div>
         </ScrollArea>
       </div>
@@ -1323,6 +1367,15 @@ interface ToolPanelProps {
 
 function ToolPanel(props: ToolPanelProps) {
   const { t } = useTranslation()
+  const relevantToolsets: HermesToolset[] = []
+  const backupToolsets: HermesToolset[] = []
+  for (const toolset of props.toolsets) {
+    if (isBackupToolset(toolset.name)) {
+      backupToolsets.push(toolset)
+    } else {
+      relevantToolsets.push(toolset)
+    }
+  }
 
   return (
     <div className='flex h-full min-h-0 flex-col'>
@@ -1378,9 +1431,12 @@ function ToolPanel(props: ToolPanelProps) {
           )}
           {!props.isLoading &&
             !props.error &&
-            props.toolsets.map((toolset) => (
+            relevantToolsets.map((toolset) => (
               <ToolsetRow key={toolset.name} toolset={toolset} />
             ))}
+          {!props.isLoading && !props.error && backupToolsets.length > 0 && (
+            <ToolsetBackupSection toolsets={backupToolsets} />
+          )}
         </div>
       </ScrollArea>
     </div>
@@ -1454,6 +1510,41 @@ function ToolsetRow(props: { toolset: HermesToolset }) {
         </div>
       </div>
     </details>
+  )
+}
+
+function ToolsetBackupSection(props: { toolsets: HermesToolset[] }) {
+  const { t } = useTranslation()
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  return (
+    <section>
+      <button
+        className='hover:bg-muted/60 flex w-full items-center gap-1 rounded px-1 py-1.5 transition-colors'
+        onClick={() => setIsExpanded((v) => !v)}
+        type='button'
+      >
+        <ChevronRightIcon
+          className={cn(
+            'text-muted-foreground size-3.5 shrink-0 transition-transform',
+            isExpanded && 'rotate-90'
+          )}
+        />
+        <span className='text-muted-foreground min-w-0 flex-1 truncate text-left text-xs font-medium uppercase tracking-wide'>
+          {t('Backup toolsets')}
+        </span>
+        <span className='text-muted-foreground shrink-0 text-xs'>
+          {props.toolsets.length}
+        </span>
+      </button>
+      {isExpanded && (
+        <div className='ml-3 space-y-3 border-l py-0.5 pl-1'>
+          {props.toolsets.map((toolset) => (
+            <ToolsetRow key={toolset.name} toolset={toolset} />
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 

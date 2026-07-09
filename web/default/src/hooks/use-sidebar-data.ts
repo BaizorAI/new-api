@@ -30,6 +30,7 @@ import {
   FileText,
   FlaskConical,
   Gift,
+  History,
   Key,
   LayoutDashboard,
   ListChecks,
@@ -152,16 +153,10 @@ export function useSidebarData(): SidebarData {
             icon: Scale,
           },
           {
-            title: t('Execution tasks'),
-            description: t('View running, completed and failed agent tasks.'),
+            title: t('My tasks'),
+            description: t('View your running, completed and failed tasks.'),
             type: 'hermes-execution-tasks',
             icon: ListChecks,
-          },
-          {
-            title: t('Results'),
-            url: '/hermes-playground?panel=results&scope=mine',
-            configUrls: ['/hermes-playground'],
-            icon: FileCheck2,
           },
         ],
       },
@@ -259,11 +254,6 @@ export function useSidebarData(): SidebarData {
         position: 'bottom',
         requiredRole: ROLE.ADMIN,
         items: [
-          {
-            title: t('Team Management'),
-            url: '/teams',
-            icon: Users,
-          },
           {
             title: t('User Management'),
             url: '/users',
@@ -385,6 +375,12 @@ export function useSidebarData(): SidebarData {
             url: '/wallet/overview',
             configUrls: ['/wallet'],
             icon: Wallet,
+          },
+          {
+            title: t('Usage Records'),
+            url: '/my-usage-logs',
+            configUrls: ['/my-usage-logs'],
+            icon: History,
           },
           {
             title: t('Add Funds'),

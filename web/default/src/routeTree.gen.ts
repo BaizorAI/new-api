@@ -53,6 +53,7 @@ import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedPricingIndexRouteImport } from './routes/_authenticated/pricing/index'
 import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_authenticated/playground/index'
 import { Route as AuthenticatedOnePersonCompanyIndexRouteImport } from './routes/_authenticated/one-person-company/index'
+import { Route as AuthenticatedMyUsageLogsIndexRouteImport } from './routes/_authenticated/my-usage-logs/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
 import { Route as AuthenticatedJilaiWorkspaceIndexRouteImport } from './routes/_authenticated/jilai-workspace/index'
@@ -320,6 +321,12 @@ const AuthenticatedOnePersonCompanyIndexRoute =
     path: '/one-person-company/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMyUsageLogsIndexRoute =
+  AuthenticatedMyUsageLogsIndexRouteImport.update({
+    id: '/my-usage-logs/',
+    path: '/my-usage-logs/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedModelsIndexRoute =
   AuthenticatedModelsIndexRouteImport.update({
     id: '/models/',
@@ -563,6 +570,7 @@ export interface FileRoutesByFullPath {
   '/jilai-workspace/': typeof AuthenticatedJilaiWorkspaceIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
+  '/my-usage-logs/': typeof AuthenticatedMyUsageLogsIndexRoute
   '/one-person-company/': typeof AuthenticatedOnePersonCompanyIndexRoute
   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/pricing/': typeof AuthenticatedPricingIndexRoute
@@ -639,6 +647,7 @@ export interface FileRoutesByTo {
   '/jilai-workspace': typeof AuthenticatedJilaiWorkspaceIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
+  '/my-usage-logs': typeof AuthenticatedMyUsageLogsIndexRoute
   '/one-person-company': typeof AuthenticatedOnePersonCompanyIndexRoute
   '/playground': typeof AuthenticatedPlaygroundIndexRoute
   '/pricing': typeof AuthenticatedPricingIndexRoute
@@ -720,6 +729,7 @@ export interface FileRoutesById {
   '/_authenticated/jilai-workspace/': typeof AuthenticatedJilaiWorkspaceIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
+  '/_authenticated/my-usage-logs/': typeof AuthenticatedMyUsageLogsIndexRoute
   '/_authenticated/one-person-company/': typeof AuthenticatedOnePersonCompanyIndexRoute
   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/_authenticated/pricing/': typeof AuthenticatedPricingIndexRoute
@@ -800,6 +810,7 @@ export interface FileRouteTypes {
     | '/jilai-workspace/'
     | '/keys/'
     | '/models/'
+    | '/my-usage-logs/'
     | '/one-person-company/'
     | '/playground/'
     | '/pricing/'
@@ -876,6 +887,7 @@ export interface FileRouteTypes {
     | '/jilai-workspace'
     | '/keys'
     | '/models'
+    | '/my-usage-logs'
     | '/one-person-company'
     | '/playground'
     | '/pricing'
@@ -956,6 +968,7 @@ export interface FileRouteTypes {
     | '/_authenticated/jilai-workspace/'
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
+    | '/_authenticated/my-usage-logs/'
     | '/_authenticated/one-person-company/'
     | '/_authenticated/playground/'
     | '/_authenticated/pricing/'
@@ -1327,6 +1340,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnePersonCompanyIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/my-usage-logs/': {
+      id: '/_authenticated/my-usage-logs/'
+      path: '/my-usage-logs'
+      fullPath: '/my-usage-logs/'
+      preLoaderRoute: typeof AuthenticatedMyUsageLogsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/models/': {
       id: '/_authenticated/models/'
       path: '/models'
@@ -1683,6 +1703,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedJilaiWorkspaceIndexRoute: typeof AuthenticatedJilaiWorkspaceIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
+  AuthenticatedMyUsageLogsIndexRoute: typeof AuthenticatedMyUsageLogsIndexRoute
   AuthenticatedOnePersonCompanyIndexRoute: typeof AuthenticatedOnePersonCompanyIndexRoute
   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
   AuthenticatedPricingIndexRoute: typeof AuthenticatedPricingIndexRoute
@@ -1721,6 +1742,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedJilaiWorkspaceIndexRoute: AuthenticatedJilaiWorkspaceIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
+  AuthenticatedMyUsageLogsIndexRoute: AuthenticatedMyUsageLogsIndexRoute,
   AuthenticatedOnePersonCompanyIndexRoute:
     AuthenticatedOnePersonCompanyIndexRoute,
   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,

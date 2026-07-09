@@ -283,7 +283,8 @@ function resolveActiveRootGroup(
     pathname === '/profile' ||
     pathname.startsWith('/wallet') ||
     pathname === '/keys' ||
-    pathname === '/pricing'
+    pathname === '/pricing' ||
+    pathname === '/my-usage-logs'
   ) {
     return findGroup(navGroups, 'personal-center')
   }

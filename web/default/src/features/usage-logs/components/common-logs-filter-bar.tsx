@@ -17,7 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQueryClient, useIsFetching } from '@tanstack/react-query'
-import { useNavigate, getRouteApi } from '@tanstack/react-router'
 import type { Table } from '@tanstack/react-table'
 import { Eye, EyeOff } from 'lucide-react'
 import { useState, useCallback, useMemo } from 'react'
@@ -37,7 +36,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useIsAdmin } from '@/hooks/use-admin'
+import type { NavigateFn } from '@/hooks/use-table-url-state'
 
 import { LOG_TYPE_ALL_VALUE, LOG_TYPE_FILTERS } from '../constants'
 import { buildSearchParams } from '../lib/filter'
@@ -51,8 +50,6 @@ import {
   LogsFilterToolbar,
 } from './logs-filter-toolbar'
 import { useUsageLogsContext } from './usage-logs-provider'
-
-const route = getRouteApi('/_authenticated/usage-logs/$section')
 
 type LogTypeValue = (typeof LOG_TYPE_FILTERS)[number]['value']
 const logTypeValueSet = new Set<string>(
@@ -108,16 +105,17 @@ function buildSearchSourceKey(values: {
 
 interface CommonLogsFilterBarProps<TData> {
   table: Table<TData>
+  isAdmin: boolean
+  searchParams: Record<string, unknown>
+  navigate: NavigateFn
 }
 
 export function CommonLogsFilterBar<TData>(
   props: CommonLogsFilterBarProps<TData>
 ) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
+  const { isAdmin, searchParams, navigate } = props
   const queryClient = useQueryClient()
-  const searchParams = route.useSearch()
-  const isAdmin = useIsAdmin()
   const { sensitiveVisible, setSensitiveVisible } = useUsageLogsContext()
   const fetchingLogs = useIsFetching({ queryKey: ['logs'] })
 
@@ -189,8 +187,6 @@ export function CommonLogsFilterBar<TData>(
   const handleApply = useCallback(() => {
     const filterParams = buildSearchParams(filters, 'common')
     navigate({
-      to: '/usage-logs/$section',
-      params: { section: 'common' },
       search: {
         ...filterParams,
         type: [logType],
@@ -216,8 +212,6 @@ export function CommonLogsFilterBar<TData>(
     })
 
     navigate({
-      to: '/usage-logs/$section',
-      params: { section: 'common' },
       search: {
         page: 1,
         ...resetSearch,
@@ -266,7 +260,7 @@ export function CommonLogsFilterBar<TData>(
 
   const statsBar = (
     <div className='flex flex-wrap items-center gap-2'>
-      <CommonLogsStats />
+      <CommonLogsStats isAdmin={isAdmin} searchParams={searchParams} />
     </div>
   )
   const sensitiveToggle = (
