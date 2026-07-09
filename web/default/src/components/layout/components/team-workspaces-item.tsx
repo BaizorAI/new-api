@@ -27,12 +27,12 @@ import {
   Copy,
   Download,
   ExternalLink,
-  FileCheck2,
   LayoutDashboard,
   ListChecks,
   Loader2,
   MessageSquare,
   MoreHorizontal,
+  PackagePlus,
   Pencil,
   Pin,
   PinOff,
@@ -65,6 +65,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import {
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSubButton,
@@ -74,10 +75,12 @@ import {
 import {
   deleteTeamHermesConversation,
   listHermesExecutionTasks,
+  listHermesSkills,
   listTeamHermesConversations,
   upsertTeamHermesConversation,
   type HermesExecutionTask,
   type HermesExecutionTaskStatus,
+  type HermesSkill,
   type HermesTeamConversationRecord,
 } from '@/features/hermes-playground/api'
 import {
@@ -87,6 +90,7 @@ import {
   formatSessionTime,
   loadActiveConversationId,
   peekHermesConversations,
+  requestOpenHermesSkillDialog,
   saveActiveConversationId,
   saveHermesConversations,
   sortSessions,
@@ -153,7 +157,7 @@ export function TeamWorkspacesItem({ item }: { item: NavTeamWorkspaces }) {
   )
 }
 
-type TeamWorkspacePanel = 'sessions' | 'results' | 'skills' | 'tasks'
+type TeamWorkspacePanel = 'sessions' | 'skills' | 'tasks'
 type TeamManagementArea = 'members'
 
 const TEAM_PANEL_CONFIG: Array<{
@@ -162,13 +166,15 @@ const TEAM_PANEL_CONFIG: Array<{
   icon: ElementType
 }> = [
   { panel: 'sessions', titleKey: 'Team conversation', icon: MessageSquare },
-  { panel: 'results', titleKey: 'Team results', icon: FileCheck2 },
   { panel: 'skills', titleKey: 'Team skills', icon: Sparkles },
   { panel: 'tasks', titleKey: 'Team tasks', icon: ListChecks },
 ]
 
 const TEAM_LINK_PANEL_CONFIG = TEAM_PANEL_CONFIG.filter(
-  (config) => config.panel !== 'sessions' && config.panel !== 'tasks'
+  (config) =>
+    config.panel !== 'sessions' &&
+    config.panel !== 'skills' &&
+    config.panel !== 'tasks'
 )
 
 const TEAM_MANAGEMENT_CONFIG: Array<{
@@ -240,6 +246,13 @@ function FlatTeamWorkspaceItems(props: {
           href={props.href}
           team={team}
           title={t('Team conversation')}
+          onNavigate={props.onNavigate}
+        />,
+        <FlatTeamSkillItems
+          key={`${team.id}-skills`}
+          href={props.href}
+          team={team}
+          title={t('Team skills')}
           onNavigate={props.onNavigate}
         />,
         ...TEAM_LINK_PANEL_CONFIG.map((config) => (
@@ -394,11 +407,22 @@ function FlatTeamTaskItems(props: {
   onNavigate: () => void
 }) {
   const { t } = useTranslation()
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: rawTasks = [], isLoading } = useQuery({
     queryKey: ['sidebar', 'team-tasks', props.team.id],
     queryFn: () => listHermesExecutionTasks({ teamId: props.team.id, limit: 5 }),
     refetchInterval: 5000,
   })
+  const tasks = useMemo(
+    () => sortTeamTasksByPriority(rawTasks).slice(0, 5),
+    [rawTasks]
+  )
+  const activeCount = useMemo(
+    () =>
+      rawTasks.filter(
+        (task) => task.status === 'running' || task.status === 'queued'
+      ).length,
+    [rawTasks]
+  )
 
   return (
     <>
@@ -406,7 +430,23 @@ function FlatTeamTaskItems(props: {
         icon={ListChecks}
         title={props.title}
         className='pl-6'
+        badge={activeCount > 0 ? activeCount : undefined}
       />
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          className='pl-9'
+          render={
+            <Link
+              to='/team-workspace'
+              search={{ team_id: props.team.id, panel: 'tasks' }}
+              onClick={props.onNavigate}
+            />
+          }
+        >
+          <ExternalLink className='size-4' aria-hidden='true' />
+          <span>{t('View all tasks')}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
       {isLoading ? (
         <FlatSidebarMutedItem
           className='pl-9'
@@ -474,10 +514,109 @@ function FlatTeamTaskItem(props: {
   )
 }
 
+function FlatTeamSkillItems(props: {
+  href: string
+  team: Team
+  title: string
+  onNavigate: () => void
+}) {
+  const { t } = useTranslation()
+  const { data: rawSkills = [], isLoading } = useQuery({
+    queryKey: ['sidebar', 'team-skills', props.team.id],
+    queryFn: () => listHermesSkills({ teamId: props.team.id }).catch(() => []),
+    staleTime: 5 * 60 * 1000,
+  })
+  const skills = useMemo(
+    () =>
+      rawSkills
+        .filter((s) => s.ownerScope === 'team' || s.source === 'team')
+        .slice(0, 8),
+    [rawSkills]
+  )
+
+  return (
+    <>
+      <FlatSidebarSectionLabel
+        icon={Sparkles}
+        title={props.title}
+        className='pl-6'
+        badge={skills.length > 0 ? skills.length : undefined}
+      />
+      {isLoading ? (
+        <FlatSidebarMutedItem
+          className='pl-9'
+          icon={Loader2}
+          iconClassName='animate-spin'
+          title={t('Loading skills...')}
+        />
+      ) : null}
+      {!isLoading && skills.length === 0 ? (
+        <FlatSidebarMutedItem
+          className='pl-9'
+          icon={Sparkles}
+          title={t('No team skills yet')}
+        />
+      ) : null}
+      {skills.map((skill) => (
+        <FlatTeamSkillItem
+          key={skill.name}
+          active={isTeamSkillActive(props.href, props.team.id, skill.name)}
+          skill={skill}
+          team={props.team}
+          onNavigate={props.onNavigate}
+        />
+      ))}
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          className='pl-9 text-muted-foreground'
+          onClick={() => {
+            requestOpenHermesSkillDialog(props.team.id)
+            props.onNavigate()
+          }}
+        >
+          <PackagePlus className='size-4' aria-hidden='true' />
+          <span>{t('Add skill')}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </>
+  )
+}
+
+function FlatTeamSkillItem(props: {
+  active: boolean
+  skill: HermesSkill
+  team: Team
+  onNavigate: () => void
+}) {
+  const title = props.skill.displayName || props.skill.name
+  const desc = props.skill.descriptionZh || props.skill.description
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        className='pl-9'
+        isActive={props.active}
+        tooltip={desc || title}
+        render={
+          <Link
+            to='/team-workspace'
+            search={{ team_id: props.team.id, skill: props.skill.name }}
+            onClick={props.onNavigate}
+          />
+        }
+      >
+        <Sparkles className='size-4' aria-hidden='true' />
+        <span className='min-w-0 flex-1 truncate'>{title}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+}
+
 function FlatSidebarSectionLabel(props: {
   icon: ElementType
   title: string
   className?: string
+  badge?: number
 }) {
   return (
     <SidebarMenuItem>
@@ -486,6 +625,9 @@ function FlatSidebarSectionLabel(props: {
       >
         <props.icon className='size-3.5 shrink-0' aria-hidden='true' />
         <span className='truncate'>{props.title}</span>
+        {props.badge ? (
+          <SidebarMenuBadge className='ml-auto'>{props.badge}</SidebarMenuBadge>
+        ) : null}
       </div>
     </SidebarMenuItem>
   )
@@ -1357,9 +1499,22 @@ function isTeamTaskActive(
   task: HermesExecutionTask
 ): boolean {
   if (!isTeamUrlActive(href, teamId, 'tasks')) return false
-  if (!task.conversationId) return true
+  if (!task.conversationId) return false
 
   return getActiveTeamConversationId(teamId) === task.conversationId
+}
+
+function isTeamSkillActive(
+  href: string,
+  teamId: number,
+  skillName: string
+): boolean {
+  if (normalizeHref(href) !== '/team-workspace') return false
+
+  const search = href.split('?')[1] ?? ''
+  const params = new URLSearchParams(search)
+  if (params.get('team_id') !== String(teamId)) return false
+  return params.get('skill') === skillName
 }
 
 function TaskStatusIcon(props: { status: HermesExecutionTaskStatus }) {
@@ -1380,6 +1535,23 @@ function TaskStatusIcon(props: { status: HermesExecutionTaskStatus }) {
       aria-hidden='true'
     />
   )
+}
+
+function sortTeamTasksByPriority(
+  tasks: HermesExecutionTask[]
+): HermesExecutionTask[] {
+  const statusOrder: Record<HermesExecutionTaskStatus, number> = {
+    queued: 0,
+    running: 1,
+    succeeded: 2,
+    failed: 3,
+    canceled: 4,
+  }
+  return [...tasks].sort((a, b) => {
+    const orderDiff = statusOrder[a.status] - statusOrder[b.status]
+    if (orderDiff !== 0) return orderDiff
+    return (b.updatedAt ?? 0) - (a.updatedAt ?? 0)
+  })
 }
 
 function getTeamWorkspaceBaseScope(teamId: number): string {

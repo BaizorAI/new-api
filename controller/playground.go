@@ -26,6 +26,30 @@ type hermesSkillCreateRequest struct {
 	Name     string `json:"name"`
 	Content  string `json:"content"`
 	Category string `json:"category,omitempty"`
+	Scope    string `json:"scope,omitempty"`
+}
+
+// resolveHermesSkillWriteScope determines the storage scope for a Hermes skill
+// write (create/update/delete) and enforces team management permission when the
+// request targets a team. Without an explicit scope the Hermes sidecar defaults
+// to the personal ("user") space, so team-scoped writes must set scope to "team".
+func resolveHermesSkillWriteScope(c *gin.Context) (string, error) {
+	rawTeamID := strings.TrimSpace(c.GetHeader("X-Baizor-Team-Id"))
+	if rawTeamID == "" || rawTeamID == "0" {
+		return "user", nil
+	}
+
+	teamID, err := strconv.Atoi(rawTeamID)
+	if err != nil || teamID <= 0 {
+		return "", fmt.Errorf("team context is required")
+	}
+
+	team, err := model.GetTeamByIdForUser(teamID, c.GetInt("id"))
+	if err != nil || !model.CanManageTeamRole(team.Role) {
+		return "", fmt.Errorf("no permission to manage skills for this team")
+	}
+
+	return "team", nil
 }
 
 type hermesProxyResult struct {
@@ -116,6 +140,13 @@ func HermesPlaygroundSkills(c *gin.Context) {
 			return
 		}
 
+		scope, err := resolveHermesSkillWriteScope(c)
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+			return
+		}
+		request.Scope = scope
+
 		body, err := common.Marshal(request)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to encode request"})
@@ -134,6 +165,13 @@ func HermesPlaygroundSkills(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"message": "name and content are required"})
 			return
 		}
+
+		scope, err := resolveHermesSkillWriteScope(c)
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+			return
+		}
+		request.Scope = scope
 
 		body, err := common.Marshal(request)
 		if err != nil {
@@ -156,7 +194,13 @@ func HermesPlaygroundSkills(c *gin.Context) {
 			return
 		}
 
-		body, err := common.Marshal(request)
+		scope, err := resolveHermesSkillWriteScope(c)
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+			return
+		}
+
+		body, err := common.Marshal(gin.H{"name": request.Name, "scope": scope})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to encode request"})
 			return

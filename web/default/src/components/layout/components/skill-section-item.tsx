@@ -101,6 +101,7 @@ function SkillSubItem({
   onClose,
   index,
   teamId,
+  scopeName,
 }: {
   skill: HermesSkill
   url: string
@@ -108,6 +109,7 @@ function SkillSubItem({
   onClose: () => void
   index: number
   teamId?: number
+  scopeName?: string
 }) {
   const { t } = useTranslation()
   const userId = useAuthStore((state) => state.auth.user?.id)
@@ -118,8 +120,8 @@ function SkillSubItem({
     if (isTeam) {
       return `team_workspace_team_${teamId}_skill_${safeName}`
     }
-    return getHermesBaseScope(userId, `skill_${safeName}`)
-  }, [skill.name, teamId, userId, isTeam])
+    return getHermesBaseScope(userId, `${scopeName ?? 'skill'}_${safeName}`)
+  }, [skill.name, teamId, userId, isTeam, scopeName])
   const subActive = checkIsActive(href, { url })
   const colorClass = SIDEBAR_NODE_COLORS[index % SIDEBAR_NODE_COLORS.length]
   const desc = skill.descriptionZh || skill.description
@@ -559,21 +561,34 @@ function TeamSkillGroup({
   )
 }
 
+function LibraryGroupLabel({ title }: { title: string }) {
+  return (
+    <SidebarMenuSubItem>
+      <div className='text-muted-foreground/70 flex h-6 items-center px-2 text-[10px] font-semibold tracking-wider uppercase'>
+        {title}
+      </div>
+    </SidebarMenuSubItem>
+  )
+}
+
 export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const href = useLocation({ select: (l) => l.href })
   const { setOpenMobile } = useSidebar()
   const isTeamSection = item.section === 'team'
+  const isLibrary = item.section === 'library'
+  const needsTeamSkills = isTeamSection || isLibrary
 
   // Re-fetch skills when a new skill is created via the Add-skill dialog.
   useEffect(() => {
     const handler = () => {
-      if (isTeamSection) {
+      if (needsTeamSkills) {
         void queryClient.invalidateQueries({
           queryKey: ['skill-section-team-skills'],
         })
-      } else {
+      }
+      if (!isTeamSection) {
         void queryClient.invalidateQueries({
           queryKey: ['hermes-skill-section-sidebar'],
         })
@@ -582,18 +597,18 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
     window.addEventListener(HERMES_SKILLS_CHANGED_EVENT, handler)
     return () =>
       window.removeEventListener(HERMES_SKILLS_CHANGED_EVENT, handler)
-  }, [isTeamSection, queryClient])
+  }, [isTeamSection, needsTeamSkills, queryClient])
 
   const teamsQuery = useQuery({
     queryKey: ['skill-section-teams'],
     queryFn: listTeams,
-    enabled: isTeamSection,
+    enabled: needsTeamSkills,
     staleTime: 60_000,
   })
   const teams = teamsQuery.data?.success ? (teamsQuery.data.data ?? []) : []
 
   const teamSkillQueries = useQueries({
-    queries: isTeamSection
+    queries: needsTeamSkills
       ? teams.map((team) => ({
           queryKey: ['skill-section-team-skills', team.id],
           queryFn: () => listHermesSkills({ teamId: team.id }).catch(() => []),
@@ -605,7 +620,7 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
   const singleQuery = useQuery({
     queryKey: ['hermes-skill-section-sidebar', item.section],
     queryFn: () => listHermesSkills(),
-    enabled: !isTeamSection,
+    enabled: !isTeamSection || isLibrary,
     staleTime: 5 * 60 * 1000,
   })
 
@@ -630,25 +645,60 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
     return all.filter((s) => s.ownerScope === 'baizor' || s.source === 'baizor')
   }, [isTeamSection, singleQuery.data, item.section])
 
+  const libraryGroups = useMemo(() => {
+    if (!isLibrary) return null
+    const all = singleQuery.data ?? []
+    return {
+      mine: all.filter((s) => s.ownerScope === 'user' || s.source === 'user'),
+      baizor: all.filter(
+        (s) => s.ownerScope === 'baizor' || s.source === 'baizor'
+      ),
+      jilai: all.filter(
+        (s) => s.ownerScope === 'external' || s.source === 'external'
+      ),
+    }
+  }, [isLibrary, singleQuery.data])
+
   const skillUrl = (name: string) =>
     `/skill-workspace?skill=${encodeURIComponent(name)}` as const
 
   const teamSkillUrl = (teamId: number, name: string) =>
     `/team-workspace?team_id=${teamId}&skill=${encodeURIComponent(name)}` as const
 
-  const isActive = isTeamSection
-    ? teamGroups.some(({ team, skills }) =>
-        skills.some((s) =>
+  const jilaiSkillUrl = (name: string) =>
+    `/jilai-workspace?skill=${encodeURIComponent(name)}` as const
+
+  const isActive = isLibrary
+    ? Boolean(
+        libraryGroups &&
+          (libraryGroups.mine.some((s) =>
+            checkIsActive(href, { url: skillUrl(s.name) })
+          ) ||
+            libraryGroups.baizor.some((s) =>
+              checkIsActive(href, { url: skillUrl(s.name) })
+            ) ||
+            libraryGroups.jilai.some((s) =>
+              checkIsActive(href, { url: jilaiSkillUrl(s.name) })
+            ) ||
+            teamGroups.some(({ team, skills }) =>
+              skills.some((s) =>
+                checkIsActive(href, { url: teamSkillUrl(team.id, s.name) })
+              )
+            ))
+      )
+    : isTeamSection
+      ? teamGroups.some(({ team, skills }) =>
+          skills.some((s) =>
+            checkIsActive(href, {
+              url: teamSkillUrl(team.id, s.name),
+            })
+          )
+        )
+      : flatSkills.some((s) =>
           checkIsActive(href, {
-            url: teamSkillUrl(team.id, s.name),
+            url: skillUrl(s.name),
           })
         )
-      )
-    : flatSkills.some((s) =>
-        checkIsActive(href, {
-          url: skillUrl(s.name),
-        })
-      )
 
   const expandedTeamContent = (
     <>
@@ -788,14 +838,180 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
     </>
   )
 
+  const expandedLibraryContent = libraryGroups ? (
+    <>
+      <LibraryGroupLabel title={t('My skills')} />
+      {libraryGroups.mine.map((skill, idx) => (
+        <SkillSubItem
+          key={`mine-${skill.name}`}
+          skill={skill}
+          url={skillUrl(skill.name)}
+          href={href}
+          onClose={() => setOpenMobile(false)}
+          index={idx}
+        />
+      ))}
+      <SidebarMenuSubItem>
+        <SidebarMenuSubButton
+          className='text-muted-foreground cursor-pointer'
+          onClick={() => {
+            requestOpenHermesSkillDialog()
+            setOpenMobile(false)
+          }}
+        >
+          <PackagePlus className='size-3.5' aria-hidden='true' />
+          <span>{t('Add skill')}</span>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+      <LibraryGroupLabel title={t('Baizor Skills')} />
+      {libraryGroups.baizor.map((skill, idx) => (
+        <SkillSubItem
+          key={`baizor-${skill.name}`}
+          skill={skill}
+          url={skillUrl(skill.name)}
+          href={href}
+          onClose={() => setOpenMobile(false)}
+          index={idx}
+        />
+      ))}
+      {teamGroups.length > 0 ? (
+        <LibraryGroupLabel title={t('Team skills')} />
+      ) : null}
+      {teamGroups.map(({ team, skills }) => (
+        <TeamSkillGroup
+          key={team.id}
+          team={team}
+          skills={skills}
+          href={href}
+          onClose={() => setOpenMobile(false)}
+        />
+      ))}
+      {libraryGroups.jilai.length > 0 ? (
+        <>
+          <LibraryGroupLabel title={t('More skills')} />
+          {libraryGroups.jilai.map((skill, idx) => (
+            <SkillSubItem
+              key={`jilai-${skill.name}`}
+              skill={skill}
+              url={jilaiSkillUrl(skill.name)}
+              href={href}
+              onClose={() => setOpenMobile(false)}
+              index={idx}
+              scopeName='jilai'
+            />
+          ))}
+        </>
+      ) : null}
+    </>
+  ) : null
+
+  const renderCollapsedSkillLink = (
+    key: string,
+    url: string,
+    label: string
+  ) => {
+    const subActive = checkIsActive(href, { url })
+    return (
+      <DropdownMenuItem
+        key={key}
+        render={
+          <Link
+            className={subActive ? 'bg-secondary' : ''}
+            onClick={() => setOpenMobile(false)}
+            to={url}
+          />
+        }
+      >
+        <span className='max-w-52 text-wrap'>{label}</span>
+      </DropdownMenuItem>
+    )
+  }
+
+  const collapsedLibraryContent = libraryGroups ? (
+    <>
+      <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      <DropdownMenuLabel className='text-muted-foreground/60 text-[10px] font-semibold tracking-wider uppercase'>
+        {t('My skills')}
+      </DropdownMenuLabel>
+      {libraryGroups.mine.map((skill) =>
+        renderCollapsedSkillLink(
+          `mine-${skill.name}`,
+          skillUrl(skill.name),
+          skill.displayName || skill.name
+        )
+      )}
+      <DropdownMenuItem
+        onClick={() => {
+          requestOpenHermesSkillDialog()
+          setOpenMobile(false)
+        }}
+      >
+        <PackagePlus className='size-4' aria-hidden='true' />
+        <span className='max-w-52 text-wrap'>{t('Add skill')}</span>
+      </DropdownMenuItem>
+      {libraryGroups.baizor.length > 0 ? (
+        <>
+          <DropdownMenuLabel className='text-muted-foreground/60 text-[10px] font-semibold tracking-wider uppercase'>
+            {t('Baizor Skills')}
+          </DropdownMenuLabel>
+          {libraryGroups.baizor.map((skill) =>
+            renderCollapsedSkillLink(
+              `baizor-${skill.name}`,
+              skillUrl(skill.name),
+              skill.displayName || skill.name
+            )
+          )}
+        </>
+      ) : null}
+      {teamGroups.map(({ team, skills }) => (
+        <Fragment key={team.id}>
+          <DropdownMenuLabel className='text-muted-foreground/60 text-[10px] font-semibold tracking-wider uppercase'>
+            {team.name}
+          </DropdownMenuLabel>
+          {skills.map((skill) =>
+            renderCollapsedSkillLink(
+              `${team.id}-${skill.name}`,
+              teamSkillUrl(team.id, skill.name),
+              skill.displayName || skill.name
+            )
+          )}
+        </Fragment>
+      ))}
+      {libraryGroups.jilai.length > 0 ? (
+        <>
+          <DropdownMenuLabel className='text-muted-foreground/60 text-[10px] font-semibold tracking-wider uppercase'>
+            {t('More skills')}
+          </DropdownMenuLabel>
+          {libraryGroups.jilai.map((skill) =>
+            renderCollapsedSkillLink(
+              `jilai-${skill.name}`,
+              jilaiSkillUrl(skill.name),
+              skill.displayName || skill.name
+            )
+          )}
+        </>
+      ) : null}
+    </>
+  ) : null
+
+  const expandedContent = isLibrary
+    ? expandedLibraryContent
+    : isTeamSection
+      ? expandedTeamContent
+      : expandedFlatContent
+  const collapsedContent = isLibrary
+    ? collapsedLibraryContent
+    : isTeamSection
+      ? collapsedTeamContent
+      : collapsedFlatContent
+
   return (
     <SidebarCollapsibleShell
       defaultOpen={false}
       description={item.description}
-      expandedContent={isTeamSection ? expandedTeamContent : expandedFlatContent}
-      collapsedContent={
-        isTeamSection ? collapsedTeamContent : collapsedFlatContent
-      }
+      expandedContent={expandedContent}
+      collapsedContent={collapsedContent}
       icon={item.icon}
       id={`skill-section-${item.section}`}
       isActive={isActive}

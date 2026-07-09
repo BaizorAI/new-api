@@ -117,7 +117,7 @@ export type NavHermesJilaiSkills = BaseNavItem & {
  */
 export type NavHermesSkillSection = BaseNavItem & {
   type: 'hermes-skill-section'
-  section: 'mine' | 'team' | 'baizor'
+  section: 'mine' | 'team' | 'baizor' | 'library'
   url?: never
   items?: never
 }

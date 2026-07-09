@@ -67,7 +67,7 @@ function HermesPlaygroundPage() {
 
   return (
     <HermesAgentWorkspace
-      defaultSystemPrompt='Use Chinese by default unless the user asks otherwise.'
+      defaultSystemPrompt='Use Chinese by default unless the user asks otherwise. When greeting the user for the first time, introduce yourself in Chinese, for example: "你好，我是 Hermes Agent，你的 AI 助手。有什么可以帮你的吗？"'
       emptyModelsMessage={t('No Hermes models available')}
       initialCapabilityCategory={category}
       initialCapabilitySection={capabilitySection}
