@@ -46,6 +46,7 @@ import type {
   NavHermesExecutionTasks,
   NavHermesJilaiSkills,
   NavHermesSkillSection,
+  NavHermesToolSection,
   NavPlaygroundSessions,
   NavTeamWorkspaces,
   NavBlogArticles,
@@ -60,6 +61,7 @@ import { JilaiSkillsItem } from './jilai-skills-item'
 import { PlaygroundSessionsItem } from './playground-sessions-item'
 import { SidebarCollapsibleShell } from './sidebar-collapsible-shell'
 import { SkillSectionItem } from './skill-section-item'
+import { ToolSectionItem } from './tool-section-item'
 import { TeamWorkspacesItem } from './team-workspaces-item'
 
 /**
@@ -116,6 +118,15 @@ export function NavGroup({ title, items }: NavGroupProps) {
               <SkillSectionItem
                 key={key}
                 item={item as NavHermesSkillSection}
+              />
+            )
+          }
+
+          if (item.type === 'hermes-tool-section') {
+            return (
+              <ToolSectionItem
+                key={key}
+                item={item as NavHermesToolSection}
               />
             )
           }

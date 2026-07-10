@@ -112,13 +112,24 @@ export type NavHermesJilaiSkills = BaseNavItem & {
 }
 
 /**
+ * Dynamic agents section in sidebar — shows a filtered list of agents
+ * (by ownerScope) as collapsible child nodes. Each agent links to
+ * the dedicated /agents route.
+ */
+export type NavHermesAgentsSection = BaseNavItem & {
+  type: 'hermes-agents-section'
+  url?: never
+  items?: never
+}
+
+/**
  * Dynamic skill section in sidebar — shows a filtered list of skills
  * (by ownerScope) as collapsible child nodes. Each skill links to
  * the dedicated /skill-workspace route.
  */
 export type NavHermesSkillSection = BaseNavItem & {
   type: 'hermes-skill-section'
-  section: 'mine' | 'team' | 'baizor' | 'library'
+  section: 'mine' | 'team' | 'baizor' | 'library' | 'builtin'
   url?: never
   items?: never
 }
@@ -129,6 +140,16 @@ export type NavHermesSkillSection = BaseNavItem & {
  */
 export type NavBlogArticles = BaseNavItem & {
   type: 'blog-articles'
+  url?: never
+  items?: never
+}
+
+/**
+ * Dynamic tool section in sidebar — shows toolsets and tools fetched from
+ * the Hermes API, grouped by toolset as collapsible child nodes.
+ */
+export type NavHermesToolSection = BaseNavItem & {
+  type: 'hermes-tool-section' | 'chat'
   url?: never
   items?: never
 }
@@ -146,7 +167,9 @@ export type NavItem =
   | NavHermesExecutionTasks
   | NavHermesJilaiSkills
   | NavHermesSkillSection
+  | NavHermesToolSection
   | NavBlogArticles
+  | NavHermesAgentsSection
 
 /**
  * Navigation group type - a group of navigation items in sidebar

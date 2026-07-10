@@ -228,9 +228,9 @@ function resolveActiveRootGroup(
 
   if (pathname === '/team-workspace') {
     if (panel === 'skills') {
-      if (section === 'builtin' || section === 'tools')
-        return findGroup(navGroups, 'settings')
-      return findGroup(navGroups, 'workbench')
+      if (section === 'tools')
+        return findGroup(navGroups, 'capability-tools')
+      return findGroup(navGroups, 'capability-skills')
     }
     if (panel === 'results') return findGroup(navGroups, 'team-collaboration')
     if (panel === 'messages') return findGroup(navGroups, 'settings')
@@ -245,9 +245,9 @@ function resolveActiveRootGroup(
 
   if (pathname === '/hermes-playground') {
     if (panel === 'skills') {
-      if (section === 'builtin' || section === 'tools')
-        return findGroup(navGroups, 'settings')
-      return findGroup(navGroups, 'workbench')
+      if (section === 'tools')
+        return findGroup(navGroups, 'capability-tools')
+      return findGroup(navGroups, 'capability-skills')
     }
     if (panel === 'results') return findGroup(navGroups, 'workbench')
     if (panel === 'messages') return findGroup(navGroups, 'settings')
@@ -263,7 +263,11 @@ function resolveActiveRootGroup(
   }
 
   if (pathname === '/jilai-workspace' || pathname === '/skill-workspace') {
-    return findGroup(navGroups, 'workbench')
+    return findGroup(navGroups, 'capability-skills')
+  }
+
+  if (pathname === '/toolset-detail') {
+    return findGroup(navGroups, 'capability-tools')
   }
 
   if (pathname === '/playground' || pathname.startsWith('/chat/')) {

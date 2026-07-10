@@ -42,6 +42,7 @@ import { Route as BlogArticleIdIndexRouteImport } from './routes/blog/$articleId
 import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenticated/wallet/index'
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
 import { Route as AuthenticatedUsageLogsIndexRouteImport } from './routes/_authenticated/usage-logs/index'
+import { Route as AuthenticatedToolsetDetailIndexRouteImport } from './routes/_authenticated/toolset-detail/index'
 import { Route as AuthenticatedTeamsIndexRouteImport } from './routes/_authenticated/teams/index'
 import { Route as AuthenticatedTeamWorkspaceIndexRouteImport } from './routes/_authenticated/team-workspace/index'
 import { Route as AuthenticatedSystemSettingsIndexRouteImport } from './routes/_authenticated/system-settings/index'
@@ -254,6 +255,12 @@ const AuthenticatedUsageLogsIndexRoute =
   AuthenticatedUsageLogsIndexRouteImport.update({
     id: '/usage-logs/',
     path: '/usage-logs/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedToolsetDetailIndexRoute =
+  AuthenticatedToolsetDetailIndexRouteImport.update({
+    id: '/toolset-detail/',
+    path: '/toolset-detail/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedTeamsIndexRoute = AuthenticatedTeamsIndexRouteImport.update({
@@ -582,6 +589,7 @@ export interface FileRoutesByFullPath {
   '/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
   '/team-workspace/': typeof AuthenticatedTeamWorkspaceIndexRoute
   '/teams/': typeof AuthenticatedTeamsIndexRoute
+  '/toolset-detail/': typeof AuthenticatedToolsetDetailIndexRoute
   '/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
   '/wallet/': typeof AuthenticatedWalletIndexRoute
@@ -659,6 +667,7 @@ export interface FileRoutesByTo {
   '/system-settings': typeof AuthenticatedSystemSettingsIndexRoute
   '/team-workspace': typeof AuthenticatedTeamWorkspaceIndexRoute
   '/teams': typeof AuthenticatedTeamsIndexRoute
+  '/toolset-detail': typeof AuthenticatedToolsetDetailIndexRoute
   '/usage-logs': typeof AuthenticatedUsageLogsIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
   '/wallet': typeof AuthenticatedWalletIndexRoute
@@ -741,6 +750,7 @@ export interface FileRoutesById {
   '/_authenticated/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
   '/_authenticated/team-workspace/': typeof AuthenticatedTeamWorkspaceIndexRoute
   '/_authenticated/teams/': typeof AuthenticatedTeamsIndexRoute
+  '/_authenticated/toolset-detail/': typeof AuthenticatedToolsetDetailIndexRoute
   '/_authenticated/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
   '/_authenticated/wallet/': typeof AuthenticatedWalletIndexRoute
@@ -822,6 +832,7 @@ export interface FileRouteTypes {
     | '/system-settings/'
     | '/team-workspace/'
     | '/teams/'
+    | '/toolset-detail/'
     | '/usage-logs/'
     | '/users/'
     | '/wallet/'
@@ -899,6 +910,7 @@ export interface FileRouteTypes {
     | '/system-settings'
     | '/team-workspace'
     | '/teams'
+    | '/toolset-detail'
     | '/usage-logs'
     | '/users'
     | '/wallet'
@@ -980,6 +992,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system-settings/'
     | '/_authenticated/team-workspace/'
     | '/_authenticated/teams/'
+    | '/_authenticated/toolset-detail/'
     | '/_authenticated/usage-logs/'
     | '/_authenticated/users/'
     | '/_authenticated/wallet/'
@@ -1261,6 +1274,13 @@ declare module '@tanstack/react-router' {
       path: '/usage-logs'
       fullPath: '/usage-logs/'
       preLoaderRoute: typeof AuthenticatedUsageLogsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/toolset-detail/': {
+      id: '/_authenticated/toolset-detail/'
+      path: '/toolset-detail'
+      fullPath: '/toolset-detail/'
+      preLoaderRoute: typeof AuthenticatedToolsetDetailIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/teams/': {
@@ -1714,6 +1734,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSystemInfoIndexRoute: typeof AuthenticatedSystemInfoIndexRoute
   AuthenticatedTeamWorkspaceIndexRoute: typeof AuthenticatedTeamWorkspaceIndexRoute
   AuthenticatedTeamsIndexRoute: typeof AuthenticatedTeamsIndexRoute
+  AuthenticatedToolsetDetailIndexRoute: typeof AuthenticatedToolsetDetailIndexRoute
   AuthenticatedUsageLogsIndexRoute: typeof AuthenticatedUsageLogsIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
   AuthenticatedWalletIndexRoute: typeof AuthenticatedWalletIndexRoute
@@ -1755,6 +1776,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSystemInfoIndexRoute: AuthenticatedSystemInfoIndexRoute,
   AuthenticatedTeamWorkspaceIndexRoute: AuthenticatedTeamWorkspaceIndexRoute,
   AuthenticatedTeamsIndexRoute: AuthenticatedTeamsIndexRoute,
+  AuthenticatedToolsetDetailIndexRoute: AuthenticatedToolsetDetailIndexRoute,
   AuthenticatedUsageLogsIndexRoute: AuthenticatedUsageLogsIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
   AuthenticatedWalletIndexRoute: AuthenticatedWalletIndexRoute,

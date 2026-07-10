@@ -646,6 +646,22 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
     if (item.section === 'mine') {
       return all.filter((s) => s.ownerScope === 'user' || s.source === 'user')
     }
+    if (item.section === 'baizor') {
+      return all.filter((s) => s.ownerScope === 'baizor' || s.source === 'baizor')
+    }
+    if (item.section === 'builtin') {
+      return all.filter(
+        (s) =>
+          s.source !== 'user' &&
+          s.source !== 'team' &&
+          s.source !== 'baizor' &&
+          s.source !== 'external' &&
+          s.ownerScope !== 'user' &&
+          s.ownerScope !== 'team' &&
+          s.ownerScope !== 'baizor' &&
+          s.ownerScope !== 'external'
+      )
+    }
     return all.filter((s) => s.ownerScope === 'baizor' || s.source === 'baizor')
   }, [isTeamSection, singleQuery.data, item.section])
 

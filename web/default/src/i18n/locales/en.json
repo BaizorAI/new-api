@@ -6033,6 +6033,27 @@
     "Zero-dependency install": "Zero-dependency install",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "{{count}} tools": "{{count}} tools",
+    "Available Hermes toolsets and their tools.": "Available Hermes toolsets and their tools.",
+    "Back to tools": "Back to tools",
+    "Browse and configure Hermes toolsets.": "Browse and configure Hermes toolsets.",
+    "Configured": "Configured",
+    "Legal domain skills from Jilai.": "Legal domain skills from Jilai.",
+    "Manage skills and tools": "Manage skills and tools",
+    "No toolsets available": "No toolsets available",
+    "Official Baizor platform skills.": "Official Baizor platform skills.",
+    "Selected": "Selected",
+    "Skills you have created.": "Skills you have created.",
+    "Skills shared with your teams.": "Skills shared with your teams.",
+    "System built-in Hermes skills.": "System built-in Hermes skills.",
+    "The requested toolset \"{{name}}\" was not found.": "The requested toolset \"{{name}}\" was not found.",
+    "This toolset is configured and active.": "This toolset is configured and active.",
+    "This toolset needs additional configuration.": "This toolset needs additional configuration.",
+    "Toolset configuration is managed through the Hermes API server.": "Toolset configuration is managed through the Hermes API server.",
+    "Toolset detail": "Toolset detail",
+    "Toolset not found": "Toolset not found",
+    "Toolsets": "Toolsets",
+    "Tools in this toolset": "Tools in this toolset"
   }
 }
