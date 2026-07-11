@@ -37,6 +37,7 @@ import type {
   Message as MessageType,
   ModelOption,
   PlaygroundConfig,
+  PlaygroundSkillSuggestion,
 } from './types'
 
 interface PlaygroundExecutionTaskContext {
@@ -67,6 +68,9 @@ interface PlaygroundProps {
   suggestedPrompts?: { label: string; prompt: string }[]
   quickPromptRequest?: { id: string; prompt: string }
   executionTaskContext?: PlaygroundExecutionTaskContext
+  favoriteSkills?: PlaygroundSkillSuggestion[]
+  allSkills?: PlaygroundSkillSuggestion[]
+  onSelectSkill?: (skillName: string) => void
 }
 
 export function Playground(props: PlaygroundProps = {}) {
@@ -391,6 +395,9 @@ export function Playground(props: PlaygroundProps = {}) {
           onSlashAction={handleSlashAction}
           onStop={stopGeneration}
           onSubmit={handleSendMessage}
+          favoriteSkills={props.favoriteSkills ?? []}
+          allSkills={props.allSkills ?? []}
+          onSelectSkill={props.onSelectSkill}
         />
       </div>
     </div>

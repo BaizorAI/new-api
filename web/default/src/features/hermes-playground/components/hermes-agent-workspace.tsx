@@ -44,6 +44,7 @@ import {
   deleteTeamHermesConversation,
   deleteUserHermesConversation,
   getHermesExecutionTask,
+  listHermesSkills,
   listTeamHermesConversations,
   listUserHermesConversations,
   syncHermesResults,
@@ -186,6 +187,26 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     () => (teamsResponse?.success ? (teamsResponse.data ?? []) : []),
     [teamsResponse]
   )
+
+  const { data: skillsForToolbar = [] } = useQuery({
+    queryKey: ['hermes-skills-toolbar', queryUserScope],
+    queryFn: () => listHermesSkills(),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const favoriteSkills = useMemo(() => {
+    const userSkills = skillsForToolbar.filter(
+      (s) => s.isUserCreated || s.source === 'user' || s.ownerScope === 'user'
+    )
+    return userSkills.slice(0, 3)
+  }, [skillsForToolbar])
+
+  const handleSelectSkill = useCallback((skillName: string) => {
+    setQuickPromptRequest({
+      id: `toolbar-skill-${Date.now()}-${skillName}`,
+      prompt: `/skill ${skillName} `,
+    })
+  }, [])
 
   const selectedTeamId = billingOwner.startsWith('team:')
     ? Number(billingOwner.slice('team:'.length))
@@ -1352,6 +1373,9 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         }}
         storageScope={activeSession.storageScope}
         suggestedPrompts={props.suggestedPrompts}
+        favoriteSkills={favoriteSkills}
+        allSkills={skillsForToolbar}
+        onSelectSkill={handleSelectSkill}
       />
     )
   }

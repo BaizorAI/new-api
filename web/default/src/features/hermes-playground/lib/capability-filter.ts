@@ -1,4 +1,3 @@
-import type { HermesCapabilitySection } from './workspace-panel-controller'
 
 /**
  * Project-specific filter for the Hermes capability center.
@@ -10,7 +9,7 @@ import type { HermesCapabilitySection } from './workspace-panel-controller'
 
 export interface HermesCapabilityFilterConfig {
   /** Skill sections that should be moved entirely to the backup area. */
-  backupSkillSections: HermesCapabilitySection[]
+  backupSkillSections: string[]
   /** Built-in skill categories that should be moved to the backup area. */
   backupSkillCategories: string[]
   /** Toolset names that should be moved to the backup area. */
@@ -48,7 +47,7 @@ export const HERMES_CAPABILITY_FILTER: HermesCapabilityFilterConfig = {
 }
 
 export function isBackupSkillSection(
-  sectionId: HermesCapabilitySection,
+  sectionId: string,
   config: HermesCapabilityFilterConfig = HERMES_CAPABILITY_FILTER
 ): boolean {
   return config.backupSkillSections.includes(sectionId)

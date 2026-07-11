@@ -67,10 +67,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-import type { ModelOption, GroupOption } from '../types'
+import type { ModelOption, GroupOption, PlaygroundSkillSuggestion } from '../types'
 
 export type PlaygroundSlashAction = 'new' | 'save' | 'retry' | 'addSkill'
 
@@ -88,6 +89,9 @@ interface PlaygroundInputProps {
   onGroupChange: (value: string) => void
   enableSlashCommands?: boolean
   onSlashAction?: (action: PlaygroundSlashAction) => void
+  favoriteSkills?: PlaygroundSkillSuggestion[]
+  allSkills?: PlaygroundSkillSuggestion[]
+  onSelectSkill?: (skillName: string) => void
 }
 
 export function PlaygroundInput({
@@ -104,6 +108,9 @@ export function PlaygroundInput({
   onGroupChange,
   enableSlashCommands = false,
   onSlashAction,
+  favoriteSkills = [],
+  allSkills = [],
+  onSelectSkill,
 }: PlaygroundInputProps) {
   const { t } = useTranslation()
   const [text, setText] = useState('')
@@ -408,6 +415,56 @@ export function PlaygroundInput({
                 <span className='sr-only sm:hidden'>{t('Search')}</span>
               </PromptInputButton>
             </PromptInputTools>
+
+            {(favoriteSkills.length > 0 || allSkills.length > 0) && (
+              <div className='flex items-center gap-1'>
+                {favoriteSkills.map((skill) => (
+                  <button
+                    key={skill.name}
+                    className='text-muted-foreground hover:text-foreground hover:bg-muted hidden rounded-md border px-2 py-1 text-xs font-medium transition-colors sm:inline-block'
+                    onClick={() => onSelectSkill?.(skill.name)}
+                    title={skill.description ?? skill.displayName ?? skill.name}
+                    type='button'
+                  >
+                    {skill.displayName || skill.name}
+                  </button>
+                ))}
+                {allSkills.length > favoriteSkills.length && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <button
+                          className='text-muted-foreground hover:text-foreground hover:bg-muted rounded-md border px-2 py-1 text-xs font-medium transition-colors'
+                          type='button'
+                        >
+                          {t('More')}
+                        </button>
+                      }
+                    />
+                    <DropdownMenuContent align='start' className='max-h-64 overflow-y-auto'>
+                      <DropdownMenuLabel>{t('Skills')}</DropdownMenuLabel>
+                      {allSkills.map((skill) => (
+                        <DropdownMenuItem
+                          key={skill.name}
+                          onClick={() => onSelectSkill?.(skill.name)}
+                        >
+                          <div className='flex flex-col gap-0.5'>
+                            <span className='max-w-52 text-wrap'>
+                              {skill.displayName || skill.name}
+                            </span>
+                            {skill.description && (
+                              <span className='text-muted-foreground truncate max-w-52 text-xs'>
+                                {skill.description}
+                              </span>
+                            )}
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            )}
 
             <div className='flex items-center gap-1.5 md:gap-2'>
               <ModelGroupSelector

@@ -90,7 +90,7 @@ export function useSidebarData(): SidebarData {
           },
           {
             title: t('Common skills'),
-            url: '/hermes-playground?panel=skills',
+            url: '/skill-editor',
             configUrls: ['/hermes-playground'],
             icon: Sparkles,
           },
@@ -222,7 +222,7 @@ export function useSidebarData(): SidebarData {
         description: t('Manage skills and tools'),
         icon: Sparkles,
         iconColor: 'text-amber-500',
-        url: '/hermes-playground?panel=skills',
+        url: '/skill-editor',
         position: 'top',
         defaultOpen: true,
         items: [
@@ -268,7 +268,7 @@ export function useSidebarData(): SidebarData {
         description: t('Browse and configure Hermes toolsets.'),
         icon: Wrench,
         iconColor: 'text-slate-500',
-        url: '/hermes-playground?panel=skills&section=tools',
+        url: '/tools-editor',
         position: 'top',
         defaultOpen: true,
         items: [

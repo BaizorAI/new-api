@@ -154,3 +154,9 @@ export interface GroupOption {
   ratio: number
   desc?: string
 }
+
+export interface PlaygroundSkillSuggestion {
+  name: string
+  displayName?: string
+  description?: string
+}

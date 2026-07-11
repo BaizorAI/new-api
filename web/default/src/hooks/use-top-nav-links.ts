@@ -84,7 +84,7 @@ export function useTopNavLinks(): TopNavLink[] {
 
   links.push({
     title: t('Hermes Capability Center'),
-    href: '/hermes-playground?panel=skills',
+    href: '/skill-editor',
   })
 
   const rankings = modules?.rankings

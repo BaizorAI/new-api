@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -277,6 +279,289 @@ func HermesPromoteSkill(c *gin.Context) {
 	}
 	proxyHermesPlayground(c, http.MethodPost, "/v1/skills/promote", body)
 }
+// resolveSkillAssetDir resolves the on-disk directory for a user's or team's
+// named skill. Returns the absolute path, or empty string with an error if the
+// skill directory cannot be found or accessed.
+func resolveSkillAssetDir(userId int, skillName string, teamID int) (string, error) {
+	root := filepath.Clean(common.GetEnvOrDefaultString("HERMES_DATA_DIR", "/opt/data"))
+	var prefix string
+	if teamID > 0 {
+		prefix = fmt.Sprintf("teams/%d", teamID)
+	} else {
+		prefix = fmt.Sprintf("baizor-users/%d", userId)
+	}
+
+	skillsBase := filepath.Join(root, prefix, "skills")
+	var skillDir string
+	_ = filepath.Walk(skillsBase, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if skillDir != "" {
+			return filepath.SkipAll
+		}
+		if info.IsDir() && info.Name() == skillName {
+			skillDir = p
+			return filepath.SkipAll
+		}
+		return nil
+	})
+
+	if skillDir == "" {
+		return "", fmt.Errorf("skill directory not found")
+	}
+	return skillDir, nil
+}
+
+func HermesPlaygroundSkillAssets(c *gin.Context) {
+	if c == nil || c.Request == nil {
+		return
+	}
+
+	userId := c.GetInt("id")
+	skillName := strings.TrimSpace(c.Query("name"))
+	if skillName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "name is required"})
+		return
+	}
+
+	rawTeamID := strings.TrimSpace(c.Query("team_id"))
+	var teamID int
+	if rawTeamID != "" && rawTeamID != "0" {
+		var err error
+		teamID, err = strconv.Atoi(rawTeamID)
+		if err != nil || teamID <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "invalid team_id"})
+			return
+		}
+		if _, err := model.GetTeamMember(teamID, userId); err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"message": "not a team member"})
+			return
+		}
+	}
+
+	skillDir, err := resolveSkillAssetDir(userId, skillName, teamID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		return
+	}
+
+	switch c.Request.Method {
+	case http.MethodGet:
+		type assetEntry struct {
+			Name string `json:"name"`
+			Path string `json:"path"`
+			Size int64  `json:"size"`
+			Dir  bool   `json:"dir"`
+		}
+		var assets []assetEntry
+		_ = filepath.Walk(skillDir, func(p string, info os.FileInfo, err error) error {
+			if err != nil {
+				return nil
+			}
+			rel, _ := filepath.Rel(skillDir, p)
+			if rel == "." || rel == "SKILL.md" {
+				return nil
+			}
+			if strings.HasPrefix(info.Name(), ".") {
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			assets = append(assets, assetEntry{
+				Name: info.Name(),
+				Path: filepath.ToSlash(rel),
+				Size: info.Size(),
+				Dir:  info.IsDir(),
+			})
+			return nil
+		})
+		if assets == nil {
+			assets = []assetEntry{}
+		}
+		c.JSON(http.StatusOK, gin.H{"data": assets})
+
+	case http.MethodPost:
+		// Multipart file upload.  Fields: "file" (required), "subdir" (optional).
+		file, header, err := c.Request.FormFile("file")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "file is required"})
+			return
+		}
+		defer file.Close()
+
+		// Sanitize filename
+		cleanName := filepath.Base(filepath.Clean(header.Filename))
+		if cleanName == "." || cleanName == ".." || cleanName == "" ||
+			cleanName == "SKILL.md" || strings.HasPrefix(cleanName, ".") {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "invalid filename"})
+			return
+		}
+
+		// Only allow safe extensions
+		ext := strings.ToLower(filepath.Ext(cleanName))
+		if _, ok := hermesAllowedRootFileExtensions[ext]; !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "file type not allowed: " + ext})
+			return
+		}
+
+		targetDir := skillDir
+		subdir := strings.TrimSpace(c.PostForm("subdir"))
+		if subdir != "" {
+			cleanSubdir := filepath.Clean(filepath.FromSlash(subdir))
+			if strings.Contains(cleanSubdir, "..") {
+				c.JSON(http.StatusBadRequest, gin.H{"message": "invalid subdir"})
+				return
+			}
+			targetDir = filepath.Join(skillDir, cleanSubdir)
+			if err := os.MkdirAll(targetDir, 0o755); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create directory"})
+				return
+			}
+		}
+
+		destPath := filepath.Join(targetDir, cleanName)
+		dst, err := os.Create(destPath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create file"})
+			return
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, file); err != nil {
+			os.Remove(destPath)
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to write file"})
+			return
+		}
+
+		relPath, _ := filepath.Rel(skillDir, destPath)
+		c.JSON(http.StatusOK, gin.H{
+			"message": "uploaded",
+			"data": gin.H{
+				"name": cleanName,
+				"path": filepath.ToSlash(relPath),
+			},
+		})
+
+	case http.MethodDelete:
+		// DELETE requires JSON body: { "path": "assets/template.pptx" }
+		var req struct {
+			Path string `json:"path"`
+		}
+		if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
+			return
+		}
+
+		req.Path = strings.TrimSpace(req.Path)
+		if req.Path == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "path is required"})
+			return
+		}
+
+		cleanPath := filepath.Clean(filepath.FromSlash(req.Path))
+		if strings.Contains(cleanPath, "..") || cleanPath == "." ||
+			filepath.Base(cleanPath) == "SKILL.md" {
+			c.JSON(http.StatusForbidden, gin.H{"message": "invalid path"})
+			return
+		}
+
+		fullPath := filepath.Join(skillDir, cleanPath)
+		if !strings.HasPrefix(fullPath, skillDir+string(os.PathSeparator)) && fullPath != skillDir {
+			c.JSON(http.StatusForbidden, gin.H{"message": "path is outside skill directory"})
+			return
+		}
+
+		info, err := os.Stat(fullPath)
+		if err != nil || info.IsDir() {
+			c.JSON(http.StatusNotFound, gin.H{"message": "file not found"})
+			return
+		}
+
+		if err := os.Remove(fullPath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to delete file"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "deleted"})
+
+	default:
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
+	}
+}
+
+func HermesPlaygroundSkillAssetFile(c *gin.Context) {
+	if c == nil || c.Request == nil {
+		return
+	}
+	if c.Request.Method != http.MethodGet {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
+		return
+	}
+
+	userId := c.GetInt("id")
+	skillName := strings.TrimSpace(c.Query("name"))
+	filePath := strings.TrimSpace(c.Query("path"))
+	if skillName == "" || filePath == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "name and path are required"})
+		return
+	}
+
+	base := filepath.Base(filePath)
+	if base == "SKILL.md" || strings.HasPrefix(base, ".") {
+		c.JSON(http.StatusForbidden, gin.H{"message": "file is not available"})
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(base))
+	if _, ok := hermesAllowedRootFileExtensions[ext]; !ok {
+		c.JSON(http.StatusForbidden, gin.H{"message": "file is not available"})
+		return
+	}
+
+	rawTeamID := strings.TrimSpace(c.Query("team_id"))
+	var teamID int
+	if rawTeamID != "" && rawTeamID != "0" {
+		var err error
+		teamID, err = strconv.Atoi(rawTeamID)
+		if err != nil || teamID <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "invalid team_id"})
+			return
+		}
+		if _, err := model.GetTeamMember(teamID, userId); err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"message": "not a team member"})
+			return
+		}
+	}
+
+	skillDir, err := resolveSkillAssetDir(userId, skillName, teamID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		return
+	}
+
+	cleanFile := filepath.Clean(filepath.FromSlash(filePath))
+	if strings.Contains(cleanFile, "..") {
+		c.JSON(http.StatusForbidden, gin.H{"message": "file is not available"})
+		return
+	}
+
+	fullPath := filepath.Join(skillDir, cleanFile)
+	if !strings.HasPrefix(fullPath, skillDir+string(os.PathSeparator)) && fullPath != skillDir {
+		c.JSON(http.StatusForbidden, gin.H{"message": "file is not available"})
+		return
+	}
+
+	info, err := os.Stat(fullPath)
+	if err != nil || info.IsDir() {
+		c.JSON(http.StatusNotFound, gin.H{"message": "file not found"})
+		return
+	}
+
+	c.File(fullPath)
+}
+
 func HermesPlaygroundToolsets(c *gin.Context) {
 	if c == nil || c.Request == nil {
 		return

@@ -43,12 +43,14 @@ import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
 import { Route as AuthenticatedUsageLogsIndexRouteImport } from './routes/_authenticated/usage-logs/index'
 import { Route as AuthenticatedToolsetDetailIndexRouteImport } from './routes/_authenticated/toolset-detail/index'
+import { Route as AuthenticatedToolsEditorIndexRouteImport } from './routes/_authenticated/tools-editor/index'
 import { Route as AuthenticatedTeamsIndexRouteImport } from './routes/_authenticated/teams/index'
 import { Route as AuthenticatedTeamWorkspaceIndexRouteImport } from './routes/_authenticated/team-workspace/index'
 import { Route as AuthenticatedSystemSettingsIndexRouteImport } from './routes/_authenticated/system-settings/index'
 import { Route as AuthenticatedSystemInfoIndexRouteImport } from './routes/_authenticated/system-info/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
 import { Route as AuthenticatedSkillWorkspaceIndexRouteImport } from './routes/_authenticated/skill-workspace/index'
+import { Route as AuthenticatedSkillEditorIndexRouteImport } from './routes/_authenticated/skill-editor/index'
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
 import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authenticated/profile/index'
 import { Route as AuthenticatedPricingIndexRouteImport } from './routes/_authenticated/pricing/index'
@@ -263,6 +265,12 @@ const AuthenticatedToolsetDetailIndexRoute =
     path: '/toolset-detail/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedToolsEditorIndexRoute =
+  AuthenticatedToolsEditorIndexRouteImport.update({
+    id: '/tools-editor/',
+    path: '/tools-editor/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTeamsIndexRoute = AuthenticatedTeamsIndexRouteImport.update({
   id: '/teams/',
   path: '/teams/',
@@ -296,6 +304,12 @@ const AuthenticatedSkillWorkspaceIndexRoute =
   AuthenticatedSkillWorkspaceIndexRouteImport.update({
     id: '/skill-workspace/',
     path: '/skill-workspace/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSkillEditorIndexRoute =
+  AuthenticatedSkillEditorIndexRouteImport.update({
+    id: '/skill-editor/',
+    path: '/skill-editor/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedRedemptionCodesIndexRoute =
@@ -583,12 +597,14 @@ export interface FileRoutesByFullPath {
   '/pricing/': typeof AuthenticatedPricingIndexRoute
   '/profile/': typeof AuthenticatedProfileIndexRoute
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
+  '/skill-editor/': typeof AuthenticatedSkillEditorIndexRoute
   '/skill-workspace/': typeof AuthenticatedSkillWorkspaceIndexRoute
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
   '/team-workspace/': typeof AuthenticatedTeamWorkspaceIndexRoute
   '/teams/': typeof AuthenticatedTeamsIndexRoute
+  '/tools-editor/': typeof AuthenticatedToolsEditorIndexRoute
   '/toolset-detail/': typeof AuthenticatedToolsetDetailIndexRoute
   '/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
@@ -661,12 +677,14 @@ export interface FileRoutesByTo {
   '/pricing': typeof AuthenticatedPricingIndexRoute
   '/profile': typeof AuthenticatedProfileIndexRoute
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
+  '/skill-editor': typeof AuthenticatedSkillEditorIndexRoute
   '/skill-workspace': typeof AuthenticatedSkillWorkspaceIndexRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings': typeof AuthenticatedSystemSettingsIndexRoute
   '/team-workspace': typeof AuthenticatedTeamWorkspaceIndexRoute
   '/teams': typeof AuthenticatedTeamsIndexRoute
+  '/tools-editor': typeof AuthenticatedToolsEditorIndexRoute
   '/toolset-detail': typeof AuthenticatedToolsetDetailIndexRoute
   '/usage-logs': typeof AuthenticatedUsageLogsIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
@@ -744,12 +762,14 @@ export interface FileRoutesById {
   '/_authenticated/pricing/': typeof AuthenticatedPricingIndexRoute
   '/_authenticated/profile/': typeof AuthenticatedProfileIndexRoute
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
+  '/_authenticated/skill-editor/': typeof AuthenticatedSkillEditorIndexRoute
   '/_authenticated/skill-workspace/': typeof AuthenticatedSkillWorkspaceIndexRoute
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/_authenticated/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/_authenticated/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
   '/_authenticated/team-workspace/': typeof AuthenticatedTeamWorkspaceIndexRoute
   '/_authenticated/teams/': typeof AuthenticatedTeamsIndexRoute
+  '/_authenticated/tools-editor/': typeof AuthenticatedToolsEditorIndexRoute
   '/_authenticated/toolset-detail/': typeof AuthenticatedToolsetDetailIndexRoute
   '/_authenticated/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
@@ -826,12 +846,14 @@ export interface FileRouteTypes {
     | '/pricing/'
     | '/profile/'
     | '/redemption-codes/'
+    | '/skill-editor/'
     | '/skill-workspace/'
     | '/subscriptions/'
     | '/system-info/'
     | '/system-settings/'
     | '/team-workspace/'
     | '/teams/'
+    | '/tools-editor/'
     | '/toolset-detail/'
     | '/usage-logs/'
     | '/users/'
@@ -904,12 +926,14 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/profile'
     | '/redemption-codes'
+    | '/skill-editor'
     | '/skill-workspace'
     | '/subscriptions'
     | '/system-info'
     | '/system-settings'
     | '/team-workspace'
     | '/teams'
+    | '/tools-editor'
     | '/toolset-detail'
     | '/usage-logs'
     | '/users'
@@ -986,12 +1010,14 @@ export interface FileRouteTypes {
     | '/_authenticated/pricing/'
     | '/_authenticated/profile/'
     | '/_authenticated/redemption-codes/'
+    | '/_authenticated/skill-editor/'
     | '/_authenticated/skill-workspace/'
     | '/_authenticated/subscriptions/'
     | '/_authenticated/system-info/'
     | '/_authenticated/system-settings/'
     | '/_authenticated/team-workspace/'
     | '/_authenticated/teams/'
+    | '/_authenticated/tools-editor/'
     | '/_authenticated/toolset-detail/'
     | '/_authenticated/usage-logs/'
     | '/_authenticated/users/'
@@ -1283,6 +1309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedToolsetDetailIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tools-editor/': {
+      id: '/_authenticated/tools-editor/'
+      path: '/tools-editor'
+      fullPath: '/tools-editor/'
+      preLoaderRoute: typeof AuthenticatedToolsEditorIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/teams/': {
       id: '/_authenticated/teams/'
       path: '/teams'
@@ -1323,6 +1356,13 @@ declare module '@tanstack/react-router' {
       path: '/skill-workspace'
       fullPath: '/skill-workspace/'
       preLoaderRoute: typeof AuthenticatedSkillWorkspaceIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/skill-editor/': {
+      id: '/_authenticated/skill-editor/'
+      path: '/skill-editor'
+      fullPath: '/skill-editor/'
+      preLoaderRoute: typeof AuthenticatedSkillEditorIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/redemption-codes/': {
@@ -1729,11 +1769,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPricingIndexRoute: typeof AuthenticatedPricingIndexRoute
   AuthenticatedProfileIndexRoute: typeof AuthenticatedProfileIndexRoute
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
+  AuthenticatedSkillEditorIndexRoute: typeof AuthenticatedSkillEditorIndexRoute
   AuthenticatedSkillWorkspaceIndexRoute: typeof AuthenticatedSkillWorkspaceIndexRoute
   AuthenticatedSubscriptionsIndexRoute: typeof AuthenticatedSubscriptionsIndexRoute
   AuthenticatedSystemInfoIndexRoute: typeof AuthenticatedSystemInfoIndexRoute
   AuthenticatedTeamWorkspaceIndexRoute: typeof AuthenticatedTeamWorkspaceIndexRoute
   AuthenticatedTeamsIndexRoute: typeof AuthenticatedTeamsIndexRoute
+  AuthenticatedToolsEditorIndexRoute: typeof AuthenticatedToolsEditorIndexRoute
   AuthenticatedToolsetDetailIndexRoute: typeof AuthenticatedToolsetDetailIndexRoute
   AuthenticatedUsageLogsIndexRoute: typeof AuthenticatedUsageLogsIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
@@ -1771,11 +1813,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedProfileIndexRoute: AuthenticatedProfileIndexRoute,
   AuthenticatedRedemptionCodesIndexRoute:
     AuthenticatedRedemptionCodesIndexRoute,
+  AuthenticatedSkillEditorIndexRoute: AuthenticatedSkillEditorIndexRoute,
   AuthenticatedSkillWorkspaceIndexRoute: AuthenticatedSkillWorkspaceIndexRoute,
   AuthenticatedSubscriptionsIndexRoute: AuthenticatedSubscriptionsIndexRoute,
   AuthenticatedSystemInfoIndexRoute: AuthenticatedSystemInfoIndexRoute,
   AuthenticatedTeamWorkspaceIndexRoute: AuthenticatedTeamWorkspaceIndexRoute,
   AuthenticatedTeamsIndexRoute: AuthenticatedTeamsIndexRoute,
+  AuthenticatedToolsEditorIndexRoute: AuthenticatedToolsEditorIndexRoute,
   AuthenticatedToolsetDetailIndexRoute: AuthenticatedToolsetDetailIndexRoute,
   AuthenticatedUsageLogsIndexRoute: AuthenticatedUsageLogsIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,

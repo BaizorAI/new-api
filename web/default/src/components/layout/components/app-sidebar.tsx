@@ -227,11 +227,6 @@ function resolveActiveRootGroup(
   const section = params.get('section')
 
   if (pathname === '/team-workspace') {
-    if (panel === 'skills') {
-      if (section === 'tools')
-        return findGroup(navGroups, 'capability-tools')
-      return findGroup(navGroups, 'capability-skills')
-    }
     if (panel === 'results') return findGroup(navGroups, 'team-collaboration')
     if (panel === 'messages') return findGroup(navGroups, 'settings')
     return params.has('team_id')
@@ -244,11 +239,6 @@ function resolveActiveRootGroup(
   }
 
   if (pathname === '/hermes-playground') {
-    if (panel === 'skills') {
-      if (section === 'tools')
-        return findGroup(navGroups, 'capability-tools')
-      return findGroup(navGroups, 'capability-skills')
-    }
     if (panel === 'results') return findGroup(navGroups, 'workbench')
     if (panel === 'messages') return findGroup(navGroups, 'settings')
     return findGroup(navGroups, 'workbench')
@@ -262,11 +252,11 @@ function resolveActiveRootGroup(
     return findGroup(navGroups, 'blog-hall')
   }
 
-  if (pathname === '/jilai-workspace' || pathname === '/skill-workspace') {
+  if (pathname === '/jilai-workspace' || pathname === '/skill-workspace' || pathname === '/skill-editor') {
     return findGroup(navGroups, 'capability-skills')
   }
 
-  if (pathname === '/toolset-detail') {
+  if (pathname === '/toolset-detail' || pathname === '/tools-editor') {
     return findGroup(navGroups, 'capability-tools')
   }
 

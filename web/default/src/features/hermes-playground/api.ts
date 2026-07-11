@@ -40,6 +40,8 @@ export interface HermesSkill {
   isUserCreated: boolean
   usageGuide?: string
   usageGuideZh?: string
+  /** Full markdown content including YAML frontmatter, if returned by the API. */
+  content?: string
 }
 
 export interface HermesToolset {
@@ -508,6 +510,61 @@ export async function listHermesToolsets(): Promise<HermesToolset[]> {
   return normalizeToolsetsResponse(response.data)
 }
 
+export interface HermesSkillAsset {
+  name: string
+  path: string
+  size: number
+  dir: boolean
+}
+
+export async function listHermesSkillAssets(
+  name: string,
+  options?: { teamId?: number },
+): Promise<HermesSkillAsset[]> {
+  const params = new URLSearchParams({ name })
+  if (options?.teamId) params.set('team_id', String(options.teamId))
+  const response = await api.get(`/pg/hermes/skills/assets?${params}`, {
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  const record = response.data as Record<string, unknown>
+  if (Array.isArray(record.data)) return record.data as HermesSkillAsset[]
+  return []
+}
+
+export async function uploadHermesSkillAsset(
+  name: string,
+  file: File,
+  options?: { teamId?: number; subdir?: string },
+): Promise<{ name: string; path: string }> {
+  const params = new URLSearchParams({ name })
+  if (options?.teamId) params.set('team_id', String(options.teamId))
+
+  const form = new FormData()
+  form.append('file', file)
+  if (options?.subdir) form.append('subdir', options.subdir)
+
+  const response = await api.post(`/pg/hermes/skills/assets?${params}`, form, {
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  return (response.data as Record<string, unknown>).data as { name: string; path: string }
+}
+
+export async function deleteHermesSkillAsset(
+  name: string,
+  path: string,
+  options?: { teamId?: number },
+): Promise<void> {
+  const params = new URLSearchParams({ name })
+  if (options?.teamId) params.set('team_id', String(options.teamId))
+  await api.delete(`/pg/hermes/skills/assets?${params}`, {
+    data: { path },
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+}
+
 export async function getHermesWeixinStatus(): Promise<HermesWeixinStatus> {
   const response = await api.get('/pg/hermes/platforms/weixin/status', {
     skipBusinessError: true,
@@ -772,6 +829,7 @@ function normalizeSkillsResponse(payload: unknown): HermesSkill[] {
       isUserCreated,
       usageGuide: stringFromUnknown(skill.usage_guide) || undefined,
       usageGuideZh: stringFromUnknown(skill.usage_guide_zh) || undefined,
+      content: stringFromUnknown(skill.content) || undefined,
     }
   })
 }

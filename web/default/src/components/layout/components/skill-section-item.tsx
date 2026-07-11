@@ -34,6 +34,7 @@ import {
   Pin,
   PinOff,
   Plus,
+  Sparkles as SparklesIcon,
   Trash2,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -80,7 +81,7 @@ import {
   loadActiveConversationId,
   notifyHermesSessionDeleted,
   peekHermesConversations,
-  requestOpenHermesSkillDialog,
+  
   saveActiveConversationId,
   saveHermesConversations,
   safeStorageScope,
@@ -516,7 +517,7 @@ function TeamSkillGroup({
   const [open, setOpen] = useState(true)
 
   const teamSkillUrl = (name: string) =>
-    `/team-workspace?team_id=${team.id}&skill=${encodeURIComponent(name)}` as const
+    `/skill-editor?skill=${encodeURIComponent(name)}&team_id=${team.id}` as const
 
   return (
     <>
@@ -536,25 +537,46 @@ function TeamSkillGroup({
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>
       {open &&
-        skills.map((skill, idx) => (
-          <SkillSubItem
-            key={skill.name}
-            skill={skill}
-            teamId={team.id}
-            url={teamSkillUrl(skill.name)}
-            href={href}
-            onClose={onClose}
-            index={idx}
-          />
-        ))}
+        skills.map((skill, idx) => {
+          const url = teamSkillUrl(skill.name)
+          const active = checkIsActive(href, { url })
+          const desc = skill.descriptionZh || skill.description
+          const colorClass = SIDEBAR_NODE_COLORS[idx % SIDEBAR_NODE_COLORS.length]
+          return (
+            <SidebarMenuSubItem key={skill.name}>
+              <SidebarMenuSubButton
+                isActive={active}
+                render={
+                  <Link
+                    to={url}
+                    onClick={onClose}
+                    aria-current={active ? 'page' : undefined}
+                  />
+                }
+                title={desc || (skill.displayName ?? skill.name)}
+              >
+                <SparklesIcon
+                  className={cn('size-3.5 shrink-0', colorClass)}
+                  aria-hidden='true'
+                />
+                <span className='min-w-0 flex-1 truncate'>
+                  {skill.displayName || skill.name}
+                </span>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          )
+        })}
       {open && (
         <SidebarMenuSubItem>
           <SidebarMenuSubButton
             className='pl-7 text-muted-foreground cursor-pointer'
-            onClick={() => {
-              requestOpenHermesSkillDialog(team.id)
-              onClose()
-            }}
+            render={
+              <Link
+                to='/skill-editor'
+                search={{ team_id: team.id }}
+                onClick={onClose}
+              />
+            }
           >
             <PackagePlus className='size-3.5' aria-hidden='true' />
             <span>{t('Add skill')}</span>
@@ -682,10 +704,10 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
   }, [isLibrary, singleQuery.data])
 
   const skillUrl = (name: string) =>
-    `/skill-workspace?skill=${encodeURIComponent(name)}` as const
+    `/skill-editor?skill=${encodeURIComponent(name)}` as const
 
   const teamSkillUrl = (teamId: number, name: string) =>
-    `/team-workspace?team_id=${teamId}&skill=${encodeURIComponent(name)}` as const
+    `/skill-editor?skill=${encodeURIComponent(name)}&team_id=${teamId}` as const
 
   const jilaiSkillUrl = (name: string) =>
     `/jilai-workspace?skill=${encodeURIComponent(name)}` as const
@@ -733,23 +755,44 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
 
   const expandedFlatContent = (
     <>
-      {flatSkills.map((skill, idx) => (
-        <SkillSubItem
-          key={skill.name}
-          skill={skill}
-          url={skillUrl(skill.name)}
-          href={href}
-          onClose={() => setOpenMobile(false)}
-          index={idx}
-        />
-      ))}
+      {flatSkills.map((skill, idx) => {
+        const url = skillUrl(skill.name)
+        const active = checkIsActive(href, { url })
+        const desc = skill.descriptionZh || skill.description
+        const colorClass = SIDEBAR_NODE_COLORS[idx % SIDEBAR_NODE_COLORS.length]
+        return (
+          <SidebarMenuSubItem key={skill.name}>
+            <SidebarMenuSubButton
+              isActive={active}
+              render={
+                <Link
+                  to={url}
+                  onClick={() => setOpenMobile(false)}
+                  aria-current={active ? 'page' : undefined}
+                />
+              }
+              title={desc || (skill.displayName ?? skill.name)}
+            >
+              <SparklesIcon
+                className={cn('size-3.5 shrink-0', colorClass)}
+                aria-hidden='true'
+              />
+              <span className='min-w-0 flex-1 truncate'>
+                {skill.displayName || skill.name}
+              </span>
+            </SidebarMenuSubButton>
+          </SidebarMenuSubItem>
+        )
+      })}
       <SidebarMenuSubItem>
         <SidebarMenuSubButton
           className='text-muted-foreground cursor-pointer'
-          onClick={() => {
-            requestOpenHermesSkillDialog()
-            setOpenMobile(false)
-          }}
+          render={
+            <Link
+              to='/skill-editor'
+              onClick={() => setOpenMobile(false)}
+            />
+          }
         >
           <PackagePlus className='size-3.5' aria-hidden='true' />
           <span>{t('Add skill')}</span>
@@ -797,10 +840,13 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
             )
           })}
           <DropdownMenuItem
-            onClick={() => {
-              requestOpenHermesSkillDialog(team.id)
-              setOpenMobile(false)
-            }}
+            render={
+              <Link
+                to='/skill-editor'
+                search={{ team_id: team.id }}
+                onClick={() => setOpenMobile(false)}
+              />
+            }
           >
             <PackagePlus className='size-4' aria-hidden='true' />
             <span className='max-w-52 text-wrap'>{t('Add skill')}</span>
@@ -844,10 +890,12 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
         )
       })}
       <DropdownMenuItem
-        onClick={() => {
-          requestOpenHermesSkillDialog()
-          setOpenMobile(false)
-        }}
+        render={
+          <Link
+            to='/skill-editor'
+            onClick={() => setOpenMobile(false)}
+          />
+        }
       >
         <PackagePlus className='size-4' aria-hidden='true' />
         <span className='max-w-52 text-wrap'>{t('Add skill')}</span>
@@ -872,7 +920,7 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
         <SidebarMenuSubButton
           className='text-muted-foreground cursor-pointer'
           onClick={() => {
-            requestOpenHermesSkillDialog()
+            void(0)
             setOpenMobile(false)
           }}
         >
@@ -936,10 +984,12 @@ export function SkillSectionItem({ item }: { item: NavHermesSkillSection }) {
         )
       )}
       <DropdownMenuItem
-        onClick={() => {
-          requestOpenHermesSkillDialog()
-          setOpenMobile(false)
-        }}
+        render={
+          <Link
+            to='/skill-editor'
+            onClick={() => setOpenMobile(false)}
+          />
+        }
       >
         <PackagePlus className='size-4' aria-hidden='true' />
         <span className='max-w-52 text-wrap'>{t('Add skill')}</span>

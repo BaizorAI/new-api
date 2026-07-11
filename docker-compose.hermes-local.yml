@@ -20,10 +20,10 @@
 services:
   baizor-hermes:
     # 如果本地源码有修改且网络允许，可取消下面 build 块注释从源码构建：
-    # build:
-    #   context: ./hermes-agent
-    #   dockerfile: Dockerfile
-    image: ${HERMES_IMAGE:-ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.17}
+    build:
+      context: ./hermes-agent
+      dockerfile: Dockerfile
+    # image: ${HERMES_IMAGE:-ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.17}
     container_name: baizor-hermes
     restart: unless-stopped
     command: ["gateway", "run"]
