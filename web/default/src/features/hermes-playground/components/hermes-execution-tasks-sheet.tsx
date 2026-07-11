@@ -24,6 +24,8 @@ import {
   FileCheck2Icon,
   Loader2Icon,
   RotateCcwIcon,
+  StopCircleIcon,
+  Trash2Icon,
   XCircleIcon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -47,6 +49,8 @@ import {
 } from '@/components/ui/sheet'
 
 import {
+  cancelHermesExecutionTask,
+  deleteHermesExecutionTask,
   listHermesExecutionTasks,
   retryHermesExecutionTask,
   type HermesExecutionTask,
@@ -166,6 +170,32 @@ function HermesExecutionTaskList(props: {
     },
   })
 
+  const cancelMutation = useMutation({
+    mutationFn: cancelHermesExecutionTask,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey })
+      toast.success(t('Task stopped'))
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : t('Failed to stop task')
+      )
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteHermesExecutionTask,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey })
+      toast.success(t('Task deleted'))
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : t('Failed to delete task')
+      )
+    },
+  })
+
   const tasks = tasksQuery.data ?? []
 
   return (
@@ -246,6 +276,38 @@ function HermesExecutionTaskList(props: {
               >
                 <RotateCcwIcon className='size-4' />
                 {t('Retry')}
+              </Button>
+            )}
+            {(task.status === 'queued' || task.status === 'running') && (
+              <Button
+                disabled={cancelMutation.isPending}
+                onClick={() => {
+                  if (confirm(t('Stop this task? Running work will be interrupted.'))) {
+                    cancelMutation.mutate(task.taskId)
+                  }
+                }}
+                size='sm'
+                type='button'
+                variant='outline'
+              >
+                <StopCircleIcon className='size-4' />
+                {t('Stop')}
+              </Button>
+            )}
+            {(task.status === 'failed' || task.status === 'canceled' || task.status === 'succeeded') && (
+              <Button
+                disabled={deleteMutation.isPending}
+                onClick={() => {
+                  if (confirm(t('Delete this task permanently?'))) {
+                    deleteMutation.mutate(task.taskId)
+                  }
+                }}
+                size='sm'
+                type='button'
+                variant='outline'
+              >
+                <Trash2Icon className='size-4' />
+                {t('Delete')}
               </Button>
             )}
           </div>

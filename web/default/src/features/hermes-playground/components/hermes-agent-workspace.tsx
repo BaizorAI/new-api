@@ -201,11 +201,11 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
     return userSkills.slice(0, 3)
   }, [skillsForToolbar])
 
-  const handleSelectSkill = useCallback((skillName: string) => {
-    setQuickPromptRequest({
-      id: `toolbar-skill-${Date.now()}-${skillName}`,
-      prompt: `/skill ${skillName} `,
-    })
+  const handleSelectSkill = useCallback((skillName: string, currentText?: string): string => {
+    const userText = (currentText ?? '').trim()
+    return userText
+      ? `/skill ${skillName} ${userText}`
+      : `/skill ${skillName} `
   }, [])
 
   const selectedTeamId = billingOwner.startsWith('team:')

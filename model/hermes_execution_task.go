@@ -186,6 +186,10 @@ func isHermesExecutionTaskTerminal(status string) bool {
 		status == HermesExecutionTaskStatusCanceled
 }
 
+func DeleteHermesExecutionTask(taskID string) error {
+	return DB.Where("task_id = ?", strings.TrimSpace(taskID)).Delete(&HermesExecutionTask{}).Error
+}
+
 func ListRecoverableHermesExecutionTasks(maxCount int) ([]HermesExecutionTask, error) {
 	if maxCount <= 0 || maxCount > 200 {
 		maxCount = 50

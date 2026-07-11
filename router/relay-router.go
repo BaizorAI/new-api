@@ -102,6 +102,8 @@ func SetRelayRouter(router *gin.Engine) {
 		hermesPlaygroundRouter.GET("/execution-tasks", controller.ListHermesExecutionTasks)
 		hermesPlaygroundRouter.GET("/execution-tasks/:task_id", controller.GetHermesExecutionTask)
 		hermesPlaygroundRouter.POST("/execution-tasks/:task_id/retry", controller.RetryHermesExecutionTask)
+		hermesPlaygroundRouter.POST("/execution-tasks/:task_id/cancel", controller.CancelHermesExecutionTask)
+		hermesPlaygroundRouter.DELETE("/execution-tasks/:task_id", controller.DeleteHermesExecutionTask)
 		hermesPlaygroundRouter.GET("/platforms/weixin/status", middleware.HermesWeixinStatusRateLimit(), controller.HermesPlaygroundWeixinStatus)
 		hermesPlaygroundRouter.POST("/platforms/weixin/qr", middleware.HermesWeixinActionRateLimit(), controller.HermesPlaygroundWeixinQR)
 		hermesPlaygroundRouter.GET("/platforms/weixin/qr/:request_id", middleware.HermesWeixinStatusRateLimit(), controller.HermesPlaygroundWeixinQRStatus)

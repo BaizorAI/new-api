@@ -91,7 +91,7 @@ interface PlaygroundInputProps {
   onSlashAction?: (action: PlaygroundSlashAction) => void
   favoriteSkills?: PlaygroundSkillSuggestion[]
   allSkills?: PlaygroundSkillSuggestion[]
-  onSelectSkill?: (skillName: string) => void
+  onSelectSkill?: (skillName: string, currentText: string) => string
 }
 
 export function PlaygroundInput({
@@ -422,7 +422,10 @@ export function PlaygroundInput({
                   <button
                     key={skill.name}
                     className='text-muted-foreground hover:text-foreground hover:bg-muted hidden rounded-md border px-2 py-1 text-xs font-medium transition-colors sm:inline-block'
-                    onClick={() => onSelectSkill?.(skill.name)}
+                    onClick={() => {
+                      const result = onSelectSkill?.(skill.name, text)
+                      if (result) setText(result)
+                    }}
                     title={skill.description ?? skill.displayName ?? skill.name}
                     type='button'
                   >
@@ -446,7 +449,10 @@ export function PlaygroundInput({
                       {allSkills.map((skill) => (
                         <DropdownMenuItem
                           key={skill.name}
-                          onClick={() => onSelectSkill?.(skill.name)}
+                          onClick={() => {
+                      const result = onSelectSkill?.(skill.name, text)
+                      if (result) setText(result)
+                    }}
                         >
                           <div className='flex flex-col gap-0.5'>
                             <span className='max-w-52 text-wrap'>

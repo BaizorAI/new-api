@@ -181,6 +181,41 @@ func GetHermesExecutionTask(c *gin.Context) {
 	common.ApiSuccess(c, task.ToResponse(true))
 }
 
+func CancelHermesExecutionTask(c *gin.Context) {
+	task, ok := getAccessibleHermesExecutionTask(c)
+	if !ok {
+		return
+	}
+	if task.Status == model.HermesExecutionTaskStatusSucceeded ||
+		task.Status == model.HermesExecutionTaskStatusFailed ||
+		task.Status == model.HermesExecutionTaskStatusCanceled {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "task is already in a terminal state"})
+		return
+	}
+	if err := model.UpdateHermesExecutionTaskStatus(
+		task.TaskId,
+		model.HermesExecutionTaskStatusCanceled,
+		task.Progress,
+		"canceled by user",
+	); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, nil)
+}
+
+func DeleteHermesExecutionTask(c *gin.Context) {
+	task, ok := getAccessibleHermesExecutionTask(c)
+	if !ok {
+		return
+	}
+	if err := model.DeleteHermesExecutionTask(task.TaskId); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, nil)
+}
+
 func RetryHermesExecutionTask(c *gin.Context) {
 	original, ok := getAccessibleHermesExecutionTask(c)
 	if !ok {

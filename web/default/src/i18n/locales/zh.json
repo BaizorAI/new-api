@@ -6065,6 +6065,12 @@
         "Browse and configure Hermes toolsets": "浏览和配置 Hermes 工具集",
         "Filtered toolsets": "已过滤的工具集",
         "All tools": "全部工具",
-        "Docs": "操作指南"
+        "Docs": "操作指南",
+        "Stop this task? Running work will be interrupted.": "确定要停止此任务吗？正在运行的工作将被中断。",
+        "Delete this task permanently?": "确定要永久删除此任务吗？",
+        "Task stopped": "任务已停止",
+        "Task deleted": "任务已删除",
+        "Failed to stop task": "停止任务失败",
+        "Failed to delete task": "删除任务失败"
     }
 }

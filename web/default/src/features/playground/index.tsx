@@ -70,7 +70,7 @@ interface PlaygroundProps {
   executionTaskContext?: PlaygroundExecutionTaskContext
   favoriteSkills?: PlaygroundSkillSuggestion[]
   allSkills?: PlaygroundSkillSuggestion[]
-  onSelectSkill?: (skillName: string) => void
+  onSelectSkill?: (skillName: string, currentText: string) => string
 }
 
 export function Playground(props: PlaygroundProps = {}) {

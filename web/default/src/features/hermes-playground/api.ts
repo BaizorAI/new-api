@@ -239,6 +239,25 @@ export async function retryHermesExecutionTask(
   return normalizeExecutionTaskResponse(response.data)
 }
 
+export async function cancelHermesExecutionTask(
+  taskId: string
+): Promise<void> {
+  await api.post(
+    `/pg/hermes/execution-tasks/${encodeURIComponent(taskId)}/cancel`,
+    undefined,
+    { skipBusinessError: true, skipErrorHandler: true }
+  )
+}
+
+export async function deleteHermesExecutionTask(
+  taskId: string
+): Promise<void> {
+  await api.delete(
+    `/pg/hermes/execution-tasks/${encodeURIComponent(taskId)}`,
+    { skipBusinessError: true, skipErrorHandler: true }
+  )
+}
+
 export async function listTeamHermesConversations(
   teamId: number
 ): Promise<HermesTeamConversationRecord[]> {

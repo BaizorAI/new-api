@@ -6060,6 +6060,12 @@
         "Manage skills": "Manage skills",
         "Browse and configure Hermes toolsets": "Browse and configure Hermes toolsets",
         "Filtered toolsets": "Filtered toolsets",
-        "All tools": "All tools"
+        "All tools": "All tools",
+        "Stop this task? Running work will be interrupted.": "Stop this task? Running work will be interrupted.",
+        "Delete this task permanently?": "Delete this task permanently?",
+        "Task stopped": "Task stopped",
+        "Task deleted": "Task deleted",
+        "Failed to stop task": "Failed to stop task",
+        "Failed to delete task": "Failed to delete task"
     }
 }
