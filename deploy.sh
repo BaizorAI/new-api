@@ -1,32 +1,18 @@
 #!/usr/bin/env bash
-# new-api deployment script with optional Hermes sidecar support.
+# new-api deployment script with Hermes sidecar support.
 set -e
 
 DEPLOY_START_TIME=$(date +%s)
 echo "Deployment started at: $(date -d @${DEPLOY_START_TIME} "+%Y-%m-%d %H:%M:%S")"
 
 INI_FILE="version.ini"
-DEPLOY_BRANCH="${DEPLOY_BRANCH:-main}"
 REMOTE_HOST="${REMOTE_HOST:-baizor}"
 REMOTE_DIR="${REMOTE_DIR:-/lucky/NewApi}"
 HERMES_SIDECAR_ENABLED="${HERMES_SIDECAR_ENABLED:-true}"
-HERMES_COMPOSE_OVERLAY_ENABLED="${HERMES_COMPOSE_OVERLAY_ENABLED:-true}"
 SKIP_HERMES_BUILD="${SKIP_HERMES_BUILD:-false}"
-HERMES_SERVICE_NAME="${HERMES_SERVICE_NAME:-}"
 HERMES_BUILD_CONTEXT="${HERMES_BUILD_CONTEXT:-hermes-agent}"
 HERMES_DOCKERFILE="${HERMES_DOCKERFILE:-deploy/Dockerfile.hermes-full-overlay}"
-HERMES_API_SERVER_PORT="${HERMES_API_SERVER_PORT:-8642}"
-HERMES_API_SERVER_PUBLISH_PORT="${HERMES_API_SERVER_PUBLISH_PORT:-$HERMES_API_SERVER_PORT}"
-HERMES_API_SERVER_BIND="${HERMES_API_SERVER_BIND:-127.0.0.1}"
-HERMES_API_SERVER_URL="${HERMES_API_SERVER_URL:-}"
-HERMES_INFERENCE_BASE_URL="${HERMES_INFERENCE_BASE_URL:-http://new-api:3000/v1}"
-HERMES_UID="${HERMES_UID:-10000}"
-HERMES_GID="${HERMES_GID:-10000}"
-HERMES_WEIXIN_QR_ENABLED="${HERMES_WEIXIN_QR_ENABLED:-true}"
-HERMES_EXECUTE_CODE_AUTO_APPROVE="${HERMES_EXECUTE_CODE_AUTO_APPROVE:-true}"
-HERMES_NO_PROXY="${HERMES_NO_PROXY:-localhost,127.0.0.1,new-api,hermes,baizor-hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}"
-HERMES_NETWORK="${HERMES_NETWORK:-}"
-HERMES_MIGRATE_TEST_SKILL="${HERMES_MIGRATE_TEST_SKILL:-false}"
+HERMES_SERVICE_NAME="${HERMES_SERVICE_NAME:-baizor-hermes}"
 
 ini_value() {
   grep -i "^$1=" "$INI_FILE" | head -n 1 | awk -F= '{print $2}'
@@ -45,19 +31,12 @@ if [ -z "$IMAGE_NAME" ] || [ -z "$CURRENT_VERSION" ]; then
   exit 1
 fi
 
-if [ -z "$HERMES_SERVICE_NAME" ]; then
-  HERMES_SERVICE_NAME="baizor-hermes"
-fi
-
 if [ "$HERMES_SIDECAR_ENABLED" = "true" ] && { [ -z "$IMAGE_NAME_HERMES" ] || [ -z "$CURRENT_HERMES_VERSION" ]; }; then
-  echo "version.ini must define image_name_hermes and hermes_versions when Hermes sidecar is enabled."
+  echo "version.ini must define image_name_hermes and hermes_versions."
   exit 1
 fi
 
-echo "Pulling latest code from branch: ${DEPLOY_BRANCH}"
-git checkout "$DEPLOY_BRANCH" 2>/dev/null || true
-git pull origin "$DEPLOY_BRANCH" || { echo "git pull origin ${DEPLOY_BRANCH} failed"; exit 1; }
-git submodule update --init --recursive 2>/dev/null || true
+# ── Version bump ──────────────────────────────────────────────────────
 
 MAJOR="$(echo "$CURRENT_VERSION" | awk -F. '{print $1}')"
 MINOR="$(echo "$CURRENT_VERSION" | awk -F. '{print $2}')"
@@ -67,10 +46,7 @@ NEW_PATCH=$((PATCH + 1))
 if [ "$NEW_PATCH" -ge 102 ]; then
   NEW_PATCH=0
   MINOR=$((MINOR + 1))
-  if [ "$MINOR" -ge 102 ]; then
-    MINOR=0
-    MAJOR=$((MAJOR + 1))
-  fi
+  if [ "$MINOR" -ge 102 ]; then MINOR=0; MAJOR=$((MAJOR + 1)); fi
 fi
 
 NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
@@ -78,391 +54,74 @@ echo "New platform version: ${NEW_VERSION}"
 sed -i.bak "s/^version=[0-9]*\.[0-9]*\.[0-9]*/version=${NEW_VERSION}/" "$INI_FILE" && rm -f "$INI_FILE.bak"
 echo "$NEW_VERSION" > VERSION
 
-echo "Building platform image: ${IMAGE_NAME}:${NEW_VERSION}"
-docker build --pull --no-cache -t "${IMAGE_NAME}:${NEW_VERSION}" . || { echo "platform image build failed"; exit 1; }
-docker push "${IMAGE_NAME}:${NEW_VERSION}"
+# ── Platform image ────────────────────────────────────────────────────
 
-if [ "$HERMES_SIDECAR_ENABLED" = "true" ]; then
-  HERMES_IMAGE="${IMAGE_NAME_HERMES}:${CURRENT_HERMES_VERSION}"
-  if [ "$SKIP_HERMES_BUILD" = "true" ]; then
-    echo "Skipping Hermes image build; using configured image: ${HERMES_IMAGE}"
-  elif [ -n "$HERMES_BUILD_CONTEXT" ]; then
-    echo "Building Hermes image: ${HERMES_IMAGE}"
+FULL_IMAGE="${IMAGE_NAME}:${NEW_VERSION}"
+echo "Building platform image: ${FULL_IMAGE}"
+docker build --pull --no-cache -t "$FULL_IMAGE" . || { echo "platform image build failed"; exit 1; }
+docker push "$FULL_IMAGE"
 
-    # On Windows, .pytest_cache / __pycache__ may be permission-locked so
-    # neither rm nor Docker context scanning can access them.  Build from a
-    # tar context that excludes these directories entirely.
-    _hermes_df="${HERMES_DOCKERFILE:-Dockerfile}"
-    _hermes_df_base="$(basename "$_hermes_df")"
-    cp "$_hermes_df" "$HERMES_BUILD_CONTEXT/$_hermes_df_base" 2>/dev/null || true
-    tar -cf - -C "$HERMES_BUILD_CONTEXT" \
-      --exclude='.pytest_cache' --exclude='__pycache__' --exclude='.mypy_cache' \
-      --exclude='.git' --exclude='*.pyc' . | \
-      docker build --pull --no-cache -f "$_hermes_df_base" -t "$HERMES_IMAGE" - \
-      || { rm -f "$HERMES_BUILD_CONTEXT/$_hermes_df_base"; echo "Hermes image build failed"; exit 1; }
-    rm -f "$HERMES_BUILD_CONTEXT/$_hermes_df_base"
-    docker push "$HERMES_IMAGE"
-  else
-    echo "Hermes sidecar uses configured image: ${HERMES_IMAGE}"
-    echo "Set HERMES_BUILD_CONTEXT to build and push Hermes from source during deployment."
-  fi
+# ── Hermes image ──────────────────────────────────────────────────────
 
-  if [ "$HERMES_COMPOSE_OVERLAY_ENABLED" = "true" ]; then
-    echo "Syncing Hermes sidecar compose overlay..."
-    scp docker-compose.hermes.yml "${REMOTE_HOST}:${REMOTE_DIR}/docker-compose.hermes.yml"
-  fi
+HERMES_FULL_IMAGE="${IMAGE_NAME_HERMES}:${CURRENT_HERMES_VERSION}"
 
-  if [ -z "$HERMES_API_SERVER_URL" ]; then
-    HERMES_API_SERVER_URL="http://${HERMES_SERVICE_NAME}:${HERMES_API_SERVER_PORT}"
-  fi
+if [ "$HERMES_SIDECAR_ENABLED" = "true" ] && [ "$SKIP_HERMES_BUILD" != "true" ] && [ -n "$HERMES_BUILD_CONTEXT" ]; then
+  echo "Building Hermes image: ${HERMES_FULL_IMAGE}"
+
+  _df_src="${HERMES_DOCKERFILE}"
+  _df_base="$(basename "$_df_src")"
+  cp "$_df_src" "$HERMES_BUILD_CONTEXT/$_df_base" 2>/dev/null || true
+
+  tar -cf - -C "$HERMES_BUILD_CONTEXT" \
+    --exclude='.pytest_cache' --exclude='__pycache__' --exclude='.mypy_cache' \
+    --exclude='.git' --exclude='*.pyc' . | \
+    docker build --pull --no-cache -f "$_df_base" -t "$HERMES_FULL_IMAGE" - \
+    || { rm -f "$HERMES_BUILD_CONTEXT/$_df_base"; echo "Hermes image build failed"; exit 1; }
+
+  rm -f "$HERMES_BUILD_CONTEXT/$_df_base"
+  docker push "$HERMES_FULL_IMAGE"
 fi
 
-echo "Deploying version ${NEW_VERSION} to ${REMOTE_HOST}:${REMOTE_DIR}..."
+# ── Remote deploy ─────────────────────────────────────────────────────
+
+echo "Deploying version ${NEW_VERSION} to ${REMOTE_HOST}:${REMOTE_DIR} ..."
 ssh "$REMOTE_HOST" << REMOTEEOF
 set -e
 cd "${REMOTE_DIR}"
 
 COMPOSE_ARGS="--env-file .env -f docker-compose.yml"
 
-set_env_var() {
-  key="\$1"
-  value="\$2"
-  touch .env
-  if grep -q "^\${key}=" .env; then
-    sed -i "s|^\${key}=.*|\${key}=\${value}|" .env
-  else
-    printf '%s=%s\n' "\$key" "\$value" >> .env
-  fi
-}
-
-ensure_new_api_env_line() {
-  line="\$1"
-  key="\$2"
-  if sed -n '/^  new-api:/,/^  [^ ].*:/p' docker-compose.yml | grep -Eq "^[[:space:]]*-[[:space:]]*\${key}="; then
-    return
-  fi
-
-  tmp_file="\$(mktemp)"
-  awk -v line="      - \${line}" '
-    BEGIN { in_new_api = 0; inserted = 0 }
-    /^  new-api:/ { in_new_api = 1 }
-    in_new_api && /^  [^ ].*:/ && \$0 !~ /^  new-api:/ { in_new_api = 0 }
-    { print }
-    in_new_api && !inserted && /^[[:space:]]*-[[:space:]]*no_proxy=/ {
-      print line
-      inserted = 1
-    }
-    in_new_api && !inserted && /^[[:space:]]*environment:[[:space:]]*$/ {
-      print line
-      inserted = 1
-    }
-  ' docker-compose.yml > "\$tmp_file"
-  mv "\$tmp_file" docker-compose.yml
-}
-
-ensure_env_secret() {
-  key="\$1"
-  current="\$(grep "^\${key}=" .env 2>/dev/null | head -n 1 | cut -d= -f2-)"
-  if [ -n "\$current" ] && [ "\$current" != "random_string" ]; then
-    return
-  fi
-  value="\$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
-  set_env_var "\$key" "\$value"
-}
-
-ensure_new_api_volume_line() {
-  line="\$1"
-  if sed -n '/^  new-api:/,/^  [^ ].*:/p' docker-compose.yml | grep -Fqx "      - \${line}"; then
-    return
-  fi
-
-  tmp_file="\$(mktemp)"
-  awk -v line="      - \${line}" '
-    BEGIN { in_new_api = 0; in_volumes = 0; inserted = 0 }
-    /^  new-api:/ { in_new_api = 1 }
-    in_new_api && /^  [^ ].*:/ && \$0 !~ /^  new-api:/ {
-      if (in_volumes && !inserted) {
-        print line
-        inserted = 1
-      }
-      in_new_api = 0
-      in_volumes = 0
-    }
-    in_new_api && in_volumes && /^[[:space:]]{4}[A-Za-z0-9_.-]+:/ {
-      if (!inserted) {
-        print line
-        inserted = 1
-      }
-      in_volumes = 0
-    }
-    { print }
-    in_new_api && /^[[:space:]]*volumes:[[:space:]]*$/ { in_volumes = 1 }
-  ' docker-compose.yml > "\$tmp_file"
-  mv "\$tmp_file" docker-compose.yml
-}
-
-preserve_web_assets() {
-  release_dir="web-assets/releases/${NEW_VERSION}"
-  mkdir -p "\$release_dir"
-
-  container_id="\$(docker create "${IMAGE_NAME}:${NEW_VERSION}")"
-  if docker cp "\${container_id}:/web/default/dist/." "\${release_dir}/"; then
-    ln -sfn "releases/${NEW_VERSION}" web-assets/current
-    chmod -R a+rX web-assets 2>/dev/null || true
-    echo "Preserved web assets in \${release_dir}."
-  else
-    echo "Warning: failed to preserve web assets from ${IMAGE_NAME}:${NEW_VERSION}."
-  fi
-  docker rm "\$container_id" >/dev/null
-}
-
-ensure_new_api_env_line 'SESSION_SECRET=\${SESSION_SECRET:-}' 'SESSION_SECRET'
-ensure_new_api_env_line 'WEB_ASSETS_DIR=\${WEB_ASSETS_DIR:-/app/web-assets}' 'WEB_ASSETS_DIR'
-ensure_new_api_volume_line './web-assets:/app/web-assets:ro'
-ensure_env_secret SESSION_SECRET
-archive_legacy_test_skill_sources() {
-  data_dir="\$1"
-  target_dir="\$2"
-  archive_root="\${data_dir}/.archive/baizor-skills-migration/\$(date +%Y%m%d%H%M%S)"
-
-  for legacy_dir in \
-    "\${data_dir}/skills/test" \
-    "\${data_dir}/baizor-users/1/skills/test" \
-    "\${data_dir}/baizor-users/1/skills/test/test"
-  do
-    if [ ! -f "\${legacy_dir}/SKILL.md" ]; then
-      continue
-    fi
-    if [ "\$(realpath "\${legacy_dir}" 2>/dev/null || echo "\${legacy_dir}")" = "\$(realpath "\${target_dir}" 2>/dev/null || echo "\${target_dir}")" ]; then
-      continue
-    fi
-    mkdir -p "\${archive_root}"
-    archive_name="\$(printf '%s' "\${legacy_dir#\${data_dir}/}" | tr '/ ' '__')"
-    echo "Archiving legacy test skill \${legacy_dir} to \${archive_root}/\${archive_name}..."
-    mv "\${legacy_dir}" "\${archive_root}/\${archive_name}"
-  done
-}
-
-migrate_test_skill_to_baizor_skills() {
-  if [ "${HERMES_MIGRATE_TEST_SKILL}" != "true" ]; then
-    return
-  fi
-
-  data_dir="\${1:-hermes-data}"
-  target_dir="\${data_dir}/baizor-skills/test"
-  if [ -f "\${target_dir}/SKILL.md" ]; then
-    echo "Baizor Skills test skill already exists; checking legacy copies."
-    archive_legacy_test_skill_sources "\${data_dir}" "\${target_dir}"
-    return
-  fi
-
-  source_dir=""
-  for candidate in \
-    "\${data_dir}/skills/test" \
-    "\${data_dir}/baizor-users/1/skills/test" \
-    "\${data_dir}/baizor-users/1/skills/test/test"
-  do
-    if [ -f "\${candidate}/SKILL.md" ]; then
-      source_dir="\${candidate}"
-      break
-    fi
-  done
-
-  if [ -z "\${source_dir}" ] && [ -d "\${data_dir}/baizor-users" ]; then
-    source_file="\$(find "\${data_dir}/baizor-users" -path '*/skills/test/SKILL.md' -print -quit 2>/dev/null || true)"
-    if [ -z "\${source_file}" ]; then
-      source_file="\$(find "\${data_dir}/baizor-users" -path '*/skills/*/test/SKILL.md' -print -quit 2>/dev/null || true)"
-    fi
-    if [ -n "\${source_file}" ]; then
-      source_dir="\$(dirname "\${source_file}")"
-    fi
-  fi
-
-  if [ -z "\${source_dir}" ]; then
-    echo "No existing test skill found to migrate into Baizor Skills."
-    return
-  fi
-
-  echo "Migrating test skill to Baizor Skills from \${source_dir}..."
-  mkdir -p "\$(dirname "\${target_dir}")"
-  cp -a "\${source_dir}" "\${target_dir}"
-  chown -R "${HERMES_UID}:${HERMES_GID}" "\${target_dir}" 2>/dev/null || true
-  archive_legacy_test_skill_sources "\${data_dir}" "\${target_dir}"
-}
-
-migrate_test_skill_to_baizor_skills_in_container() {
-  if [ "${HERMES_MIGRATE_TEST_SKILL}" != "true" ]; then
-    return
-  fi
-  if ! docker ps --format '{{.Names}}' | grep -qx "${HERMES_SERVICE_NAME}"; then
-    echo "Hermes container is not running; Baizor Skills migration skipped."
-    return
-  fi
-
-  docker exec -u 0 "${HERMES_SERVICE_NAME}" sh -lc '
-    set -e
-    data_dir="/opt/data"
-    target_dir="\${data_dir}/baizor-skills/test"
-
-    archive_legacy_test_skill_sources_in_container() {
-      archive_root="\${data_dir}/.archive/baizor-skills-migration/\$(date +%Y%m%d%H%M%S)"
-      for legacy_dir in \
-        "\${data_dir}/skills/test" \
-        "\${data_dir}/baizor-users/1/skills/test" \
-        "\${data_dir}/baizor-users/1/skills/test/test"
-      do
-        if [ ! -f "\${legacy_dir}/SKILL.md" ]; then
-          continue
-        fi
-        if [ "\$(realpath "\${legacy_dir}" 2>/dev/null || echo "\${legacy_dir}")" = "\$(realpath "\${target_dir}" 2>/dev/null || echo "\${target_dir}")" ]; then
-          continue
-        fi
-        mkdir -p "\${archive_root}"
-        archive_name="\$(printf "%s" "\${legacy_dir#\${data_dir}/}" | tr "/ " "__")"
-        echo "Archiving legacy test skill \${legacy_dir} to \${archive_root}/\${archive_name}..."
-        mv "\${legacy_dir}" "\${archive_root}/\${archive_name}"
-      done
-    }
-
-    mkdir -p "\${data_dir}/baizor-skills"
-    if [ -f "\${target_dir}/SKILL.md" ]; then
-      echo "Baizor Skills test skill already exists; checking legacy copies."
-      archive_legacy_test_skill_sources_in_container
-      exit 0
-    fi
-
-    source_dir=""
-    for candidate in \
-      "\${data_dir}/skills/test" \
-      "\${data_dir}/baizor-users/1/skills/test" \
-      "\${data_dir}/baizor-users/1/skills/test/test"
-    do
-      if [ -f "\${candidate}/SKILL.md" ]; then
-        source_dir="\${candidate}"
-        break
-      fi
-    done
-
-    if [ -z "\${source_dir}" ] && [ -d "\${data_dir}/baizor-users" ]; then
-      source_file="\$(find "\${data_dir}/baizor-users" -path "*/skills/test/SKILL.md" -print -quit 2>/dev/null || true)"
-      if [ -z "\${source_file}" ]; then
-        source_file="\$(find "\${data_dir}/baizor-users" -path "*/skills/*/test/SKILL.md" -print -quit 2>/dev/null || true)"
-      fi
-      if [ -n "\${source_file}" ]; then
-        source_dir="\$(dirname "\${source_file}")"
-      fi
-    fi
-
-    if [ -z "\${source_dir}" ]; then
-      echo "No existing test skill found to migrate into Baizor Skills."
-      exit 0
-    fi
-
-    echo "Migrating test skill to Baizor Skills from \${source_dir}..."
-    cp -a "\${source_dir}" "\${target_dir}"
-    chown -R \${HERMES_UID}:\${HERMES_GID} "\${target_dir}" 2>/dev/null || true
-    archive_legacy_test_skill_sources_in_container
-  '
-}
 if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
-  if [ "${HERMES_COMPOSE_OVERLAY_ENABLED}" = "true" ]; then
-    COMPOSE_ARGS="\$COMPOSE_ARGS -f docker-compose.hermes.yml"
-  fi
-
-  if grep -q './hermes_data:/opt/data' docker-compose.yml 2>/dev/null; then
-    sed -i 's|./hermes_data:/opt/data|./hermes-data:/opt/data|' docker-compose.yml
-  fi
-
-  ensure_new_api_env_line 'HERMES_API_SERVER_URL=\${HERMES_API_SERVER_URL:-http://baizor-hermes:8642}' 'HERMES_API_SERVER_URL'
-  ensure_new_api_env_line 'HERMES_API_SERVER_KEY=\${HERMES_API_SERVER_KEY:-}' 'HERMES_API_SERVER_KEY'
-
-  REMOTE_HERMES_NETWORK="${HERMES_NETWORK}"
-  if [ -z "\$REMOTE_HERMES_NETWORK" ]; then
-    REMOTE_HERMES_NETWORK="\$(awk '
-      /^networks:[[:space:]]*$/ { in_networks = 1; next }
-      in_networks && /^[^[:space:]]/ { in_networks = 0 }
-      in_networks && /^[[:space:]]{2}[A-Za-z0-9_.-]+:/ {
-        name = \$1
-        sub(":$", "", name)
-        print name
-        exit
-      }
-    ' docker-compose.yml)"
-  fi
-  if [ -z "\$REMOTE_HERMES_NETWORK" ]; then
-    REMOTE_HERMES_NETWORK="new-api-network"
-  fi
-
-  set_env_var HERMES_IMAGE "${HERMES_IMAGE}"
-  set_env_var HERMES_NETWORK "\$REMOTE_HERMES_NETWORK"
-  set_env_var HERMES_API_SERVER_PORT "${HERMES_API_SERVER_PORT}"
-  set_env_var HERMES_API_SERVER_PUBLISH_PORT "${HERMES_API_SERVER_PUBLISH_PORT}"
-  set_env_var HERMES_API_SERVER_BIND "${HERMES_API_SERVER_BIND}"
-  set_env_var HERMES_API_SERVER_URL "${HERMES_API_SERVER_URL}"
-  set_env_var HERMES_INFERENCE_BASE_URL "${HERMES_INFERENCE_BASE_URL}"
-  set_env_var HERMES_UID "${HERMES_UID}"
-  set_env_var HERMES_GID "${HERMES_GID}"
-  set_env_var HERMES_WEIXIN_QR_ENABLED "${HERMES_WEIXIN_QR_ENABLED}"
-  set_env_var HERMES_EXECUTE_CODE_AUTO_APPROVE "${HERMES_EXECUTE_CODE_AUTO_APPROVE}"
-  set_env_var NO_PROXY "${HERMES_NO_PROXY}"
-  set_env_var no_proxy "${HERMES_NO_PROXY}"
-
-  if [ -n "${HERMES_API_SERVER_KEY:-}" ]; then
-    set_env_var HERMES_API_SERVER_KEY "${HERMES_API_SERVER_KEY}"
-  fi
-  if [ -n "${HERMES_INFERENCE_API_KEY:-}" ]; then
-    set_env_var HERMES_INFERENCE_API_KEY "${HERMES_INFERENCE_API_KEY}"
-  fi
-
-  if ! grep -q '^HERMES_API_SERVER_KEY=' .env 2>/dev/null; then
-    echo "HERMES_API_SERVER_KEY must be set in ${REMOTE_DIR}/.env or local HERMES_API_SERVER_KEY before enabling Hermes sidecar."
-    exit 1
-  fi
+  COMPOSE_ARGS="\$COMPOSE_ARGS -f docker-compose.hermes.yml"
 fi
 
-echo "Updating docker-compose.yml platform image to ${NEW_VERSION}..."
-sed -i 's|image: ccr\.ccs\.tencentyun\.com/lucky/baizor-newapi:[^[:space:]]*|image: ccr.ccs.tencentyun.com/lucky/baizor-newapi:${NEW_VERSION}|' docker-compose.yml
-sed -i 's|image: calciumion/new-api:[^[:space:]]*|image: ccr.ccs.tencentyun.com/lucky/baizor-newapi:${NEW_VERSION}|' docker-compose.yml
+# Update image tag in docker-compose.yml
+sed -i "s|image: ${IMAGE_NAME}:[^[:space:]]*|image: ${IMAGE_NAME}:${NEW_VERSION}|" docker-compose.yml
 
-echo "Pulling deployment images..."
-if [ "${HERMES_SIDECAR_ENABLED}" = "true" ] && [ "${HERMES_COMPOSE_OVERLAY_ENABLED}" = "true" ]; then
-  mkdir -p hermes-data 2>/dev/null || true
-  if mkdir -p hermes-data/baizor-skills 2>/dev/null; then
-    migrate_test_skill_to_baizor_skills hermes-data
-  else
-    echo "hermes-data is not writable by $(whoami); will migrate Baizor Skills inside the Hermes container after restart."
-  fi
-fi
+# Pull new images
 docker compose \$COMPOSE_ARGS pull new-api
-preserve_web_assets
 if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
   docker compose \$COMPOSE_ARGS pull "${HERMES_SERVICE_NAME}"
 fi
 
+# Restart
 echo "Restarting services..."
 if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
   docker compose \$COMPOSE_ARGS up -d new-api "${HERMES_SERVICE_NAME}"
-  migrate_test_skill_to_baizor_skills_in_container
 else
   docker compose up -d new-api
 fi
 
-echo "Pruning old images..."
 docker image prune -f
 
 echo "Service status:"
-if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
-  docker compose \$COMPOSE_ARGS ps new-api "${HERMES_SERVICE_NAME}"
-else
-  docker compose ps new-api newapi-redis newapi-postgres
-fi
+docker compose \$COMPOSE_ARGS ps
 REMOTEEOF
 
 DEPLOY_END_TIME=$(date +%s)
 DEPLOY_ELAPSED=$((DEPLOY_END_TIME - DEPLOY_START_TIME))
-DEPLOY_ELAPSED_MIN=$((DEPLOY_ELAPSED / 60))
-DEPLOY_ELAPSED_SEC=$((DEPLOY_ELAPSED % 60))
-echo "Deployment complete. Version: ${NEW_VERSION}"
-echo "Started at:   $(date -d @${DEPLOY_START_TIME} "+%Y-%m-%d %H:%M:%S")"
-echo "Finished at:  $(date -d @${DEPLOY_END_TIME} "+%Y-%m-%d %H:%M:%S")"
-echo "Elapsed time: ${DEPLOY_ELAPSED_MIN}m ${DEPLOY_ELAPSED_SEC}s"
+echo ""
+echo "Deployment complete.  Version: ${NEW_VERSION}"
+echo "Started:   $(date -d @${DEPLOY_START_TIME} "+%Y-%m-%d %H:%M:%S")"
+echo "Finished:  $(date -d @${DEPLOY_END_TIME} "+%Y-%m-%d %H:%M:%S")"
+echo "Elapsed:   $((DEPLOY_ELAPSED / 60))m $((DEPLOY_ELAPSED % 60))s"
