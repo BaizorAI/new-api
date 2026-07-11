@@ -6054,6 +6054,13 @@
         "Delete asset": "删除资产",
         "Failed to delete asset": "删除资产失败",
         "Failed to upload asset": "上传资产失败",
-        "Upload asset": "上传资产"
+        "Upload asset": "上传资产",
+        "AI Generate": "AI 生成",
+        "AI generation failed": "AI 生成失败",
+        "AI generation returned empty content. Please try again.": "AI 生成返回空内容，请重试。",
+        "Auto-fill from name and description using AI": "根据名称和描述，用 AI 自动填充技能内容",
+        "Please enter a skill name first": "请先输入技能名称",
+        "Skill content generated! Review and edit before saving.": "技能内容已生成！请审核编辑后再保存。",
+        "Manage skills": "管理技能"
     }
 }

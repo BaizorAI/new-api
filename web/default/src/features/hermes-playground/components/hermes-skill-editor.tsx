@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftIcon, DownloadIcon, FileIcon, FolderIcon, Trash2Icon, UploadIcon } from 'lucide-react'
+import { ArrowLeftIcon, DownloadIcon, FileIcon, FolderIcon, SparklesIcon, Trash2Icon, UploadIcon, Wand2Icon } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -39,6 +39,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   createHermesSkill,
   deleteHermesSkill,
+  deleteHermesSkillAsset,
+  generateHermesSkillContent,
   listHermesSkills,
   listHermesSkillAssets,
   uploadHermesSkillAsset,
@@ -180,6 +182,7 @@ export function HermesSkillEditor(props: HermesSkillEditorProps) {
   const [body, setBody] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
   const [showDeleteAsset, setShowDeleteAsset] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -215,6 +218,39 @@ export function HermesSkillEditor(props: HermesSkillEditorProps) {
       invalidateAssets()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('Failed to delete asset'))
+    }
+  }
+
+  const handleAIGenerate = async () => {
+    if (!name.trim()) {
+      toast.error(t('Please enter a skill name first'))
+      return
+    }
+    setIsGenerating(true)
+    try {
+      const content = await generateHermesSkillContent(
+        name.trim(),
+        description.trim() || name.trim(),
+        { teamId: props.teamId },
+      )
+      if (!content) {
+        toast.error(t('AI generation returned empty content. Please try again.'))
+        return
+      }
+      // Parse the generated content to fill in fields
+      const sc = parseSkillContent(content)
+      if (sc.description && !description.trim()) setDescription(sc.description)
+      if (sc.version) setVersion(sc.version)
+      if (sc.author) setAuthor(sc.author)
+      if (sc.license) setLicense(sc.license)
+      if (sc.tags) setTags(sc.tags)
+      if (sc.body) setBody(sc.body)
+      if (sc.name && sc.name !== name && !isEditing) setName(sc.name)
+      toast.success(t('Skill content generated! Review and edit before saving.'))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('AI generation failed'))
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -550,6 +586,21 @@ export function HermesSkillEditor(props: HermesSkillEditorProps) {
                   ({t('Full SKILL.md body')})
                 </span>
               </legend>
+              <div className='flex items-center gap-2'>
+                <Button
+                  disabled={isSubmitting || isDeleting || isGenerating || !name.trim()}
+                  onClick={handleAIGenerate}
+                  size='sm'
+                  type='button'
+                  variant='outline'
+                >
+                  <Wand2Icon className='size-4' />
+                  {isGenerating ? t('Generating...') : t('AI Generate')}
+                </Button>
+                <span className='text-muted-foreground text-xs'>
+                  {t('Auto-fill from name and description using AI')}
+                </span>
+              </div>
               <p className='text-muted-foreground text-xs'>
                 {t(
                   'Write the complete skill instructions in markdown. Sections like Overview, When to Use, Procedure, Hard Rules, Verification are recommended.'

@@ -565,6 +565,24 @@ export async function deleteHermesSkillAsset(
   })
 }
 
+export async function generateHermesSkillContent(
+  name: string,
+  description: string,
+  options?: { teamId?: number },
+): Promise<string> {
+  const headers = buildHermesTeamHeaders(options?.teamId)
+  const response = await api.post('/pg/hermes/skills/generate', {
+    name,
+    description,
+  }, {
+    headers,
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  const data = response.data as Record<string, unknown>
+  return (data.data as Record<string, string>)?.content ?? ''
+}
+
 export async function getHermesWeixinStatus(): Promise<HermesWeixinStatus> {
   const response = await api.get('/pg/hermes/platforms/weixin/status', {
     skipBusinessError: true,

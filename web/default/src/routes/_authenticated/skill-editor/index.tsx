@@ -47,6 +47,7 @@ const searchSchema = z.object({
   skill: z.string().optional().catch(undefined),
   team_id: z.number().optional().catch(undefined),
   create: z.string().optional().catch(undefined),
+  section: z.string().optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/_authenticated/skill-editor/')({
@@ -60,7 +61,7 @@ export const Route = createFileRoute('/_authenticated/skill-editor/')({
 })
 
 function SkillEditorPage() {
-  const { skill: skillName, team_id: teamId, create } = Route.useSearch()
+  const { skill: skillName, team_id: teamId, create, section } = Route.useSearch()
   const navigate = Route.useNavigate()
   const queryClient = useQueryClient()
   const { t } = useTranslation()
@@ -88,12 +89,35 @@ function SkillEditorPage() {
     )
   }, [skills, search])
 
+  const sectionFilter = useMemo(() => {
+    if (section === 'mine') {
+      return (s: typeof skills[number]) => s.isUserCreated || s.source === 'user' || s.ownerScope === 'user'
+    }
+    if (section === 'team') {
+      return (s: typeof skills[number]) => s.source === 'team' || s.ownerScope === 'team'
+    }
+    if (section === 'baizor') {
+      return (s: typeof skills[number]) => s.source === 'baizor' || s.ownerScope === 'baizor'
+    }
+    if (section === 'builtin') {
+      return (s: typeof skills[number]) =>
+        s.source !== 'user' && s.source !== 'team' && s.source !== 'baizor' && s.source !== 'external' &&
+        s.ownerScope !== 'user' && s.ownerScope !== 'team' && s.ownerScope !== 'baizor' && s.ownerScope !== 'external'
+    }
+    return null
+  }, [section])
+
+  const sectionLabel = useMemo(() => {
+    if (section === 'mine') return t('My skills')
+    if (section === 'team') return t('Team skills')
+    if (section === 'baizor') return t('Baizor Skills')
+    if (section === 'builtin') return t('Built-in skills')
+    return ''
+  }, [section, t])
+
   const mySkills = useMemo(
-    () =>
-      filtered.filter(
-        (s) => s.isUserCreated || s.source === 'user' || s.ownerScope === 'user',
-      ),
-    [filtered],
+    () => (sectionFilter ? filtered.filter(sectionFilter) : filtered),
+    [filtered, sectionFilter],
   )
 
   // Overview mode: no skill and not creating
@@ -104,9 +128,9 @@ function SkillEditorPage() {
       <Main className='flex min-h-[calc(100vh-var(--app-header-height,0px))] flex-col'>
         <header className='flex items-center justify-between gap-3 border-b px-4 py-3 sm:px-6'>
           <div>
-            <h1 className='text-lg font-semibold'>{t('Skills')}</h1>
+            <h1 className='text-lg font-semibold'>{sectionLabel || t('Skills')}</h1>
             <p className='text-muted-foreground text-sm'>
-              {t('Manage your Hermes skills')}
+              {sectionLabel ? t('Manage skills') : t('Manage your Hermes skills')}
             </p>
           </div>
           <div className='flex items-center gap-2'>

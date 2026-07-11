@@ -227,37 +227,29 @@ export function useSidebarData(): SidebarData {
         defaultOpen: true,
         items: [
           {
-            type: 'hermes-skill-section' as const,
-            section: 'mine' as const,
-            title: t('My skills'),
-            description: t('Skills you have created.'),
-            icon: User,
-          },
-          {
-            type: 'hermes-skill-section' as const,
-            section: 'team' as const,
-            title: t('Team skills'),
-            description: t('Skills shared with your teams.'),
-            icon: Users,
-          },
-          {
-            type: 'hermes-skill-section' as const,
-            section: 'baizor' as const,
-            title: t('Baizor Skills'),
-            description: t('Official Baizor platform skills.'),
-            icon: Sparkles,
-          },
-          {
             type: 'hermes-jilai-skills' as const,
             title: t('Jilai Law Firm Skills'),
             description: t('Legal domain skills from Jilai.'),
             icon: FileText,
           },
           {
-            type: 'hermes-skill-section' as const,
-            section: 'builtin' as const,
+            title: t('My skills'),
+            url: '/skill-editor?section=mine',
+            icon: User,
+          },
+          {
+            title: t('Team skills'),
+            url: '/skill-editor?section=team',
+            icon: Users,
+          },
+          {
+            title: t('Baizor Skills'),
+            url: '/skill-editor?section=baizor',
+            icon: Sparkles,
+          },
+          {
             title: t('Built-in skills'),
-            description: t('System built-in Hermes skills.'),
+            url: '/skill-editor?section=builtin',
             icon: Archive,
           },
         ],

@@ -562,6 +562,118 @@ func HermesPlaygroundSkillAssetFile(c *gin.Context) {
 	c.File(fullPath)
 }
 
+func HermesPlaygroundSkillGenerate(c *gin.Context) {
+	if c == nil || c.Request == nil || c.Request.Method != http.MethodPost {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "method not allowed"})
+		return
+	}
+
+	var req struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
+		return
+	}
+
+	req.Name = strings.TrimSpace(req.Name)
+	req.Description = strings.TrimSpace(req.Description)
+	if req.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "name is required"})
+		return
+	}
+
+	systemPrompt := fmt.Sprintf(`You are a Hermes skill authoring assistant. Generate a complete SKILL.md for a skill named "%s".
+
+The user describes the skill as: "%s"
+
+Return ONLY the SKILL.md content with YAML frontmatter. Follow this exact structure:
+
+---
+name: %s
+description: "Brief one-line description of when to use this skill"
+version: 1.0.0
+author: Hermes Agent
+license: MIT
+metadata:
+  hermes:
+    tags: [relevant, tags, here]
+---
+
+# Skill Title
+
+## Overview
+
+What this skill does.
+
+## When to Use
+
+- Condition 1
+- Condition 2
+
+## Procedure
+
+1. Step one
+2. Step two
+
+## Hard Rules
+
+- Rule 1
+
+## Verification
+
+How to confirm it worked.
+`, req.Name, req.Description, req.Name)
+
+	chatReq := map[string]interface{}{
+		"model": "hermes",
+		"messages": []map[string]string{
+			{"role": "system", "content": systemPrompt},
+			{"role": "user", "content": fmt.Sprintf("Generate a complete SKILL.md for the skill named \"%s\"", req.Name)},
+		},
+		"stream":            false,
+		"max_tokens":        8000,
+		"temperature":       0.3,
+		"x-baizor-services": "hermes",
+	}
+
+	// If team context, pass through headers
+	rawTeamID := strings.TrimSpace(c.GetHeader("X-Baizor-Team-Id"))
+	if rawTeamID != "" && rawTeamID != "0" {
+		if teamID, err := strconv.Atoi(rawTeamID); err == nil && teamID > 0 {
+			if _, err := model.GetTeamMember(teamID, c.GetInt("id")); err != nil {
+				c.JSON(http.StatusForbidden, gin.H{"message": "not a team member"})
+				return
+			}
+		}
+	}
+
+	body, _ := common.Marshal(chatReq)
+	result := proxyHermesPlayground(c, http.MethodPost, "/v1/chat/completions", body)
+	if result.StatusCode != http.StatusOK {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "generation failed"})
+		return
+	}
+
+	// Parse response and extract content
+	type choiceType struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	}
+	type respType struct {
+		Choices []choiceType `json:"choices"`
+	}
+	var resp respType
+	if err := common.Unmarshal(result.Body, &resp); err != nil || len(resp.Choices) == 0 {
+		c.JSON(http.StatusOK, gin.H{"data": gin.H{"content": string(result.Body)}, "raw": true})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"content": resp.Choices[0].Message.Content}})
+}
+
 func HermesPlaygroundToolsets(c *gin.Context) {
 	if c == nil || c.Request == nil {
 		return

@@ -94,6 +94,7 @@ func SetRelayRouter(router *gin.Engine) {
 		hermesPlaygroundRouter.POST("/skills/assets", controller.HermesPlaygroundSkillAssets)
 		hermesPlaygroundRouter.DELETE("/skills/assets", controller.HermesPlaygroundSkillAssets)
 		hermesPlaygroundRouter.GET("/skills/assets/file", controller.HermesPlaygroundSkillAssetFile)
+		hermesPlaygroundRouter.POST("/skills/generate", controller.HermesPlaygroundSkillGenerate)
 		hermesPlaygroundRouter.GET("/toolsets", controller.HermesPlaygroundToolsets)
 		hermesPlaygroundRouter.GET("/results", controller.ListHermesResults)
 		hermesPlaygroundRouter.POST("/results/sync", controller.SyncHermesResults)
