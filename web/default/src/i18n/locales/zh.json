@@ -6063,6 +6063,7 @@
         "Skill content generated! Review and edit before saving.": "技能内容已生成！请审核编辑后再保存。",
         "Manage skills": "管理技能",
         "Browse and configure Hermes toolsets": "浏览和配置 Hermes 工具集",
-        "Filtered toolsets": "已过滤的工具集"
+        "Filtered toolsets": "已过滤的工具集",
+        "All tools": "全部工具"
     }
 }

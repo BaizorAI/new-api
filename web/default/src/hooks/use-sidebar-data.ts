@@ -65,9 +65,6 @@ import { ROLE } from '@/lib/roles'
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
 
-  // DEBUG: verify tools sidebar items
-  console.log('[useSidebarData] tools items loaded')
-
   return {
     navGroups: [
       {
@@ -220,81 +217,6 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        id: 'capability-skills',
-        title: t('Skills'),
-        description: t('Manage skills and tools'),
-        icon: Sparkles,
-        iconColor: 'text-amber-500',
-        url: '/skill-editor',
-        position: 'top',
-        defaultOpen: true,
-        items: [
-          {
-            title: t('My skills'),
-            url: '/skill-editor?section=mine',
-            icon: User,
-          },
-          {
-            title: t('Team skills'),
-            url: '/skill-editor?section=team',
-            icon: Users,
-          },
-          {
-            type: 'hermes-jilai-skills' as const,
-            title: t('Jilai Law Firm Skills'),
-            description: t('Legal domain skills from Jilai.'),
-            icon: FileText,
-          },
-          {
-            title: t('Baizor Skills'),
-            url: '/skill-editor?section=baizor',
-            icon: Sparkles,
-          },
-          {
-            title: t('Built-in skills'),
-            url: '/skill-editor?section=builtin',
-            icon: Archive,
-          },
-        ],
-      },
-      {
-        id: 'capability-tools',
-        title: t('Tools'),
-        description: t('Browse and configure Hermes toolsets.'),
-        icon: Wrench,
-        iconColor: 'text-slate-500',
-        url: '/tools-editor',
-        position: 'top',
-        defaultOpen: true,
-        items: [
-          {
-            title: t('All tools'),
-            url: '/tools-editor',
-            icon: Wrench,
-          },
-          {
-            title: t('Enabled'),
-            url: '/tools-editor?filter=enabled',
-            icon: Wrench,
-          },
-          {
-            title: t('Disabled'),
-            url: '/tools-editor?filter=disabled',
-            icon: Wrench,
-          },
-          {
-            title: t('Configured'),
-            url: '/tools-editor?filter=configured',
-            icon: Wrench,
-          },
-          {
-            title: t('Needs configuration'),
-            url: '/tools-editor?filter=unconfigured',
-            icon: Wrench,
-          },
-        ],
-      },
-      {
         id: 'management',
         title: t('Management'),
         description: t('Team, user, model and billing administration.'),
@@ -393,6 +315,80 @@ export function useSidebarData(): SidebarData {
             activeUrls: ['/system-settings'],
             icon: ServerCog,
             requiredRole: ROLE.SUPER_ADMIN,
+          },
+        ],
+      },
+      {
+        id: 'capability-skills',
+        title: t('Skills'),
+        description: t('Manage skills and tools'),
+        icon: Sparkles,
+        iconColor: 'text-amber-500',
+        url: '/skill-editor',
+        position: 'bottom',
+        defaultOpen: true,
+        items: [
+          {
+            title: t('My skills'),
+            url: '/skill-editor?section=mine',
+            icon: User,
+          },
+          {
+            title: t('Team skills'),
+            url: '/skill-editor?section=team',
+            icon: Users,
+          },
+          {
+            title: t('Jilai Law Firm Skills'),
+            url: '/skill-editor?section=jilai',
+            icon: FileText,
+          },
+          {
+            title: t('Baizor Skills'),
+            url: '/skill-editor?section=baizor',
+            icon: Sparkles,
+          },
+          {
+            title: t('Built-in skills'),
+            url: '/skill-editor?section=builtin',
+            icon: Archive,
+          },
+        ],
+      },
+      {
+        id: 'capability-tools',
+        title: t('Tools'),
+        description: t('Browse and configure Hermes toolsets.'),
+        icon: Wrench,
+        iconColor: 'text-slate-500',
+        url: '/tools-editor',
+        position: 'bottom',
+        defaultOpen: true,
+        items: [
+          {
+            title: t('All tools'),
+            url: '/tools-editor',
+            icon: Wrench,
+          },
+          {
+            title: t('Enabled'),
+            url: '/tools-editor?filter=enabled',
+            icon: Wrench,
+          },
+          {
+            title: t('Disabled'),
+            url: '/tools-editor?filter=disabled',
+            icon: Wrench,
+          },
+          {
+            title: t('Configured'),
+            url: '/tools-editor?filter=configured',
+            icon: Wrench,
+          },
+          {
+            title: t('Needs configuration'),
+            url: '/tools-editor?filter=unconfigured',
+            icon: Wrench,
           },
         ],
       },
