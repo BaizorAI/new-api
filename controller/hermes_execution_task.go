@@ -463,6 +463,40 @@ func normalizeHermesExecutionWorkspaceMode(value string) string {
 	}
 }
 
+// RecoverHermesExecutionTasks re-fires goroutines for tasks left in
+// queued / running state after a restart.  Call once after the
+// database and HTTP router are initialised.
+func RecoverHermesExecutionTasks() {
+	if model.DB == nil {
+		return
+	}
+	tasks, err := model.ListRecoverableHermesExecutionTasks(50)
+	if err != nil {
+		common.SysError("failed to list recoverable hermes execution tasks: " + err.Error())
+		return
+	}
+	if len(tasks) == 0 {
+		common.SysLog("no recoverable hermes execution tasks found")
+		return
+	}
+	common.SysLog(fmt.Sprintf("recovering %d hermes execution tasks", len(tasks)))
+	for _, task := range tasks {
+		switch task.Status {
+		case model.HermesExecutionTaskStatusQueued:
+			go runHermesExecutionTask(task.TaskId)
+		case model.HermesExecutionTaskStatusRunning:
+			// Already running when we crashed — restart from scratch.
+			_ = model.UpdateHermesExecutionTaskStatus(
+				task.TaskId,
+				model.HermesExecutionTaskStatusQueued,
+				0,
+				"restarted after server recovery",
+			)
+			go runHermesExecutionTask(task.TaskId)
+		}
+	}
+}
+
 func deriveHermesExecutionTaskTitle(payload map[string]any) string {
 	messages, ok := payload["messages"].([]any)
 	if !ok {

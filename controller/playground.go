@@ -953,7 +953,7 @@ func proxyHermesPlaygroundWithQuery(c *gin.Context, method string, path string, 
 		req.Header.Set(key, value)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: 3 * time.Minute}
 	resp, err := client.Do(req)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"message": "failed to reach hermes sidecar"})

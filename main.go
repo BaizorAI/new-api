@@ -201,6 +201,9 @@ func main() {
 		port = strconv.Itoa(*common.Port)
 	}
 
+	// Recover hermes execution tasks left in non-terminal state after a restart.
+	go controller.RecoverHermesExecutionTasks()
+
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: server,

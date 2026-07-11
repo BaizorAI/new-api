@@ -185,3 +185,15 @@ func isHermesExecutionTaskTerminal(status string) bool {
 		status == HermesExecutionTaskStatusFailed ||
 		status == HermesExecutionTaskStatusCanceled
 }
+
+func ListRecoverableHermesExecutionTasks(maxCount int) ([]HermesExecutionTask, error) {
+	if maxCount <= 0 || maxCount > 200 {
+		maxCount = 50
+	}
+	var tasks []HermesExecutionTask
+	err := DB.Where("status IN ?", []string{
+		HermesExecutionTaskStatusQueued,
+		HermesExecutionTaskStatusRunning,
+	}).Order("created_at asc").Limit(maxCount).Find(&tasks).Error
+	return tasks, err
+}
