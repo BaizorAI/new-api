@@ -647,7 +647,7 @@
         "Baizor AI Platform is organized around workspaces. A user starts in personal work, team collaboration or HermesAgent, then uses skills and files to finish actual tasks.": "Baizor AI 平台围绕工作台组织。用户从个人工作、团队协作或爱马仕Agent进入，再结合技能和文件完成真实任务。",
         "Baizor AI Platform provides the AI Hub layer for digital employees: connect compute and models, govern access, dispatch the right capability, observe usage and keep business execution traceable.": "白泽 AI 平台为数字员工提供 AI 中台层：连接算力与模型，治理访问权限，调度合适能力，观测使用过程，并保持业务执行可追踪。",
         "Baizor AI Platform serves organizational AI adoption and operation. It connects compute, intelligent models and business applications, then provides model scheduling, routing middleware, access control, usage governance, security audit and operational visibility from the AI Hub layer.": "白泽 AI 平台服务组织级 AI 使用与运营。平台连接算力、智能模型和业务应用，并在 AI 中台层提供模型调度、路由中间件、权限管控、用量治理、安全审计和运行观测能力。",
-        "Baizor AI Platform starts from the way people actually work: personal workspace, team workspace and model experience. Use HermesAgent, skills, files and conversations to finish tasks without starting from model settings.": "Baizor AI 平台从人们真实工作的方式开始：个人工作台、团队工作台和模型体验。你可以用爱马仕Agent、技能、文件和会话完成任务，而不是先面对模型设置。",
+        "Baizor AI Platform starts from the way people actually work: personal workspace, team workspace and model experience. Use HermesAgent, skills, files and conversations to finish tasks without starting from model settings.": "Baizor AI 平台从工作台开始：个人工作台、团队工作台和模型体验。用爱马仕Agent、技能、文件和会话完成任务，万千模型即刻为我所用。",
         "Baizor AI Platform supports both online access and private deployment. Online access is suitable for evaluation, lightweight team use and cross-organization collaboration.": "白泽 AI 平台支持在线使用与私有化部署。在线使用适合产品评估、轻量团队协作和跨组织协同。",
         "Baizor API": "白泽 API",
         "Baizor shared skills": "白泽共享技能",
@@ -4920,8 +4920,8 @@
         "Start from the work you care about": "从你关心的工作开始",
         "Start from the work you care about: choose a workspace, run skills, share sessions and keep results where the work continues.": "从你关心的工作开始：选择工作台、运行技能、共享会话，并把成果留在后续还能继续工作的地方。",
         "Start from user workflows": "从用户工作流开始",
-        "Start from work, not from model settings: create a workspace, use or improve skills, share sessions with teammates and keep final outputs easy to find.": "从工作开始，而不是从模型设置开始：创建工作台，使用或改进技能，与队友共享会话，并让最终成果容易找到。",
-        "Start from workspaces, not model settings": "从工作台开始，而不是从模型设置开始",
+        "Start from work, not from model settings: create a workspace, use or improve skills, share sessions with teammates and keep final outputs easy to find.": "从工作台开始：创建工作台，使用或改进技能，与队友共享会话，万千模型即刻为我所用。",
+        "Start from workspaces, not model settings": "从工作台开始，万千模型即刻为我所用",
         "Start in a workspace and keep conversations, skills and results tied to the same task.": "从工作台进入，把会话、技能和成果留在同一个任务里。",
         "Start Now": "立即开始",
         "Start personal work": "开始个人工作",
@@ -6064,6 +6064,7 @@
         "Manage skills": "管理技能",
         "Browse and configure Hermes toolsets": "浏览和配置 Hermes 工具集",
         "Filtered toolsets": "已过滤的工具集",
-        "All tools": "全部工具"
+        "All tools": "全部工具",
+        "Docs": "操作指南"
     }
 }
