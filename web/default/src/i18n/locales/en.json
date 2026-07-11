@@ -6057,6 +6057,8 @@
         "Toolset not found": "Toolset not found",
         "Toolsets": "Toolsets",
         "Tools in this toolset": "Tools in this toolset",
-        "Manage skills": "Manage skills"
+        "Manage skills": "Manage skills",
+        "Browse and configure Hermes toolsets": "Browse and configure Hermes toolsets",
+        "Filtered toolsets": "Filtered toolsets"
     }
 }

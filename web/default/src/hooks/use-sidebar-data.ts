@@ -65,6 +65,9 @@ import { ROLE } from '@/lib/roles'
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
 
+  // DEBUG: verify tools sidebar items
+  console.log('[useSidebarData] tools items loaded')
+
   return {
     navGroups: [
       {
@@ -227,12 +230,6 @@ export function useSidebarData(): SidebarData {
         defaultOpen: true,
         items: [
           {
-            type: 'hermes-jilai-skills' as const,
-            title: t('Jilai Law Firm Skills'),
-            description: t('Legal domain skills from Jilai.'),
-            icon: FileText,
-          },
-          {
             title: t('My skills'),
             url: '/skill-editor?section=mine',
             icon: User,
@@ -241,6 +238,12 @@ export function useSidebarData(): SidebarData {
             title: t('Team skills'),
             url: '/skill-editor?section=team',
             icon: Users,
+          },
+          {
+            type: 'hermes-jilai-skills' as const,
+            title: t('Jilai Law Firm Skills'),
+            description: t('Legal domain skills from Jilai.'),
+            icon: FileText,
           },
           {
             title: t('Baizor Skills'),
@@ -265,9 +268,28 @@ export function useSidebarData(): SidebarData {
         defaultOpen: true,
         items: [
           {
-            type: 'hermes-tool-section' as const,
-            title: t('Toolsets'),
-            description: t('Available Hermes toolsets and their tools.'),
+            title: t('All tools'),
+            url: '/tools-editor',
+            icon: Wrench,
+          },
+          {
+            title: t('Enabled'),
+            url: '/tools-editor?filter=enabled',
+            icon: Wrench,
+          },
+          {
+            title: t('Disabled'),
+            url: '/tools-editor?filter=disabled',
+            icon: Wrench,
+          },
+          {
+            title: t('Configured'),
+            url: '/tools-editor?filter=configured',
+            icon: Wrench,
+          },
+          {
+            title: t('Needs configuration'),
+            url: '/tools-editor?filter=unconfigured',
             icon: Wrench,
           },
         ],
