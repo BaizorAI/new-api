@@ -6066,6 +6066,10 @@
         "Task stopped": "Task stopped",
         "Task deleted": "Task deleted",
         "Failed to stop task": "Failed to stop task",
-        "Failed to delete task": "Failed to delete task"
+        "Failed to delete task": "Failed to delete task",
+        "Manage Hermes conversations.": "Manage Hermes conversations.",
+        "Browse skills": "Browse skills",
+        "Invoke a Hermes skill by name, e.g. /skill report": "Invoke a Hermes skill by name, e.g. /skill report",
+        "Help": "Help"
     }
 }

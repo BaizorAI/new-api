@@ -66,6 +66,7 @@ import { ModelGroupSelector } from '@/components/model-group-selector'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
@@ -445,7 +446,9 @@ export function PlaygroundInput({
                       }
                     />
                     <DropdownMenuContent align='start' className='max-h-64 overflow-y-auto'>
-                      <DropdownMenuLabel>{t('Skills')}</DropdownMenuLabel>
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel>{t('Skills')}</DropdownMenuLabel>
+                      </DropdownMenuGroup>
                       {allSkills.map((skill) => (
                         <DropdownMenuItem
                           key={skill.name}

@@ -6071,6 +6071,10 @@
         "Task stopped": "任务已停止",
         "Task deleted": "任务已删除",
         "Failed to stop task": "停止任务失败",
-        "Failed to delete task": "删除任务失败"
+        "Failed to delete task": "删除任务失败",
+        "Manage Hermes conversations.": "管理 Hermes 会话。",
+        "Browse skills": "浏览技能",
+        "Invoke a Hermes skill by name, e.g. /skill report": "按名称调用 Hermes 技能，例如 /skill report",
+        "Help": "帮助"
     }
 }
