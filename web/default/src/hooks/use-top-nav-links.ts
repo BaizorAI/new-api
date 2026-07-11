@@ -82,11 +82,6 @@ export function useTopNavLinks(): TopNavLink[] {
 
   links.push({ title: t('Huayu'), href: '/huayu' })
 
-  links.push({
-    title: t('Hermes Capability Center'),
-    href: '/skill-editor',
-  })
-
   const rankings = modules?.rankings
   if (rankings && typeof rankings === 'object' && rankings.enabled) {
     const requiresAuth = rankings.requireAuth && !isAuthed
