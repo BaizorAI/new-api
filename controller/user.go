@@ -447,33 +447,49 @@ func GetSelf(c *gin.Context) {
 	// 获取用户设置并提取sidebar_modules
 	userSetting := user.GetSetting()
 
+	// 汇总用户所属团队的额度池（个人钱包 + 团队钱包 = 总额度）
+	teamQuota, teamUsedQuota, teamRequestCount := 0, 0, 0
+	if teams, terr := model.GetUserTeams(id); terr == nil {
+		for _, t := range teams {
+			teamQuota += t.Quota
+			teamUsedQuota += t.UsedQuota
+			teamRequestCount += t.RequestCount
+		}
+	}
+
 	// 构建响应数据，包含用户信息和权限
 	responseData := map[string]interface{}{
-		"id":                user.Id,
-		"username":          user.Username,
-		"display_name":      user.DisplayName,
-		"role":              user.Role,
-		"status":            user.Status,
-		"email":             user.Email,
-		"github_id":         user.GitHubId,
-		"discord_id":        user.DiscordId,
-		"oidc_id":           user.OidcId,
-		"wechat_id":         user.WeChatId,
-		"telegram_id":       user.TelegramId,
-		"group":             user.Group,
-		"quota":             user.Quota,
-		"used_quota":        user.UsedQuota,
-		"request_count":     user.RequestCount,
-		"aff_code":          user.AffCode,
-		"aff_count":         user.AffCount,
-		"aff_quota":         user.AffQuota,
-		"aff_history_quota": user.AffHistoryQuota,
-		"inviter_id":        user.InviterId,
-		"linux_do_id":       user.LinuxDOId,
-		"setting":           user.Setting,
-		"stripe_customer":   user.StripeCustomer,
-		"sidebar_modules":   userSetting.SidebarModules, // 正确提取sidebar_modules字段
-		"permissions":       permissions,                // 新增权限字段
+		"id":                 user.Id,
+		"username":           user.Username,
+		"display_name":       user.DisplayName,
+		"role":               user.Role,
+		"status":             user.Status,
+		"email":              user.Email,
+		"github_id":          user.GitHubId,
+		"discord_id":         user.DiscordId,
+		"oidc_id":            user.OidcId,
+		"wechat_id":          user.WeChatId,
+		"telegram_id":        user.TelegramId,
+		"group":              user.Group,
+		"quota":              user.Quota,
+		"used_quota":         user.UsedQuota,
+		"team_quota":         teamQuota,
+		"team_used_quota":    teamUsedQuota,
+		"team_request_count": teamRequestCount,
+		"total_quota":        user.Quota + teamQuota,
+		"total_used_quota":   user.UsedQuota + teamUsedQuota,
+		"team_pool_idle":     teamQuota > 0 && teamUsedQuota == 0,
+		"request_count":      user.RequestCount,
+		"aff_code":           user.AffCode,
+		"aff_count":          user.AffCount,
+		"aff_quota":          user.AffQuota,
+		"aff_history_quota":  user.AffHistoryQuota,
+		"inviter_id":         user.InviterId,
+		"linux_do_id":        user.LinuxDOId,
+		"setting":            user.Setting,
+		"stripe_customer":    user.StripeCustomer,
+		"sidebar_modules":    userSetting.SidebarModules, // 正确提取sidebar_modules字段
+		"permissions":        permissions,                // 新增权限字段
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -1183,6 +1199,7 @@ func TopUp(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	prevQuota, _ := model.GetUserQuota(id, true)
 	quota, err := model.Redeem(req.Key, id)
 	if err != nil {
 		if errors.Is(err, model.ErrRedeemFailed) {
@@ -1191,6 +1208,13 @@ func TopUp(c *gin.Context) {
 		}
 		common.ApiError(c, err)
 		return
+	}
+	if prevQuota < 0 {
+		covered := -prevQuota
+		if covered > quota {
+			covered = quota
+		}
+		model.RecordLog(id, model.LogTypeTopup, "本次充值中 "+logger.LogQuota(covered)+" 用于抵扣历史欠费（充值前余额 "+logger.LogQuota(prevQuota)+"）")
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Activity, BarChart3, WalletCards } from 'lucide-react'
+import { BarChart3, Users, WalletCards } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Skeleton } from '@/components/ui/skeleton'
@@ -47,24 +47,34 @@ export function WalletStatsCard(props: WalletStatsCardProps) {
     )
   }
 
+  const user = props.user
+  const personalQuota = user?.quota ?? 0
+  const personalUsed = user?.used_quota ?? 0
+  const teamQuota = user?.team_quota ?? 0
+  const teamUsed = user?.team_used_quota ?? 0
+  const totalQuota = user?.total_quota ?? personalQuota + teamQuota
+  const totalUsed = user?.total_used_quota ?? personalUsed + teamUsed
+
   const stats = [
     {
-      label: t('Current Balance'),
-      value: formatQuota(props.user?.quota ?? 0),
-      description: t('Remaining quota'),
+      label: t('Personal Wallet'),
+      value: formatQuota(personalQuota),
+      description: `${t('Used')} ${formatQuota(personalUsed)}`,
       icon: WalletCards,
     },
     {
-      label: t('Total Usage'),
-      value: formatQuota(props.user?.used_quota ?? 0),
-      description: t('Total consumed quota'),
-      icon: BarChart3,
+      label: t('Team Wallet'),
+      value: formatQuota(teamQuota),
+      description: user?.team_pool_idle
+        ? `${t('Unused')} · ${t('Used')} ${formatQuota(teamUsed)}`
+        : `${t('Used')} ${formatQuota(teamUsed)}`,
+      icon: Users,
     },
     {
-      label: t('API Requests'),
-      value: (props.user?.request_count ?? 0).toLocaleString(),
-      description: t('Total requests made'),
-      icon: Activity,
+      label: t('Total'),
+      value: formatQuota(totalQuota),
+      description: `${t('Used')} ${formatQuota(totalUsed)}`,
+      icon: BarChart3,
     },
   ]
 

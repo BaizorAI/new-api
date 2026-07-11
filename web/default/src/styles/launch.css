@@ -1,0 +1,393 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+
+/* ── Hero section styling (Landing page) ── */
+
+/* Animated gradient background for the hero */
+@layer components {
+  .hero-gradient-bg {
+    @apply bg-background;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      @apply absolute -top-1/2 -left-1/2 w-[200%] h-[200%] rounded-full opacity-50;
+      background: radial-gradient(
+        circle at 30% 40%,
+        var(--primary) 0%,
+        transparent 60%
+      );
+      animation: hero-bg-drift 15s ease-in-out infinite alternate;
+    }
+
+    &::after {
+      content: '';
+      @apply absolute -top-1/2 -left-1/2 w-[200%] h-[200%] rounded-full opacity-30;
+      background: radial-gradient(
+        circle at 70% 60%,
+        var(--accent) 0%,
+        transparent 60%
+      );
+      animation: hero-bg-drift 18s ease-in-out infinite alternate-reverse;
+    }
+  }
+}
+
+@keyframes hero-bg-drift {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(-4%, -3%) scale(1.05);
+  }
+}
+
+/* Gradient text utility */
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      to right,
+      var(--primary),
+      var(--accent)
+    );
+  }
+}
+
+/* Hero heading with animated gradient */
+@layer utilities {
+  .hero-heading {
+    @apply text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl;
+    background: linear-gradient(
+      to right,
+      var(--primary),
+      var(--accent),
+      var(--primary)
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gradient-shift 6s linear infinite;
+  }
+
+  .hero-subheading {
+    @apply text-lg font-medium sm:text-xl md:text-2xl;
+    @apply text-muted-foreground;
+  }
+}
+
+@keyframes gradient-shift {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Hero CTA button */
+@layer components {
+  .hero-cta-primary {
+    @apply inline-flex h-11 items-center justify-center rounded-md px-8 text-sm font-medium transition-all;
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: 0 4px 20px color-mix(in oklch, var(--primary) 50%, transparent);
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px color-mix(in oklch, var(--primary) 60%, transparent);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  .hero-cta-secondary {
+    @apply inline-flex h-11 items-center justify-center rounded-md border px-8 text-sm font-medium transition-all;
+    background-color: transparent;
+    color: var(--foreground);
+    border-color: var(--border);
+    box-shadow: none;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px color-mix(in oklch, var(--foreground) 8%, transparent);
+      background-color: var(--muted);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+/* Hero content layout helpers */
+@layer utilities {
+  .hero-content {
+    @apply mx-auto flex max-w-4xl flex-col items-center gap-6 text-center;
+  }
+
+  .hero-badge {
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium;
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border-color: transparent;
+  }
+
+  .hero-trust-logos {
+    @apply flex flex-wrap items-center justify-center gap-8 opacity-60;
+  }
+
+  .hero-trust-logo {
+    @apply h-8 w-auto;
+    filter: grayscale(1) brightness(0.7);
+    transition: filter 200ms ease;
+
+    &:hover {
+      filter: grayscale(0) brightness(1);
+    }
+  }
+}
+
+/* Feature grid styling */
+@layer components {
+  .hero-feature-grid {
+    @apply grid gap-6 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  .hero-feature-card {
+    @apply relative overflow-hidden rounded-xl border p-6 transition-all;
+    background-color: var(--card);
+    border-color: var(--border);
+    box-shadow: none;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px color-mix(in oklch, var(--foreground) 6%, transparent);
+    }
+
+    &::before {
+      content: '';
+      @apply absolute inset-0 rounded-xl opacity-0 transition-opacity;
+      background: linear-gradient(
+        to bottom,
+        color-mix(in oklch, var(--primary) 8%, transparent),
+        transparent
+      );
+    }
+
+    &:hover::before {
+      @apply opacity-100;
+    }
+  }
+
+  .hero-feature-icon {
+    @apply mb-4 flex h-12 w-12 items-center justify-center rounded-lg;
+    background-color: color-mix(in oklch, var(--primary) 15%, transparent);
+    color: var(--primary);
+  }
+
+  .hero-feature-title {
+    @apply mb-2 text-lg font-semibold;
+    color: var(--foreground);
+  }
+
+  .hero-feature-desc {
+    @apply text-sm leading-relaxed;
+    color: var(--muted-foreground);
+  }
+}
+
+/* Pricing section styling */
+@layer components {
+  .hero-pricing-grid {
+    @apply grid gap-6 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  .hero-pricing-card {
+    @apply relative overflow-hidden rounded-xl border p-8 transition-all;
+    background-color: var(--card);
+    border-color: var(--border);
+    box-shadow: none;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px color-mix(in oklch, var(--foreground) 6%, transparent);
+    }
+  }
+
+  .hero-pricing-card.featured {
+    border-color: var(--primary);
+    box-shadow: 0 4px 20px color-mix(in oklch, var(--primary) 30%, transparent);
+
+    &::before {
+      content: 'Popular';
+      @apply absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-medium;
+      background-color: var(--primary);
+      color: var(--primary-foreground);
+    }
+  }
+
+  .hero-pricing-name {
+    @apply mb-2 text-lg font-semibold;
+    color: var(--foreground);
+  }
+
+  .hero-pricing-price {
+    @apply mb-4 text-4xl font-bold;
+    color: var(--foreground);
+  }
+
+  .hero-pricing-desc {
+    @apply mb-6 text-sm;
+    color: var(--muted-foreground);
+  }
+
+  .hero-pricing-list {
+    @apply mb-8 list-none space-y-3;
+    padding-left: 0;
+
+    li {
+      @apply flex items-center gap-2 text-sm;
+      color: var(--foreground);
+
+      &::before {
+        content: '✓';
+        @apply inline-flex h-5 w-5 items-center justify-center rounded-full;
+        background-color: color-mix(in oklch, var(--primary) 15%, transparent);
+        color: var(--primary);
+        font-size: 0.75rem;
+      }
+    }
+  }
+
+  .hero-pricing-cta {
+    @apply w-full rounded-md px-6 py-2 text-sm font-medium transition-all;
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow: 0 4px 12px color-mix(in oklch, var(--primary) 30%, transparent);
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px color-mix(in oklch, var(--primary) 40%, transparent);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+/* Testimonials styling */
+@layer components {
+  .hero-testimonial-grid {
+    @apply grid gap-6 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  .hero-testimonial-card {
+    @apply relative overflow-hidden rounded-xl border p-6 transition-all;
+    background-color: var(--card);
+    border-color: var(--border);
+    box-shadow: none;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px color-mix(in oklch, var(--foreground) 6%, transparent);
+    }
+  }
+
+  .hero-testimonial-text {
+    @apply mb-4 text-sm leading-relaxed italic;
+    color: var(--muted-foreground);
+  }
+
+  .hero-testimonial-author {
+    @apply flex items-center gap-3;
+
+    &::before {
+      content: '';
+      @apply h-10 w-10 rounded-full;
+      background-color: color-mix(in oklch, var(--primary) 20%, transparent);
+    }
+  }
+
+  .hero-testimonial-name {
+    @apply text-sm font-semibold;
+    color: var(--foreground);
+  }
+
+  .hero-testimonial-role {
+    @apply text-xs;
+    color: var(--muted-foreground);
+  }
+}
+
+/* CTA section styling */
+@layer components {
+  .hero-cta-section {
+    @apply relative overflow-hidden rounded-xl border p-12 text-center;
+    background-color: var(--card);
+    border-color: var(--border);
+
+    &::before {
+      content: '';
+      @apply absolute inset-0 rounded-xl opacity-10;
+      background: linear-gradient(
+        to right,
+        var(--primary),
+        var(--accent)
+      );
+    }
+  }
+
+  .hero-cta-title {
+    @apply mb-4 text-3xl font-bold sm:text-4xl;
+    color: var(--foreground);
+  }
+
+  .hero-cta-desc {
+    @apply mb-8 text-lg;
+    color: var(--muted-foreground);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .hero-heading {
+    @apply text-3xl sm:text-4xl;
+  }
+
+  .hero-feature-grid,
+  .hero-pricing-grid,
+  .hero-testimonial-grid {
+    @apply grid-cols-1;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .hero-gradient-bg::before,
+  .hero-gradient-bg::after {
+    animation: none !important;
+  }
+
+  .hero-heading {
+    animation: none !important;
+  }
+}

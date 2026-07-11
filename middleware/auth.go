@@ -15,6 +15,7 @@ import (
 	"github.com/BaizorAI/new-api/model"
 	"github.com/BaizorAI/new-api/service"
 	authzservice "github.com/BaizorAI/new-api/service/authz"
+	"github.com/BaizorAI/new-api/setting/operation_setting"
 	"github.com/BaizorAI/new-api/setting/ratio_setting"
 	"github.com/BaizorAI/new-api/types"
 
@@ -582,7 +583,7 @@ func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) e
 	}
 	common.SetContextKey(c, constant.ContextKeyTokenGroup, token.Group)
 	common.SetContextKey(c, constant.ContextKeyTokenCrossGroupRetry, token.CrossGroupRetry)
-	if token.TeamId > 0 {
+	if token.TeamId > 0 && operation_setting.GetGeneralSetting().TeamTokenBillTeamEnabled {
 		team, _, err := model.GetTeamForToken(token.TeamId, token.UserId)
 		if err != nil {
 			abortWithOpenAiMessage(c, http.StatusForbidden, "团队令牌已失效或创建者已不在团队中")

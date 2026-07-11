@@ -20,6 +20,9 @@ type GeneralSetting struct {
 	CustomCurrencySymbol string `json:"custom_currency_symbol"`
 	// 自定义货币与美元汇率（1 USD = X Custom）
 	CustomCurrencyExchangeRate float64 `json:"custom_currency_exchange_rate"`
+	// 团队令牌是否默认按团队钱包计费：true=团队 token 消费扣团队额度池；
+	// false=团队 token 消费回退到创建者个人钱包。默认开启。
+	TeamTokenBillTeamEnabled bool `json:"team_token_bill_team_enabled"`
 }
 
 // 默认配置
@@ -30,6 +33,7 @@ var generalSetting = GeneralSetting{
 	QuotaDisplayType:           QuotaDisplayTypeUSD,
 	CustomCurrencySymbol:       "¤",
 	CustomCurrencyExchangeRate: 1.0,
+	TeamTokenBillTeamEnabled:   true,
 }
 
 func init() {

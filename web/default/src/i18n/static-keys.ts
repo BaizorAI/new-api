@@ -545,4 +545,7 @@ export const STATIC_I18N_KEYS = [
   'Messaging platforms',
   'Terminal backends',
   'The only agent with a built-in learning loop: it creates skills from experience, improves them during use, and remembers context across sessions.',
+
+  // Toolset detail page (route-specific namespace)
+  'toolsetDetail',
 ] as const

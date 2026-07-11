@@ -252,6 +252,18 @@ export interface UserWalletData {
   used_quota: number
   /** Total request count */
   request_count: number
+  /** Team wallet quota (sum across teams the user belongs to) */
+  team_quota?: number
+  /** Team wallet used quota */
+  team_used_quota?: number
+  /** Team wallet request count */
+  team_request_count?: number
+  /** Personal + team quota (total remaining) */
+  total_quota?: number
+  /** Personal + team used quota */
+  total_used_quota?: number
+  /** True when team pool has quota but has never been consumed */
+  team_pool_idle?: boolean
   /** Affiliate quota (pending rewards) */
   aff_quota: number
   /** Total affiliate quota earned (historical) */

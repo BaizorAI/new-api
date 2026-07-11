@@ -4,6 +4,10 @@
     "1000": "1000",
     "10000": "10000",
     "_copy": "_copy",
+    "CC Admin": {
+      "singular": "CC Admin",
+      "plural": "CC Admins"
+    },
     "，": ", ",
     ", and": ", and",
     "，and ": ", and ",

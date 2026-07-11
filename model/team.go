@@ -2,9 +2,11 @@ package model
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/logger"
 	"gorm.io/gorm"
 )
 
@@ -308,6 +310,7 @@ func TransferUserQuotaToTeam(userId int, teamId int, quota int) error {
 	if err != nil {
 		return err
 	}
+	RecordLog(userId, LogTypeTransfer, fmt.Sprintf("从个人钱包向团队(ID %d) 转入额度 %s", teamId, logger.LogQuota(quota)))
 	userQuota, err := GetUserQuota(userId, true)
 	if err != nil {
 		common.SysLog("failed to refresh user quota after team transfer: " + err.Error())
