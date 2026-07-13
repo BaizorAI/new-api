@@ -233,7 +233,7 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 		logger.LogError(ctx, fmt.Sprintf("total tokens is 0, cannot consume quota, userId %d, channelId %d, "+
 			"tokenId %d, model %s， pre-consumed quota %d", relayInfo.UserId, relayInfo.ChannelId, relayInfo.TokenId, modelName, relayInfo.FinalPreConsumedQuota))
 	} else {
-		updateRelayUsageStats(relayInfo, quota)
+		UpdateRelayUsageStats(relayInfo, quota)
 		model.UpdateChannelUsedQuota(relayInfo.ChannelId, quota)
 	}
 
@@ -262,6 +262,7 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 		UseTimeSeconds:   int(useTimeSeconds),
 		IsStream:         relayInfo.IsStream,
 		Group:            relayInfo.UsingGroup,
+		TeamId:           relayInfo.TeamId,
 		Other:            other,
 	})
 }
@@ -354,7 +355,7 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 		logger.LogError(ctx, fmt.Sprintf("total tokens is 0, cannot consume quota, userId %d, channelId %d, "+
 			"tokenId %d, model %s， pre-consumed quota %d", relayInfo.UserId, relayInfo.ChannelId, relayInfo.TokenId, relayInfo.OriginModelName, relayInfo.FinalPreConsumedQuota))
 	} else {
-		updateRelayUsageStats(relayInfo, quota)
+		UpdateRelayUsageStats(relayInfo, quota)
 		model.UpdateChannelUsedQuota(relayInfo.ChannelId, quota)
 	}
 
@@ -383,6 +384,7 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 		UseTimeSeconds:   int(useTimeSeconds),
 		IsStream:         relayInfo.IsStream,
 		Group:            relayInfo.UsingGroup,
+		TeamId:           relayInfo.TeamId,
 		Other:            other,
 	})
 	gopool.Go(func() {
@@ -414,7 +416,7 @@ func PreConsumeTokenQuota(relayInfo *relaycommon.RelayInfo, quota int) error {
 	return nil
 }
 
-func updateRelayUsageStats(relayInfo *relaycommon.RelayInfo, quota int) {
+func UpdateRelayUsageStats(relayInfo *relaycommon.RelayInfo, quota int) {
 	model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, quota)
 	if relayInfo.TeamId > 0 {
 		model.UpdateTeamUsedQuotaAndRequestCount(relayInfo.TeamId, quota)

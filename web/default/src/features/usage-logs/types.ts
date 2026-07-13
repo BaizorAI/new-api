@@ -50,6 +50,7 @@ export interface CommonLogFilters extends CommonFilters {
   model?: string
   token?: string
   group?: string
+  teamId?: string
   username?: string
   requestId?: string
   upstreamRequestId?: string
@@ -181,6 +182,8 @@ export interface LogOtherData {
   is_system_prompt_overwritten?: boolean
   po?: string[]
   billing_source?: string
+  team_id?: number
+  team_name?: string
   group?: string
   stream_status?: {
     status?: string
@@ -287,6 +290,7 @@ export interface GetLogsParams {
   end_timestamp?: number
   channel?: number
   group?: string
+  team_id?: number
   request_id?: string
   upstream_request_id?: string
 }
@@ -311,6 +315,7 @@ export interface GetLogStatsParams {
   end_timestamp?: number
   channel?: number
   group?: string
+  team_id?: number
   request_id?: string
   upstream_request_id?: string
 }

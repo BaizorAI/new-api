@@ -142,7 +142,9 @@ export function SummaryCards() {
   const { status, loading } = useStatus()
 
   const summaryTimeRange = useMemo(() => computeTimeRange(1), [])
-  const remainQuota = Number(user?.quota ?? 0)
+  const personalQuota = Number(user?.quota ?? 0)
+  const teamQuota = Number(user?.team_quota ?? 0)
+  const remainQuota = teamQuota > 0 ? Number(user?.total_quota ?? personalQuota) : personalQuota
   const usedQuota = Number(user?.used_quota ?? 0)
   const requestCount = Number(user?.request_count ?? 0)
 
@@ -290,6 +292,14 @@ export function SummaryCards() {
             <div className='font-mono text-2xl font-semibold tracking-tight'>
               {formatQuota(remainQuota)}
             </div>
+
+            {teamQuota > 0 && (
+              <div className='text-muted-foreground -mt-1 flex items-center gap-2 text-[11px]'>
+                <span>{t('Personal')}: {formatQuota(personalQuota)}</span>
+                <span className='text-border'>|</span>
+                <span>{t('Team')}: {formatQuota(teamQuota)}</span>
+              </div>
+            )}
 
             <div className='grid grid-cols-2 gap-2'>
               <div className='bg-background/60 rounded-lg px-2.5 py-2'>

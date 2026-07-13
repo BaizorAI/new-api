@@ -82,6 +82,7 @@ function buildSearchSourceKey(values: {
   model?: unknown
   token?: unknown
   group?: unknown
+  teamId?: unknown
   username?: unknown
   requestId?: unknown
   upstreamRequestId?: unknown
@@ -94,6 +95,7 @@ function buildSearchSourceKey(values: {
     values.model,
     values.token,
     values.group,
+    values.teamId,
     values.username,
     values.requestId,
     values.upstreamRequestId,
@@ -128,6 +130,7 @@ export function CommonLogsFilterBar<TData>(
       model: searchParams.model,
       token: searchParams.token,
       group: searchParams.group,
+      teamId: searchParams.teamId,
       username: searchParams.username,
       requestId: searchParams.requestId,
       upstreamRequestId: searchParams.upstreamRequestId,
@@ -142,6 +145,7 @@ export function CommonLogsFilterBar<TData>(
       model: searchParams.model || undefined,
       token: searchParams.token || undefined,
       group: searchParams.group || undefined,
+      teamId: searchParams.teamId || undefined,
       username: searchParams.username || undefined,
       requestId: searchParams.requestId || undefined,
       upstreamRequestId: searchParams.upstreamRequestId || undefined,
@@ -158,6 +162,7 @@ export function CommonLogsFilterBar<TData>(
     searchParams.model,
     searchParams.token,
     searchParams.group,
+    searchParams.teamId,
     searchParams.username,
     searchParams.requestId,
     searchParams.upstreamRequestId,
@@ -230,6 +235,7 @@ export function CommonLogsFilterBar<TData>(
 
   const hasExpandedFilters =
     !!filters.token ||
+    !!filters.teamId ||
     !!filters.username ||
     !!filters.channel ||
     !!filters.requestId ||
@@ -241,6 +247,7 @@ export function CommonLogsFilterBar<TData>(
 
   const expandedFilterCount = [
     filters.token,
+    filters.teamId,
     isAdmin ? filters.username : undefined,
     isAdmin ? filters.channel : undefined,
     filters.requestId,
@@ -385,6 +392,14 @@ export function CommonLogsFilterBar<TData>(
           />
         </LogsFilterField>
       )}
+      <LogsFilterField>
+        <LogsFilterInput
+          placeholder={t('Team ID')}
+          value={filters.teamId || ''}
+          onChange={(e) => handleChange('teamId', e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+      </LogsFilterField>
       <LogsFilterField>
         <LogsFilterInput
           placeholder={t('Request ID')}

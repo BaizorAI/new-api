@@ -581,6 +581,26 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
     },
     size: 160,
   })
+  columns.push({
+    accessorKey: 'team_id',
+    header: t('Team'),
+    cell: function TeamCell({ row }) {
+      const log = row.original
+      const teamId = log.team_id
+      if (!teamId) return null
+      const other = parseLogOther(log.other)
+      const teamName = other?.team_name || `#${teamId}`
+      return (
+        <StatusBadge
+          label={teamName}
+          size='sm'
+          showDot={false}
+          className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 [font-family:var(--font-body)]'
+        />
+      )
+    },
+    size: 120,
+  })
   columns.push(
     {
       accessorKey: 'model_name',
