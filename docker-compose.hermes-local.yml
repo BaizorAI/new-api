@@ -44,3 +44,9 @@ services:
       - OPENAI_API_KEY=${HERMES_INFERENCE_API_KEY:-}
       - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,host.docker.internal}
       - no_proxy=${no_proxy:-localhost,127.0.0.1,host.docker.internal}
+      # Override Windows Docker Desktop proxy injection so Hermes can reach
+      # host.docker.internal directly (bypasses Clash/V2Ray on the host).
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=

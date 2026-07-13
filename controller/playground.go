@@ -279,21 +279,42 @@ func HermesPromoteSkill(c *gin.Context) {
 	}
 	proxyHermesPlayground(c, http.MethodPost, "/v1/skills/promote", body)
 }
-// resolveSkillAssetDir resolves the on-disk directory for a user's or team's
-// named skill. Returns the absolute path, or empty string with an error if the
-// skill directory cannot be found or accessed.
+// resolveSkillAssetDir resolves the on-disk directory for a named skill.
+// All skills live under the unified skills/ directory under HERMES_DATA_DIR.
+// Ownership and scope are tracked in the SKILL.md frontmatter, not in the
+// directory layout.
 func resolveSkillAssetDir(userId int, skillName string, teamID int) (string, error) {
 	root := filepath.Clean(common.GetEnvOrDefaultString("HERMES_DATA_DIR", "/opt/data"))
-	var prefix string
-	if teamID > 0 {
-		prefix = fmt.Sprintf("teams/%d", teamID)
-	} else {
-		prefix = fmt.Sprintf("baizor-users/%d", userId)
-	}
 
-	skillsBase := filepath.Join(root, prefix, "skills")
+	// Search the unified skills directory first.
+	skillsBase := filepath.Join(root, "skills")
 	var skillDir string
 	_ = filepath.Walk(skillsBase, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if skillDir != "" {
+			return filepath.SkipAll
+		}
+		if info.IsDir() && info.Name() == skillName {
+			skillDir = p
+			return filepath.SkipAll
+		}
+		return nil
+	})
+
+	if skillDir != "" {
+		return skillDir, nil
+	}
+
+	// Fallback: search legacy per-user / per-team directories.
+	var legacyBase string
+	if teamID > 0 {
+		legacyBase = filepath.Join(root, fmt.Sprintf("teams/%d", teamID), "skills")
+	} else {
+		legacyBase = filepath.Join(root, fmt.Sprintf("baizor-users/%d", userId), "skills")
+	}
+	_ = filepath.Walk(legacyBase, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
