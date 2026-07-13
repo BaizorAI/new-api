@@ -25,3 +25,4 @@ deploy/
 **/.git
 .tmp/
 test-data/
+hermes-data/
