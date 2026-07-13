@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -955,7 +956,14 @@ func proxyHermesPlaygroundWithQuery(c *gin.Context, method string, path string, 
 		reader = bytes.NewReader(body)
 	}
 
-	req, err := http.NewRequestWithContext(c.Request.Context(), method, parsedURL.String(), reader)
+	reqCtx := c.Request.Context()
+	// Chat completions and generation requests can run for several minutes.
+	// Use a background context so the request survives even if the
+	// browser's HTTP connection drops (e.g. network hiccup, tab switch).
+	if strings.Contains(path, "/chat/completions") || strings.Contains(path, "/generate") {
+		reqCtx = context.Background()
+	}
+	req, err := http.NewRequestWithContext(reqCtx, method, parsedURL.String(), reader)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create hermes request"})
 		return hermesProxyResult{StatusCode: http.StatusInternalServerError}
@@ -974,7 +982,7 @@ func proxyHermesPlaygroundWithQuery(c *gin.Context, method string, path string, 
 		req.Header.Set(key, value)
 	}
 
-	client := &http.Client{Timeout: 3 * time.Minute}
+	client := &http.Client{Timeout: 10 * time.Minute}
 	resp, err := client.Do(req)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"message": "failed to reach hermes sidecar"})

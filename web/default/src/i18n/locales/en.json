@@ -6079,6 +6079,7 @@
         "Running...": "Running...",
         "Running test...": "Running test...",
         "Test result": "Test result",
-        "Platform skills": "Platform skills"
+        "Platform skills": "Platform skills",
+        "Test timed out": "Test timed out"
     }
 }

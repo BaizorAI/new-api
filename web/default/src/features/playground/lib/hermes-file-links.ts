@@ -5,7 +5,7 @@ const HERMES_FILE_MARKDOWN_LINK_PATTERN =
   /\[([^\]]+)\]\((\/pg\/hermes\/files\/[^\s)]+)\)/g
 
 const TRAILING_PUNCTUATION_PATTERN =
-  /[.,;:!?\uFF0C\u3002\uFF1B\uFF1A\uFF01\uFF1F]+$/
+  /[.,;:!?\uFF0C\u3002\uFF1B\uFF1A\uFF01\uFF1F`]+$/
 
 export interface HermesFileArtifact {
   href: string

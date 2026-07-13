@@ -270,17 +270,40 @@ export function HermesSkillEditor(props: HermesSkillEditorProps) {
         license: license.trim() || undefined, tags: tags.trim() || undefined,
         relatedSkills: relatedSkills.trim() || undefined, body: body.trim(),
       }
-      const { api } = await import('@/lib/api')
-      const resp = await api.post('/pg/chat/completions', {
-        model: 'hermes-agent', stream: false, max_tokens: 2000,
-        messages: [
-          { role: 'system', content: `Test this skill. If the user's input is in Chinese, you MUST respond entirely in Chinese.
+      const { default: mod } = await import('@/features/hermes-playground/api')
+      const task = await mod.createHermesExecutionTask({
+        title: 'Skill test: ' + name.trim(),
+        workspaceMode: 'personal',
+        conversationId: '',
+        storageScope: '',
+        hermesSessionId: '',
+        payload: {
+          model: 'hermes-agent', stream: false, max_tokens: 4000,
+          messages: [
+            { role: 'system', content: `Test this skill. If the user's input is in Chinese, you MUST respond entirely in Chinese.
 
-${buildSkillContent(sc)}` },
-          { role: 'user', content: testInput.trim() },
-        ],
-      }, { skipBusinessError: true, skipErrorHandler: true })
-      setTestResult(resp.data?.choices?.[0]?.message?.content || JSON.stringify(resp.data))
+${buildSkillContent(sc).replace(/<skill_dir>/g, '/opt/data/skills/productivity/' + (name.trim()))}` },
+            { role: 'user', content: testInput.trim() },
+          ],
+        },
+      })
+      // Poll until done
+      let result = ''
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 2000))
+        const updated = await mod.getHermesExecutionTask(task.taskId)
+        if (updated.status === 'succeeded') {
+          result = typeof updated.responsePayload === 'object'
+            ? (updated.responsePayload as any)?.choices?.[0]?.message?.content || JSON.stringify(updated.responsePayload)
+            : String(updated.responsePayload || '')
+          break
+        }
+        if (updated.status === 'failed' || updated.status === 'canceled') {
+          result = updated.error || updated.status
+          break
+        }
+      }
+      setTestResult(result || t('Test timed out'))
     } catch (error) {
       setTestResult(error instanceof Error ? error.message : t('Test failed'))
     } finally { setIsTesting(false) }
