@@ -474,7 +474,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   )
 
   const modelFilter = useCallback((model: ModelOption) => {
-    return /^huayu-hermes|hermes-agent/i.test(`${model.label} ${model.value}`)
+    return /hermes-agent/i.test(`${model.label} ${model.value}`)
   }, [])
 
   const requestHeaders = useMemo(() => {
