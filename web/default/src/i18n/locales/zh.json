@@ -6085,6 +6085,13 @@
         "Running test...": "正在运行测试...",
         "Test result": "测试结果",
         "Platform skills": "平台技能",
-        "Test timed out": "测试超时"
+        "Test timed out": "测试超时",
+        "Rename asset": "重命名资产",
+        "New filename": "新文件名",
+        "Asset renamed": "资产已重命名",
+        "Failed to rename asset": "重命名资产失败",
+        "View rendered prompt": "查看渲染提示",
+        "Hermes system prompt preview": "Hermes 系统提示预览",
+        "This is how Hermes will see the skill when loaded.": "这是 Hermes 加载技能时将看到的内容。"
     }
 }

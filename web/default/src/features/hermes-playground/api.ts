@@ -570,6 +570,20 @@ export async function uploadHermesSkillAsset(
   return (response.data as Record<string, unknown>).data as { name: string; path: string }
 }
 
+export async function renameHermesSkillAsset(
+  name: string,
+  path: string,
+  newName: string,
+  options?: { teamId?: number },
+): Promise<void> {
+  const params = new URLSearchParams({ name })
+  if (options?.teamId) params.set('team_id', String(options.teamId))
+  await api.put(`/pg/hermes/skills/assets?${params}`, { path, new_name: newName }, {
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+}
+
 export async function deleteHermesSkillAsset(
   name: string,
   path: string,

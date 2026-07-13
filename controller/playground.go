@@ -466,6 +466,55 @@ func HermesPlaygroundSkillAssets(c *gin.Context) {
 			},
 		})
 
+	case http.MethodPut:
+		// PUT requires JSON body: { "path": "assets/old.pptx", "new_name": "new.pptx" }
+		var renameReq struct {
+			Path    string `json:"path"`
+			NewName string `json:"new_name"`
+		}
+		if err := common.DecodeJson(c.Request.Body, &renameReq); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "invalid request body"})
+			return
+		}
+		renameReq.Path = strings.TrimSpace(renameReq.Path)
+		renameReq.NewName = strings.TrimSpace(renameReq.NewName)
+		if renameReq.Path == "" || renameReq.NewName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "path and new_name are required"})
+			return
+		}
+		// Security: same constraints as DELETE + valid filename
+		cleanPath := filepath.Clean(filepath.FromSlash(renameReq.Path))
+		if strings.Contains(cleanPath, "..") || cleanPath == "." || filepath.Base(cleanPath) == "SKILL.md" {
+			c.JSON(http.StatusForbidden, gin.H{"message": "invalid path"})
+			return
+		}
+		oldPath := filepath.Join(skillDir, cleanPath)
+		if !strings.HasPrefix(oldPath, skillDir+string(os.PathSeparator)) && oldPath != skillDir {
+			c.JSON(http.StatusForbidden, gin.H{"message": "path is outside skill directory"})
+			return
+		}
+		if _, err := os.Stat(oldPath); err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"message": "file not found"})
+			return
+		}
+		cleanName := filepath.Base(filepath.Clean(renameReq.NewName))
+		if cleanName == "." || cleanName == ".." || cleanName == "" || cleanName == "SKILL.md" || strings.HasPrefix(cleanName, ".") {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "invalid filename"})
+			return
+		}
+		ext := strings.ToLower(filepath.Ext(cleanName))
+		if _, ok := hermesAllowedRootFileExtensions[ext]; !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "file type not allowed: " + ext})
+			return
+		}
+		newPath := filepath.Join(filepath.Dir(oldPath), cleanName)
+		if err := os.Rename(oldPath, newPath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to rename file"})
+			return
+		}
+		relPath, _ := filepath.Rel(skillDir, newPath)
+		c.JSON(http.StatusOK, gin.H{"message": "renamed", "data": gin.H{"path": filepath.ToSlash(relPath)}})
+
 	case http.MethodDelete:
 		// DELETE requires JSON body: { "path": "assets/template.pptx" }
 		var req struct {

@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftIcon, DownloadIcon, EyeIcon, FileIcon, FolderIcon, PlayIcon, SparklesIcon, Trash2Icon, UploadIcon, Wand2Icon } from 'lucide-react'
+import { ArrowLeftIcon, CheckIcon, DownloadIcon, EyeIcon, FileIcon, FolderIcon, PencilIcon, PlayIcon, SparklesIcon, Trash2Icon, UploadIcon, Wand2Icon, XIcon } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -42,13 +42,24 @@ import {
   deleteHermesSkill,
   deleteHermesSkillAsset,
   generateHermesSkillContent,
+  renameHermesSkillAsset,
+  listHermesSkills,
+  listHermesSkillAssets,
+  createHermesSkill,
+  deleteHermesSkill,
+  deleteHermesSkillAsset,
+  generateHermesSkillContent,
+  renameHermesSkillAsset,
   listHermesSkills,
   listHermesSkillAssets,
   uploadHermesSkillAsset,
-  deleteHermesSkillAsset,
   updateHermesSkill,
   type HermesSkill,
   type HermesSkillAsset,
+} from '../api'
+import {
+  createHermesExecutionTask,
+  getHermesExecutionTask,
 } from '../api'
 
 interface HermesSkillEditorProps {
@@ -56,6 +67,8 @@ interface HermesSkillEditorProps {
   teamId?: number
   onChanged?: () => void
   onCancel?: () => void
+  /** Optional workspace context so the test AI can access files from the session. */
+  testContext?: { conversationId?: string; storageScope?: string; workspaceMode?: string }
 }
 
 const HERMES_SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/
@@ -185,6 +198,8 @@ export function HermesSkillEditor(props: HermesSkillEditorProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [showDeleteAsset, setShowDeleteAsset] = useState<string | null>(null)
+  const [renamePath, setRenamePath] = useState<string | null>(null)
+  const [renameName, setRenameName] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
   const [testInput, setTestInput] = useState('')
@@ -192,6 +207,19 @@ export function HermesSkillEditor(props: HermesSkillEditorProps) {
   const [isTesting, setIsTesting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
+
+  const handleRenameAsset = async () => {
+    if (!props.editSkill || !renamePath || !renameName.trim()) return
+    try {
+      await renameHermesSkillAsset(props.editSkill.name, renamePath, renameName.trim(), { teamId: props.teamId })
+      toast.success(t('Asset renamed'))
+      setRenamePath(null)
+      setRenameName('')
+      invalidateAssets()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('Failed to rename asset'))
+    }
+  }
 
   const invalidateAssets = () => {
     void queryClient.invalidateQueries({
@@ -271,12 +299,14 @@ export function HermesSkillEditor(props: HermesSkillEditorProps) {
         relatedSkills: relatedSkills.trim() || undefined, body: body.trim(),
       }
       const { default: mod } = await import('@/features/hermes-playground/api')
+      const ctx = props.testContext || {}
       const task = await mod.createHermesExecutionTask({
         title: 'Skill test: ' + name.trim(),
-        workspaceMode: 'personal',
-        conversationId: '',
-        storageScope: '',
+        workspaceMode: ctx.workspaceMode || 'personal',
+        conversationId: ctx.conversationId || '',
+        storageScope: ctx.storageScope || '',
         hermesSessionId: '',
+        teamId: props.teamId,
         payload: {
           model: 'hermes-agent', stream: false, max_tokens: 4000,
           messages: [
@@ -725,6 +755,38 @@ ${buildSkillContent(sc).replace(/<skill_dir>/g, '/opt/data/skills/productivity/'
                   </Button>
                 </div>
 
+                {renamePath && (
+                  <div className='flex items-center gap-2'>
+                    <Input
+                      className='flex-1 text-sm'
+                      onChange={(event) => setRenameName(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') handleRenameAsset()
+                        if (event.key === 'Escape') { setRenamePath(null); setRenameName('') }
+                      }}
+                      placeholder={t('New filename')}
+                      value={renameName}
+                    />
+                    <Button
+                      disabled={!renameName.trim()}
+                      onClick={handleRenameAsset}
+                      size='sm'
+                      type='button'
+                      variant='outline'
+                    >
+                      <CheckIcon className='size-4' />
+                    </Button>
+                    <Button
+                      onClick={() => { setRenamePath(null); setRenameName('') }}
+                      size='icon-sm'
+                      type='button'
+                      variant='ghost'
+                    >
+                      <XIcon className='size-4' />
+                    </Button>
+                  </div>
+                )}
+
                 {assets.filter((a) => !a.dir).length === 0 ? (
                   <p className='text-muted-foreground text-sm'>
                     {t('No assets. Upload PPTX templates, images, or reference files to the skill directory.')}
@@ -753,6 +815,15 @@ ${buildSkillContent(sc).replace(/<skill_dir>/g, '/opt/data/skills/productivity/'
                             </span>
                             <DownloadIcon className='text-muted-foreground size-3.5 shrink-0' />
                           </a>
+                          <button
+                            aria-label={t('Rename')}
+                            className='text-muted-foreground hover:text-foreground shrink-0 rounded p-0.5 transition-colors'
+                            onClick={() => { setRenamePath(asset.path); setRenameName(asset.name || asset.path.split('/').pop() || '') }}
+                            title={t('Rename asset')}
+                            type='button'
+                          >
+                            <PencilIcon className='size-3' />
+                          </button>
                           <button
                             aria-label={t('Delete')}
                             className='text-muted-foreground hover:text-destructive shrink-0 rounded p-0.5 transition-colors'

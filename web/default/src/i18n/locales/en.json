@@ -6080,6 +6080,13 @@
         "Running test...": "Running test...",
         "Test result": "Test result",
         "Platform skills": "Platform skills",
-        "Test timed out": "Test timed out"
+        "Test timed out": "Test timed out",
+        "Rename asset": "Rename asset",
+        "New filename": "New filename",
+        "Asset renamed": "Asset renamed",
+        "Failed to rename asset": "Failed to rename asset",
+        "View rendered prompt": "View rendered prompt",
+        "Hermes system prompt preview": "Hermes system prompt preview",
+        "This is how Hermes will see the skill when loaded.": "This is how Hermes will see the skill when loaded."
     }
 }
