@@ -41,4 +41,4 @@ skills-lock.json
 .tmp
 .pytest-cache
 .tmp/
-test-data/
+test-data/MEMORY.md
