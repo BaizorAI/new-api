@@ -308,7 +308,7 @@ export function HermesSkillEditor(props: HermesSkillEditorProps) {
         hermesSessionId: '',
         teamId: props.teamId,
         payload: {
-          model: 'huayu-v2', stream: false, max_tokens: 4000,
+          model: 'huayu-hermes', stream: false, max_tokens: 4000,
           messages: [
             { role: 'system', content: `你是一个技能执行助手。用户输入中文时必须全中文回复。严格按照下面的 SKILL.md 指令完成用户的任务，不要偏离。
 
