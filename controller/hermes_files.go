@@ -197,6 +197,11 @@ func isHermesDataPathAllowed(relativePath string, userID int) bool {
 			if _, ok := hermesAllowedTopLevelDirs[parts[2]]; !ok {
 				return false
 			}
+			// workspaces and home directories are user session-scoped;
+			// allow direct file access without indexed result record.
+			if parts[2] == "workspaces" || parts[2] == "home" {
+				return true
+			}
 			return isHermesIndexedResultFileAllowed(relativePath, userID)
 		}
 		if _, err := model.GetTeamMember(teamID, userID); err != nil {

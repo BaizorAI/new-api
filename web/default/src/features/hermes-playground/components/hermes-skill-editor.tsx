@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftIcon, DownloadIcon, FileIcon, FolderIcon, SparklesIcon, Trash2Icon, UploadIcon, Wand2Icon } from 'lucide-react'
+import { ArrowLeftIcon, DownloadIcon, EyeIcon, FileIcon, FolderIcon, PlayIcon, SparklesIcon, Trash2Icon, UploadIcon, Wand2Icon } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -35,6 +35,7 @@ import { Label } from '@/components/ui/label'
 import { Main } from '@/components/layout'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Markdown } from '@/components/ui/markdown'
 
 import {
   createHermesSkill,
@@ -185,6 +186,10 @@ export function HermesSkillEditor(props: HermesSkillEditorProps) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [showDeleteAsset, setShowDeleteAsset] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [previewMode, setPreviewMode] = useState(false)
+  const [testInput, setTestInput] = useState('')
+  const [testResult, setTestResult] = useState('')
+  const [isTesting, setIsTesting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
 
@@ -252,6 +257,33 @@ export function HermesSkillEditor(props: HermesSkillEditorProps) {
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  const handleTestRun = async () => {
+    if (!testInput.trim() || !name.trim()) return
+    setIsTesting(true)
+    setTestResult('')
+    try {
+      const sc: SkillContent = {
+        name: name.trim(), description: description.trim(),
+        version: version.trim() || undefined, author: author.trim() || undefined,
+        license: license.trim() || undefined, tags: tags.trim() || undefined,
+        relatedSkills: relatedSkills.trim() || undefined, body: body.trim(),
+      }
+      const { api } = await import('@/lib/api')
+      const resp = await api.post('/pg/chat/completions', {
+        model: 'hermes-agent', stream: false, max_tokens: 2000,
+        messages: [
+          { role: 'system', content: `Test this skill. If the user's input is in Chinese, you MUST respond entirely in Chinese.
+
+${buildSkillContent(sc)}` },
+          { role: 'user', content: testInput.trim() },
+        ],
+      }, { skipBusinessError: true, skipErrorHandler: true })
+      setTestResult(resp.data?.choices?.[0]?.message?.content || JSON.stringify(resp.data))
+    } catch (error) {
+      setTestResult(error instanceof Error ? error.message : t('Test failed'))
+    } finally { setIsTesting(false) }
   }
 
   // Sync state when editSkill loads
@@ -597,23 +629,41 @@ export function HermesSkillEditor(props: HermesSkillEditorProps) {
                   <Wand2Icon className='size-4' />
                   {isGenerating ? t('Generating...') : t('AI Generate')}
                 </Button>
+                <Button
+                  disabled={!body.trim()}
+                  onClick={() => setPreviewMode((v) => !v)}
+                  size='sm'
+                  type='button'
+                  variant='outline'
+                >
+                  <EyeIcon className='size-4' />
+                  {previewMode ? t('Edit') : t('Preview')}
+                </Button>
                 <span className='text-muted-foreground text-xs'>
                   {t('Auto-fill from name and description using AI')}
                 </span>
               </div>
-              <p className='text-muted-foreground text-xs'>
-                {t(
-                  'Write the complete skill instructions in markdown. Sections like Overview, When to Use, Procedure, Hard Rules, Verification are recommended.'
-                )}
-              </p>
-              <Textarea
-                className='min-h-96 font-mono text-sm'
-                disabled={isSubmitting || isDeleting}
-                id='hermes-skill-editor-body'
-                onChange={(event) => setBody(event.target.value)}
-                placeholder={t('Write the skill instructions in markdown...')}
-                value={body}
-              />
+              {previewMode ? (
+                <div className='bg-muted/30 min-h-96 rounded-lg border p-6'>
+                  <Markdown>{body || t('No content to preview')}</Markdown>
+                </div>
+              ) : (
+                <>
+                  <p className='text-muted-foreground text-xs'>
+                    {t(
+                      'Write the complete skill instructions in markdown. Sections like Overview, When to Use, Procedure, Hard Rules, Verification are recommended.'
+                    )}
+                  </p>
+                  <Textarea
+                    className='min-h-96 font-mono text-sm'
+                    disabled={isSubmitting || isDeleting}
+                    id='hermes-skill-editor-body'
+                    onChange={(event) => setBody(event.target.value)}
+                    placeholder={t('Write the skill instructions in markdown...')}
+                    value={body}
+                  />
+                </>
+              )}
             </fieldset>
 
             {/* Assets (edit mode only) */}
@@ -691,6 +741,65 @@ export function HermesSkillEditor(props: HermesSkillEditorProps) {
                           </button>
                         </div>
                       ))}
+                  </div>
+                )}
+              </fieldset>
+            )}
+
+            {/* Test Run (edit/create mode) */}
+            {name.trim() && body.trim() && (
+              <fieldset className='space-y-3'>
+                <legend className='text-sm font-semibold'>
+                  {t('Quick test')}
+                </legend>
+                <p className='text-muted-foreground text-xs'>
+                  {t('Test the skill with a sample instruction before saving. The current skill content will be used.')}
+                </p>
+                <div className='flex gap-2'>
+                  <Input
+                    className='flex-1'
+                    disabled={isTesting}
+                    onChange={(event) => setTestInput(event.target.value)}
+                    placeholder={t('e.g. Create a yearly summary report')}
+                    value={testInput}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault()
+                        handleTestRun()
+                      }
+                    }}
+                  />
+                  <Button
+                    disabled={isTesting || !testInput.trim()}
+                    onClick={handleTestRun}
+                    size='sm'
+                    type='button'
+                  >
+                    <PlayIcon className='size-4' />
+                    {isTesting ? t('Running...') : t('Run test')}
+                  </Button>
+                </div>
+                {isTesting && (
+                  <div className='flex items-center gap-2 text-sm text-muted-foreground'>
+                    <Skeleton className='h-4 w-4 rounded-full' />
+                    {t('Running test...')}
+                  </div>
+                )}
+                {testResult && (
+                  <div className='bg-muted/30 max-h-96 overflow-y-auto rounded-lg border p-4'>
+                    <div className='mb-2 flex items-center justify-between'>
+                      <span className='text-muted-foreground text-xs font-medium'>
+                        {t('Test result')}
+                      </span>
+                      <button
+                        className='text-muted-foreground hover:text-foreground text-xs transition-colors'
+                        onClick={() => setTestResult('')}
+                        type='button'
+                      >
+                        {t('Clear')}
+                      </button>
+                    </div>
+                    <Markdown>{testResult}</Markdown>
                   </div>
                 )}
               </fieldset>

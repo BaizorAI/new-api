@@ -6070,6 +6070,14 @@
         "Manage Hermes conversations.": "Manage Hermes conversations.",
         "Browse skills": "Browse skills",
         "Invoke a Hermes skill by name, e.g. /skill report": "Invoke a Hermes skill by name, e.g. /skill report",
-        "Help": "Help"
+        "Help": "Help",
+        "No content to preview": "No content to preview",
+        "Quick test": "Quick test",
+        "Test the skill with a sample instruction before saving. The current skill content will be used.": "Test the skill with a sample instruction before saving. The current skill content will be used.",
+        "e.g. Create a yearly summary report": "e.g. Create a yearly summary report",
+        "Run test": "Run test",
+        "Running...": "Running...",
+        "Running test...": "Running test...",
+        "Test result": "Test result"
     }
 }

@@ -952,7 +952,7 @@
         "Cleaning...": "正在清理...",
         "Cleanup failed": "清理失败",
         "Cleanup Mode": "清理方式",
-        "Clear": "清空",
+        "Clear": "清除",
         "Clear all": "清除全部",
         "Clear All": "清除全部",
         "Clear All Cache": "清空全部缓存",
@@ -6075,6 +6075,14 @@
         "Manage Hermes conversations.": "管理 Hermes 会话。",
         "Browse skills": "浏览技能",
         "Invoke a Hermes skill by name, e.g. /skill report": "按名称调用 Hermes 技能，例如 /skill report",
-        "Help": "帮助"
+        "Help": "帮助",
+        "No content to preview": "没有可预览的内容",
+        "Quick test": "快速测试",
+        "Test the skill with a sample instruction before saving. The current skill content will be used.": "在保存前用示例指令测试技能，将使用当前技能内容。",
+        "e.g. Create a yearly summary report": "例如：创建一份年度总结报告",
+        "Run test": "运行测试",
+        "Running...": "运行中...",
+        "Running test...": "正在运行测试...",
+        "Test result": "测试结果"
     }
 }
