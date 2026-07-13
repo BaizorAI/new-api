@@ -96,11 +96,8 @@ function SkillEditorPage() {
     if (section === 'team') {
       return (s: typeof skills[number]) => s.source === 'team' || s.ownerScope === 'team'
     }
-    if (section === 'jilai') {
-      return (s: typeof skills[number]) => s.source === 'external' || s.ownerScope === 'external'
-    }
-    if (section === 'baizor') {
-      return (s: typeof skills[number]) => s.source === 'baizor' || s.ownerScope === 'baizor'
+    if (section === 'platform') {
+      return (s: typeof skills[number]) => s.source === 'baizor' || s.ownerScope === 'baizor' || s.source === 'external' || s.ownerScope === 'external'
     }
     if (section === 'builtin') {
       return (s: typeof skills[number]) =>
@@ -113,8 +110,7 @@ function SkillEditorPage() {
   const sectionLabel = useMemo(() => {
     if (section === 'mine') return t('My skills')
     if (section === 'team') return t('Team skills')
-    if (section === 'jilai') return t('Jilai Law Firm Skills')
-    if (section === 'baizor') return t('Baizor Skills')
+    if (section === 'platform') return t('Platform skills')
     if (section === 'builtin') return t('Built-in skills')
     return ''
   }, [section, t])

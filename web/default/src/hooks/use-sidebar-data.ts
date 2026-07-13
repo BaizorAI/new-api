@@ -339,13 +339,8 @@ export function useSidebarData(): SidebarData {
             icon: Users,
           },
           {
-            title: t('Jilai Law Firm Skills'),
-            url: '/skill-editor?section=jilai',
-            icon: FileText,
-          },
-          {
-            title: t('Baizor Skills'),
-            url: '/skill-editor?section=baizor',
+            title: t('Platform skills'),
+            url: '/skill-editor?section=platform',
             icon: Sparkles,
           },
           {
