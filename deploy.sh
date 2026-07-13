@@ -85,6 +85,17 @@ fi
 # ── Remote deploy ─────────────────────────────────────────────────────
 
 echo "Deploying version ${NEW_VERSION} to ${REMOTE_HOST}:${REMOTE_DIR} ..."
+
+# Copy migration script and run it BEFORE restarting containers.
+if [ "$HERMES_SIDECAR_ENABLED" = "true" ]; then
+  # Copy migration script and run it BEFORE restarting containers.
+  scp scripts/migrate-skills.sh "${REMOTE_HOST}:${REMOTE_DIR}/migrate-skills.sh" 2>/dev/null || true
+  # Migration must run inside the hermes container to access the data volume.
+  ssh "$REMOTE_HOST" \
+    "cd ${REMOTE_DIR} && docker cp migrate-skills.sh ${HERMES_SERVICE_NAME}:/migrate-skills.sh && docker exec -u root ${HERMES_SERVICE_NAME} sh /migrate-skills.sh /opt/data" \
+    || true
+fi
+
 ssh "$REMOTE_HOST" << REMOTEEOF
 set -e
 cd "${REMOTE_DIR}"
@@ -98,54 +109,17 @@ fi
 # Update image tag in docker-compose.yml
 sed -i "s|image: ${IMAGE_NAME}:[^[:space:]]*|image: ${IMAGE_NAME}:${NEW_VERSION}|" docker-compose.yml
 
+# Update HERMES_IMAGE in .env
+if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
+  if grep -q '^HERMES_IMAGE=' .env 2>/dev/null; then
+    sed -i "s|^HERMES_IMAGE=.*|HERMES_IMAGE=${IMAGE_NAME_HERMES}:${CURRENT_HERMES_VERSION}|" .env
+  fi
+fi
+
 # Pull new images
 docker compose \$COMPOSE_ARGS pull new-api
 if [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
   docker compose \$COMPOSE_ARGS pull "${HERMES_SERVICE_NAME}"
-fi
-
-# Migrate legacy per-user/team skills into unified skills/ directory (one-shot).
-if [ -d hermes-data ] && [ "${HERMES_SIDECAR_ENABLED}" = "true" ]; then
-  echo "Migrating legacy skills to unified skills/ directory..."
-  for user_dir in hermes-data/baizor-users/*/; do
-    skills_dir="\$user_dir/skills"
-    [ -d "\$skills_dir" ] || continue
-    user_id="\$(basename "\$user_dir")"
-    find "\$skills_dir" -name 'SKILL.md' | while read -r skill_md; do
-      skill_dir="\$(dirname "\$skill_md")"
-      rel="\$(echo "\$skill_dir" | sed "s|^hermes-data/baizor-users/[^/]*/skills/||")"
-      target="hermes-data/skills/\$rel"
-      if [ ! -e "\$target" ]; then
-        mkdir -p "\$(dirname "\$target")"
-        cp -a "\$skill_dir" "\$target"
-        # Add ownership metadata if not already present
-        if ! grep -q 'owner_id:' "\$target/SKILL.md" 2>/dev/null; then
-          sed -i "/hermes:/a\\    owner_id: \"\${user_id}\"\\n    scope: \"user\"" "\$target/SKILL.md"
-        fi
-        echo "    Migrated personal skill: \$rel (user \${user_id})"
-      fi
-    done
-  done
-  for team_dir in hermes-data/teams/*/; do
-    skills_dir="\$team_dir/skills"
-    [ -d "\$skills_dir" ] || continue
-    team_id="\$(basename "\$team_dir")"
-    [ "\$team_id" = "0" ] && continue
-    find "\$skills_dir" -name 'SKILL.md' | while read -r skill_md; do
-      skill_dir="\$(dirname "\$skill_md")"
-      rel="\$(echo "\$skill_dir" | sed "s|^hermes-data/teams/[^/]*/skills/||")"
-      target="hermes-data/skills/\$rel"
-      if [ ! -e "\$target" ]; then
-        mkdir -p "\$(dirname "\$target")"
-        cp -a "\$skill_dir" "\$target"
-        if ! grep -q 'owner_id:' "\$target/SKILL.md" 2>/dev/null; then
-          sed -i "/hermes:/a\\    owner_id: \"\${team_id}\"\\n    scope: \"team\"" "\$target/SKILL.md"
-        fi
-        echo "    Migrated team skill: \$rel (team \${team_id})"
-      fi
-    done
-  done
-  echo "  Legacy skill migration complete."
 fi
 
 # Restart
