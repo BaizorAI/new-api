@@ -624,6 +624,110 @@ func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int
 	return logs, total, err
 }
 
+// teamTokenSubquery returns a GORM sub-select that resolves to the set of
+// token IDs belonging to the given team.  Using it as an argument to
+// `WHERE token_id IN (?)` keeps the query cross-DB compatible (SQLite,
+// MySQL, PostgreSQL all support scalar sub-selects).
+func teamTokenSubquery(teamId int) *gorm.DB {
+	return DB.Table("tokens").Select("id").Where("team_id = ? AND deleted_at IS NULL", teamId)
+}
+
+func GetTeamLogs(teamId int, logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, requestId string, upstreamRequestId string) (logs []*Log, total int64, err error) {
+	// Base condition: logs produced via a team token OR explicitly tagged with the team id.
+	var tx *gorm.DB
+	teamCond := DB.Where("logs.token_id IN (?)", teamTokenSubquery(teamId)).Or("logs.team_id = ?", teamId)
+	if logType == LogTypeUnknown {
+		tx = LOG_DB.Where(teamCond)
+	} else {
+		tx = LOG_DB.Where(teamCond).Where("logs.type = ?", logType)
+	}
+
+	if tx, err = applyExplicitLogTextFilter(tx, "logs.model_name", modelName); err != nil {
+		return nil, 0, err
+	}
+	if tx, err = applyExplicitLogTextFilter(tx, "logs.username", username); err != nil {
+		return nil, 0, err
+	}
+	if tokenName != "" {
+		tx = tx.Where("logs.token_name = ?", tokenName)
+	}
+	if requestId != "" {
+		tx = tx.Where("logs.request_id = ?", requestId)
+	}
+	if upstreamRequestId != "" {
+		tx = tx.Where("logs.upstream_request_id = ?", upstreamRequestId)
+	}
+	if startTimestamp != 0 {
+		tx = tx.Where("logs.created_at >= ?", startTimestamp)
+	}
+	if endTimestamp != 0 {
+		tx = tx.Where("logs.created_at <= ?", endTimestamp)
+	}
+
+	err = tx.Model(&Log{}).Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	order := "logs.created_at desc, logs.id desc"
+	if common.UsingLogDatabase(common.DatabaseTypeClickHouse) {
+		order = clickHouseLogOrder("logs.")
+	}
+	err = tx.Order(order).Limit(num).Offset(startIdx).Find(&logs).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Strip admin-only fields but keep channel name (team owner acts as quasi-admin for their team).
+	formatUserLogs(logs, startIdx)
+	return logs, total, err
+}
+
+func SumTeamUsedQuota(teamId int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string) (stat Stat, err error) {
+	teamCond := DB.Where("token_id IN (?)", teamTokenSubquery(teamId)).Or("team_id = ?", teamId)
+
+	tx := LOG_DB.Table("logs").Select("COALESCE(sum(quota), 0) quota").Where(teamCond)
+	rpmTpmQuery := LOG_DB.Table("logs").Select("count(*) rpm, COALESCE(sum(prompt_tokens), 0) + COALESCE(sum(completion_tokens), 0) tpm").Where(teamCond)
+
+	if tx, err = applyExplicitLogTextFilter(tx, "username", username); err != nil {
+		return stat, err
+	}
+	if rpmTpmQuery, err = applyExplicitLogTextFilter(rpmTpmQuery, "username", username); err != nil {
+		return stat, err
+	}
+	if tokenName != "" {
+		tx = tx.Where("token_name = ?", tokenName)
+		rpmTpmQuery = rpmTpmQuery.Where("token_name = ?", tokenName)
+	}
+	if startTimestamp != 0 {
+		tx = tx.Where("created_at >= ?", startTimestamp)
+		rpmTpmQuery = rpmTpmQuery.Where("created_at >= ?", startTimestamp)
+	}
+	if endTimestamp != 0 {
+		tx = tx.Where("created_at <= ?", endTimestamp)
+		rpmTpmQuery = rpmTpmQuery.Where("created_at <= ?", endTimestamp)
+	}
+	if tx, err = applyExplicitLogTextFilter(tx, "model_name", modelName); err != nil {
+		return stat, err
+	}
+	if rpmTpmQuery, err = applyExplicitLogTextFilter(rpmTpmQuery, "model_name", modelName); err != nil {
+		return stat, err
+	}
+
+	tx = tx.Where("type = ?", LogTypeConsume)
+	rpmTpmQuery = rpmTpmQuery.Where("type = ?", LogTypeConsume)
+	rpmTpmQuery = rpmTpmQuery.Where("created_at >= ?", time.Now().Add(-60*time.Second).Unix())
+
+	if err := tx.Scan(&stat).Error; err != nil {
+		common.SysError("failed to query team log stat: " + err.Error())
+		return stat, errors.New("查询统计数据失败")
+	}
+	if err := rpmTpmQuery.Scan(&stat).Error; err != nil {
+		common.SysError("failed to query team rpm/tpm stat: " + err.Error())
+		return stat, errors.New("查询统计数据失败")
+	}
+	return stat, nil
+}
+
 type Stat struct {
 	Quota int `json:"quota"`
 	Rpm   int `json:"rpm"`

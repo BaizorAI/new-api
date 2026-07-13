@@ -22,6 +22,7 @@ import {
   Copy,
   Edit,
   Eye,
+  FileBarChart,
   KeyRound,
   Link,
   MoreHorizontal,
@@ -97,6 +98,9 @@ import {
   parseQuotaFromDollars,
   quotaUnitsToDollars,
 } from '@/lib/format'
+import { UsageLogsProvider } from '@/features/usage-logs/components/usage-logs-provider'
+import { UsageLogsTable } from '@/features/usage-logs/components/usage-logs-table'
+import type { NavigateFn } from '@/hooks/use-table-url-state'
 
 import {
   addTeamMember,
@@ -199,6 +203,23 @@ export function Teams(props: TeamsProps) {
   const [tokenAllowIps, setTokenAllowIps] = useState('')
   const [tokenGroup, setTokenGroup] = useState('')
   const [tokenCrossGroupRetry, setTokenCrossGroupRetry] = useState(false)
+  const [teamLogsSearch, setTeamLogsSearch] = useState<
+    Record<string, unknown>
+  >({})
+  const teamLogsNavigate: NavigateFn = useCallback(
+    (opts) => {
+      setTeamLogsSearch((prev) => {
+        const next =
+          typeof opts.search === 'function'
+            ? opts.search(prev)
+            : opts.search === true
+              ? prev
+              : opts.search
+        return { ...prev, ...next }
+      })
+    },
+    []
+  )
   const memberSearchRef = useRef<HTMLDivElement>(null)
   const memberSearchSeq = useRef(0)
 
@@ -251,6 +272,10 @@ export function Teams(props: TeamsProps) {
     if (!teams.some((team) => team.id === props.initialTeamId)) return
     setSelectedTeamId(props.initialTeamId)
   }, [props.initialTeamId, teams])
+
+  useEffect(() => {
+    setTeamLogsSearch({})
+  }, [selectedTeamId])
 
   useEffect(() => {
     async function loadTokenOptions() {
@@ -1085,6 +1110,35 @@ export function Teams(props: TeamsProps) {
                       </Table>
                     </CardContent>
                   </Card>
+
+                  {canChangeMemberRoles ? (
+                    <Card id='team-usage-logs'>
+                      <CardHeader>
+                        <CardTitle className='flex items-center gap-2'>
+                          <FileBarChart className='size-4' />
+                          {t('Team Usage Records')}
+                        </CardTitle>
+                        <CardDescription>
+                          {t(
+                            'Usage records for all API requests made with team tokens.'
+                          )}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <UsageLogsProvider>
+                          <div className='min-h-[400px]'>
+                            <UsageLogsTable
+                              logCategory='common'
+                              isAdmin={false}
+                              teamId={selectedTeamId!}
+                              searchParams={teamLogsSearch}
+                              navigate={teamLogsNavigate}
+                            />
+                          </div>
+                        </UsageLogsProvider>
+                      </CardContent>
+                    </Card>
+                  ) : null}
                 </>
               ) : null}
             </div>

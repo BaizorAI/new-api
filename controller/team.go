@@ -362,6 +362,54 @@ func GetTeamTokenKey(c *gin.Context) {
 	common.ApiSuccess(c, gin.H{"key": token.GetFullKey()})
 }
 
+func GetTeamLogs(c *gin.Context) {
+	team, err := getOwnedTeamForCurrentUser(c)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo := common.GetPageQuery(c)
+	logType, _ := strconv.Atoi(c.Query("type"))
+	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
+	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
+	username := c.Query("username")
+	tokenName := c.Query("token_name")
+	modelName := c.Query("model_name")
+	requestId := c.Query("request_id")
+	upstreamRequestId := c.Query("upstream_request_id")
+	logs, total, err := model.GetTeamLogs(team.Id, logType, startTimestamp, endTimestamp, modelName, username, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), requestId, upstreamRequestId)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(logs)
+	common.ApiSuccess(c, pageInfo)
+}
+
+func GetTeamLogsStat(c *gin.Context) {
+	team, err := getOwnedTeamForCurrentUser(c)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
+	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
+	username := c.Query("username")
+	tokenName := c.Query("token_name")
+	modelName := c.Query("model_name")
+	stat, err := model.SumTeamUsedQuota(team.Id, startTimestamp, endTimestamp, modelName, username, tokenName)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{
+		"quota": stat.Quota,
+		"rpm":   stat.Rpm,
+		"tpm":   stat.Tpm,
+	})
+}
+
 func getTeamForCurrentUser(c *gin.Context) (*model.TeamWithRole, error) {
 	teamId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

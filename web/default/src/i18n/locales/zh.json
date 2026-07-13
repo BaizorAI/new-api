@@ -5118,6 +5118,8 @@
         "Team API key created": "团队 API Key 已创建",
         "Team API key updated": "团队 API Key 已更新",
         "Team API Keys": "团队访问密钥",
+        "Team Usage Records": "团队使用记录",
+        "Usage records for all API requests made with team tokens.": "通过团队密钥发起的所有 API 请求使用记录。",
         "Team collaboration": "团队协作",
         "Team Collaboration": "团队协作",
         "Team collaboration workspace": "团队协作工作台",

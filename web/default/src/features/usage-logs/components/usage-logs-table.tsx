@@ -68,6 +68,7 @@ interface UsageLogsTableProps {
   isAdmin?: boolean
   searchParams: Record<string, unknown>
   navigate: NavigateFn
+  teamId?: number
 }
 
 export function UsageLogsTable({
@@ -75,10 +76,12 @@ export function UsageLogsTable({
   isAdmin: isAdminProp,
   searchParams,
   navigate,
+  teamId,
 }: UsageLogsTableProps) {
   const { t } = useTranslation()
   const isAdminFromHook = useIsAdmin()
   const isAdmin = isAdminProp ?? isAdminFromHook
+  const effectiveIsAdmin = isAdmin || !!teamId
   const isMobile = useMediaQuery('(max-width: 640px)')
 
   const {
@@ -102,13 +105,17 @@ export function UsageLogsTable({
       { columnId: 'model_name', searchKey: 'model', type: 'string' as const },
       { columnId: 'token_name', searchKey: 'token', type: 'string' as const },
       { columnId: 'group', searchKey: 'group', type: 'string' as const },
-      ...(isAdmin
+      ...(effectiveIsAdmin
         ? [
-            {
-              columnId: 'channel',
-              searchKey: 'channel',
-              type: 'string' as const,
-            },
+            ...(isAdmin
+              ? [
+                  {
+                    columnId: 'channel',
+                    searchKey: 'channel',
+                    type: 'string' as const,
+                  },
+                ]
+              : []),
             {
               columnId: 'username',
               searchKey: 'username',
@@ -124,6 +131,7 @@ export function UsageLogsTable({
       'logs',
       logCategory,
       isAdmin,
+      teamId,
       pagination.pageIndex + 1,
       pagination.pageSize,
       columnFilters,
@@ -138,6 +146,7 @@ export function UsageLogsTable({
         pageSize: pagination.pageSize,
         searchParams,
         columnFilters,
+        teamId,
       })
 
       if (!result?.success) {
@@ -156,7 +165,7 @@ export function UsageLogsTable({
   })
 
   const logs = data?.items || []
-  const columns = useColumnsByCategory(logCategory, isAdmin)
+  const columns = useColumnsByCategory(logCategory, effectiveIsAdmin)
   const isLoadingData = isLoading || (isFetching && !data)
 
   const { table } = useDataTable({
@@ -165,7 +174,7 @@ export function UsageLogsTable({
     columnFilters,
     columnVisibilityStorageKey: getColumnVisibilityStorageKey(
       logCategory,
-      isAdmin
+      effectiveIsAdmin
     ),
     pagination,
     enableRowSelection: false,
@@ -205,9 +214,10 @@ export function UsageLogsTable({
         isCommon ? (
           <CommonLogsFilterBar
             table={table}
-            isAdmin={isAdmin}
+            isAdmin={effectiveIsAdmin}
             searchParams={searchParams}
             navigate={navigate}
+            teamId={teamId}
           />
         ) : (
           <TaskLogsFilterBar table={table} logCategory={logCategory} />

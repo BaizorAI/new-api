@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatLogQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-import { getLogStats, getUserLogStats } from '../api'
+import { getLogStats, getUserLogStats, getTeamLogStats } from '../api'
 import { DEFAULT_LOG_STATS } from '../constants'
 import { buildApiParams } from '../lib/utils'
 import { useUsageLogsContext } from './usage-logs-provider'
@@ -47,26 +47,29 @@ function StatBadge(props: {
 interface CommonLogsStatsProps {
   isAdmin: boolean
   searchParams: Record<string, unknown>
+  teamId?: number
 }
 
-export function CommonLogsStats({ isAdmin, searchParams }: CommonLogsStatsProps) {
+export function CommonLogsStats({ isAdmin, searchParams, teamId }: CommonLogsStatsProps) {
   const { t } = useTranslation()
   const { sensitiveVisible } = useUsageLogsContext()
 
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['usage-logs-stats', isAdmin, searchParams],
+    queryKey: ['usage-logs-stats', isAdmin, searchParams, teamId],
     queryFn: async () => {
       const params = buildApiParams({
         page: 1,
         pageSize: 1,
         searchParams,
         columnFilters: [],
-        isAdmin,
+        isAdmin: isAdmin || !!teamId,
       })
 
-      const result = isAdmin
-        ? await getLogStats(params)
-        : await getUserLogStats(params)
+      const result = teamId
+        ? await getTeamLogStats(teamId, params)
+        : isAdmin
+          ? await getLogStats(params)
+          : await getUserLogStats(params)
 
       return result.success
         ? result.data || DEFAULT_LOG_STATS

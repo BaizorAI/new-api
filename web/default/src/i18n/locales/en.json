@@ -5122,6 +5122,8 @@
         "Team API key created": "Team API key created",
         "Team API key updated": "Team API key updated",
         "Team API Keys": "Team API Keys",
+        "Team Usage Records": "Team Usage Records",
+        "Usage records for all API requests made with team tokens.": "Usage records for all API requests made with team tokens.",
         "Team collaboration": "Team collaboration",
         "Team Collaboration": "Team Collaboration",
         "Team collaboration workspace": "Team collaboration workspace",

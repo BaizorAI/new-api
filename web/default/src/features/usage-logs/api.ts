@@ -110,3 +110,35 @@ export const getAllTaskLogs = (params: GetTaskLogsParams) =>
 
 export const getUserTaskLogs = (params: GetTaskLogsParams) =>
   fetchLogs('/api/task', params, false)
+
+// ============================================================================
+// Team Log APIs
+// ============================================================================
+
+async function fetchTeamLogs<T>(
+  teamId: number,
+  params: T
+): Promise<GetLogsResponse> {
+  const paramRecord = params as unknown as Record<string, unknown>
+  const queryParams = buildQueryParams({
+    p: paramRecord.p || 1,
+    page_size: paramRecord.page_size || 20,
+    ...params,
+  })
+  const res = await api.get(`/api/team/${teamId}/logs?${queryParams}`)
+  return res.data
+}
+
+export const getTeamLogs = (teamId: number, params: GetLogsParams = {}) =>
+  fetchTeamLogs(teamId, params)
+
+export const getTeamLogStats = async (
+  teamId: number,
+  params: GetLogStatsParams = {}
+): Promise<GetLogStatsResponse> => {
+  const queryParams = buildQueryParams(
+    params as unknown as Record<string, unknown>
+  )
+  const res = await api.get(`/api/team/${teamId}/logs/stat?${queryParams}`)
+  return res.data
+}

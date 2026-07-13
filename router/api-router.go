@@ -260,6 +260,8 @@ func SetApiRouter(router *gin.Engine) {
 			teamRoute.PUT("/:id/hermes/conversations/:conversation_id", controller.UpsertTeamHermesConversation)
 			teamRoute.DELETE("/:id/hermes/conversations/:conversation_id", controller.DeleteTeamHermesConversation)
 			teamRoute.GET("/:id/tokens", controller.GetTeamTokens)
+			teamRoute.GET("/:id/logs", controller.GetTeamLogs)
+			teamRoute.GET("/:id/logs/stat", controller.GetTeamLogsStat)
 			teamRoute.POST("/:id/tokens", controller.CreateTeamToken)
 			teamRoute.PUT("/:id/tokens/:token_id", controller.UpdateTeamToken)
 			teamRoute.DELETE("/:id/tokens/:token_id", controller.DeleteTeamToken)

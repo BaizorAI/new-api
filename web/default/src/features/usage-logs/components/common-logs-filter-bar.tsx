@@ -110,13 +110,14 @@ interface CommonLogsFilterBarProps<TData> {
   isAdmin: boolean
   searchParams: Record<string, unknown>
   navigate: NavigateFn
+  teamId?: number
 }
 
 export function CommonLogsFilterBar<TData>(
   props: CommonLogsFilterBarProps<TData>
 ) {
   const { t } = useTranslation()
-  const { isAdmin, searchParams, navigate } = props
+  const { isAdmin, searchParams, navigate, teamId } = props
   const queryClient = useQueryClient()
   const { sensitiveVisible, setSensitiveVisible } = useUsageLogsContext()
   const fetchingLogs = useIsFetching({ queryKey: ['logs'] })
@@ -267,7 +268,7 @@ export function CommonLogsFilterBar<TData>(
 
   const statsBar = (
     <div className='flex flex-wrap items-center gap-2'>
-      <CommonLogsStats isAdmin={isAdmin} searchParams={searchParams} />
+      <CommonLogsStats isAdmin={isAdmin} searchParams={searchParams} teamId={teamId} />
     </div>
   )
   const sensitiveToggle = (
