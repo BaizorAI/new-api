@@ -173,6 +173,7 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
   const teamPersistTimerRef = useRef<number | null>(null)
   const userPersistTimerRef = useRef<number | null>(null)
   const resultSyncTimerRef = useRef<number | null>(null)
+  const lastUsedSkillRef = useRef<string | null>(null)
   // deletedSessions gates any upsert timer that fires after a delete is issued.
   // upsertInFlight lets deleteSession await a racing in-flight upsert before
   // issuing the DELETE request, so delete always arrives after upsert.
@@ -486,11 +487,6 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
       headers['X-Baizor-Hermes-Workspace'] = props.baseScopePrefix
     }
     if (props.initialSkill) {
-      // Skill, jilai, and team-skill workspaces always activate
-      // their designated skill. For hermes-playground the
-      // auto-submitted quick-prompt message handles skill
-      // activation so new sessions don't inherit the URL param
-      // as persistent context.
       const prefix = props.baseScopePrefix ?? ''
       if (
         prefix.startsWith('skill_') ||
@@ -498,6 +494,13 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         prefix.startsWith('team_workspace_skill_')
       ) {
         headers['X-Baizor-Hermes-Skill-Activate'] = props.initialSkill
+      }
+    }
+    // If the last user message in this session invoked a skill via /skill,
+    // re-activate it so follow-up messages maintain the same skill context.
+    if (lastUsedSkillRef.current) {
+      if (!headers['X-Baizor-Hermes-Skill-Activate']) {
+        headers['X-Baizor-Hermes-Skill-Activate'] = lastUsedSkillRef.current
       }
     }
     if (selectedTeamId > 0) {
@@ -1349,7 +1352,15 @@ export function HermesAgentWorkspace(props: HermesAgentWorkspaceProps) {
         onAddSkill={() =>
           openSkillDialog(isTeamWorkspace ? selectedTeamId : undefined)
         }
-        onMessagesChange={updateActiveSessionFromMessages}
+        onMessagesChange={(messages: Message[]) => {
+          const lastUserMsg = [...messages].reverse().find((m: Message) => m.from === 'user')
+          if (lastUserMsg) {
+            const text = (lastUserMsg as any).versions?.[0]?.content ?? ''
+            const m = text.match(/^\/skill\s+(\S+)/)
+            if (m) lastUsedSkillRef.current = m[1]
+          }
+          updateActiveSessionFromMessages(messages)
+        }}
         onNewSession={createSession}
         onSaveSession={exportActiveSession}
         queryKeyPrefix={props.queryKeyPrefix}
