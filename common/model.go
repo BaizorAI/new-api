@@ -14,6 +14,7 @@ var (
 		"dall-e-2",
 		"gpt-image-1",
 		"gpt-image-2",
+		"huayu-drama-4",
 		"prefix:imagen-",
 		"flux-",
 		"flux.1-",

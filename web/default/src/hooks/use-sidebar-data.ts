@@ -32,6 +32,7 @@ import {
   FlaskConical,
   Gift,
   History,
+  ImageIcon,
   Key,
   LayoutDashboard,
   ListChecks,
@@ -271,6 +272,29 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
+        id: 'model-trial',
+        title: t('Model Trial'),
+        description: t('Try out different AI models'),
+        icon: FlaskConical,
+        iconColor: 'text-violet-500',
+        url: '/playground',
+        position: 'bottom',
+        items: [
+          {
+            title: t('Chat Model'),
+            url: '/playground',
+            configUrls: ['/playground'],
+            icon: MessageSquare,
+          },
+          {
+            title: t('Image Model'),
+            url: '/image-playground',
+            configUrls: ['/image-playground'],
+            icon: ImageIcon,
+          },
+        ],
+      },
+      {
         id: 'settings',
         title: t('Settings'),
         description: t('Account, security, preferences and system settings.'),
@@ -290,12 +314,6 @@ export function useSidebarData(): SidebarData {
             url: '/hermes-playground?panel=messages',
             configUrls: ['/hermes-playground'],
             icon: MessageSquare,
-          },
-          {
-            title: t('Model Playground'),
-            url: '/playground',
-            configUrls: ['/playground'],
-            icon: FlaskConical,
           },
           {
             title: t('Security settings'),

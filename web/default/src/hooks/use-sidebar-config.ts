@@ -112,6 +112,12 @@ const MODULE_MATCHERS: ModuleMatcher[] = [
   { type: 'exact', path: '/playground', section: 'chat', module: 'playground' },
   {
     type: 'exact',
+    path: '/image-playground',
+    section: 'chat',
+    module: 'playground',
+  },
+  {
+    type: 'exact',
     path: '/hermes-playground',
     section: 'chat',
     module: 'hermes_playground',

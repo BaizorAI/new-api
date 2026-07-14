@@ -612,6 +612,9 @@ func GetUserModels(c *gin.Context) {
 			if capability == "chat" && !modelSupportsChatEndpoint(g, model.GetModelSupportEndpointTypes(g)) {
 				continue
 			}
+			if capability == "image" && !common.IsImageGenerationModel(g) {
+				continue
+			}
 			if !common.StringsContains(models, g) {
 				models = append(models, g)
 			}

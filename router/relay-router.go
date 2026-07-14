@@ -65,6 +65,7 @@ func SetRelayRouter(router *gin.Engine) {
 	playgroundRouter.Use(middleware.UserAuth(), middleware.Distribute())
 	{
 		playgroundRouter.POST("/chat/completions", controller.Playground)
+		playgroundRouter.POST("/images/generations", controller.PlaygroundImage)
 	}
 	hermesFileRouter := router.Group("/pg/hermes")
 	hermesFileRouter.Use(middleware.RouteTag("relay"))

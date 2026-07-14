@@ -260,8 +260,8 @@ function resolveActiveRootGroup(
     return findGroup(navGroups, 'capability-tools')
   }
 
-  if (pathname === '/playground' || pathname.startsWith('/chat/')) {
-    return findGroup(navGroups, 'settings')
+  if (pathname === '/playground' || pathname === '/image-playground' || pathname.startsWith('/chat/')) {
+    return findGroup(navGroups, 'model-trial')
   }
 
   if (
