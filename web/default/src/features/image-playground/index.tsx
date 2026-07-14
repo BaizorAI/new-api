@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ImageIcon, Loader2, Download, AlertCircle } from 'lucide-react'
+import { ImageIcon, Loader2, Download, AlertCircle, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -10,7 +10,6 @@ import { getUserImageModels, getUserGroups } from './api'
 import { SIZE_OPTIONS, QUALITY_OPTIONS, DEFAULT_GROUP } from './constants'
 import { useImagePlaygroundState, useImageHandler } from './hooks'
 import type {
-  ImagePlaygroundConfig,
   ImageModelOption,
   GroupOption,
   GeneratedImage,
@@ -30,21 +29,23 @@ export function ImagePlayground({
     config,
     models,
     groups,
+    images,
     setModels,
     setGroups,
     updateConfig,
+    updateImages,
+    clearHistory,
   } = useImagePlaygroundState({
     defaultConfig: { model: defaultModel },
   })
 
-  // ── Images state ──────────────────────────────────────────────
-  const [images, setImages] = useState<GeneratedImage[]>([])
+  // ── Prompt state ──────────────────────────────────────────────
   const [prompt, setPrompt] = useState('')
 
   // ── Handler (mirrors playground's useChatHandler) ─────────────
   const { generate, isGenerating, error } = useImageHandler({
     config,
-    onImagesUpdate: setImages,
+    onImagesUpdate: updateImages,
   })
 
   // ── Fetch models ──────────────────────────────────────────────
@@ -222,6 +223,21 @@ export function ImagePlayground({
               ))}
             </select>
           </div>
+
+          {/* Spacer + Clear history */}
+          {images.length > 0 && (
+            <div className='ml-auto'>
+              <Button
+                variant='ghost'
+                size='sm'
+                className='text-muted-foreground hover:text-destructive'
+                onClick={clearHistory}
+              >
+                <Trash2 className='mr-1 size-4' />
+                {t('Clear History')}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -256,7 +272,7 @@ export function ImagePlayground({
           )}
 
           <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
-            {images.map((image, index) => {
+            {images.map((image) => {
               const imgSrc =
                 image.url ||
                 (image.b64_json
@@ -264,7 +280,7 @@ export function ImagePlayground({
                   : null)
               return (
                 <div
-                  key={`${image.timestamp}-${index}`}
+                  key={image.id}
                   className='group relative overflow-hidden rounded-lg border bg-muted/30'
                 >
                   {imgSrc && (

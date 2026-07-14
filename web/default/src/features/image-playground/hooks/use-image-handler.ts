@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { nanoid } from 'nanoid'
 import { toast } from 'sonner'
 
 import { sendImageGeneration } from '../api'
@@ -69,6 +70,7 @@ export function useImageHandler({
 
         if (response.data && response.data.length > 0) {
           const newImages: GeneratedImage[] = response.data.map((d) => ({
+            id: nanoid(),
             url: d.url,
             b64_json: d.b64_json,
             revised_prompt: d.revised_prompt,

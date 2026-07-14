@@ -522,8 +522,6 @@ func genBaseRelayInfo(c *gin.Context, request dto.Request) *RelayInfo {
 		},
 	}
 
-	fmt.Printf("[DEBUG GenRelayInfo] URL.Path=%q RelayMode=%d\n", c.Request.URL.Path, info.RelayMode)
-
 	if info.RelayMode == relayconstant.RelayModeUnknown {
 		info.RelayMode = c.GetInt("relay_mode")
 	}

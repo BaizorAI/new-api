@@ -24,7 +24,11 @@ export const QUALITY_OPTIONS = ['standard', 'hd'] as const
 // Storage keys
 export const STORAGE_KEYS = {
   CONFIG: 'image_playground_config',
+  HISTORY: 'image_playground_history',
 } as const
+
+// Max images to persist in localStorage
+export const MAX_STORED_IMAGES = 50
 
 // Error messages
 export const ERROR_MESSAGES = {

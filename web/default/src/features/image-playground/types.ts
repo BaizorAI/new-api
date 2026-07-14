@@ -40,6 +40,7 @@ export interface GroupOption {
 
 // Generated image record
 export interface GeneratedImage {
+  id: string
   url?: string
   b64_json?: string
   revised_prompt?: string
