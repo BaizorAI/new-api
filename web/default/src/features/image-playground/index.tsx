@@ -1,10 +1,26 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ImageIcon, Loader2, Download, AlertCircle, Trash2 } from 'lucide-react'
+import {
+  ImageIcon,
+  Loader2,
+  Download,
+  AlertCircle,
+  Trash2,
+  RefreshCw,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+} from '@/components/ai-elements/conversation'
+import { Loader } from '@/components/ai-elements/loader'
+import { Message, MessageContent } from '@/components/ai-elements/message'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 import {
   getUserImageModels,
@@ -12,13 +28,19 @@ import {
   getImageHistory,
   clearImageHistory,
 } from './api'
-import { SIZE_OPTIONS, QUALITY_OPTIONS, DEFAULT_GROUP } from './constants'
+import {
+  SIZE_OPTIONS,
+  QUALITY_OPTIONS,
+  DEFAULT_GROUP,
+  PENDING_POLL_INTERVAL_MS,
+} from './constants'
 import { useImagePlaygroundState, useImageHandler } from './hooks'
 import type {
   ImageModelOption,
   GroupOption,
   GeneratedImage,
 } from './types'
+import { IMAGE_STATUS } from './types'
 
 const HISTORY_QUERY_KEY = ['image-playground', 'history'] as const
 
@@ -48,23 +70,33 @@ export function ImagePlayground({
   const [prompt, setPrompt] = useState('')
   const [isClearing, setIsClearing] = useState(false)
 
-  // ── Server-side history ───────────────────────────────────────
+  // ── Server-side history with conditional polling ──────────────
   const { data: historyData } = useQuery({
     queryKey: [...HISTORY_QUERY_KEY],
-    queryFn: () => getImageHistory(1, 100),
+    queryFn: () => getImageHistory(1, 200),
+    refetchInterval: (query) => {
+      const items = query.state.data?.items
+      if (items?.some((i) => i.status === IMAGE_STATUS.PENDING)) {
+        return PENDING_POLL_INTERVAL_MS
+      }
+      return false
+    },
   })
 
+  // Display in chronological order (oldest first) for conversation flow
   const images: GeneratedImage[] = useMemo(
-    () => historyData?.items ?? [],
+    () => [...(historyData?.items ?? [])].reverse(),
     [historyData]
   )
 
-  // ── Handler (saves to server, triggers refetch on success) ────
-  const { generate, isGenerating, error } = useImageHandler({
+  const invalidateHistory = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: [...HISTORY_QUERY_KEY] })
+  }, [queryClient])
+
+  // ── Handler (submits async, triggers refetch) ─────────────────
+  const { generate, isSubmitting, error } = useImageHandler({
     config,
-    onSuccess: useCallback(() => {
-      queryClient.invalidateQueries({ queryKey: [...HISTORY_QUERY_KEY] })
-    }, [queryClient]),
+    onSuccess: invalidateHistory,
   })
 
   // ── Fetch models ──────────────────────────────────────────────
@@ -115,9 +147,19 @@ export function ImagePlayground({
     )
     if (availableModels.length > 0 && !isCurrentValid) {
       const preferred = availableModels.find((m) => m.value === defaultModel)
-      updateConfig('model', preferred ? preferred.value : availableModels[0].value)
+      updateConfig(
+        'model',
+        preferred ? preferred.value : availableModels[0].value
+      )
     }
-  }, [modelsData, availableModels, config.model, defaultModel, setModels, updateConfig])
+  }, [
+    modelsData,
+    availableModels,
+    config.model,
+    defaultModel,
+    setModels,
+    updateConfig,
+  ])
 
   // ── Sync groups when data arrives ─────────────────────────────
   useEffect(() => {
@@ -136,16 +178,24 @@ export function ImagePlayground({
   // ── Handlers ──────────────────────────────────────────────────
   const handleGenerate = useCallback(() => {
     generate(prompt)
+    setPrompt('')
   }, [generate, prompt])
+
+  const handleRetry = useCallback(
+    (image: GeneratedImage) => {
+      generate(image.prompt)
+    },
+    [generate]
+  )
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && !e.shiftKey && !isGenerating) {
+      if (e.key === 'Enter' && !e.shiftKey && !isSubmitting) {
         e.preventDefault()
         handleGenerate()
       }
     },
-    [handleGenerate, isGenerating]
+    [handleGenerate, isSubmitting]
   )
 
   const handleDownload = useCallback((image: GeneratedImage) => {
@@ -163,14 +213,14 @@ export function ImagePlayground({
     setIsClearing(true)
     try {
       await clearImageHistory()
-      queryClient.invalidateQueries({ queryKey: [...HISTORY_QUERY_KEY] })
+      invalidateHistory()
       toast.success(t('History cleared'))
     } catch {
       toast.error(t('Failed to clear history'))
     } finally {
       setIsClearing(false)
     }
-  }, [queryClient, t])
+  }, [invalidateHistory, t])
 
   // ── Render ────────────────────────────────────────────────────
   return (
@@ -278,110 +328,165 @@ export function ImagePlayground({
         </div>
       </div>
 
-      {/* Main content area */}
-      <div className='flex flex-1 flex-col overflow-hidden'>
-        {/* Image gallery */}
-        <div className='flex-1 overflow-y-auto p-4'>
-          {images.length === 0 && !isGenerating && !error && (
-            <div className='flex h-full flex-col items-center justify-center text-muted-foreground'>
-              <ImageIcon className='mb-4 size-16 opacity-20' />
-              <p className='text-lg font-medium'>{t('Image Model')}</p>
-              <p className='mt-1 text-sm'>
-                {t('Describe the image you want to generate...')}
-              </p>
-            </div>
+      {/* Main conversation area */}
+      <Conversation className='flex-1'>
+        <ConversationContent className='mx-auto max-w-3xl space-y-1'>
+          {images.length === 0 && !error && (
+            <ConversationEmptyState
+              icon={<ImageIcon className='size-12 opacity-30' />}
+              title={t('Image Model')}
+              description={t('Describe the image you want to generate...')}
+            />
           )}
 
+          {images.map((image) => (
+            <ImageConversationEntry
+              key={image.id}
+              image={image}
+              onDownload={handleDownload}
+              onRetry={handleRetry}
+            />
+          ))}
+
           {error && (
-            <div className='mb-4 flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive'>
+            <div className='flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive'>
               <AlertCircle className='size-4 shrink-0' />
               <span>{error}</span>
             </div>
           )}
+        </ConversationContent>
+        <ConversationScrollButton />
+      </Conversation>
 
-          {isGenerating && (
-            <div className='mb-4 flex items-center justify-center rounded-lg border border-dashed p-8'>
-              <Loader2 className='mr-2 size-5 animate-spin text-muted-foreground' />
-              <span className='text-muted-foreground'>
+      {/* Input area */}
+      <div className='border-t bg-background p-4'>
+        <div className='mx-auto flex max-w-3xl gap-2'>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={t('Describe the image you want to generate...')}
+            rows={2}
+            className='flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring'
+            disabled={isSubmitting}
+          />
+          <Button
+            onClick={handleGenerate}
+            disabled={isSubmitting || !prompt.trim()}
+            className='self-end'
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className='mr-2 size-4 animate-spin' />
+                {t('Submitting...')}
+              </>
+            ) : (
+              t('Generate Image')
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Conversation entry (user prompt + assistant response) ──────
+
+interface ImageConversationEntryProps {
+  image: GeneratedImage
+  onDownload: (image: GeneratedImage) => void
+  onRetry: (image: GeneratedImage) => void
+}
+
+function ImageConversationEntry({
+  image,
+  onDownload,
+  onRetry,
+}: ImageConversationEntryProps) {
+  const { t } = useTranslation()
+
+  return (
+    <div className='space-y-1'>
+      {/* User prompt bubble */}
+      <Message from='user' className='py-1.5'>
+        <MessageContent variant='contained'>
+          <p className='whitespace-pre-wrap'>{image.prompt}</p>
+        </MessageContent>
+      </Message>
+
+      {/* Assistant response bubble */}
+      <Message from='assistant' className='py-1.5'>
+        <MessageContent variant='flat'>
+          {image.status === IMAGE_STATUS.PENDING && (
+            <div className='flex items-center gap-2 py-4'>
+              <Loader className='text-muted-foreground' />
+              <span className='text-sm text-muted-foreground'>
                 {t('Generating...')}
               </span>
             </div>
           )}
 
-          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
-            {images.map((image) => {
-              const imgSrc =
-                image.image_url ||
-                (image.b64_json
-                  ? `data:image/png;base64,${image.b64_json}`
-                  : null)
-              return (
-                <div
-                  key={image.id}
-                  className='group relative overflow-hidden rounded-lg border bg-muted/30'
-                >
-                  {imgSrc && (
-                    <img
-                      src={imgSrc}
-                      alt={image.prompt}
-                      className='aspect-square w-full object-cover'
-                    />
+          {image.status === IMAGE_STATUS.COMPLETED && (
+            <div className='space-y-2'>
+              {(image.image_url || image.b64_json) && (
+                <img
+                  src={
+                    image.image_url ||
+                    `data:image/png;base64,${image.b64_json}`
+                  }
+                  alt={image.revised_prompt || image.prompt}
+                  className={cn(
+                    'max-h-[512px] rounded-lg border object-contain',
+                    'cursor-pointer transition-opacity hover:opacity-90'
                   )}
-                  <div className='absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100'>
-                    <div className='flex w-full items-end justify-between p-3'>
-                      <div className='min-w-0 flex-1'>
-                        <p className='truncate text-xs text-white/90'>
-                          {image.prompt}
-                        </p>
-                        <p className='mt-0.5 text-xs text-white/60'>
-                          {image.model} · {image.size} · {image.quality}
-                        </p>
-                      </div>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        className='ml-2 size-7 shrink-0 text-white hover:bg-white/20 hover:text-white'
-                        onClick={() => handleDownload(image)}
-                      >
-                        <Download className='size-4' />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Input area */}
-        <div className='border-t bg-background p-4'>
-          <div className='mx-auto flex max-w-4xl gap-2'>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t('Describe the image you want to generate...')}
-              rows={2}
-              className='flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring'
-              disabled={isGenerating}
-            />
-            <Button
-              onClick={handleGenerate}
-              disabled={isGenerating || !prompt.trim()}
-              className='self-end'
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className='mr-2 size-4 animate-spin' />
-                  {t('Generating...')}
-                </>
-              ) : (
-                t('Generate Image')
+                  onClick={() => {
+                    const url =
+                      image.image_url ||
+                      `data:image/png;base64,${image.b64_json}`
+                    window.open(url, '_blank')
+                  }}
+                />
               )}
-            </Button>
-          </div>
-        </div>
-      </div>
+              <div className='flex items-center gap-2 text-xs text-muted-foreground'>
+                <span>
+                  {image.model} · {image.size} · {image.quality}
+                </span>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='size-6 text-muted-foreground hover:text-foreground'
+                  onClick={() => onDownload(image)}
+                >
+                  <Download className='size-3.5' />
+                </Button>
+              </div>
+              {image.revised_prompt && (
+                <p className='text-xs italic text-muted-foreground'>
+                  {image.revised_prompt}
+                </p>
+              )}
+            </div>
+          )}
+
+          {image.status === IMAGE_STATUS.FAILED && (
+            <div className='space-y-2'>
+              <div className='flex items-center gap-2 text-sm text-destructive'>
+                <AlertCircle className='size-4 shrink-0' />
+                <span>{image.error_message || t('Generation failed')}</span>
+              </div>
+              <Button
+                variant='ghost'
+                size='sm'
+                className='h-7 text-xs'
+                onClick={() => onRetry(image)}
+              >
+                <RefreshCw className='mr-1 size-3' />
+                {t('Retry')}
+              </Button>
+            </div>
+          )}
+        </MessageContent>
+      </Message>
     </div>
   )
 }

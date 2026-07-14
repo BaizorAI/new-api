@@ -37,6 +37,7 @@ import { CopyButton } from '@/components/copy-button'
 import { StaticDataTable } from '@/components/data-table'
 import { sideDrawerContentClassName } from '@/components/drawer-layout'
 import { GroupBadge } from '@/components/group-badge'
+import { Main } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -1289,71 +1290,83 @@ export function ModelDetails() {
 
   if (isLoading) {
     return (
-      <div className='mx-auto max-w-5xl px-4 sm:px-6'>
-          <Skeleton className='mb-4 h-5 w-16' />
-          <div className='space-y-2'>
-            <Skeleton className='h-7 w-64' />
-            <Skeleton className='h-4 w-40' />
-            <Skeleton className='h-4 w-full max-w-md' />
-          </div>
-          <div className='mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4'>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className='h-16 w-full' />
-            ))}
-          </div>
-          <div className='mt-6 space-y-3'>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className='h-24 w-full' />
-            ))}
+      <Main>
+        <div className='min-h-0 flex-1 overflow-auto'>
+          <div className='mx-auto max-w-5xl px-4 py-6 sm:px-6'>
+            <Skeleton className='mb-4 h-5 w-16' />
+            <div className='space-y-2'>
+              <Skeleton className='h-7 w-64' />
+              <Skeleton className='h-4 w-40' />
+              <Skeleton className='h-4 w-full max-w-md' />
+            </div>
+            <div className='mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4'>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className='h-16 w-full' />
+              ))}
+            </div>
+            <div className='mt-6 space-y-3'>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className='h-24 w-full' />
+              ))}
+            </div>
           </div>
         </div>
+      </Main>
     )
   }
 
   if (!model) {
     return (
-      <div className='mx-auto max-w-2xl px-4 text-center sm:px-6'>
-        <h2 className='mb-1 text-base font-semibold'>
-          {t('Model not found')}
-        </h2>
-        <p className='text-muted-foreground mb-4 text-sm'>
-          {t("The model you're looking for doesn't exist.")}
-        </p>
-        <Button onClick={handleBack} variant='outline' size='sm'>
-          {t('Back to Models')}
-        </Button>
-      </div>
+      <Main>
+        <div className='min-h-0 flex-1 overflow-auto'>
+          <div className='mx-auto max-w-2xl px-4 py-6 text-center sm:px-6'>
+            <h2 className='mb-1 text-base font-semibold'>
+              {t('Model not found')}
+            </h2>
+            <p className='text-muted-foreground mb-4 text-sm'>
+              {t("The model you're looking for doesn't exist.")}
+            </p>
+            <Button onClick={handleBack} variant='outline' size='sm'>
+              {t('Back to Models')}
+            </Button>
+          </div>
+        </div>
+      </Main>
     )
   }
 
   return (
-    <div className='mx-auto max-w-5xl px-4 sm:px-6'>
-        <Button
-          variant='ghost'
-          size='sm'
-          onClick={handleBack}
-          className='text-muted-foreground hover:text-foreground mb-4 h-auto gap-1 px-0 py-1 text-xs'
-        >
-          <ArrowLeft className='size-3.5' />
-          {t('Back')}
-        </Button>
+    <Main>
+      <div className='min-h-0 flex-1 overflow-auto'>
+        <div className='mx-auto max-w-5xl px-4 py-6 sm:px-6'>
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={handleBack}
+            className='text-muted-foreground hover:text-foreground mb-4 h-auto gap-1 px-0 py-1 text-xs'
+          >
+            <ArrowLeft className='size-3.5' />
+            {t('Back')}
+          </Button>
 
-        <ModelDetailsContent
-          model={model}
-          groupRatio={groupRatio || {}}
-          usableGroup={usableGroup || {}}
-          autoGroups={autoGroups || []}
-          priceRate={priceRate ?? 1}
-          usdExchangeRate={usdExchangeRate ?? 1}
-          tokenUnit={tokenUnit}
-          showRechargePrice={search.rechargePrice ?? false}
-          endpointMap={
-            (endpointMap as Record<
-              string,
-              { path?: string; method?: string }
-            >) || {}
-          }
-        />
+          <ModelDetailsContent
+            model={model}
+            groupRatio={groupRatio || {}}
+            usableGroup={usableGroup || {}}
+            autoGroups={autoGroups || []}
+            priceRate={priceRate ?? 1}
+            usdExchangeRate={usdExchangeRate ?? 1}
+            tokenUnit={tokenUnit}
+            showRechargePrice={search.rechargePrice ?? false}
+            endpointMap={
+              (endpointMap as Record<
+                string,
+                { path?: string; method?: string }
+              >) || {}
+            }
+          />
+        </div>
       </div>
+    </Main>
   )
 }

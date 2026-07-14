@@ -1,23 +1,31 @@
 package controller
 
 import (
+	"bytes"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 
 	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/constant"
+	"github.com/BaizorAI/new-api/dto"
+	"github.com/BaizorAI/new-api/middleware"
 	"github.com/BaizorAI/new-api/model"
 
 	"github.com/gin-gonic/gin"
 )
 
-type imagePlaygroundHistoryRequest struct {
-	Prompt        string `json:"prompt"`
-	Model         string `json:"model"`
-	Size          string `json:"size"`
-	Quality       string `json:"quality"`
-	ImageURL      string `json:"image_url"`
-	RevisedPrompt string `json:"revised_prompt"`
+// ── Request types ──────────────────────────────────────────────
+
+type imagePlaygroundGenerateRequest struct {
+	Prompt  string `json:"prompt"`
+	Model   string `json:"model"`
+	Size    string `json:"size"`
+	Quality string `json:"quality"`
+	Group   string `json:"group"`
 }
+
+// ── Handlers ───────────────────────────────────────────────────
 
 func ListImagePlaygroundHistory(c *gin.Context) {
 	userId := c.GetInt("id")
@@ -33,9 +41,12 @@ func ListImagePlaygroundHistory(c *gin.Context) {
 	common.ApiSuccess(c, pageInfo)
 }
 
-func CreateImagePlaygroundHistoryEntry(c *gin.Context) {
+// SubmitImagePlaygroundGeneration creates a pending history entry and
+// launches a background goroutine to generate the image, following the
+// same async pattern as HermesExecutionTask.
+func SubmitImagePlaygroundGeneration(c *gin.Context) {
 	userId := c.GetInt("id")
-	var req imagePlaygroundHistoryRequest
+	var req imagePlaygroundGenerateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid request body"})
 		return
@@ -46,18 +57,21 @@ func CreateImagePlaygroundHistoryEntry(c *gin.Context) {
 	}
 
 	record := &model.ImagePlaygroundHistory{
-		UserId:        userId,
-		Prompt:        req.Prompt,
-		Model:         req.Model,
-		Size:          req.Size,
-		Quality:       req.Quality,
-		ImageURL:      req.ImageURL,
-		RevisedPrompt: req.RevisedPrompt,
+		UserId:  userId,
+		Prompt:  req.Prompt,
+		Model:   req.Model,
+		Size:    req.Size,
+		Quality: req.Quality,
+		Group:   req.Group,
+		Status:  model.ImagePlaygroundStatusPending,
 	}
 	if err := model.CreateImagePlaygroundHistory(record); err != nil {
 		common.ApiError(c, err)
 		return
 	}
+
+	go runImagePlaygroundGeneration(record.Id)
+
 	common.ApiSuccess(c, record)
 }
 
@@ -82,4 +96,130 @@ func ClearImagePlaygroundHistoryEntries(c *gin.Context) {
 		return
 	}
 	common.ApiSuccess(c, nil)
+}
+
+// RecoverImagePlaygroundHistories marks any pending records as failed on startup.
+// Unlike HermesExecutionTask which re-fires goroutines, image generation is not
+// retried to avoid double-billing. Users can retry manually from the UI.
+func RecoverImagePlaygroundHistories() {
+	if model.DB == nil {
+		return
+	}
+	if err := model.MarkStaleImagePlaygroundHistories(); err != nil {
+		common.SysError("failed to recover image playground histories: " + err.Error())
+		return
+	}
+	common.SysLog("image playground: marked stale pending entries as failed")
+}
+
+// ── Background generation ──────────────────────────────────────
+
+// runImagePlaygroundGeneration executes image generation in a background
+// goroutine, following the same synthetic-context pattern as
+// executeHermesCompletionTask in hermes_execution_task.go.
+func runImagePlaygroundGeneration(recordId int) {
+	record, err := model.GetImagePlaygroundHistoryById(recordId)
+	if err != nil || record == nil {
+		if err != nil {
+			common.SysError("image playground: failed to load record: " + err.Error())
+		}
+		return
+	}
+
+	responseBody, statusCode, err := executeImagePlaygroundGeneration(record)
+	if err != nil {
+		_ = model.UpdateImagePlaygroundHistoryError(recordId, err.Error())
+		return
+	}
+	if statusCode < 200 || statusCode >= 300 {
+		errMsg := extractImagePlaygroundError(responseBody, statusCode)
+		_ = model.UpdateImagePlaygroundHistoryError(recordId, errMsg)
+		return
+	}
+
+	// Parse the image response to extract URL and revised prompt
+	var imgResp dto.ImageResponse
+	if err := common.Unmarshal(responseBody, &imgResp); err != nil {
+		_ = model.UpdateImagePlaygroundHistoryError(recordId, "failed to parse image response: "+err.Error())
+		return
+	}
+	if len(imgResp.Data) == 0 {
+		_ = model.UpdateImagePlaygroundHistoryError(recordId, "no image data in response")
+		return
+	}
+
+	imageURL := imgResp.Data[0].Url
+	revisedPrompt := imgResp.Data[0].RevisedPrompt
+	if err := model.UpdateImagePlaygroundHistoryResult(recordId, imageURL, revisedPrompt); err != nil {
+		common.SysError("image playground: failed to save result: " + err.Error())
+	}
+}
+
+func executeImagePlaygroundGeneration(record *model.ImagePlaygroundHistory) ([]byte, int, error) {
+	// Build the image generation request body
+	payload := map[string]any{
+		"model":   record.Model,
+		"prompt":  record.Prompt,
+		"size":    record.Size,
+		"quality": record.Quality,
+		"n":       1,
+	}
+	if record.Group != "" {
+		payload["group"] = record.Group
+	}
+	payloadBytes, err := common.Marshal(payload)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+
+	// Build synthetic HTTP request (same pattern as executeHermesCompletionTask)
+	request := httptest.NewRequest(http.MethodPost, "/v1/images/generations", bytes.NewReader(payloadBytes))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("New-Api-User", strconv.Itoa(record.UserId))
+
+	response := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(response)
+	c.Request = request
+
+	// Set playground flag so Distribute reads group from body
+	c.Set(middleware.PlaygroundContextKey, true)
+
+	// Set auth context manually (mirrors executeHermesCompletionTask)
+	c.Set("id", record.UserId)
+	c.Set("use_access_token", false)
+
+	userCache, err := model.GetUserCache(record.UserId)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+	c.Set("username", userCache.Username)
+	c.Set("role", userCache.Role)
+	c.Set("group", userCache.Group)
+	c.Set("user_group", userCache.Group)
+	userCache.WriteContext(c)
+	common.SetContextKey(c, constant.ContextKeyUsingGroup, userCache.Group)
+
+	// Run channel selection then image generation
+	middleware.Distribute()(c)
+	if c.IsAborted() {
+		common.CleanupBodyStorage(c)
+		return response.Body.Bytes(), response.Code, nil
+	}
+
+	PlaygroundImage(c)
+	common.CleanupBodyStorage(c)
+	return response.Body.Bytes(), response.Code, nil
+}
+
+func extractImagePlaygroundError(body []byte, statusCode int) string {
+	var resp struct {
+		Error struct {
+			Message string `json:"message"`
+			Type    string `json:"type"`
+		} `json:"error"`
+	}
+	if err := common.Unmarshal(body, &resp); err == nil && resp.Error.Message != "" {
+		return resp.Error.Message
+	}
+	return "image generation failed with status " + strconv.Itoa(statusCode)
 }

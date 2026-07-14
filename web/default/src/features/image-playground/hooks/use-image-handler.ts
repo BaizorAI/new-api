@@ -1,31 +1,9 @@
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
-import { sendImageGeneration, saveImageHistory } from '../api'
+import { submitImageGeneration } from '../api'
 import { ERROR_MESSAGES } from '../constants'
 import type { ImagePlaygroundConfig } from '../types'
-
-type ImageErrorData = {
-  message?: string
-  error?: {
-    message?: string
-    code?: unknown
-  }
-}
-
-function extractImageError(error: unknown): string {
-  const err = error as {
-    response?: { data?: ImageErrorData }
-    message?: string
-  }
-  const data = err?.response?.data
-  return (
-    data?.error?.message?.trim() ||
-    data?.message?.trim() ||
-    err?.message ||
-    ERROR_MESSAGES.API_REQUEST_ERROR
-  )
-}
 
 interface UseImageHandlerOptions {
   config: ImagePlaygroundConfig
@@ -33,14 +11,15 @@ interface UseImageHandlerOptions {
 }
 
 /**
- * Hook for handling image generation requests.
- * Saves results to server-side history and calls onSuccess to trigger refetch.
+ * Hook for submitting image generation requests.
+ * The backend handles generation asynchronously — this hook returns
+ * as soon as the pending record is created.
  */
 export function useImageHandler({
   config,
   onSuccess,
 }: UseImageHandlerOptions) {
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const generate = useCallback(
@@ -51,41 +30,28 @@ export function useImageHandler({
         return
       }
 
-      setIsGenerating(true)
+      setIsSubmitting(true)
       setError(null)
 
       try {
-        const response = await sendImageGeneration({
-          model: config.model,
-          group: config.group,
+        await submitImageGeneration({
           prompt: trimmed,
+          model: config.model,
           size: config.size,
           quality: config.quality,
-          n: 1,
+          group: config.group,
         })
-
-        if (response.data && response.data.length > 0) {
-          // Save each generated image to server-side history
-          await Promise.all(
-            response.data.map((d) =>
-              saveImageHistory({
-                prompt: trimmed,
-                model: config.model,
-                size: config.size,
-                quality: config.quality,
-                image_url: d.url ?? '',
-                revised_prompt: d.revised_prompt,
-              })
-            )
-          )
-          onSuccess()
-        }
+        onSuccess()
       } catch (err: unknown) {
-        const message = extractImageError(err)
+        const message =
+          (err as { response?: { data?: { message?: string } } })?.response
+            ?.data?.message ||
+          (err as Error)?.message ||
+          ERROR_MESSAGES.API_REQUEST_ERROR
         setError(message)
         toast.error(message)
       } finally {
-        setIsGenerating(false)
+        setIsSubmitting(false)
       }
     },
     [config, onSuccess]
@@ -95,7 +61,7 @@ export function useImageHandler({
 
   return {
     generate,
-    isGenerating,
+    isSubmitting,
     error,
     clearError,
   }

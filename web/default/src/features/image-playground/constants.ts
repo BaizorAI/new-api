@@ -3,6 +3,7 @@ import type { ImagePlaygroundConfig } from './types'
 // API endpoints
 export const API_ENDPOINTS = {
   IMAGE_GENERATIONS: '/pg/images/generations',
+  IMAGE_GENERATE: '/api/user/image-playground/generate',
   IMAGE_HISTORY: '/api/user/image-playground/history',
   USER_MODELS: '/api/user/models',
   USER_GROUPS: '/api/user/self/groups',
@@ -32,3 +33,6 @@ export const ERROR_MESSAGES = {
   API_REQUEST_ERROR: 'Request error occurred',
   PROMPT_REQUIRED: 'Prompt is required',
 } as const
+
+// Polling interval for pending images (ms)
+export const PENDING_POLL_INTERVAL_MS = 3000

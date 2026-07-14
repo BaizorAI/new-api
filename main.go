@@ -204,6 +204,9 @@ func main() {
 	// Recover hermes execution tasks left in non-terminal state after a restart.
 	go controller.RecoverHermesExecutionTasks()
 
+	// Mark stale image playground generation tasks as failed after a restart.
+	go controller.RecoverImagePlaygroundHistories()
+
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: server,

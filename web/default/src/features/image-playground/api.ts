@@ -2,23 +2,27 @@ import { api } from '@/lib/api'
 
 import { API_ENDPOINTS } from './constants'
 import type {
-  ImageGenerationRequest,
-  ImageGenerationResponse,
   ImageModelOption,
   GroupOption,
   GeneratedImage,
 } from './types'
 
+// ── Async generation API ───────────────────────────────────────
+
 /**
- * Send image generation request (group in body, matching chat playground pattern)
+ * Submit an image generation request. The backend creates a pending
+ * history entry and processes the generation in a background goroutine.
+ * Returns immediately with the pending record.
  */
-export async function sendImageGeneration(
-  payload: ImageGenerationRequest
-): Promise<ImageGenerationResponse> {
-  const res = await api.post(API_ENDPOINTS.IMAGE_GENERATIONS, payload, {
-    skipErrorHandler: true,
-  } as Record<string, unknown>)
-  return res.data
+export async function submitImageGeneration(params: {
+  prompt: string
+  model: string
+  size: string
+  quality: string
+  group: string
+}): Promise<GeneratedImage> {
+  const res = await api.post(API_ENDPOINTS.IMAGE_GENERATE, params)
+  return res.data.data
 }
 
 // ── History API (server-side persistence) ───────────────────────
@@ -41,21 +45,6 @@ export async function getImageHistory(
     items: data.data.items ?? [],
     total: data.data.total ?? 0,
   }
-}
-
-/**
- * Save a single image history entry
- */
-export async function saveImageHistory(entry: {
-  prompt: string
-  model: string
-  size: string
-  quality: string
-  image_url: string
-  revised_prompt?: string
-}): Promise<GeneratedImage> {
-  const res = await api.post(API_ENDPOINTS.IMAGE_HISTORY, entry)
-  return res.data.data
 }
 
 /**
