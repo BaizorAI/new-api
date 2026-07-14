@@ -203,9 +203,11 @@ export function ImagePlayground({
       image.image_url ||
       (image.b64_json ? `data:image/png;base64,${image.b64_json}` : null)
     if (!url) return
+    // Images are stored locally on the server (same origin), so
+    // the download attribute works directly — no blob fetch needed.
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `image-${image.created_at}.png`
+    anchor.download = `image-${image.id}.png`
     anchor.click()
   }, [])
 

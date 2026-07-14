@@ -83,23 +83,38 @@ export function ProfileHeader({ profile, loading }: ProfileHeaderProps) {
   const avatarFallback = getUserAvatarFallback(avatarName)
   const avatarFallbackStyle = getUserAvatarStyle(avatarName)
   const roleLabel = getRoleLabel(profile.role)
+
+  const personalRemaining = profile.quota
+  const personalUsed = profile.used_quota
+  const teamRemaining = profile.team_quota ?? 0
+  const teamUsed = profile.team_used_quota ?? 0
+  const totalRemaining = profile.total_quota ?? personalRemaining + teamRemaining
+  const totalUsed = profile.total_used_quota ?? personalUsed + teamUsed
+  const totalAlloc = totalUsed + totalRemaining
+
   const stats = [
     {
       label: t('Current Balance'),
-      value: formatQuota(profile.quota),
-      description: t('Remaining quota'),
+      value: formatQuota(totalRemaining),
+      description: teamRemaining > 0
+        ? `${t('Personal')} ${formatQuota(personalRemaining)} · ${t('Team')} ${formatQuota(teamRemaining)}`
+        : t('Remaining quota'),
       icon: WalletCards,
     },
     {
       label: t('Total Usage'),
-      value: formatQuota(profile.used_quota),
-      description: t('Total consumed quota'),
+      value: formatQuota(totalUsed),
+      description: teamUsed > 0
+        ? `${t('Personal')} ${formatQuota(personalUsed)} · ${t('Team')} ${formatQuota(teamUsed)}`
+        : t('Total consumed quota'),
       icon: BarChart3,
     },
     {
       label: t('API Requests'),
       value: formatCompactNumber(profile.request_count),
-      description: t('Total requests made'),
+      description: totalAlloc > 0
+        ? `${t('Total:')} ${formatQuota(totalAlloc)}`
+        : t('Total requests made'),
       icon: Activity,
     },
   ]

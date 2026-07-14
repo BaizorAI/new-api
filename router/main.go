@@ -30,6 +30,10 @@ func SetRouter(router *gin.Engine, assets ThemeAssets) {
 	// Files are written by relay/channel/ocrali/persistOCRData under /data/ocr.
 	router.Static("/ocr", "./ocr")
 
+	// Serve locally saved image-playground images.
+	// Files are written by controller.downloadAndSaveImage under data/image-playground/.
+	router.Static("/image-playground", "./data/image-playground")
+
 	frontendBaseUrl := os.Getenv("FRONTEND_BASE_URL")
 	if common.IsMasterNode && frontendBaseUrl != "" {
 		frontendBaseUrl = ""

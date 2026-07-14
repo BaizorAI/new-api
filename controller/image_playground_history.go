@@ -2,9 +2,14 @@ package controller
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/BaizorAI/new-api/common"
 	"github.com/BaizorAI/new-api/constant"
@@ -14,6 +19,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+const imagePlaygroundDir = "data/image-playground"
+
+func init() {
+	if err := os.MkdirAll(imagePlaygroundDir, 0o755); err != nil {
+		panic(fmt.Sprintf("cannot create image playground directory %s: %v", imagePlaygroundDir, err))
+	}
+}
 
 // ── Request types ──────────────────────────────────────────────
 
@@ -148,11 +161,69 @@ func runImagePlaygroundGeneration(recordId int) {
 		return
 	}
 
-	imageURL := imgResp.Data[0].Url
+	upstreamURL := imgResp.Data[0].Url
 	revisedPrompt := imgResp.Data[0].RevisedPrompt
-	if err := model.UpdateImagePlaygroundHistoryResult(recordId, imageURL, revisedPrompt); err != nil {
+
+	// Download the image from upstream and save to local data directory
+	localPath, err := downloadAndSaveImage(recordId, upstreamURL)
+	if err != nil {
+		common.SysError("image playground: failed to save image locally: " + err.Error())
+		// Fall back to upstream URL if local save fails
+		localPath = upstreamURL
+	}
+
+	if err := model.UpdateImagePlaygroundHistoryResult(recordId, localPath, revisedPrompt); err != nil {
 		common.SysError("image playground: failed to save result: " + err.Error())
 	}
+}
+
+// downloadAndSaveImage fetches an image from the upstream URL and saves it
+// to the local data/image-playground/ directory. Returns the serving path
+// (e.g. "/image-playground/123.png") for use as image_url in the DB.
+func downloadAndSaveImage(recordId int, upstreamURL string) (string, error) {
+	if upstreamURL == "" {
+		return "", fmt.Errorf("empty upstream URL")
+	}
+
+	resp, err := http.Get(upstreamURL)
+	if err != nil {
+		return "", fmt.Errorf("download failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("download returned status %d", resp.StatusCode)
+	}
+
+	// Determine file extension from Content-Type
+	ext := ".png"
+	ct := resp.Header.Get("Content-Type")
+	switch {
+	case strings.Contains(ct, "jpeg") || strings.Contains(ct, "jpg"):
+		ext = ".jpg"
+	case strings.Contains(ct, "webp"):
+		ext = ".webp"
+	case strings.Contains(ct, "gif"):
+		ext = ".gif"
+	}
+
+	filename := fmt.Sprintf("%d%s", recordId, ext)
+	diskPath := filepath.Join(imagePlaygroundDir, filename)
+
+	dst, err := os.Create(diskPath)
+	if err != nil {
+		return "", fmt.Errorf("create file failed: %w", err)
+	}
+
+	if _, err := io.Copy(dst, resp.Body); err != nil {
+		dst.Close()
+		os.Remove(diskPath)
+		return "", fmt.Errorf("write file failed: %w", err)
+	}
+	dst.Close()
+
+	// Return the URL path for serving via router.Static
+	return "/image-playground/" + filename, nil
 }
 
 func executeImagePlaygroundGeneration(record *model.ImagePlaygroundHistory) ([]byte, int, error) {

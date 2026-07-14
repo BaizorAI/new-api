@@ -54,12 +54,13 @@ export function WalletStatsCard(props: WalletStatsCardProps) {
   const teamUsed = user?.team_used_quota ?? 0
   const totalQuota = user?.total_quota ?? personalQuota + teamQuota
   const totalUsed = user?.total_used_quota ?? personalUsed + teamUsed
+  const totalAlloc = totalUsed + totalQuota
 
   const stats = [
     {
       label: t('Personal Wallet'),
       value: formatQuota(personalQuota),
-      description: `${t('Used')} ${formatQuota(personalUsed)}`,
+      description: `${t('Used')} ${formatQuota(personalUsed)} · ${t('Total:')} ${formatQuota(personalUsed + personalQuota)}`,
       icon: WalletCards,
     },
     {
@@ -67,13 +68,13 @@ export function WalletStatsCard(props: WalletStatsCardProps) {
       value: formatQuota(teamQuota),
       description: user?.team_pool_idle
         ? `${t('Unused')} · ${t('Used')} ${formatQuota(teamUsed)}`
-        : `${t('Used')} ${formatQuota(teamUsed)}`,
+        : `${t('Used')} ${formatQuota(teamUsed)} · ${t('Total:')} ${formatQuota(teamUsed + teamQuota)}`,
       icon: Users,
     },
     {
       label: t('Total'),
-      value: formatQuota(totalQuota),
-      description: `${t('Used')} ${formatQuota(totalUsed)}`,
+      value: formatQuota(totalAlloc),
+      description: `${t('Used')} ${formatQuota(totalUsed)} · ${t('Remaining:')} ${formatQuota(totalQuota)}`,
       icon: BarChart3,
     },
   ]
