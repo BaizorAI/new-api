@@ -276,6 +276,15 @@ func SetApiRouter(router *gin.Engine) {
 			userHermesRoute.DELETE("/hermes/conversations/:conversation_id", controller.DeleteUserHermesConversation)
 		}
 
+		imagePlaygroundRoute := apiRouter.Group("/user/image-playground")
+		imagePlaygroundRoute.Use(middleware.UserAuth())
+		{
+			imagePlaygroundRoute.GET("/history", controller.ListImagePlaygroundHistory)
+			imagePlaygroundRoute.POST("/history", controller.CreateImagePlaygroundHistoryEntry)
+			imagePlaygroundRoute.DELETE("/history", controller.ClearImagePlaygroundHistoryEntries)
+			imagePlaygroundRoute.DELETE("/history/:id", controller.DeleteImagePlaygroundHistoryEntry)
+		}
+
 		usageRoute := apiRouter.Group("/usage")
 		usageRoute.Use(middleware.CORS(), middleware.CriticalRateLimit())
 		{

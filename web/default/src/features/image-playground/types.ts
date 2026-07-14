@@ -38,15 +38,15 @@ export interface GroupOption {
   desc?: string
 }
 
-// Generated image record
+// Generated image record (matches backend ImagePlaygroundHistory)
 export interface GeneratedImage {
-  id: string
-  url?: string
+  id: number
+  image_url?: string
   b64_json?: string
   revised_prompt?: string
   model: string
   prompt: string
   size: string
   quality: string
-  timestamp: number
+  created_at: number
 }

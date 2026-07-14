@@ -1,13 +1,9 @@
 import { useCallback, useState } from 'react'
-import { nanoid } from 'nanoid'
 import { toast } from 'sonner'
 
-import { sendImageGeneration } from '../api'
+import { sendImageGeneration, saveImageHistory } from '../api'
 import { ERROR_MESSAGES } from '../constants'
-import type {
-  ImagePlaygroundConfig,
-  GeneratedImage,
-} from '../types'
+import type { ImagePlaygroundConfig } from '../types'
 
 type ImageErrorData = {
   message?: string
@@ -33,16 +29,16 @@ function extractImageError(error: unknown): string {
 
 interface UseImageHandlerOptions {
   config: ImagePlaygroundConfig
-  onImagesUpdate: (updater: (prev: GeneratedImage[]) => GeneratedImage[]) => void
+  onSuccess: () => void
 }
 
 /**
- * Hook for handling image generation requests
- * (mirrors playground's useChatHandler)
+ * Hook for handling image generation requests.
+ * Saves results to server-side history and calls onSuccess to trigger refetch.
  */
 export function useImageHandler({
   config,
-  onImagesUpdate,
+  onSuccess,
 }: UseImageHandlerOptions) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -69,18 +65,20 @@ export function useImageHandler({
         })
 
         if (response.data && response.data.length > 0) {
-          const newImages: GeneratedImage[] = response.data.map((d) => ({
-            id: nanoid(),
-            url: d.url,
-            b64_json: d.b64_json,
-            revised_prompt: d.revised_prompt,
-            model: config.model,
-            prompt: trimmed,
-            size: config.size,
-            quality: config.quality,
-            timestamp: Date.now(),
-          }))
-          onImagesUpdate((prev) => [...newImages, ...prev])
+          // Save each generated image to server-side history
+          await Promise.all(
+            response.data.map((d) =>
+              saveImageHistory({
+                prompt: trimmed,
+                model: config.model,
+                size: config.size,
+                quality: config.quality,
+                image_url: d.url ?? '',
+                revised_prompt: d.revised_prompt,
+              })
+            )
+          )
+          onSuccess()
         }
       } catch (err: unknown) {
         const message = extractImageError(err)
@@ -90,7 +88,7 @@ export function useImageHandler({
         setIsGenerating(false)
       }
     },
-    [config, onImagesUpdate]
+    [config, onSuccess]
   )
 
   const clearError = useCallback(() => setError(null), [])

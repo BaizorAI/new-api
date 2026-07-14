@@ -6,6 +6,7 @@ import type {
   ImageGenerationResponse,
   ImageModelOption,
   GroupOption,
+  GeneratedImage,
 } from './types'
 
 /**
@@ -19,6 +20,59 @@ export async function sendImageGeneration(
   } as Record<string, unknown>)
   return res.data
 }
+
+// ── History API (server-side persistence) ───────────────────────
+
+/**
+ * Fetch image generation history for the current user
+ */
+export async function getImageHistory(
+  page = 1,
+  pageSize = 50
+): Promise<{ items: GeneratedImage[]; total: number }> {
+  const res = await api.get(API_ENDPOINTS.IMAGE_HISTORY, {
+    params: { p: page, page_size: pageSize },
+  })
+  const { data } = res
+  if (!data.success || !data.data) {
+    return { items: [], total: 0 }
+  }
+  return {
+    items: data.data.items ?? [],
+    total: data.data.total ?? 0,
+  }
+}
+
+/**
+ * Save a single image history entry
+ */
+export async function saveImageHistory(entry: {
+  prompt: string
+  model: string
+  size: string
+  quality: string
+  image_url: string
+  revised_prompt?: string
+}): Promise<GeneratedImage> {
+  const res = await api.post(API_ENDPOINTS.IMAGE_HISTORY, entry)
+  return res.data.data
+}
+
+/**
+ * Delete a single history entry
+ */
+export async function deleteImageHistory(id: number): Promise<void> {
+  await api.delete(`${API_ENDPOINTS.IMAGE_HISTORY}/${id}`)
+}
+
+/**
+ * Clear all history for the current user
+ */
+export async function clearImageHistory(): Promise<void> {
+  await api.delete(API_ENDPOINTS.IMAGE_HISTORY)
+}
+
+// ── Model & group APIs ──────────────────────────────────────────
 
 /**
  * Get user available image models

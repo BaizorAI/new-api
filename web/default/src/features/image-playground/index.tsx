@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ImageIcon, Loader2, Download, AlertCircle, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,7 +6,12 @@ import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 
-import { getUserImageModels, getUserGroups } from './api'
+import {
+  getUserImageModels,
+  getUserGroups,
+  getImageHistory,
+  clearImageHistory,
+} from './api'
 import { SIZE_OPTIONS, QUALITY_OPTIONS, DEFAULT_GROUP } from './constants'
 import { useImagePlaygroundState, useImageHandler } from './hooks'
 import type {
@@ -14,6 +19,8 @@ import type {
   GroupOption,
   GeneratedImage,
 } from './types'
+
+const HISTORY_QUERY_KEY = ['image-playground', 'history'] as const
 
 interface ImagePlaygroundProps {
   defaultModel?: string
@@ -23,29 +30,41 @@ export function ImagePlayground({
   defaultModel = 'huayu-drama-4',
 }: ImagePlaygroundProps) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
 
-  // ── State (mirrors playground's usePlaygroundState) ────────────
+  // ── State (config only — history is server-side) ──────────────
   const {
     config,
     models,
     groups,
-    images,
     setModels,
     setGroups,
     updateConfig,
-    updateImages,
-    clearHistory,
   } = useImagePlaygroundState({
     defaultConfig: { model: defaultModel },
   })
 
   // ── Prompt state ──────────────────────────────────────────────
   const [prompt, setPrompt] = useState('')
+  const [isClearing, setIsClearing] = useState(false)
 
-  // ── Handler (mirrors playground's useChatHandler) ─────────────
+  // ── Server-side history ───────────────────────────────────────
+  const { data: historyData } = useQuery({
+    queryKey: [...HISTORY_QUERY_KEY],
+    queryFn: () => getImageHistory(1, 100),
+  })
+
+  const images: GeneratedImage[] = useMemo(
+    () => historyData?.items ?? [],
+    [historyData]
+  )
+
+  // ── Handler (saves to server, triggers refetch on success) ────
   const { generate, isGenerating, error } = useImageHandler({
     config,
-    onImagesUpdate: updateImages,
+    onSuccess: useCallback(() => {
+      queryClient.invalidateQueries({ queryKey: [...HISTORY_QUERY_KEY] })
+    }, [queryClient]),
   })
 
   // ── Fetch models ──────────────────────────────────────────────
@@ -131,14 +150,27 @@ export function ImagePlayground({
 
   const handleDownload = useCallback((image: GeneratedImage) => {
     const url =
-      image.url ||
+      image.image_url ||
       (image.b64_json ? `data:image/png;base64,${image.b64_json}` : null)
     if (!url) return
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = `image-${image.timestamp}.png`
+    anchor.download = `image-${image.created_at}.png`
     anchor.click()
   }, [])
+
+  const handleClearHistory = useCallback(async () => {
+    setIsClearing(true)
+    try {
+      await clearImageHistory()
+      queryClient.invalidateQueries({ queryKey: [...HISTORY_QUERY_KEY] })
+      toast.success(t('History cleared'))
+    } catch {
+      toast.error(t('Failed to clear history'))
+    } finally {
+      setIsClearing(false)
+    }
+  }, [queryClient, t])
 
   // ── Render ────────────────────────────────────────────────────
   return (
@@ -231,9 +263,14 @@ export function ImagePlayground({
                 variant='ghost'
                 size='sm'
                 className='text-muted-foreground hover:text-destructive'
-                onClick={clearHistory}
+                onClick={handleClearHistory}
+                disabled={isClearing}
               >
-                <Trash2 className='mr-1 size-4' />
+                {isClearing ? (
+                  <Loader2 className='mr-1 size-4 animate-spin' />
+                ) : (
+                  <Trash2 className='mr-1 size-4' />
+                )}
                 {t('Clear History')}
               </Button>
             </div>
@@ -274,7 +311,7 @@ export function ImagePlayground({
           <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
             {images.map((image) => {
               const imgSrc =
-                image.url ||
+                image.image_url ||
                 (image.b64_json
                   ? `data:image/png;base64,${image.b64_json}`
                   : null)

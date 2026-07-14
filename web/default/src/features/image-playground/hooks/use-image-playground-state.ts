@@ -1,14 +1,13 @@
 import { useState, useCallback, useMemo } from 'react'
 
-import { DEFAULT_CONFIG, MAX_STORED_IMAGES, STORAGE_KEYS } from '../constants'
+import { DEFAULT_CONFIG, STORAGE_KEYS } from '../constants'
 import type {
   ImagePlaygroundConfig,
   ImageModelOption,
   GroupOption,
-  GeneratedImage,
 } from '../types'
 
-// ── Config persistence ──────────────────────────────────────────
+// ── Config persistence (localStorage — device preference only) ──
 
 function loadConfig(): Partial<ImagePlaygroundConfig> | null {
   try {
@@ -27,35 +26,6 @@ function saveConfig(config: ImagePlaygroundConfig): void {
   }
 }
 
-// ── History persistence ─────────────────────────────────────────
-
-function stripB64(images: GeneratedImage[]): GeneratedImage[] {
-  return images.map((img) =>
-    img.b64_json ? { ...img, b64_json: undefined } : img
-  )
-}
-
-function loadHistory(): GeneratedImage[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.HISTORY)
-    if (!raw) return []
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return (parsed as GeneratedImage[]).slice(0, MAX_STORED_IMAGES)
-  } catch {
-    return []
-  }
-}
-
-function saveHistory(images: GeneratedImage[]): void {
-  try {
-    const trimmed = stripB64(images).slice(0, MAX_STORED_IMAGES)
-    localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(trimmed))
-  } catch {
-    // ignore — quota exceeded, etc.
-  }
-}
-
 // ── Hook ────────────────────────────────────────────────────────
 
 interface UseImagePlaygroundStateOptions {
@@ -64,7 +34,8 @@ interface UseImagePlaygroundStateOptions {
 
 /**
  * Main state management hook for image playground
- * (mirrors playground's usePlaygroundState)
+ * Config is stored in localStorage (device preference).
+ * Image history is stored server-side (see useQuery in index.tsx).
  */
 export function useImagePlaygroundState(
   options: UseImagePlaygroundStateOptions = {}
@@ -82,30 +53,6 @@ export function useImagePlaygroundState(
   const [models, setModels] = useState<ImageModelOption[]>([])
   const [groups, setGroups] = useState<GroupOption[]>([])
 
-  // ── Images with auto-save (same pattern as playground's updateMessages) ──
-  const [images, setImages] = useState<GeneratedImage[]>(loadHistory)
-
-  const updateImages = useCallback(
-    (updater: GeneratedImage[] | ((prev: GeneratedImage[]) => GeneratedImage[])) => {
-      setImages((prev) => {
-        const next = typeof updater === 'function' ? updater(prev) : updater
-        saveHistory(next)
-        return next
-      })
-    },
-    []
-  )
-
-  const clearHistory = useCallback(() => {
-    setImages([])
-    try {
-      localStorage.removeItem(STORAGE_KEYS.HISTORY)
-    } catch {
-      // ignore
-    }
-  }, [])
-
-  // ── Config ──
   const updateConfig = useCallback(
     <K extends keyof ImagePlaygroundConfig>(
       key: K,
@@ -130,14 +77,11 @@ export function useImagePlaygroundState(
       config,
       models,
       groups,
-      images,
       setModels,
       setGroups,
       updateConfig,
       resetConfig,
-      updateImages,
-      clearHistory,
     }),
-    [config, models, groups, images, setModels, setGroups, updateConfig, resetConfig, updateImages, clearHistory]
+    [config, models, groups, setModels, setGroups, updateConfig, resetConfig]
   )
 }

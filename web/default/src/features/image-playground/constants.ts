@@ -3,6 +3,7 @@ import type { ImagePlaygroundConfig } from './types'
 // API endpoints
 export const API_ENDPOINTS = {
   IMAGE_GENERATIONS: '/pg/images/generations',
+  IMAGE_HISTORY: '/api/user/image-playground/history',
   USER_MODELS: '/api/user/models',
   USER_GROUPS: '/api/user/self/groups',
 } as const
@@ -21,14 +22,10 @@ export const DEFAULT_CONFIG: ImagePlaygroundConfig = {
 export const SIZE_OPTIONS = ['1024x1024', '1024x1792', '1792x1024'] as const
 export const QUALITY_OPTIONS = ['standard', 'hd'] as const
 
-// Storage keys
+// Storage keys (config only — history is server-side)
 export const STORAGE_KEYS = {
   CONFIG: 'image_playground_config',
-  HISTORY: 'image_playground_history',
 } as const
-
-// Max images to persist in localStorage
-export const MAX_STORED_IMAGES = 50
 
 // Error messages
 export const ERROR_MESSAGES = {
