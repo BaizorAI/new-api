@@ -62,6 +62,16 @@ export const userSchema = z.object({
   admin_permissions: z
     .record(z.string(), z.record(z.string(), z.boolean()))
     .optional(),
+  team_quotas: z
+    .array(
+      z.object({
+        team_id: z.number(),
+        team_name: z.string(),
+        quota: z.number(),
+        used_quota: z.number(),
+      })
+    )
+    .optional(),
 })
 export type User = z.infer<typeof userSchema>
 

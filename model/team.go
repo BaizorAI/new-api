@@ -268,6 +268,38 @@ func GetTeamTokenById(teamId int, tokenId int) (*Token, error) {
 	return token, err
 }
 
+// TeamQuotaInfo holds per-team quota details for a single user.
+type TeamQuotaInfo struct {
+	UserId    int    `json:"-"`
+	TeamId    int    `json:"team_id"`
+	TeamName  string `json:"team_name"`
+	Quota     int    `json:"quota"`
+	UsedQuota int    `json:"used_quota"`
+}
+
+// GetTeamQuotasByUserIds returns per-team quota info keyed by user ID.
+// A single SQL query covers all requested users at once.
+func GetTeamQuotasByUserIds(userIds []int) (map[int][]TeamQuotaInfo, error) {
+	if len(userIds) == 0 {
+		return nil, nil
+	}
+	var rows []TeamQuotaInfo
+	err := DB.Table("teams").
+		Select("team_members.user_id, teams.id AS team_id, teams.name AS team_name, teams.quota, teams.used_quota").
+		Joins("JOIN team_members ON team_members.team_id = teams.id").
+		Where("team_members.user_id IN ? AND team_members.status = ? AND teams.status = ?",
+			userIds, TeamStatusEnabled, TeamStatusEnabled).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[int][]TeamQuotaInfo, len(userIds))
+	for _, r := range rows {
+		result[r.UserId] = append(result[r.UserId], r)
+	}
+	return result, nil
+}
+
 func GetTeamQuota(teamId int) (int, error) {
 	var quota int
 	err := DB.Model(&Team{}).Where("id = ?", teamId).Select("quota").Find(&quota).Error

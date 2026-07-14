@@ -170,10 +170,15 @@ export function useUsersColumns(): ColumnDef<User>[] {
       header: t('Quota'),
       cell: ({ row }) => {
         const user = row.original
-        const used = user.used_quota
-        const remaining = user.quota
-        const total = used + remaining
-        const percentage = total > 0 ? (remaining / total) * 100 : 0
+        const personalUsed = user.used_quota
+        const personalRemaining = user.quota
+        const teams = user.team_quotas ?? []
+        const teamRemaining = teams.reduce((s, t) => s + t.quota, 0)
+        const teamUsed = teams.reduce((s, t) => s + t.used_quota, 0)
+        const totalRemaining = personalRemaining + teamRemaining
+        const totalUsed = personalUsed + teamUsed
+        const total = totalUsed + totalRemaining
+        const percentage = total > 0 ? (totalRemaining / total) * 100 : 0
 
         if (total === 0) {
           return (
@@ -193,7 +198,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
             >
               <div className='flex justify-between text-xs'>
                 <span className='font-medium tabular-nums'>
-                  {formatQuota(remaining)}
+                  {formatQuota(totalRemaining)}
                 </span>
                 <span className='text-muted-foreground tabular-nums'>
                   {formatQuota(total)}
@@ -206,17 +211,30 @@ export function useUsersColumns(): ColumnDef<User>[] {
             </TooltipTrigger>
             <TooltipContent>
               <div className='space-y-1 text-xs'>
-                <div>
-                  {t('Used:')} {formatQuota(used)}
+                <div className='font-medium'>
+                  {t('Personal Wallet')}
                 </div>
-                <div>
-                  {t('Remaining:')} {formatQuota(remaining)}
+                <div className='pl-2'>
+                  {t('Used:')} {formatQuota(personalUsed)}
+                  {' · '}
+                  {t('Remaining:')} {formatQuota(personalRemaining)}
                 </div>
-                <div>
+                {teams.map((team) => (
+                  <div key={team.team_id}>
+                    <div className='font-medium'>
+                      {team.team_name}
+                    </div>
+                    <div className='pl-2'>
+                      {t('Used:')} {formatQuota(team.used_quota)}
+                      {' · '}
+                      {t('Remaining:')} {formatQuota(team.quota)}
+                    </div>
+                  </div>
+                ))}
+                <div className='border-t pt-1'>
                   {t('Total:')} {formatQuota(total)}
-                </div>
-                <div>
-                  {t('Percentage:')} {percentage.toFixed(1)}%
+                  {' · '}
+                  {t('Remaining:')} {percentage.toFixed(1)}%
                 </div>
               </div>
             </TooltipContent>

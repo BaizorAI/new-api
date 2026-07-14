@@ -16,11 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import z from 'zod'
 
 import { ModelDetails } from '@/features/pricing/components/model-details'
-import { getFreshModuleAccess } from '@/lib/nav-modules'
 
 const modelDetailsSearchSchema = z.object({
   search: z.string().optional(),
@@ -37,11 +36,5 @@ const modelDetailsSearchSchema = z.object({
 
 export const Route = createFileRoute('/_authenticated/pricing/$modelId/')({
   validateSearch: modelDetailsSearchSchema,
-  beforeLoad: async () => {
-    const access = await getFreshModuleAccess('pricing')
-    if (!access.enabled) {
-      throw redirect({ to: '/' })
-    }
-  },
   component: ModelDetails,
 })

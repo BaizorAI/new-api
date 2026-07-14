@@ -16,25 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createFileRoute } from '@tanstack/react-router'
-import z from 'zod'
+import { Outlet } from '@tanstack/react-router'
 
-import { Pricing } from '@/features/pricing'
+import { Main } from '@/components/layout'
 
-const pricingSearchSchema = z.object({
-  search: z.string().optional(),
-  sort: z.string().optional(),
-  vendor: z.string().optional(),
-  group: z.string().optional(),
-  quotaType: z.string().optional(),
-  endpointType: z.string().optional(),
-  tag: z.string().optional(),
-  tokenUnit: z.enum(['M', 'K']).optional(),
-  view: z.enum(['card', 'table']).optional().catch(undefined),
-  rechargePrice: z.boolean().optional(),
-})
-
-export const Route = createFileRoute('/_authenticated/pricing/')({
-  validateSearch: pricingSearchSchema,
-  component: Pricing,
-})
+export function PricingLayout() {
+  return (
+    <Main>
+      <div className='min-h-0 flex-1 overflow-auto'>
+        <Outlet />
+      </div>
+    </Main>
+  )
+}

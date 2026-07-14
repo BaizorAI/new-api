@@ -280,7 +280,7 @@ func GetAllUsers(c *gin.Context) {
 	}
 
 	pageInfo.SetTotal(int(total))
-	pageInfo.SetItems(users)
+	pageInfo.SetItems(enrichUsersWithTeamQuota(users))
 
 	common.ApiSuccess(c, pageInfo)
 	return
@@ -309,9 +309,39 @@ func SearchUsers(c *gin.Context) {
 	}
 
 	pageInfo.SetTotal(int(total))
-	pageInfo.SetItems(users)
+	pageInfo.SetItems(enrichUsersWithTeamQuota(users))
 	common.ApiSuccess(c, pageInfo)
 	return
+}
+
+// enrichUsersWithTeamQuota attaches per-team quota details to each user in the
+// list so the admin UI can show the full picture (personal + team wallets).
+func enrichUsersWithTeamQuota(users []*model.User) any {
+	if len(users) == 0 {
+		return users
+	}
+	ids := make([]int, len(users))
+	for i, u := range users {
+		ids[i] = u.Id
+	}
+	teamMap, err := model.GetTeamQuotasByUserIds(ids)
+	if err != nil {
+		common.SysLog("failed to batch-fetch team quotas for user list: " + err.Error())
+		return users // degrade gracefully
+	}
+	if len(teamMap) == 0 {
+		return users // no team memberships at all
+	}
+
+	type userWithTeams struct {
+		*model.User
+		TeamQuotas []model.TeamQuotaInfo `json:"team_quotas,omitempty"`
+	}
+	out := make([]userWithTeams, len(users))
+	for i, u := range users {
+		out[i] = userWithTeams{User: u, TeamQuotas: teamMap[u.Id]}
+	}
+	return out
 }
 
 func canManageTargetRole(myRole int, targetRole int) bool {
