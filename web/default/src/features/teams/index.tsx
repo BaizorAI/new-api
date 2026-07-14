@@ -616,7 +616,7 @@ export function Teams(props: TeamsProps) {
           </div>
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
-          <div className='grid min-h-0 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]'>
+          <div className='grid h-full min-h-0 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]'>
             <div className='min-h-0 space-y-2 overflow-auto'>
               {teams.length === 0 ? (
                 <Card>
