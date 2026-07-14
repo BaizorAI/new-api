@@ -1,35 +1,23 @@
 import { useQuery } from '@tanstack/react-query'
 import { ImageIcon, Loader2, Download, AlertCircle } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 
-import {
-  getUserImageModels,
-  getUserGroups,
-  generateImage,
-  type ImageModelOption,
-  type ImageGenerationResponse,
-} from './api'
-
-const SIZE_OPTIONS = ['1024x1024', '1024x1792', '1792x1024'] as const
-const QUALITY_OPTIONS = ['standard', 'hd'] as const
+import { getUserImageModels, getUserGroups } from './api'
+import { SIZE_OPTIONS, QUALITY_OPTIONS, DEFAULT_GROUP } from './constants'
+import { useImagePlaygroundState, useImageHandler } from './hooks'
+import type {
+  ImagePlaygroundConfig,
+  ImageModelOption,
+  GroupOption,
+  GeneratedImage,
+} from './types'
 
 interface ImagePlaygroundProps {
   defaultModel?: string
-}
-
-interface GeneratedImage {
-  url?: string
-  b64_json?: string
-  revised_prompt?: string
-  model: string
-  prompt: string
-  size: string
-  quality: string
-  timestamp: number
 }
 
 export function ImagePlayground({
@@ -37,77 +25,98 @@ export function ImagePlayground({
 }: ImagePlaygroundProps) {
   const { t } = useTranslation()
 
-  const [model, setModel] = useState(defaultModel)
-  const [group, setGroup] = useState('default')
-  const [prompt, setPrompt] = useState('')
-  const [size, setSize] = useState<string>(SIZE_OPTIONS[0])
-  const [quality, setQuality] = useState<string>(QUALITY_OPTIONS[0])
-  const [isGenerating, setIsGenerating] = useState(false)
+  // ── State (mirrors playground's usePlaygroundState) ────────────
+  const {
+    config,
+    models,
+    groups,
+    setModels,
+    setGroups,
+    updateConfig,
+  } = useImagePlaygroundState({
+    defaultConfig: { model: defaultModel },
+  })
+
+  // ── Images state ──────────────────────────────────────────────
   const [images, setImages] = useState<GeneratedImage[]>([])
-  const [error, setError] = useState<string | null>(null)
+  const [prompt, setPrompt] = useState('')
 
-  const { data: models = [] } = useQuery<ImageModelOption[]>({
-    queryKey: ['image-playground-models'],
-    queryFn: getUserImageModels,
-    staleTime: 60_000,
+  // ── Handler (mirrors playground's useChatHandler) ─────────────
+  const { generate, isGenerating, error } = useImageHandler({
+    config,
+    onImagesUpdate: setImages,
   })
 
-  const { data: groups = [] } = useQuery({
-    queryKey: ['image-playground-groups'],
-    queryFn: getUserGroups,
-    staleTime: 60_000,
-  })
-
-  // If the default model isn't available, pick the first one
-  const effectiveModel = useMemo(() => {
-    if (models.length === 0) return model
-    if (models.some((m) => m.value === model)) return model
-    return models[0].value
-  }, [model, models])
-
-  const handleGenerate = useCallback(async () => {
-    if (!prompt.trim()) {
-      toast.error(t('Prompt is required'))
-      return
-    }
-
-    setIsGenerating(true)
-    setError(null)
-
-    try {
-      const response: ImageGenerationResponse = await generateImage(
-        {
-          model: effectiveModel,
-          prompt: prompt.trim(),
-          size,
-          quality,
-          n: 1,
-        },
-        group
-      )
-
-      if (response.data && response.data.length > 0) {
-        const newImages: GeneratedImage[] = response.data.map((d) => ({
-          url: d.url,
-          b64_json: d.b64_json,
-          revised_prompt: d.revised_prompt,
-          model: effectiveModel,
-          prompt: prompt.trim(),
-          size,
-          quality,
-          timestamp: Date.now(),
-        }))
-        setImages((prev) => [...newImages, ...prev])
+  // ── Fetch models ──────────────────────────────────────────────
+  const { data: modelsData, isLoading: isLoadingModels } = useQuery<
+    ImageModelOption[]
+  >({
+    queryKey: ['image-playground', 'models'],
+    queryFn: async () => {
+      try {
+        return await getUserImageModels()
+      } catch (err) {
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : t('Failed to load playground models')
+        )
+        return []
       }
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : t('Failed to generate image')
-      setError(message)
-      toast.error(message)
-    } finally {
-      setIsGenerating(false)
+    },
+  })
+
+  // ── Fetch groups ──────────────────────────────────────────────
+  const { data: groupsData } = useQuery<GroupOption[]>({
+    queryKey: ['image-playground', 'groups'],
+    queryFn: async () => {
+      try {
+        return await getUserGroups()
+      } catch (err) {
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : t('Failed to load playground groups')
+        )
+        return []
+      }
+    },
+  })
+
+  const availableModels = useMemo(() => modelsData ?? [], [modelsData])
+
+  // ── Sync models when data arrives ─────────────────────────────
+  useEffect(() => {
+    if (!modelsData) return
+    setModels(availableModels)
+
+    const isCurrentValid = availableModels.some(
+      (m) => m.value === config.model
+    )
+    if (availableModels.length > 0 && !isCurrentValid) {
+      const preferred = availableModels.find((m) => m.value === defaultModel)
+      updateConfig('model', preferred ? preferred.value : availableModels[0].value)
     }
-  }, [prompt, effectiveModel, size, quality, group, t])
+  }, [modelsData, availableModels, config.model, defaultModel, setModels, updateConfig])
+
+  // ── Sync groups when data arrives ─────────────────────────────
+  useEffect(() => {
+    if (!groupsData) return
+    setGroups(groupsData)
+
+    const hasCurrentGroup = groupsData.some((g) => g.value === config.group)
+    if (!hasCurrentGroup && groupsData.length > 0) {
+      const fallback =
+        groupsData.find((g) => g.value === DEFAULT_GROUP)?.value ??
+        groupsData[0].value
+      updateConfig('group', fallback)
+    }
+  }, [groupsData, setGroups, config.group, updateConfig])
+
+  // ── Handlers ──────────────────────────────────────────────────
+  const handleGenerate = useCallback(() => {
+    generate(prompt)
+  }, [generate, prompt])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -120,7 +129,9 @@ export function ImagePlayground({
   )
 
   const handleDownload = useCallback((image: GeneratedImage) => {
-    const url = image.url || (image.b64_json ? `data:image/png;base64,${image.b64_json}` : null)
+    const url =
+      image.url ||
+      (image.b64_json ? `data:image/png;base64,${image.b64_json}` : null)
     if (!url) return
     const anchor = document.createElement('a')
     anchor.href = url
@@ -128,6 +139,7 @@ export function ImagePlayground({
     anchor.click()
   }, [])
 
+  // ── Render ────────────────────────────────────────────────────
   return (
     <div className='flex h-full flex-col'>
       {/* Controls bar */}
@@ -139,9 +151,10 @@ export function ImagePlayground({
               {t('Model')}
             </label>
             <select
-              value={effectiveModel}
-              onChange={(e) => setModel(e.target.value)}
+              value={config.model}
+              onChange={(e) => updateConfig('model', e.target.value)}
               className='h-8 rounded-md border bg-background px-2 text-sm'
+              disabled={isLoadingModels}
             >
               {models.map((m) => (
                 <option key={m.value} value={m.value}>
@@ -149,7 +162,7 @@ export function ImagePlayground({
                 </option>
               ))}
               {models.length === 0 && (
-                <option value={model}>{model}</option>
+                <option value={config.model}>{config.model}</option>
               )}
             </select>
           </div>
@@ -161,8 +174,8 @@ export function ImagePlayground({
                 {t('Group')}
               </label>
               <select
-                value={group}
-                onChange={(e) => setGroup(e.target.value)}
+                value={config.group}
+                onChange={(e) => updateConfig('group', e.target.value)}
                 className='h-8 rounded-md border bg-background px-2 text-sm'
               >
                 {groups.map((g) => (
@@ -180,8 +193,8 @@ export function ImagePlayground({
               {t('Size:')}
             </label>
             <select
-              value={size}
-              onChange={(e) => setSize(e.target.value)}
+              value={config.size}
+              onChange={(e) => updateConfig('size', e.target.value)}
               className='h-8 rounded-md border bg-background px-2 text-sm'
             >
               {SIZE_OPTIONS.map((s) => (
@@ -198,8 +211,8 @@ export function ImagePlayground({
               {t('Quality')}
             </label>
             <select
-              value={quality}
-              onChange={(e) => setQuality(e.target.value)}
+              value={config.quality}
+              onChange={(e) => updateConfig('quality', e.target.value)}
               className='h-8 rounded-md border bg-background px-2 text-sm'
             >
               {QUALITY_OPTIONS.map((q) => (
@@ -289,14 +302,12 @@ export function ImagePlayground({
 
         {/* Input area */}
         <div className='border-t bg-background p-4'>
-          <div className='flex gap-2'>
+          <div className='mx-auto flex max-w-4xl gap-2'>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={t(
-                'Describe the image you want to generate...'
-              )}
+              placeholder={t('Describe the image you want to generate...')}
               rows={2}
               className='flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring'
               disabled={isGenerating}

@@ -1,29 +1,30 @@
 import { api } from '@/lib/api'
 
-export interface ImageModelOption {
-  label: string
-  value: string
+import { API_ENDPOINTS } from './constants'
+import type {
+  ImageGenerationRequest,
+  ImageGenerationResponse,
+  ImageModelOption,
+  GroupOption,
+} from './types'
+
+/**
+ * Send image generation request (group in body, matching chat playground pattern)
+ */
+export async function sendImageGeneration(
+  payload: ImageGenerationRequest
+): Promise<ImageGenerationResponse> {
+  const res = await api.post(API_ENDPOINTS.IMAGE_GENERATIONS, payload, {
+    skipErrorHandler: true,
+  } as Record<string, unknown>)
+  return res.data
 }
 
-export interface ImageGenerationRequest {
-  model: string
-  prompt: string
-  size?: string
-  quality?: string
-  n?: number
-}
-
-export interface ImageGenerationResponse {
-  data: Array<{
-    url?: string
-    b64_json?: string
-    revised_prompt?: string
-  }>
-  created: number
-}
-
+/**
+ * Get user available image models
+ */
 export async function getUserImageModels(): Promise<ImageModelOption[]> {
-  const res = await api.get('/api/user/models', {
+  const res = await api.get(API_ENDPOINTS.USER_MODELS, {
     params: { capability: 'image' },
   })
   const { data } = res
@@ -38,39 +39,22 @@ export async function getUserImageModels(): Promise<ImageModelOption[]> {
   }))
 }
 
-export async function getUserGroups(): Promise<
-  Array<{ label: string; value: string; ratio: number; desc?: string }>
-> {
-  const res = await api.get('/api/user/self/groups')
+/**
+ * Get user groups
+ */
+export async function getUserGroups(): Promise<GroupOption[]> {
+  const res = await api.get(API_ENDPOINTS.USER_GROUPS)
   const { data } = res
 
   if (!data.success || !data.data) {
     return []
   }
 
-  const groupData = data.data as Record<
-    string,
-    { desc: string; ratio: number }
-  >
+  const groupData = data.data as Record<string, { desc: string; ratio: number }>
   return Object.entries(groupData).map(([group, info]) => ({
     label: group,
     value: group,
     ratio: info.ratio,
     desc: info.desc,
   }))
-}
-
-export async function generateImage(
-  payload: ImageGenerationRequest,
-  group?: string
-): Promise<ImageGenerationResponse> {
-  const headers: Record<string, string> = {}
-  if (group) {
-    headers['X-New-Api-Group'] = group
-  }
-  const res = await api.post('/pg/images/generations', payload, {
-    headers,
-    skipErrorHandler: true,
-  } as Record<string, unknown>)
-  return res.data
 }

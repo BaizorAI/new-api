@@ -522,14 +522,14 @@ func genBaseRelayInfo(c *gin.Context, request dto.Request) *RelayInfo {
 		},
 	}
 
+	fmt.Printf("[DEBUG GenRelayInfo] URL.Path=%q RelayMode=%d\n", c.Request.URL.Path, info.RelayMode)
+
 	if info.RelayMode == relayconstant.RelayModeUnknown {
 		info.RelayMode = c.GetInt("relay_mode")
 	}
 
-	if strings.HasPrefix(c.Request.URL.Path, "/pg") {
+	if c.GetBool("is_playground") {
 		info.IsPlayground = true
-		info.RequestURLPath = strings.TrimPrefix(info.RequestURLPath, "/pg")
-		info.RequestURLPath = "/v1" + info.RequestURLPath
 	}
 
 	userSetting, ok := common.GetContextKeyType[dto.UserSetting](c, constant.ContextKeyUserSetting)
