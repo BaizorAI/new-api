@@ -25,14 +25,16 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import {
-  SideDrawerSection,
-  sideDrawerContentClassName,
-  sideDrawerFooterClassName,
-  sideDrawerFormClassName,
-  sideDrawerHeaderClassName,
-} from '@/components/drawer-layout'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Form,
   FormControl,
@@ -51,15 +53,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
 
 import {
@@ -74,13 +67,26 @@ import {
 import type { StudioProject } from '../types'
 
 // ============================================================================
+// Genre Labels (i18n keys)
+// ============================================================================
+
+const GENRE_LABELS: Record<string, string> = {
+  short_film: 'Short Film',
+  commercial: 'Commercial',
+  music_video: 'Music Video',
+  animation: 'Animation',
+  documentary: 'Documentary',
+  other: 'Other',
+}
+
+// ============================================================================
 // Form Schema
 // ============================================================================
 
 const studioProjectFormSchema = z.object({
   name: z.string().min(1, 'Project name is required').max(100),
   brief: z.string().max(500).default(''),
-  genre: z.string().default(''),
+  genre: z.string().min(1, 'Genre is required'),
   style_dna: z.string().max(500).default(''),
 })
 
@@ -89,7 +95,7 @@ type StudioProjectFormValues = z.infer<typeof studioProjectFormSchema>
 const DEFAULT_VALUES: StudioProjectFormValues = {
   name: '',
   brief: '',
-  genre: '',
+  genre: 'short_film',
   style_dna: '',
 }
 
@@ -99,7 +105,7 @@ function projectToFormValues(
   return {
     name: project.name,
     brief: project.brief,
-    genre: project.genre,
+    genre: project.genre || 'short_film',
     style_dna: project.style_dna,
   }
 }
@@ -108,17 +114,17 @@ function projectToFormValues(
 // Component
 // ============================================================================
 
-type StudioProjectMutateDrawerProps = {
+type StudioProjectMutateDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   currentRow?: StudioProject
 }
 
-export function StudioProjectMutateDrawer({
+export function StudioProjectMutateDialog({
   open,
   onOpenChange,
   currentRow,
-}: StudioProjectMutateDrawerProps) {
+}: StudioProjectMutateDialogProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -177,125 +183,123 @@ export function StudioProjectMutateDrawer({
   }
 
   return (
-    <Sheet
+    <Dialog
       open={open}
       onOpenChange={(v) => {
         onOpenChange(v)
         if (!v) form.reset()
       }}
     >
-      <SheetContent className={sideDrawerContentClassName('sm:max-w-[520px]')}>
-        <SheetHeader className={sideDrawerHeaderClassName()}>
-          <SheetTitle>
+      <DialogContent className='sm:max-w-md'>
+        <DialogHeader>
+          <DialogTitle>
             {isUpdate ? t('Edit Project') : t('Create Project')}
-          </SheetTitle>
-          <SheetDescription>
+          </DialogTitle>
+          <DialogDescription>
             {isUpdate
               ? t('Update your film project details.')
               : t('Set up a new film project. A 7-stage pipeline will be created automatically.')}
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
         <Form {...form}>
           <form
             id='studio-project-form'
             onSubmit={handleSubmit}
-            className={sideDrawerFormClassName()}
+            className='space-y-4'
           >
-            <SideDrawerSection>
-              <FormField
-                control={form.control}
-                name='name'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Project Name')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder={t('Enter project name')}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name='name'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Project Name')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder={t('Enter project name')}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name='brief'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Project Brief')}</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        placeholder={t('Describe the story or concept...')}
-                        className='h-24 resize-y text-sm'
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('Optional. Up to 500 characters.')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name='brief'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Project Brief')}</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder={t('Describe the story or concept...')}
+                      className='h-20 resize-y text-sm'
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t('Optional. Up to 500 characters.')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name='genre'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Genre')}</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('Select genre')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent alignItemWithTrigger={false}>
-                        <SelectGroup>
-                          {GENRE_OPTIONS.map((genre) => (
-                            <SelectItem key={genre} value={genre}>
-                              {t(GENRE_LABELS[genre] ?? genre)}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name='style_dna'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Style DNA')}</FormLabel>
+            <FormField
+              control={form.control}
+              name='genre'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Genre')}</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
                     <FormControl>
-                      <Input
-                        {...field}
-                        placeholder={t('e.g. Cyberpunk, Ghibli, Film noir...')}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('Select genre')} />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormDescription>
-                      {t('Optional. Visual style keywords for AI generation.')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </SideDrawerSection>
+                    <SelectContent alignItemWithTrigger={false}>
+                      <SelectGroup>
+                        {GENRE_OPTIONS.map((genre) => (
+                          <SelectItem key={genre} value={genre}>
+                            {t(GENRE_LABELS[genre] ?? genre)}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='style_dna'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Style DNA')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder={t('e.g. Cyberpunk, Ghibli, Film noir...')}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t('Optional. Visual style keywords for AI generation.')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </form>
         </Form>
-        <SheetFooter className={sideDrawerFooterClassName()}>
-          <SheetClose render={<Button variant='outline' />}>
+        <DialogFooter>
+          <DialogClose render={<Button variant='outline' />}>
             {t('Close')}
-          </SheetClose>
+          </DialogClose>
           <Button
             form='studio-project-form'
             type='submit'
@@ -307,21 +311,8 @@ export function StudioProjectMutateDrawer({
                 ? t('Save changes')
                 : t('Create Project')}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
-}
-
-// ============================================================================
-// Genre Labels (i18n keys)
-// ============================================================================
-
-const GENRE_LABELS: Record<string, string> = {
-  short_film: 'Short Film',
-  commercial: 'Commercial',
-  music_video: 'Music Video',
-  animation: 'Animation',
-  documentary: 'Documentary',
-  other: 'Other',
 }

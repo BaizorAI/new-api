@@ -138,7 +138,7 @@ func CountStudioProjectStagesDone(projectId int) (int, int, error) {
 
 func ValidStudioProjectGenre(genre string) bool {
 	switch genre {
-	case "short_drama", "commercial", "animation", "music_video", "documentary":
+	case "short_film", "short_drama", "commercial", "animation", "music_video", "documentary", "other":
 		return true
 	}
 	return false

@@ -48,7 +48,7 @@ import {
 } from '../constants'
 import { useUpdateStudioStage } from '../hooks/use-studio-mutations'
 import type { StudioStage } from '../types'
-import { StudioProjectMutateDrawer } from './studio-project-mutate-drawer'
+import { StudioProjectMutateDialog } from './studio-project-mutate-drawer'
 
 export function StudioProjectBoard() {
   const { t } = useTranslation()
@@ -141,8 +141,8 @@ export function StudioProjectBoard() {
         </div>
       </ScrollArea>
 
-      {/* Edit project drawer */}
-      <StudioProjectMutateDrawer
+      {/* Edit project dialog */}
+      <StudioProjectMutateDialog
         open={editOpen}
         onOpenChange={setEditOpen}
         currentRow={project}

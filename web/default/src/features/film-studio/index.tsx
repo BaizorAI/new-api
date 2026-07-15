@@ -39,7 +39,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 
 import { deleteStudioProject, getStudioProjects } from './api'
-import { StudioProjectMutateDrawer } from './components/studio-project-mutate-drawer'
+import { StudioProjectMutateDialog } from './components/studio-project-mutate-drawer'
 import {
   PROJECT_STATUS_CONFIG,
   STUDIO_QUERY_KEYS,
@@ -134,8 +134,8 @@ export function StudioProjectList() {
         )}
       </ScrollArea>
 
-      {/* Create/Edit drawer */}
-      <StudioProjectMutateDrawer
+      {/* Create/Edit dialog */}
+      <StudioProjectMutateDialog
         open={action === 'create'}
         onOpenChange={(isOpen) => {
           if (!isOpen) {
