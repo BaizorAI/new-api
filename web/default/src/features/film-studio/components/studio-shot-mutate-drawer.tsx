@@ -69,6 +69,7 @@ const shotFormSchema = z.object({
   camera_move: z.string().max(100).default(''),
   duration: z.coerce.number().min(0).default(0),
   image_prompt: z.string().max(1000).default(''),
+  video_prompt: z.string().max(1000).default(''),
 })
 
 type ShotFormValues = z.infer<typeof shotFormSchema>
@@ -81,6 +82,7 @@ const DEFAULT_VALUES: ShotFormValues = {
   camera_move: '',
   duration: 0,
   image_prompt: '',
+  video_prompt: '',
 }
 
 function shotToFormValues(shot: StudioShot): ShotFormValues {
@@ -92,6 +94,7 @@ function shotToFormValues(shot: StudioShot): ShotFormValues {
     camera_move: shot.camera_move,
     duration: shot.duration,
     image_prompt: shot.image_prompt,
+    video_prompt: shot.video_prompt,
   }
 }
 
@@ -296,6 +299,27 @@ export function StudioShotMutateDrawer({
                     </FormControl>
                     <FormDescription>
                       {t('Optional. Used for AI image generation.')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='video_prompt'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Video Prompt')}</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder={t('Describe the motion and action for video generation...')}
+                        className='h-20 resize-y text-sm'
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('Optional. Used for AI video generation.')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

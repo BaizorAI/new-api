@@ -24,10 +24,12 @@ import {
   Loader2,
   MoreHorizontal,
   Pencil,
+  Play,
   Plus,
   RefreshCw,
   SquareIcon,
   Trash2,
+  Video,
   Wand2,
 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
@@ -68,6 +70,7 @@ import {
 } from '../hooks/use-studio-stage-chat'
 import { useExtractCharacters, useExtractShots } from '../hooks/use-ai-extraction'
 import { useShotImageGen } from '../hooks/use-shot-image-gen'
+import { useShotVideoGen } from '../hooks/use-shot-video-gen'
 import type { StudioCharacter, StudioShot } from '../types'
 import { StudioCharacterDeleteDialog } from './studio-character-delete-dialog'
 import { StudioCharacterMutateDrawer } from './studio-character-mutate-drawer'
@@ -140,6 +143,13 @@ export function StudioStageDetail() {
     useStudioStageChat({ projectId: id, stageKey })
 
   const { generateImage, generatingIds } = useShotImageGen({
+    projectId: id,
+    styleDna: projectData?.data?.style_dna,
+  })
+  const {
+    generateVideo,
+    generatingIds: videoGeneratingIds,
+  } = useShotVideoGen({
     projectId: id,
     styleDna: projectData?.data?.style_dna,
   })
@@ -377,9 +387,11 @@ export function StudioStageDetail() {
               {shots.length > 0 ? (
                 <div className='space-y-2'>
                   {shots.map((shot) => {
-                    const isGenerating = generatingIds.has(shot.id)
+                    const isImgGenerating = generatingIds.has(shot.id)
+                    const isVidGenerating = videoGeneratingIds.has(shot.id)
                     const showImageGen =
                       stageKey === 'image_gen' || stageKey === 'video_gen'
+                    const showVideoGen = stageKey === 'video_gen'
 
                     return (
                       <div
@@ -414,11 +426,11 @@ export function StudioStageDetail() {
                                 variant='secondary'
                                 size='icon'
                                 className='absolute -right-1 -top-1 size-6 opacity-0 shadow-sm group-hover:opacity-100'
-                                disabled={isGenerating}
+                                disabled={isImgGenerating}
                                 onClick={() => void generateImage(shot)}
                                 title={t('Regenerate')}
                               >
-                                {isGenerating ? (
+                                {isImgGenerating ? (
                                   <Loader2 className='size-3 animate-spin' />
                                 ) : (
                                   <RefreshCw className='size-3' />
@@ -431,10 +443,10 @@ export function StudioStageDetail() {
                               variant='outline'
                               size='sm'
                               className='shrink-0'
-                              disabled={isGenerating}
+                              disabled={isImgGenerating}
                               onClick={() => void generateImage(shot)}
                             >
-                              {isGenerating ? (
+                              {isImgGenerating ? (
                                 <Loader2
                                   className='mr-1.5 size-3.5 animate-spin'
                                   aria-hidden='true'
@@ -445,7 +457,7 @@ export function StudioStageDetail() {
                                   aria-hidden='true'
                                 />
                               )}
-                              {isGenerating
+                              {isImgGenerating
                                 ? t('Generating...')
                                 : t('Generate Image')}
                             </Button>
@@ -456,6 +468,67 @@ export function StudioStageDetail() {
                             alt={shot.description}
                             className='size-16 shrink-0 rounded object-cover'
                           />
+                        ) : null}
+
+                        {/* Video preview / generate button */}
+                        {showVideoGen ? (
+                          shot.video_url ? (
+                            <div className='relative shrink-0'>
+                              <video
+                                src={shot.video_url}
+                                poster={shot.image_url || undefined}
+                                className='h-16 w-24 rounded object-cover'
+                                muted
+                                preload='metadata'
+                                onClick={(e) => {
+                                  const v = e.currentTarget
+                                  if (v.paused) void v.play()
+                                  else v.pause()
+                                }}
+                                title={t('Click to play video')}
+                              />
+                              <Play className='pointer-events-none absolute inset-0 m-auto size-5 text-white drop-shadow-md' />
+                              <Button
+                                type='button'
+                                variant='secondary'
+                                size='icon'
+                                className='absolute -right-1 -top-1 size-6 opacity-0 shadow-sm group-hover:opacity-100'
+                                disabled={isVidGenerating}
+                                onClick={() => void generateVideo(shot)}
+                                title={t('Regenerate')}
+                              >
+                                {isVidGenerating ? (
+                                  <Loader2 className='size-3 animate-spin' />
+                                ) : (
+                                  <RefreshCw className='size-3' />
+                                )}
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              type='button'
+                              variant='outline'
+                              size='sm'
+                              className='shrink-0'
+                              disabled={isVidGenerating}
+                              onClick={() => void generateVideo(shot)}
+                            >
+                              {isVidGenerating ? (
+                                <Loader2
+                                  className='mr-1.5 size-3.5 animate-spin'
+                                  aria-hidden='true'
+                                />
+                              ) : (
+                                <Video
+                                  className='mr-1.5 size-3.5'
+                                  aria-hidden='true'
+                                />
+                              )}
+                              {isVidGenerating
+                                ? t('Generating...')
+                                : t('Generate Video')}
+                            </Button>
+                          )
                         ) : null}
 
                         <DropdownMenu>
