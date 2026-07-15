@@ -1,4 +1,25 @@
 {
+    "Ask AI to help with this stage...": "Ask AI to help with this stage...",
+    "Ask for a review of the final output...": "Ask for a review of the final output...",
+    "Back to projects": "Back to projects",
+    "Create Project": "Create Project",
+    "Describe how to break the script into shots...": "Describe how to break the script into shots...",
+    "Describe post-production needs (audio, transitions, effects)...": "Describe post-production needs (audio, transitions, effects)...",
+    "Describe the characters for your film...": "Describe the characters for your film...",
+    "Describe the story or concept...": "Describe the story or concept...",
+    "Describe the story you want to tell...": "Describe the story you want to tell...",
+    "Describe the visual style for image generation...": "Describe the visual style for image generation...",
+    "Describe video generation requirements...": "Describe video generation requirements...",
+    "e.g. Cyberpunk, Ghibli, Film noir...": "e.g. Cyberpunk, Ghibli, Film noir...",
+    "Edit Project": "Edit Project",
+    "Enter project name": "Enter project name",
+    "Genre": "Genre",
+    "Optional. Visual style keywords for AI generation.": "Optional. Visual style keywords for AI generation.",
+    "Project Name": "Project Name",
+    "Project not found.": "Project not found.",
+    "Select genre": "Select genre",
+    "Set up a new film project. A 7-stage pipeline will be created automatically.": "Set up a new film project. A 7-stage pipeline will be created automatically.",
+    "Style DNA": "Style DNA",
     "translation": {
         "360": "360",
         "1000": "1000",
@@ -6146,5 +6167,6 @@
         "Zhipu": "Zhipu",
         "Zhipu V4": "Zhipu V4",
         "Zoom": "Zoom"
-    }
+    },
+    "Update your film project details.": "Update your film project details."
 }

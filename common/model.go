@@ -21,7 +21,8 @@ var (
 	}
 	VideoGenerationModels = []string{
 		"huayu-drama-4",
-		"huayu-drama-4-video",
+		"huayu-drama-4-fast",
+		"huayu-drama-4-quality",
 	}
 	OpenAITextModels = []string{
 		"gpt-",

@@ -18,11 +18,19 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
-import { useMemo } from 'react'
+import { ArrowLeft, SquareIcon } from 'lucide-react'
+import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import {
+  PromptInput,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  type PromptInputMessage,
+} from '@/components/ai-elements/prompt-input'
 import { Button } from '@/components/ui/button'
+import { Markdown } from '@/components/ui/markdown'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 import {
@@ -37,6 +45,21 @@ import {
   STUDIO_QUERY_KEYS,
   type StageStatusValue,
 } from '../constants'
+import {
+  useStudioStageChat,
+  type StageChatMessage,
+} from '../hooks/use-studio-stage-chat'
+
+// Stage-specific placeholder text for the chat input
+const STAGE_PLACEHOLDERS: Record<string, string> = {
+  script: 'Describe the story you want to tell...',
+  characters: 'Describe the characters for your film...',
+  storyboard: 'Describe how to break the script into shots...',
+  image_gen: 'Describe the visual style for image generation...',
+  video_gen: 'Describe video generation requirements...',
+  post: 'Describe post-production needs (audio, transitions, effects)...',
+  review: 'Ask for a review of the final output...',
+}
 
 export function StudioStageDetail() {
   const { t } = useTranslation()
@@ -65,7 +88,11 @@ export function StudioStageDetail() {
   const { data: shotsData } = useQuery({
     queryKey: [...STUDIO_QUERY_KEYS.shots(id)],
     queryFn: () => getStudioShots(id),
-    enabled: id > 0 && (stageKey === 'storyboard' || stageKey === 'image_gen' || stageKey === 'video_gen'),
+    enabled:
+      id > 0 &&
+      (stageKey === 'storyboard' ||
+        stageKey === 'image_gen' ||
+        stageKey === 'video_gen'),
   })
 
   const { data: charsData } = useQuery({
@@ -73,6 +100,9 @@ export function StudioStageDetail() {
     queryFn: () => getStudioCharacters(id),
     enabled: id > 0 && stageKey === 'characters',
   })
+
+  const { messages, sendMessage, stopGeneration, isStreaming } =
+    useStudioStageChat({ projectId: id, stageKey })
 
   const project = projectData?.data
   const stages = stagesData?.data ?? []
@@ -83,6 +113,18 @@ export function StudioStageDetail() {
   const statusConfig = stage
     ? STAGE_STATUS_CONFIG[stage.status as StageStatusValue]
     : null
+
+  const handleSubmit = useCallback(
+    (message: PromptInputMessage) => {
+      const text = (message.text ?? '').trim()
+      if (!text || isStreaming) return
+      sendMessage(text)
+    },
+    [isStreaming, sendMessage]
+  )
+
+  const placeholder =
+    STAGE_PLACEHOLDERS[stageKey] ?? 'Ask AI to help with this stage...'
 
   return (
     <div className='flex h-full flex-col'>
@@ -110,9 +152,7 @@ export function StudioStageDetail() {
           {project ? (
             <p className='text-muted-foreground truncate text-xs'>
               {project.name}
-              {statusConfig
-                ? ` · ${t(statusConfig.labelKey)}`
-                : null}
+              {statusConfig ? ` · ${t(statusConfig.labelKey)}` : null}
             </p>
           ) : null}
         </div>
@@ -128,7 +168,7 @@ export function StudioStageDetail() {
             </p>
           ) : null}
 
-          {/* Stage-specific content placeholder */}
+          {/* Characters list */}
           {stageKey === 'characters' && characters.length > 0 ? (
             <div className='space-y-3'>
               <h2 className='text-sm font-medium'>
@@ -152,6 +192,7 @@ export function StudioStageDetail() {
             </div>
           ) : null}
 
+          {/* Shots list */}
           {(stageKey === 'storyboard' ||
             stageKey === 'image_gen' ||
             stageKey === 'video_gen') &&
@@ -166,7 +207,7 @@ export function StudioStageDetail() {
                     key={shot.id}
                     className='border-border flex items-start gap-3 rounded-lg border p-3'
                   >
-                    <span className='text-muted-foreground shrink-0 text-xs font-mono'>
+                    <span className='text-muted-foreground shrink-0 font-mono text-xs'>
                       S{shot.scene_number}-{shot.shot_number}
                     </span>
                     <div className='min-w-0 flex-1'>
@@ -192,17 +233,76 @@ export function StudioStageDetail() {
             </div>
           ) : null}
 
-          {/* Placeholder for stages with no specific content yet */}
-          {stageKey !== 'characters' &&
-          stageKey !== 'storyboard' &&
-          stageKey !== 'image_gen' &&
-          stageKey !== 'video_gen' ? (
-            <div className='text-muted-foreground flex h-40 items-center justify-center text-sm'>
-              {t('Stage workspace — coming soon.')}
+          {/* Chat messages */}
+          {messages.length > 0 ? (
+            <div className='mt-6 space-y-4'>
+              {messages.map((msg) => (
+                <ChatBubble key={msg.id} message={msg} />
+              ))}
             </div>
           ) : null}
         </div>
       </ScrollArea>
+
+      {/* Chat input bar */}
+      <div className='border-border shrink-0 border-t p-3'>
+        <PromptInput
+          onSubmit={handleSubmit}
+          className='rounded-lg border shadow-sm'
+        >
+          <PromptInputTextarea
+            placeholder={t(placeholder)}
+            className='min-h-[40px] resize-none text-sm'
+          />
+          <PromptInputFooter className='justify-end p-1'>
+            {isStreaming ? (
+              <Button
+                type='button'
+                size='icon'
+                variant='ghost'
+                className='size-7'
+                onClick={stopGeneration}
+                aria-label={t('Stop')}
+              >
+                <SquareIcon className='size-4' aria-hidden='true' />
+              </Button>
+            ) : (
+              <PromptInputSubmit className='size-7' />
+            )}
+          </PromptInputFooter>
+        </PromptInput>
+      </div>
+    </div>
+  )
+}
+
+function ChatBubble(props: { message: StageChatMessage }) {
+  const { message } = props
+  const isUser = message.role === 'user'
+
+  return (
+    <div className={isUser ? 'flex justify-end' : ''}>
+      <div
+        className={
+          isUser
+            ? 'bg-primary text-primary-foreground max-w-[80%] rounded-lg px-3 py-2 text-sm'
+            : 'max-w-[80%] text-sm'
+        }
+      >
+        {isUser ? (
+          message.content
+        ) : message.status === 'loading' ? (
+          <span className='text-muted-foreground animate-pulse text-xs'>
+            ···
+          </span>
+        ) : message.status === 'error' ? (
+          <span className='text-destructive text-xs'>{message.content}</span>
+        ) : (
+          <div className='prose dark:prose-invert prose-sm'>
+            <Markdown content={message.content} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

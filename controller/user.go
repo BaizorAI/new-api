@@ -645,6 +645,9 @@ func GetUserModels(c *gin.Context) {
 			if capability == "image" && !common.IsImageGenerationModel(g) {
 				continue
 			}
+			if capability == "video" && !common.IsVideoGenerationModel(g) {
+				continue
+			}
 			if !common.StringsContains(models, g) {
 				models = append(models, g)
 			}

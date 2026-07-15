@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
 import {
   Clapperboard,
   FolderPlus,
@@ -39,6 +39,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 
 import { deleteStudioProject, getStudioProjects } from './api'
+import { StudioProjectMutateDrawer } from './components/studio-project-mutate-drawer'
 import {
   PROJECT_STATUS_CONFIG,
   STUDIO_QUERY_KEYS,
@@ -47,10 +48,13 @@ import {
 } from './constants'
 import type { StudioProject } from './types'
 
+const route = getRouteApi('/_authenticated/studio/')
+
 export function StudioProjectList() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { action } = route.useSearch()
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const { data, isLoading } = useQuery({
@@ -129,6 +133,16 @@ export function StudioProjectList() {
           </div>
         )}
       </ScrollArea>
+
+      {/* Create/Edit drawer */}
+      <StudioProjectMutateDrawer
+        open={action === 'create'}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            void navigate({ to: '/studio', search: {} })
+          }
+        }}
+      />
     </div>
   )
 }
