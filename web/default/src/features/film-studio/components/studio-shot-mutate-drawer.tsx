@@ -68,6 +68,7 @@ const shotFormSchema = z.object({
   camera_angle: z.string().max(100).default(''),
   camera_move: z.string().max(100).default(''),
   duration: z.coerce.number().min(0).default(0),
+  image_prompt: z.string().max(1000).default(''),
 })
 
 type ShotFormValues = z.infer<typeof shotFormSchema>
@@ -79,6 +80,7 @@ const DEFAULT_VALUES: ShotFormValues = {
   camera_angle: '',
   camera_move: '',
   duration: 0,
+  image_prompt: '',
 }
 
 function shotToFormValues(shot: StudioShot): ShotFormValues {
@@ -89,6 +91,7 @@ function shotToFormValues(shot: StudioShot): ShotFormValues {
     camera_angle: shot.camera_angle,
     camera_move: shot.camera_move,
     duration: shot.duration,
+    image_prompt: shot.image_prompt,
   }
 }
 
@@ -272,6 +275,27 @@ export function StudioShotMutateDrawer({
                     </FormControl>
                     <FormDescription>
                       {t('Optional. Shot duration in seconds.')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='image_prompt'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Image Prompt')}</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder={t('Describe the visual for image generation...')}
+                        className='h-20 resize-y text-sm'
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('Optional. Used for AI image generation.')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
