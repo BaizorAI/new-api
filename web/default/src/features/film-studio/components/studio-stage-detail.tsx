@@ -856,7 +856,7 @@ export function StudioStageDetail() {
                           </div>
                         ) : null}
                         <span className='text-muted-foreground shrink-0 font-mono text-xs'>
-                          S{shot.scene_number}-{shot.shot_number}
+                          {t('S{{scene}}-{{shot}}', { scene: shot.scene_number, shot: shot.shot_number })}
                         </span>
                         <div className='min-w-0 flex-1'>
                           <p className='text-sm'>{shot.description}</p>
