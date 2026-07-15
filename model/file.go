@@ -7,7 +7,7 @@ import (
 )
 
 // File represents a stored file uploaded through the OpenAI-compatible
-// Files API.  File content lives on disk under data/files/; this row
+// Files API.  File content lives on disk under files/; this row
 // holds the metadata.
 type File struct {
 	ID        int            `json:"id" gorm:"primaryKey"`

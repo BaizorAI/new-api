@@ -17,7 +17,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const filesUploadDir = "data/files"
+const filesUploadDir = "files"
 
 func init() {
 	if err := os.MkdirAll(filesUploadDir, 0o755); err != nil {

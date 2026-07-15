@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,7 +21,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const imagePlaygroundDir = "data/image-playground"
+const imagePlaygroundDir = "image-playground"
 
 func init() {
 	if err := os.MkdirAll(imagePlaygroundDir, 0o755); err != nil {
@@ -161,15 +162,27 @@ func runImagePlaygroundGeneration(recordId int) {
 		return
 	}
 
-	upstreamURL := imgResp.Data[0].Url
-	revisedPrompt := imgResp.Data[0].RevisedPrompt
+	imgData := imgResp.Data[0]
+	revisedPrompt := imgData.RevisedPrompt
 
-	// Download the image from upstream and save to local data directory
-	localPath, err := downloadAndSaveImage(recordId, upstreamURL)
-	if err != nil {
-		common.SysError("image playground: failed to save image locally: " + err.Error())
-		// Fall back to upstream URL if local save fails
-		localPath = upstreamURL
+	// Save image locally — handle both url and b64_json responses
+	var localPath string
+	if imgData.Url != "" {
+		localPath, err = downloadAndSaveImage(recordId, imgData.Url)
+		if err != nil {
+			common.SysError("image playground: failed to download image: " + err.Error())
+			localPath = imgData.Url // fall back to upstream URL
+		}
+	} else if imgData.B64Json != "" {
+		localPath, err = saveBase64Image(recordId, imgData.B64Json)
+		if err != nil {
+			common.SysError("image playground: failed to save base64 image: " + err.Error())
+			_ = model.UpdateImagePlaygroundHistoryError(recordId, "failed to save image: "+err.Error())
+			return
+		}
+	} else {
+		_ = model.UpdateImagePlaygroundHistoryError(recordId, "no image url or base64 data in response")
+		return
 	}
 
 	if err := model.UpdateImagePlaygroundHistoryResult(recordId, localPath, revisedPrompt); err != nil {
@@ -223,6 +236,28 @@ func downloadAndSaveImage(recordId int, upstreamURL string) (string, error) {
 	dst.Close()
 
 	// Return the URL path for serving via router.Static
+	return "/image-playground/" + filename, nil
+}
+
+// saveBase64Image decodes a base64-encoded image and saves it to disk.
+// Some upstream providers return b64_json instead of a URL.
+func saveBase64Image(recordId int, b64data string) (string, error) {
+	if b64data == "" {
+		return "", fmt.Errorf("empty base64 data")
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(b64data)
+	if err != nil {
+		return "", fmt.Errorf("base64 decode failed: %w", err)
+	}
+
+	filename := fmt.Sprintf("%d.png", recordId)
+	diskPath := filepath.Join(imagePlaygroundDir, filename)
+
+	if err := os.WriteFile(diskPath, decoded, 0o644); err != nil {
+		return "", fmt.Errorf("write file failed: %w", err)
+	}
+
 	return "/image-playground/" + filename, nil
 }
 

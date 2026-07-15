@@ -31,8 +31,8 @@ func SetRouter(router *gin.Engine, assets ThemeAssets) {
 	router.Static("/ocr", "./ocr")
 
 	// Serve locally saved image-playground images.
-	// Files are written by controller.downloadAndSaveImage under data/image-playground/.
-	router.Static("/image-playground", "./data/image-playground")
+	// Files are written by controller.downloadAndSaveImage under image-playground/.
+	router.Static("/image-playground", "./image-playground")
 
 	frontendBaseUrl := os.Getenv("FRONTEND_BASE_URL")
 	if common.IsMasterNode && frontendBaseUrl != "" {
