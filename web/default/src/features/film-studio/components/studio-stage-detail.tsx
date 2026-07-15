@@ -145,7 +145,8 @@ export function StudioStageDetail() {
       id > 0 &&
       (stageKey === 'storyboard' ||
         stageKey === 'image_gen' ||
-        stageKey === 'video_gen'),
+        stageKey === 'video_gen' ||
+        stageKey === 'review'),
   })
 
   const { data: charsData } = useQuery({
@@ -317,6 +318,7 @@ export function StudioStageDetail() {
                               variant='ghost'
                               size='icon'
                               className='size-7 shrink-0 opacity-0 group-hover:opacity-100'
+                              aria-label={t('More actions')}
                             >
                               <MoreHorizontal className='size-4' />
                             </Button>
@@ -706,6 +708,7 @@ export function StudioStageDetail() {
                             variant='ghost'
                             size='icon'
                             className='size-7 shrink-0 opacity-0 group-hover:opacity-100'
+                            aria-label={t('More actions')}
                           >
                             <MoreHorizontal className='size-4' />
                           </Button>
@@ -738,6 +741,20 @@ export function StudioStageDetail() {
                 </div>
               ) : null}
             </div>
+          ) : null}
+
+          {/* Post-production checklist */}
+          {stageKey === 'post' ? (
+            <PostProductionSection
+              outputData={stage?.output_data ?? ''}
+              projectId={id}
+              stageKey={stageKey}
+            />
+          ) : null}
+
+          {/* Final review gallery */}
+          {stageKey === 'review' ? (
+            <ReviewGallerySection shots={shots} />
           ) : null}
 
           {/* Chat messages */}

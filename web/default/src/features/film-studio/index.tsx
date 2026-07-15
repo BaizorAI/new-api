@@ -247,6 +247,7 @@ function ProjectCard(props: {
               size='icon'
               className='size-7 shrink-0 opacity-0 group-hover:opacity-100'
               onClick={(e) => e.preventDefault()}
+              aria-label={t('More actions')}
             >
               <MoreHorizontal className='size-4' />
             </Button>
