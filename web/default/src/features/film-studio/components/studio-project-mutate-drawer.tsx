@@ -72,6 +72,7 @@ import type { StudioProject } from '../types'
 
 const GENRE_LABELS: Record<string, string> = {
   short_film: 'Short Film',
+  short_drama: 'Short Drama',
   commercial: 'Commercial',
   music_video: 'Music Video',
   animation: 'Animation',

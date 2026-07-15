@@ -20,24 +20,36 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
 import {
   ArrowLeft,
+  Bot,
+  Check,
   ChevronDown,
   ChevronUp,
   ImagePlus,
   Images,
   Loader2,
+  MessageSquareQuote,
   MoreHorizontal,
   Pencil,
   Play,
   Plus,
   RefreshCw,
+  Sparkles,
   SquareIcon,
   Trash2,
   Video,
   Wand2,
+  X,
 } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+} from '@/components/ai-elements/conversation'
 import {
   PromptInput,
   PromptInputFooter,
@@ -57,6 +69,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Markdown } from '@/components/ui/markdown'
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/components/ui/resizable'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 import {
@@ -64,6 +81,8 @@ import {
   getStudioProject,
   getStudioShots,
   getStudioStages,
+  studioAgentCreate,
+  studioQuickGenerate,
   updateStudioStage,
 } from '../api'
 import {
@@ -83,7 +102,7 @@ import { useSwapShotOrder } from '../hooks/use-studio-mutations'
 import type { StudioCharacter, StudioShot } from '../types'
 import { StudioCharacterDeleteDialog } from './studio-character-delete-dialog'
 import { StudioCharacterMutateDrawer } from './studio-character-mutate-drawer'
-import { StudioScriptEditor } from './studio-script-editor'
+import { StudioScriptEditor, type ScriptEditorHandle } from './studio-script-editor'
 import { StudioShotDeleteDialog } from './studio-shot-delete-dialog'
 import { StudioShotMutateDrawer } from './studio-shot-mutate-drawer'
 
@@ -96,6 +115,17 @@ const STAGE_PLACEHOLDERS: Record<string, string> = {
   video_gen: 'Describe video generation requirements...',
   post: 'Describe post-production needs (audio, transitions, effects)...',
   review: 'Ask for a review of the final output...',
+}
+
+// Maps each pipeline stage to its corresponding Hermes skill
+const STAGE_SKILL_MAP: Record<string, string> = {
+  script: 'script-analyzer',
+  characters: 'character-designer',
+  storyboard: 'shot-planner',
+  image_gen: 'batch-generator',
+  video_gen: 'batch-generator',
+  post: 'post-production',
+  review: 'quality-checker',
 }
 
 type DialogType = 'create' | 'update' | 'delete'
@@ -122,18 +152,26 @@ export function StudioStageDetail() {
     label: string
   } | null>(null)
 
+  // Script editor imperative handle + selection state (script stage only)
+  const scriptEditorRef = useRef<ScriptEditorHandle>(null)
+  const [currentSelection, setCurrentSelection] = useState<{
+    start: number
+    end: number
+    text: string
+  } | null>(null)
+
   const stageConfig = useMemo(
     () => PIPELINE_STAGES.find((s) => s.key === stageKey),
     [stageKey]
   )
 
-  const { data: projectData } = useQuery({
+  const { data: projectData, isLoading: isLoadingProject } = useQuery({
     queryKey: [...STUDIO_QUERY_KEYS.project(id)],
     queryFn: () => getStudioProject(id),
     enabled: id > 0,
   })
 
-  const { data: stagesData } = useQuery({
+  const { data: stagesData, isLoading: isLoadingStages } = useQuery({
     queryKey: [...STUDIO_QUERY_KEYS.stages(id)],
     queryFn: () => getStudioStages(id),
     enabled: id > 0,
@@ -156,6 +194,8 @@ export function StudioStageDetail() {
     enabled: id > 0 && stageKey === 'characters',
   })
 
+  const isPageLoading = isLoadingProject || isLoadingStages
+
   const { messages, sendMessage, stopGeneration, isStreaming } =
     useStudioStageChat({ projectId: id, stageKey })
 
@@ -175,6 +215,10 @@ export function StudioStageDetail() {
   const { extractShots, isExtracting: isExtractingShots } =
     useExtractShots(id)
   const swapShotOrder = useSwapShotOrder(id)
+
+  // Agent create & quick generate state
+  const [isAgentCreating, setIsAgentCreating] = useState(false)
+  const [isQuickAnalyzing, setIsQuickAnalyzing] = useState(false)
 
   const project = projectData?.data
   const stages = stagesData?.data ?? []
@@ -196,10 +240,66 @@ export function StudioStageDetail() {
     (message: PromptInputMessage) => {
       const text = (message.text ?? '').trim()
       if (!text || isStreaming) return
-      sendMessage(text)
+
+      // For script stage, inject script content + selection as context
+      if (stageKey === 'script') {
+        const fullScript = scriptEditorRef.current?.getText() ?? ''
+        sendMessage(text, {
+          scriptContext: fullScript || undefined,
+          selectionContext: currentSelection?.text ?? undefined,
+        })
+        setCurrentSelection(null)
+      } else {
+        sendMessage(text)
+      }
     },
-    [isStreaming, sendMessage]
+    [isStreaming, sendMessage, stageKey, currentSelection]
   )
+
+  const handleAgentCreate = useCallback(async () => {
+    const skill = STAGE_SKILL_MAP[stageKey]
+    if (!skill) return
+    setIsAgentCreating(true)
+    try {
+      const result = await studioAgentCreate(id, {
+        skill,
+        stage_key: stageKey,
+        context: scriptText || undefined,
+      })
+      if (result.success) {
+        toast.success(
+          t('Agent task created: {{title}}', { title: result.data?.title ?? skill })
+        )
+      } else {
+        toast.error(result.message ?? t('Failed to create agent task.'))
+      }
+    } catch {
+      toast.error(t('Failed to create agent task.'))
+    } finally {
+      setIsAgentCreating(false)
+    }
+  }, [id, stageKey, scriptText, t])
+
+  const handleQuickAnalyze = useCallback(async () => {
+    if (!scriptText.trim()) return
+    setIsQuickAnalyzing(true)
+    try {
+      const result = await studioQuickGenerate(id, {
+        type: 'analyze',
+        prompt: scriptText,
+        stage_key: stageKey,
+      })
+      if (result.success && result.data?.text) {
+        toast.success(t('Analysis complete.'))
+      } else {
+        toast.error(result.message ?? t('Analysis failed.'))
+      }
+    } catch {
+      toast.error(t('Analysis failed.'))
+    } finally {
+      setIsQuickAnalyzing(false)
+    }
+  }, [id, stageKey, scriptText, t])
 
   const placeholder =
     STAGE_PLACEHOLDERS[stageKey] ?? 'Ask AI to help with this stage...'
@@ -213,6 +313,41 @@ export function StudioStageDetail() {
   const shotsWithoutVideo = shots.filter((s) => !s.video_url)
   const isBatchImgGenerating = generatingIds.size > 0
   const isBatchVidGenerating = videoGeneratingIds.size > 0
+
+  if (isPageLoading) {
+    return (
+      <div className='flex h-full flex-col'>
+        <div className='border-border flex items-center gap-3 border-b px-6 py-4'>
+          <Button variant='ghost' size='icon' className='size-8' asChild>
+            <Link
+              to='/studio/$projectId'
+              params={{ projectId: String(id) }}
+            >
+              <ArrowLeft className='size-4' />
+            </Link>
+          </Button>
+          <div className='min-w-0 flex-1'>
+            <div className='flex items-center gap-2'>
+              {stageConfig ? (
+                <span className='text-base' aria-hidden='true'>
+                  {stageConfig.icon}
+                </span>
+              ) : null}
+              <h1 className='truncate text-lg font-semibold'>
+                {stageConfig ? t(stageConfig.labelKey) : stageKey}
+              </h1>
+            </div>
+          </div>
+        </div>
+        <div className='flex flex-1 items-center justify-center'>
+          <div className='flex items-center gap-2'>
+            <Loader2 className='text-muted-foreground size-5 animate-spin' />
+            <p className='text-muted-foreground text-sm'>{t('Loading...')}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className='flex h-full flex-col'>
@@ -244,26 +379,183 @@ export function StudioStageDetail() {
             </p>
           ) : null}
         </div>
+
+        {/* AI action buttons */}
+        <div className='flex items-center gap-2'>
+          {stageKey === 'script' && scriptText.trim() ? (
+            <Button
+              size='sm'
+              variant='outline'
+              disabled={isQuickAnalyzing}
+              onClick={() => void handleQuickAnalyze()}
+            >
+              {isQuickAnalyzing ? (
+                <Loader2
+                  className='mr-1.5 size-3.5 animate-spin'
+                  aria-hidden='true'
+                />
+              ) : (
+                <Sparkles
+                  className='mr-1.5 size-3.5'
+                  aria-hidden='true'
+                />
+              )}
+              {isQuickAnalyzing
+                ? t('Analyzing...')
+                : t('Quick Analyze')}
+            </Button>
+          ) : null}
+          {STAGE_SKILL_MAP[stageKey] ? (
+            <Button
+              size='sm'
+              variant='outline'
+              disabled={isAgentCreating}
+              onClick={() => void handleAgentCreate()}
+            >
+              {isAgentCreating ? (
+                <Loader2
+                  className='mr-1.5 size-3.5 animate-spin'
+                  aria-hidden='true'
+                />
+              ) : (
+                <Bot
+                  className='mr-1.5 size-3.5'
+                  aria-hidden='true'
+                />
+              )}
+              {isAgentCreating
+                ? t('Creating...')
+                : t('AI Agent')}
+            </Button>
+          ) : null}
+        </div>
       </div>
 
-      {/* Stage content area */}
-      <ScrollArea className='flex-1'>
-        <div className='mx-auto max-w-4xl p-6'>
-          {/* Stage description */}
-          {stageConfig ? (
-            <p className='text-muted-foreground mb-6 text-sm'>
-              {t(stageConfig.descriptionKey)}
-            </p>
-          ) : null}
+      {/* Stage content area — script stage gets side-by-side layout */}
+      {stageKey === 'script' ? (
+        <ResizablePanelGroup orientation='horizontal' className='min-h-0 flex-1'>
+          {/* Left panel: Script editor */}
+          <ResizablePanel defaultSize={55} minSize={30}>
+            <ScrollArea className='h-full'>
+              <div className='p-6'>
+                {stageConfig ? (
+                  <p className='text-muted-foreground mb-6 text-sm'>
+                    {t(stageConfig.descriptionKey)}
+                  </p>
+                ) : null}
+                <StudioScriptEditor
+                  ref={scriptEditorRef}
+                  projectId={id}
+                  stageKey={stageKey}
+                  initialContent={stage?.output_data ?? ''}
+                  onSelectionChange={setCurrentSelection}
+                />
+              </div>
+            </ScrollArea>
+          </ResizablePanel>
 
-          {/* Script editor */}
-          {stageKey === 'script' ? (
-            <StudioScriptEditor
-              projectId={id}
-              stageKey={stageKey}
-              initialContent={stage?.output_data ?? ''}
-            />
-          ) : null}
+          <ResizableHandle withHandle />
+
+          {/* Right panel: AI Chat */}
+          <ResizablePanel defaultSize={45} minSize={25}>
+            <div className='flex h-full flex-col'>
+              {/* Chat messages with auto-scroll */}
+              <Conversation className='min-h-0 flex-1'>
+                <ConversationContent className='space-y-4'>
+                  {messages.length === 0 ? (
+                    <ConversationEmptyState
+                      title={t('Script Assistant')}
+                      description={t('AI will modify your script based on the response.')}
+                      icon={<Bot className='size-8' />}
+                    />
+                  ) : (
+                    messages.map((msg) => (
+                      <ScriptChatBubble
+                        key={msg.id}
+                        message={msg}
+                        onApply={(content) => {
+                          if (currentSelection) {
+                            scriptEditorRef.current?.replaceRange(
+                              currentSelection.start,
+                              currentSelection.end,
+                              content
+                            )
+                          } else {
+                            scriptEditorRef.current?.setText(content)
+                          }
+                        }}
+                      />
+                    ))
+                  )}
+                </ConversationContent>
+                <ConversationScrollButton />
+              </Conversation>
+
+              {/* Selection banner */}
+              {currentSelection?.text ? (
+                <div className='bg-muted/50 flex items-center gap-2 border-t px-3 py-1.5'>
+                  <MessageSquareQuote className='text-muted-foreground size-3.5 shrink-0' />
+                  <span className='text-muted-foreground min-w-0 flex-1 truncate text-xs'>
+                    {t('Selected: "{{text}}"', {
+                      text: currentSelection.text.length > 60
+                        ? currentSelection.text.slice(0, 60) + '…'
+                        : currentSelection.text,
+                    })}
+                  </span>
+                  <Button
+                    size='sm'
+                    variant='ghost'
+                    className='size-6 shrink-0 p-0'
+                    onClick={() => setCurrentSelection(null)}
+                    aria-label={t('Clear selection')}
+                  >
+                    <X className='size-3' />
+                  </Button>
+                </div>
+              ) : null}
+
+              {/* Chat input */}
+              <div className='border-border shrink-0 border-t p-3'>
+                <PromptInput
+                  onSubmit={handleSubmit}
+                  className='rounded-lg border shadow-sm'
+                >
+                  <PromptInputTextarea
+                    placeholder={t(placeholder)}
+                    className='min-h-[40px] resize-none text-sm'
+                  />
+                  <PromptInputFooter className='justify-end p-1'>
+                    {isStreaming ? (
+                      <Button
+                        type='button'
+                        size='icon'
+                        variant='ghost'
+                        className='size-7'
+                        onClick={stopGeneration}
+                        aria-label={t('Stop')}
+                      >
+                        <SquareIcon className='size-4' aria-hidden='true' />
+                      </Button>
+                    ) : (
+                      <PromptInputSubmit className='size-7' />
+                    )}
+                  </PromptInputFooter>
+                </PromptInput>
+              </div>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        <>
+          {/* Non-script stages: existing vertical layout */}
+          <ScrollArea className='min-h-0 flex-1'>
+            <div className='mx-auto max-w-4xl p-6'>
+              {/* Stage description */}
+              {stageConfig ? (
+                <p className='text-muted-foreground mb-6 text-sm'>
+                  {t(stageConfig.descriptionKey)}
+                </p>
+              ) : null}
 
           {/* Characters section */}
           {stageKey === 'characters' ? (
@@ -769,7 +1061,7 @@ export function StudioStageDetail() {
         </div>
       </ScrollArea>
 
-      {/* Chat input bar */}
+      {/* Chat input bar for non-script stages */}
       <div className='border-border shrink-0 border-t p-3'>
         <PromptInput
           onSubmit={handleSubmit}
@@ -797,6 +1089,8 @@ export function StudioStageDetail() {
           </PromptInputFooter>
         </PromptInput>
       </div>
+        </>
+      )}
 
       {/* Character dialogs */}
       <StudioCharacterMutateDrawer
@@ -1046,10 +1340,77 @@ function ChatBubble(props: { message: StageChatMessage }) {
           <span className='text-destructive text-xs'>{message.content}</span>
         ) : (
           <div className='prose dark:prose-invert prose-sm'>
-            <Markdown content={message.content} />
+            <Markdown>{message.content}</Markdown>
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// Script-specific Chat Bubble with "Apply to Script" button
+// ============================================================================
+
+function extractScriptBlock(content: string): string | null {
+  const match = content.match(/```script\n([\s\S]*?)```/)
+  return match?.[1]?.trimEnd() ?? null
+}
+
+function ScriptChatBubble(props: {
+  message: StageChatMessage
+  onApply?: (content: string) => void
+}) {
+  const { t } = useTranslation()
+  const { message, onApply } = props
+  const isUser = message.role === 'user'
+  const [applied, setApplied] = useState(false)
+
+  const scriptBlock =
+    !isUser && message.status === 'complete'
+      ? extractScriptBlock(message.content)
+      : null
+
+  return (
+    <div className={isUser ? 'flex justify-end' : ''}>
+      <div
+        className={
+          isUser
+            ? 'bg-primary text-primary-foreground max-w-[80%] rounded-lg px-3 py-2 text-sm'
+            : 'max-w-[80%] text-sm'
+        }
+      >
+        {isUser ? (
+          message.content
+        ) : message.status === 'loading' ? (
+          <span className='text-muted-foreground animate-pulse text-xs'>
+            ···
+          </span>
+        ) : message.status === 'error' ? (
+          <span className='text-destructive text-xs'>{message.content}</span>
+        ) : (
+          <div className='prose dark:prose-invert prose-sm'>
+            <Markdown>{message.content}</Markdown>
+          </div>
+        )}
+      </div>
+      {scriptBlock && onApply ? (
+        <div className='mt-1'>
+          <Button
+            size='sm'
+            variant={applied ? 'ghost' : 'outline'}
+            className='h-7 gap-1 px-2 text-xs'
+            disabled={applied}
+            onClick={() => {
+              onApply(scriptBlock)
+              setApplied(true)
+            }}
+          >
+            <Check className='size-3' aria-hidden='true' />
+            {applied ? t('Applied') : t('Apply to Script')}
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -236,3 +236,31 @@ export async function studioShotGenerate(
   )
   return res.data
 }
+
+// ============================================================================
+// AI Agent (Hermes Execution Tasks)
+// ============================================================================
+
+export interface StudioAgentCreateRequest {
+  skill: string
+  stage_key?: string
+  context?: string
+  model?: string
+}
+
+export interface StudioAgentCreateResponse {
+  task_id: string
+  status: string
+  title: string
+}
+
+export async function studioAgentCreate(
+  projectId: number,
+  data: StudioAgentCreateRequest
+): Promise<ApiResponse<StudioAgentCreateResponse>> {
+  const res = await api.post(
+    `/api/studio/projects/${projectId}/agent-create`,
+    data
+  )
+  return res.data
+}

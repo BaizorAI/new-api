@@ -35,12 +35,14 @@ interface UseStudioStageChatOptions {
   projectId: number
   stageKey: string
   model?: string
+  onMessageComplete?: (messageId: string, content: string) => void
 }
 
 export function useStudioStageChat({
   projectId,
   stageKey,
   model = 'huayu-v2',
+  onMessageComplete,
 }: UseStudioStageChatOptions) {
   const [messages, setMessages] = useState<StageChatMessage[]>([])
   const { sendStreamRequest, stopStream } = useStreamRequest()
@@ -63,8 +65,11 @@ export function useStudioStageChat({
     [hermesSessionId]
   )
 
+  const onMessageCompleteRef = useRef(onMessageComplete)
+  onMessageCompleteRef.current = onMessageComplete
+
   const sendMessage = useCallback(
-    (text: string) => {
+    (text: string, opts?: { scriptContext?: string; selectionContext?: string }) => {
       if (isStreamingRef.current) return
 
       const userMessage: StageChatMessage = {
@@ -85,6 +90,16 @@ export function useStudioStageChat({
       isStreamingRef.current = true
 
       const chatMessages: ChatCompletionRequest['messages'] = []
+
+      // Inject script context as a system message if provided
+      if (opts?.scriptContext) {
+        let systemContent = `你是影视剧本创作助手。以下是当前剧本全文：\n---\n${opts.scriptContext}\n---\n`
+        if (opts.selectionContext) {
+          systemContent += `用户选中了以下段落请你重点关注：\n${opts.selectionContext}\n\n`
+        }
+        systemContent += '请根据用户的指令修改剧本。回复时直接给出修改后的完整段落（或完整剧本），用 ```script 代码块包裹修改内容。'
+        chatMessages.push({ role: 'system', content: systemContent })
+      }
 
       // Include recent chat history
       for (const msg of messages.slice(-6)) {
@@ -117,9 +132,12 @@ export function useStudioStageChat({
           setMessages((prev) => {
             const last = prev[prev.length - 1]
             if (!last || last.role !== 'assistant') return prev
+            const completed = { ...last, status: 'complete' as const }
+            // Notify parent that the assistant message is complete
+            onMessageCompleteRef.current?.(completed.id, completed.content)
             return [
               ...prev.slice(0, -1),
-              { ...last, status: 'complete' },
+              completed,
             ]
           })
         },

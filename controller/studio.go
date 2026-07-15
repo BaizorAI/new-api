@@ -1,11 +1,16 @@
 package controller
 
 import (
+	"bytes"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"strings"
 
 	"github.com/BaizorAI/new-api/common"
+	"github.com/BaizorAI/new-api/constant"
+	"github.com/BaizorAI/new-api/middleware"
 	"github.com/BaizorAI/new-api/model"
 	"github.com/gin-gonic/gin"
 )
@@ -711,8 +716,37 @@ func StudioQuickGenerate(c *gin.Context) {
 		})
 
 	case "analyze", "describe":
-		common.ApiErrorMsg(c, fmt.Sprintf("type %q is not yet implemented", req.Type))
-		return
+		// Build a chat completion request via relay
+		systemPrompt := studioQuickGenSystemPrompt(req.Type, req.StageKey)
+		payload := map[string]any{
+			"model": req.Model,
+			"messages": []map[string]string{
+				{"role": "system", "content": systemPrompt},
+				{"role": "user", "content": req.Prompt},
+			},
+			"stream":      false,
+			"temperature": 0.3,
+		}
+
+		responseBody, statusCode, err := executeStudioChatCompletion(userId, payload)
+		if err != nil {
+			common.ApiErrorMsg(c, "generation failed: "+err.Error())
+			return
+		}
+		if statusCode < 200 || statusCode >= 300 {
+			errMsg := extractImagePlaygroundError(responseBody, statusCode)
+			common.ApiErrorMsg(c, "generation failed: "+errMsg)
+			return
+		}
+
+		// Extract the assistant message content from the response
+		text := extractChatCompletionContent(responseBody)
+
+		common.ApiSuccess(c, studioQuickGenResponse{
+			Type:   req.Type,
+			Text:   text,
+			ShotId: req.ShotId,
+		})
 
 	default:
 		common.ApiErrorMsg(c, "unsupported type: "+req.Type)
@@ -899,4 +933,219 @@ func studioWritebackVideoToShot(recordId, projectId, shotId int) {
 		common.SysError("studio shot-gen: writeback video to shot error: " + err.Error())
 	}
 	syncShotStageStats(projectId)
+}
+
+// ── Chat Completion Relay Helpers ─────────────────────────────────
+
+// executeStudioChatCompletion builds a synthetic request to the playground
+// chat completion relay, following the same pattern as executeHermesCompletionTask.
+func executeStudioChatCompletion(userId int, payload map[string]any) ([]byte, int, error) {
+	payload["stream"] = false
+	payloadBytes, err := common.Marshal(payload)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+
+	request := httptest.NewRequest(http.MethodPost, "/pg/chat/completions", bytes.NewReader(payloadBytes))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("New-Api-User", strconv.Itoa(userId))
+
+	response := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(response)
+	c.Request = request
+
+	c.Set(middleware.PlaygroundContextKey, true)
+	c.Set("id", userId)
+	c.Set("use_access_token", false)
+
+	userCache, err := model.GetUserCache(userId)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+	c.Set("username", userCache.Username)
+	c.Set("role", userCache.Role)
+	c.Set("group", userCache.Group)
+	c.Set("user_group", userCache.Group)
+	userCache.WriteContext(c)
+	common.SetContextKey(c, constant.ContextKeyUsingGroup, userCache.Group)
+
+	middleware.Distribute()(c)
+	if c.IsAborted() {
+		common.CleanupBodyStorage(c)
+		return response.Body.Bytes(), response.Code, nil
+	}
+
+	Playground(c)
+	common.CleanupBodyStorage(c)
+	return response.Body.Bytes(), response.Code, nil
+}
+
+// extractChatCompletionContent extracts the assistant message text from
+// an OpenAI-format chat completion response.
+func extractChatCompletionContent(body []byte) string {
+	var resp struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := common.Unmarshal(body, &resp); err == nil && len(resp.Choices) > 0 {
+		return resp.Choices[0].Message.Content
+	}
+	return ""
+}
+
+// studioQuickGenSystemPrompt returns the system prompt for analyze/describe
+// operations, tailored to the stage context.
+func studioQuickGenSystemPrompt(genType, stageKey string) string {
+	switch genType {
+	case "analyze":
+		switch stageKey {
+		case "script":
+			return `You are a professional screenplay analyst. Analyze the given screenplay and output a structured JSON object with the following fields:
+- "scenes": array of {scene_number, location, time_of_day, description, characters}
+- "characters": array of {name, description, appearances}
+- "estimated_duration_minutes": number
+- "genre_suggestions": array of strings
+- "quality_notes": array of improvement suggestions
+Output ONLY valid JSON, no other text.`
+		case "storyboard":
+			return `You are a storyboard analyst. Analyze the given shot list and provide a structured JSON critique:
+- "coverage_gaps": scenes or actions not covered by shots
+- "pacing_analysis": assessment of shot durations and rhythm
+- "visual_variety": assessment of camera angle and movement diversity
+- "improvement_suggestions": array of specific recommendations
+Output ONLY valid JSON, no other text.`
+		default:
+			return `You are a creative production analyst. Analyze the given content and provide structured JSON feedback with "strengths", "weaknesses", and "suggestions" arrays. Output ONLY valid JSON, no other text.`
+		}
+	case "describe":
+		return `You are a visual description specialist for film production. Given the scene or shot description, write a detailed visual prompt suitable for AI image generation. Include:
+- Setting and environment details
+- Lighting and atmosphere
+- Character positions and expressions
+- Camera perspective
+- Color palette and mood
+Write a single detailed paragraph, no JSON or formatting.`
+	default:
+		return "You are a helpful assistant for film production."
+	}
+}
+
+// ── Agent Create ─────────────────────────────────────────────────
+
+type studioAgentCreateRequest struct {
+	Skill    string `json:"skill"`     // e.g. "script-analyzer", "character-designer"
+	StageKey string `json:"stage_key"` // which stage
+	Context  string `json:"context"`   // optional additional context
+	Model    string `json:"model"`     // override model
+}
+
+// StudioAgentCreate POST /api/studio/projects/:id/agent-create
+// Creates a HermesExecutionTask that activates a MagicalBrush skill.
+// Returns the task_id for polling.
+func StudioAgentCreate(c *gin.Context) {
+	project, ok := studioProjectFromParam(c)
+	if !ok {
+		return
+	}
+
+	var req studioAgentCreateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiErrorMsg(c, "invalid request body")
+		return
+	}
+	if req.Skill == "" {
+		common.ApiErrorMsg(c, "skill is required")
+		return
+	}
+	if req.StageKey == "" {
+		req.StageKey = "script"
+	}
+	if req.Model == "" {
+		req.Model = "huayu-v2"
+	}
+
+	userId := c.GetInt("id")
+
+	// Build the system prompt based on the skill
+	systemPrompt := studioSkillSystemPrompt(req.Skill)
+	userMessage := req.Context
+	if userMessage == "" {
+		userMessage = fmt.Sprintf("Execute the %s skill for project '%s', stage '%s'.", req.Skill, project.Name, req.StageKey)
+	}
+
+	// Build the Hermes execution task request
+	payload := map[string]any{
+		"model": req.Model,
+		"messages": []map[string]string{
+			{"role": "system", "content": systemPrompt},
+			{"role": "user", "content": userMessage},
+		},
+		"stream":      false,
+		"temperature": 0.4,
+	}
+
+	taskRequest := hermesExecutionTaskCreateRequest{
+		Title:         fmt.Sprintf("Studio: %s — %s", req.Skill, project.Name),
+		WorkspaceMode: fmt.Sprintf("studio_project_%d_stage_%s", project.Id, req.StageKey),
+		StorageScope:  fmt.Sprintf("studio_project_%d_stage_%s", project.Id, req.StageKey),
+		Payload:       payload,
+	}
+
+	createHermesExecutionTask(c, userId, 0, taskRequest)
+}
+
+// studioSkillSystemPrompt returns the system prompt for a MagicalBrush skill.
+func studioSkillSystemPrompt(skill string) string {
+	switch skill {
+	case "script-analyzer":
+		return `You are a professional screenplay analyst AI. Your task is to analyze screenplays and scripts. You can:
+1. Extract structured scene breakdowns (scene number, location, time, characters, action)
+2. Identify all characters with descriptions
+3. Suggest improvements for pacing, dialogue, and structure
+4. Estimate production duration
+Output your analysis in clear, structured format.`
+	case "character-designer":
+		return `You are a character design AI for film production. Your task is to:
+1. Design detailed character profiles from script descriptions
+2. Generate visual prompts for AI image generation of character reference images
+3. Ensure visual consistency across characters (style, art direction)
+4. Define character relationships and visual cues
+Output character cards with name, description, visual_prompt, and suggested reference style.`
+	case "shot-planner":
+		return `You are a professional cinematographer and storyboard artist AI. Your task is to:
+1. Break scenes into individual shots with camera angles and movements
+2. Plan shot durations for pacing
+3. Design visual compositions
+4. Create image generation prompts for key frames
+Output a detailed shot list as a JSON array with scene_number, shot_number, description, camera_angle, camera_move, duration, and image_prompt.`
+	case "batch-generator":
+		return `You are a batch generation coordinator AI. Your task is to:
+1. Review all pending shots that need image or video generation
+2. Prioritize generation order for visual consistency
+3. Optimize prompts for best generation results
+4. Monitor and report on generation progress
+Provide a generation plan and optimized prompts for each shot.`
+	case "post-production":
+		return `You are a post-production coordinator AI for film. Your task is to:
+1. Plan the assembly of video clips into a final sequence
+2. Suggest transitions between shots
+3. Recommend sound design and music placement
+4. Plan subtitle timing and placement
+5. Suggest color grading approach
+Output a detailed post-production plan.`
+	case "full-pipeline":
+		return `You are an end-to-end film production AI. Guide the user through the complete pipeline:
+1. Script analysis and breakdown
+2. Character design
+3. Storyboard planning
+4. Image generation for key frames
+5. Video generation from images
+6. Post-production assembly
+Provide step-by-step guidance and execute each stage.`
+	default:
+		return "You are a helpful AI assistant for film production. Help the user with their creative project."
+	}
 }

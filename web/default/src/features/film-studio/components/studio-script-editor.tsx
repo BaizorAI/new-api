@@ -18,7 +18,14 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQueryClient } from '@tanstack/react-query'
 import { Check, Eye, PenLine } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -33,17 +40,31 @@ import { STUDIO_QUERY_KEYS } from '../constants'
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'dirty'
 
+export interface ScriptEditorHandle {
+  getText: () => string
+  setText: (text: string) => void
+  getSelection: () => { start: number; end: number; text: string } | null
+  replaceRange: (start: number, end: number, replacement: string) => void
+}
+
 interface StudioScriptEditorProps {
   projectId: number
   stageKey: string
   initialContent: string
+  onSelectionChange?: (
+    selection: { start: number; end: number; text: string } | null
+  ) => void
 }
 
-export function StudioScriptEditor({
+export const StudioScriptEditor = forwardRef<
+  ScriptEditorHandle,
+  StudioScriptEditorProps
+>(function StudioScriptEditor({
   projectId,
   stageKey,
   initialContent,
-}: StudioScriptEditorProps) {
+  onSelectionChange,
+}, ref) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
 
@@ -55,8 +76,49 @@ export function StudioScriptEditor({
   // triggering a save from the initial content load
   const initializedRef = useRef(false)
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const debouncedText = useDebounce(text, 1500)
+
+  // Expose imperative API for parent to read/write text and selection
+  useImperativeHandle(ref, () => ({
+    getText: () => text,
+    setText: (newText: string) => {
+      setText(newText)
+      if (initializedRef.current) {
+        setSaveStatus('dirty')
+      }
+    },
+    getSelection: () => {
+      const el = textareaRef.current
+      if (!el) return null
+      const { selectionStart, selectionEnd } = el
+      if (selectionStart === selectionEnd) return null
+      return {
+        start: selectionStart,
+        end: selectionEnd,
+        text: text.slice(selectionStart, selectionEnd),
+      }
+    },
+    replaceRange: (start: number, end: number, replacement: string) => {
+      const before = text.slice(0, start)
+      const after = text.slice(end)
+      const newText = before + replacement + after
+      setText(newText)
+      if (initializedRef.current) {
+        setSaveStatus('dirty')
+      }
+      // Restore cursor position after the replacement
+      const cursorPos = start + replacement.length
+      requestAnimationFrame(() => {
+        const el = textareaRef.current
+        if (el) {
+          el.focus()
+          el.setSelectionRange(cursorPos, cursorPos)
+        }
+      })
+    },
+  }), [text])
 
   // Sync initial content when stage data loads/changes
   useEffect(() => {
@@ -75,6 +137,23 @@ export function StudioScriptEditor({
     },
     []
   )
+
+  // Notify parent when the user selects text in the textarea
+  const handleSelectionChange = useCallback(() => {
+    if (!onSelectionChange) return
+    const el = textareaRef.current
+    if (!el) return
+    const { selectionStart, selectionEnd } = el
+    if (selectionStart === selectionEnd) {
+      onSelectionChange(null)
+    } else {
+      onSelectionChange({
+        start: selectionStart,
+        end: selectionEnd,
+        text: text.slice(selectionStart, selectionEnd),
+      })
+    }
+  }, [onSelectionChange, text])
 
   // Auto-save when debounced text changes
   useEffect(() => {
@@ -169,8 +248,12 @@ export function StudioScriptEditor({
       {/* Editor / Preview area */}
       {mode === 'edit' ? (
         <Textarea
+          ref={textareaRef}
           value={text}
           onChange={handleTextChange}
+          onSelect={handleSelectionChange}
+          onMouseUp={handleSelectionChange}
+          onKeyUp={handleSelectionChange}
           placeholder={t('Write your screenplay here...')}
           className='min-h-[400px] resize-none font-mono text-sm leading-relaxed'
         />
@@ -189,7 +272,7 @@ export function StudioScriptEditor({
       )}
     </div>
   )
-}
+})
 
 function SaveStatusIndicator(props: { status: SaveStatus }) {
   const { t } = useTranslation()

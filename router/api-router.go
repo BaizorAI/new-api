@@ -355,6 +355,7 @@ func SetApiRouter(router *gin.Engine) {
 
 			// AI generation endpoints
 			studioRoute.POST("/projects/:id/quick-generate", controller.StudioQuickGenerate)
+			studioRoute.POST("/projects/:id/agent-create", controller.StudioAgentCreate)
 			studioRoute.POST("/projects/:id/shots/:shotId/generate", controller.StudioShotGenerate)
 		}
 		logRoute := apiRouter.Group("/log")
