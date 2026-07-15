@@ -21,6 +21,12 @@ import (
 
 const videoPlaygroundDir = "video-playground"
 
+// videoGenSemaphore serializes video generation requests. ComfyUI processes one
+// job at a time; sending concurrent requests causes later ones to exceed the
+// upstream sync timeout and fail with "server is busy". A buffered channel of
+// size 1 ensures only one goroutine runs relay at a time while others wait.
+var videoGenSemaphore = make(chan struct{}, 1)
+
 func init() {
 	if err := os.MkdirAll(videoPlaygroundDir, 0o755); err != nil {
 		panic(fmt.Sprintf("cannot create video playground directory %s: %v", videoPlaygroundDir, err))
@@ -138,6 +144,17 @@ func runVideoPlaygroundGeneration(recordId int) {
 		if err != nil {
 			common.SysError("video playground: failed to load record: " + err.Error())
 		}
+		return
+	}
+
+	// Serialize: only one video generation goes through relay at a time.
+	// Others wait here until the semaphore is released.
+	videoGenSemaphore <- struct{}{}
+	defer func() { <-videoGenSemaphore }()
+
+	// Re-check the record is still pending (it may have been deleted while waiting).
+	record, err = model.GetVideoPlaygroundHistoryById(recordId)
+	if err != nil || record == nil || record.Status != model.VideoPlaygroundStatusPending {
 		return
 	}
 

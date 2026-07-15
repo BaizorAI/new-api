@@ -65,6 +65,7 @@ import {
 import type { StudioCharacter, StudioShot } from '../types'
 import { StudioCharacterDeleteDialog } from './studio-character-delete-dialog'
 import { StudioCharacterMutateDrawer } from './studio-character-mutate-drawer'
+import { StudioScriptEditor } from './studio-script-editor'
 import { StudioShotDeleteDialog } from './studio-shot-delete-dialog'
 import { StudioShotMutateDrawer } from './studio-shot-mutate-drawer'
 
@@ -199,6 +200,15 @@ export function StudioStageDetail() {
             <p className='text-muted-foreground mb-6 text-sm'>
               {t(stageConfig.descriptionKey)}
             </p>
+          ) : null}
+
+          {/* Script editor */}
+          {stageKey === 'script' ? (
+            <StudioScriptEditor
+              projectId={id}
+              stageKey={stageKey}
+              initialContent={stage?.output_data ?? ''}
+            />
           ) : null}
 
           {/* Characters section */}

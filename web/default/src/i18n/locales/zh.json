@@ -33,13 +33,17 @@
     "Edit Shot": "编辑镜头",
     "Enter character name": "输入角色名称",
     "Enter project name": "输入项目名称",
+    "Failed to save script.": "剧本保存失败。",
     "Genre": "类型",
+    "Nothing to preview yet.": "暂无可预览内容。",
     "Optional. Shot duration in seconds.": "可选。镜头持续时间（秒）。",
     "Optional. Used for AI image generation.": "可选。用于 AI 图像生成。",
     "Optional. Visual style keywords for AI generation.": "可选。AI 生成时使用的视觉风格关键词。",
+    "Preview": "预览",
     "Project Name": "项目名称",
     "Project not found.": "未找到项目。",
     "Reference Image URL": "参考图片 URL",
+    "Saved": "已保存",
     "Scene Number": "场景号",
     "Select genre": "选择类型",
     "Set up a new film project. A 7-stage pipeline will be created automatically.": "创建新的影视项目。系统将自动生成 7 阶段制作流水线。",
@@ -6196,8 +6200,11 @@
         "Zhipu V4": "智谱 V4",
         "Zoom": "缩放"
     },
+    "Unsaved changes": "未保存的更改",
     "Update character details and visual prompt.": "更新角色详情和视觉提示词。",
     "Update shot details.": "更新镜头详情。",
     "Update your film project details.": "更新你的影视项目详情。",
-    "Visual Prompt": "视觉提示词"
+    "Visual Prompt": "视觉提示词",
+    "words": "字",
+    "Write your screenplay here...": "在此编写剧本……"
 }

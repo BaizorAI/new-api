@@ -33,13 +33,17 @@
     "Edit Shot": "Edit Shot",
     "Enter character name": "Enter character name",
     "Enter project name": "Enter project name",
+    "Failed to save script.": "Failed to save script.",
     "Genre": "Genre",
+    "Nothing to preview yet.": "Nothing to preview yet.",
     "Optional. Shot duration in seconds.": "Optional. Shot duration in seconds.",
     "Optional. Used for AI image generation.": "Optional. Used for AI image generation.",
     "Optional. Visual style keywords for AI generation.": "Optional. Visual style keywords for AI generation.",
+    "Preview": "Preview",
     "Project Name": "Project Name",
     "Project not found.": "Project not found.",
     "Reference Image URL": "Reference Image URL",
+    "Saved": "Saved",
     "Scene Number": "Scene Number",
     "Select genre": "Select genre",
     "Set up a new film project. A 7-stage pipeline will be created automatically.": "Set up a new film project. A 7-stage pipeline will be created automatically.",
@@ -6196,8 +6200,11 @@
         "Zhipu V4": "Zhipu V4",
         "Zoom": "Zoom"
     },
+    "Unsaved changes": "Unsaved changes",
     "Update character details and visual prompt.": "Update character details and visual prompt.",
     "Update shot details.": "Update shot details.",
     "Update your film project details.": "Update your film project details.",
-    "Visual Prompt": "Visual Prompt"
+    "Visual Prompt": "Visual Prompt",
+    "words": "words",
+    "Write your screenplay here...": "Write your screenplay here..."
 }
