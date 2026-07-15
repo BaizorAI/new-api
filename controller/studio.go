@@ -341,6 +341,7 @@ func CreateStudioShots(c *gin.Context) {
 			common.ApiError(c, err)
 			return
 		}
+		syncShotStageStats(project.Id)
 		common.ApiSuccess(c, shots)
 		return
 	}
@@ -356,6 +357,7 @@ func CreateStudioShots(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	syncShotStageStats(project.Id)
 	common.ApiSuccess(c, shot)
 }
 
@@ -386,6 +388,7 @@ func UpdateStudioShot(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	syncShotStageStats(shot.ProjectId)
 	common.ApiSuccess(c, shot)
 }
 
@@ -409,6 +412,7 @@ func DeleteStudioShot(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	syncShotStageStats(shot.ProjectId)
 	common.ApiSuccess(c, nil)
 }
 
@@ -592,4 +596,38 @@ func applyShotBody(shot *model.StudioShot, b *studioShotBody) {
 	if b.SortOrder > 0 {
 		shot.SortOrder = b.SortOrder
 	}
+}
+
+// syncShotStageStats recalculates total_items and done_items for the
+// storyboard, image_gen, and video_gen stages based on current shot data.
+// It runs asynchronously so it never blocks the response.
+func syncShotStageStats(projectId int) {
+	go func() {
+		imgTotal, imgDone, err := model.CountStudioShotsByImageStatus(projectId)
+		if err != nil {
+			return
+		}
+		vidTotal, vidDone, err := model.CountStudioShotsByVideoStatus(projectId)
+		if err != nil {
+			return
+		}
+
+		for _, spec := range []struct {
+			key   string
+			total int
+			done  int
+		}{
+			{"storyboard", imgTotal, 0},
+			{"image_gen", imgTotal, imgDone},
+			{"video_gen", vidTotal, vidDone},
+		} {
+			stage, err := model.GetStudioStageByProjectAndKey(projectId, spec.key)
+			if err != nil {
+				continue
+			}
+			stage.TotalItems = spec.total
+			stage.DoneItems = spec.done
+			_ = model.UpdateStudioStage(stage)
+		}
+	}()
 }

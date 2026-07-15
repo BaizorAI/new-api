@@ -16,16 +16,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
 import {
   Clapperboard,
   FolderPlus,
   MoreHorizontal,
   Pencil,
+  Search,
   Trash2,
 } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -35,15 +36,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { toast } from 'sonner'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
-import { deleteStudioProject, getStudioProjects } from './api'
+import { getStudioProjects } from './api'
+import { StudioProjectDeleteDialog } from './components/studio-project-delete-dialog'
 import { StudioProjectMutateDialog } from './components/studio-project-mutate-drawer'
 import {
   PROJECT_STATUS_CONFIG,
   STUDIO_QUERY_KEYS,
-  SUCCESS_MESSAGES,
   type ProjectStatusValue,
 } from './constants'
 import type { StudioProject } from './types'
@@ -53,34 +61,34 @@ const route = getRouteApi('/_authenticated/studio/')
 export function StudioProjectList() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const { action } = route.useSearch()
-  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<StudioProject | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
 
   const { data, isLoading } = useQuery({
     queryKey: [...STUDIO_QUERY_KEYS.projects],
     queryFn: () => getStudioProjects(),
   })
 
-  const projects = data?.data?.items ?? []
+  const allProjects = data?.data?.items ?? []
 
-  const handleDelete = useCallback(
-    async (id: number) => {
-      setDeletingId(id)
-      try {
-        const res = await deleteStudioProject(id)
-        if (res.success) {
-          toast.success(t(SUCCESS_MESSAGES.PROJECT_DELETED))
-          void queryClient.invalidateQueries({
-            queryKey: [...STUDIO_QUERY_KEYS.projects],
-          })
-        }
-      } finally {
-        setDeletingId(null)
-      }
-    },
-    [queryClient, t, toast]
-  )
+  const filteredProjects = useMemo(() => {
+    let result = allProjects
+    if (statusFilter !== 'all') {
+      const statusNum = Number(statusFilter)
+      result = result.filter((p) => p.status === statusNum)
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase()
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.brief && p.brief.toLowerCase().includes(q))
+      )
+    }
+    return result
+  }, [allProjects, statusFilter, searchQuery])
 
   return (
     <div className='flex h-full flex-col'>
@@ -102,6 +110,39 @@ export function StudioProjectList() {
         </Button>
       </div>
 
+      {/* Search & filter bar */}
+      {allProjects.length > 0 ? (
+        <div className='border-border flex items-center gap-3 border-b px-6 py-3'>
+          <div className='relative flex-1'>
+            <Search className='text-muted-foreground pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2' />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('Search projects...')}
+              className='h-8 pl-9 text-sm'
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className='h-8 w-36 text-sm'>
+              <SelectValue placeholder={t('All Statuses')} />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectItem value='all'>{t('All Statuses')}</SelectItem>
+              {(
+                Object.entries(PROJECT_STATUS_CONFIG) as [
+                  string,
+                  (typeof PROJECT_STATUS_CONFIG)[ProjectStatusValue],
+                ][]
+              ).map(([value, config]) => (
+                <SelectItem key={value} value={value}>
+                  {t(config.labelKey)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
+
       {/* Project grid */}
       <ScrollArea className='flex-1'>
         {isLoading ? (
@@ -110,7 +151,7 @@ export function StudioProjectList() {
               {t('Loading...')}
             </p>
           </div>
-        ) : projects.length === 0 ? (
+        ) : allProjects.length === 0 ? (
           <div className='flex h-64 flex-col items-center justify-center gap-4'>
             <Clapperboard
               className='text-muted-foreground/40 size-12'
@@ -120,14 +161,19 @@ export function StudioProjectList() {
               {t('No projects yet. Create your first film project!')}
             </p>
           </div>
+        ) : filteredProjects.length === 0 ? (
+          <div className='flex h-64 items-center justify-center'>
+            <p className='text-muted-foreground text-sm'>
+              {t('No matching projects.')}
+            </p>
+          </div>
         ) : (
           <div className='grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-3'>
-            {projects.map((project) => (
+            {filteredProjects.map((project) => (
               <ProjectCard
                 key={project.id}
                 project={project}
-                isDeleting={deletingId === project.id}
-                onDelete={handleDelete}
+                onDeleteClick={setDeleteTarget}
               />
             ))}
           </div>
@@ -143,24 +189,31 @@ export function StudioProjectList() {
           }
         }}
       />
+
+      {/* Delete confirmation dialog */}
+      <StudioProjectDeleteDialog
+        open={deleteTarget !== null}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setDeleteTarget(null)
+        }}
+        project={deleteTarget}
+      />
     </div>
   )
 }
 
 function ProjectCard(props: {
   project: StudioProject
-  isDeleting: boolean
-  onDelete: (id: number) => void
+  onDeleteClick: (project: StudioProject) => void
 }) {
   const { t } = useTranslation()
-  const { project, isDeleting, onDelete } = props
+  const { project, onDeleteClick } = props
 
   const statusConfig =
     PROJECT_STATUS_CONFIG[project.status as ProjectStatusValue]
-  const stageProgress =
-    project.stage_total && project.stage_total > 0
-      ? `${project.stage_done ?? 0}/${project.stage_total}`
-      : null
+  const stageTotal = project.stage_total ?? 0
+  const stageDone = project.stage_done ?? 0
+  const progressPercent = stageTotal > 0 ? Math.round((stageDone / stageTotal) * 100) : 0
 
   return (
     <Link
@@ -210,10 +263,9 @@ function ProjectCard(props: {
             </DropdownMenuItem>
             <DropdownMenuItem
               className='text-destructive'
-              disabled={isDeleting}
               onClick={(e) => {
                 e.preventDefault()
-                onDelete(project.id)
+                onDeleteClick(project)
               }}
             >
               <Trash2 className='mr-2 size-4' />
@@ -237,12 +289,25 @@ function ProjectCard(props: {
             {t(statusConfig.labelKey)}
           </span>
         ) : null}
-        {stageProgress ? (
+        {stageTotal > 0 ? (
           <span className='text-muted-foreground'>
-            {t('Stages')}: {stageProgress}
+            {t('Stages')}: {stageDone}/{stageTotal}
           </span>
         ) : null}
       </div>
+
+      {/* Progress bar */}
+      {stageTotal > 0 ? (
+        <div
+          className='bg-muted mt-2 h-1 w-full overflow-hidden rounded-full'
+          title={`${progressPercent}%`}
+        >
+          <div
+            className='bg-primary h-full rounded-full transition-all'
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      ) : null}
     </Link>
   )
 }

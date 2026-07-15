@@ -20,7 +20,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
 import {
   ArrowLeft,
+  ChevronDown,
+  ChevronUp,
   ImagePlus,
+  Images,
   Loader2,
   MoreHorizontal,
   Pencil,
@@ -43,6 +46,10 @@ import {
   type PromptInputMessage,
 } from '@/components/ai-elements/prompt-input'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +78,7 @@ import {
 import { useExtractCharacters, useExtractShots } from '../hooks/use-ai-extraction'
 import { useShotImageGen } from '../hooks/use-shot-image-gen'
 import { useShotVideoGen } from '../hooks/use-shot-video-gen'
+import { useSwapShotOrder } from '../hooks/use-studio-mutations'
 import type { StudioCharacter, StudioShot } from '../types'
 import { StudioCharacterDeleteDialog } from './studio-character-delete-dialog'
 import { StudioCharacterMutateDrawer } from './studio-character-mutate-drawer'
@@ -105,6 +113,13 @@ export function StudioStageDetail() {
   // Dialog state for shots
   const [shotDialog, setShotDialog] = useState<DialogType | null>(null)
   const [currentShot, setCurrentShot] = useState<StudioShot | null>(null)
+
+  // Fullscreen video preview
+  const [fullscreenVideo, setFullscreenVideo] = useState<{
+    url: string
+    poster?: string
+    label: string
+  } | null>(null)
 
   const stageConfig = useMemo(
     () => PIPELINE_STAGES.find((s) => s.key === stageKey),
@@ -157,6 +172,7 @@ export function StudioStageDetail() {
     useExtractCharacters(id)
   const { extractShots, isExtracting: isExtractingShots } =
     useExtractShots(id)
+  const swapShotOrder = useSwapShotOrder(id)
 
   const project = projectData?.data
   const stages = stagesData?.data ?? []
@@ -190,6 +206,11 @@ export function StudioStageDetail() {
     stageKey === 'storyboard' ||
     stageKey === 'image_gen' ||
     stageKey === 'video_gen'
+
+  const shotsWithoutImage = shots.filter((s) => !s.image_url)
+  const shotsWithoutVideo = shots.filter((s) => !s.video_url)
+  const isBatchImgGenerating = generatingIds.size > 0
+  const isBatchVidGenerating = videoGeneratingIds.size > 0
 
   return (
     <div className='flex h-full flex-col'>
@@ -371,6 +392,96 @@ export function StudioStageDetail() {
                         : t('AI Extract')}
                     </Button>
                   ) : null}
+                  {stageKey === 'image_gen' && shots.length > 0 ? (
+                    <Button
+                      size='sm'
+                      variant='outline'
+                      disabled={
+                        isBatchImgGenerating ||
+                        shotsWithoutImage.length === 0
+                      }
+                      onClick={() => {
+                        for (const shot of shotsWithoutImage) {
+                          void generateImage(shot)
+                        }
+                      }}
+                    >
+                      {isBatchImgGenerating ? (
+                        <Loader2
+                          className='mr-1.5 size-3.5 animate-spin'
+                          aria-hidden='true'
+                        />
+                      ) : (
+                        <Images
+                          className='mr-1.5 size-3.5'
+                          aria-hidden='true'
+                        />
+                      )}
+                      {isBatchImgGenerating
+                        ? t('Generating...')
+                        : t('Generate All Images')}
+                    </Button>
+                  ) : null}
+                  {stageKey === 'video_gen' && shots.length > 0 ? (
+                    <>
+                      <Button
+                        size='sm'
+                        variant='outline'
+                        disabled={
+                          isBatchImgGenerating ||
+                          shotsWithoutImage.length === 0
+                        }
+                        onClick={() => {
+                          for (const shot of shotsWithoutImage) {
+                            void generateImage(shot)
+                          }
+                        }}
+                      >
+                        {isBatchImgGenerating ? (
+                          <Loader2
+                            className='mr-1.5 size-3.5 animate-spin'
+                            aria-hidden='true'
+                          />
+                        ) : (
+                          <Images
+                            className='mr-1.5 size-3.5'
+                            aria-hidden='true'
+                          />
+                        )}
+                        {isBatchImgGenerating
+                          ? t('Generating...')
+                          : t('Generate All Images')}
+                      </Button>
+                      <Button
+                        size='sm'
+                        variant='outline'
+                        disabled={
+                          isBatchVidGenerating ||
+                          shotsWithoutVideo.length === 0
+                        }
+                        onClick={() => {
+                          for (const shot of shotsWithoutVideo) {
+                            void generateVideo(shot)
+                          }
+                        }}
+                      >
+                        {isBatchVidGenerating ? (
+                          <Loader2
+                            className='mr-1.5 size-3.5 animate-spin'
+                            aria-hidden='true'
+                          />
+                        ) : (
+                          <Video
+                            className='mr-1.5 size-3.5'
+                            aria-hidden='true'
+                          />
+                        )}
+                        {isBatchVidGenerating
+                          ? t('Generating...')
+                          : t('Generate All Videos')}
+                      </Button>
+                    </>
+                  ) : null}
                   <Button
                     size='sm'
                     variant='outline'
@@ -386,7 +497,7 @@ export function StudioStageDetail() {
               </div>
               {shots.length > 0 ? (
                 <div className='space-y-2'>
-                  {shots.map((shot) => {
+                  {shots.map((shot, shotIndex) => {
                     const isImgGenerating = generatingIds.has(shot.id)
                     const isVidGenerating = videoGeneratingIds.has(shot.id)
                     const showImageGen =
@@ -398,6 +509,57 @@ export function StudioStageDetail() {
                         key={shot.id}
                         className='border-border group flex items-start gap-3 rounded-lg border p-3'
                       >
+                        {/* Reorder buttons (storyboard only) */}
+                        {stageKey === 'storyboard' ? (
+                          <div className='flex shrink-0 flex-col gap-0.5'>
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon'
+                              className='size-5'
+                              disabled={shotIndex === 0}
+                              onClick={() => {
+                                const prev = shots[shotIndex - 1]
+                                swapShotOrder.mutate({
+                                  shotA: {
+                                    id: shot.id,
+                                    sort_order: shot.sort_order,
+                                  },
+                                  shotB: {
+                                    id: prev.id,
+                                    sort_order: prev.sort_order,
+                                  },
+                                })
+                              }}
+                              title={t('Move up')}
+                            >
+                              <ChevronUp className='size-3' />
+                            </Button>
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon'
+                              className='size-5'
+                              disabled={shotIndex === shots.length - 1}
+                              onClick={() => {
+                                const next = shots[shotIndex + 1]
+                                swapShotOrder.mutate({
+                                  shotA: {
+                                    id: shot.id,
+                                    sort_order: shot.sort_order,
+                                  },
+                                  shotB: {
+                                    id: next.id,
+                                    sort_order: next.sort_order,
+                                  },
+                                })
+                              }}
+                              title={t('Move down')}
+                            >
+                              <ChevronDown className='size-3' />
+                            </Button>
+                          </div>
+                        ) : null}
                         <span className='text-muted-foreground shrink-0 font-mono text-xs'>
                           S{shot.scene_number}-{shot.shot_number}
                         </span>
@@ -474,20 +636,27 @@ export function StudioStageDetail() {
                         {showVideoGen ? (
                           shot.video_url ? (
                             <div className='relative shrink-0'>
-                              <video
-                                src={shot.video_url}
-                                poster={shot.image_url || undefined}
-                                className='h-16 w-24 rounded object-cover'
-                                muted
-                                preload='metadata'
-                                onClick={(e) => {
-                                  const v = e.currentTarget
-                                  if (v.paused) void v.play()
-                                  else v.pause()
-                                }}
+                              <button
+                                type='button'
+                                className='relative block cursor-pointer rounded'
+                                onClick={() =>
+                                  setFullscreenVideo({
+                                    url: shot.video_url,
+                                    poster: shot.image_url || undefined,
+                                    label: `S${shot.scene_number}-${shot.shot_number}`,
+                                  })
+                                }
                                 title={t('Click to play video')}
-                              />
-                              <Play className='pointer-events-none absolute inset-0 m-auto size-5 text-white drop-shadow-md' />
+                              >
+                                <video
+                                  src={shot.video_url}
+                                  poster={shot.image_url || undefined}
+                                  className='h-16 w-24 rounded object-cover'
+                                  muted
+                                  preload='metadata'
+                                />
+                                <Play className='pointer-events-none absolute inset-0 m-auto size-5 text-white drop-shadow-md' />
+                              </button>
                               <Button
                                 type='button'
                                 variant='secondary'
@@ -658,6 +827,31 @@ export function StudioStageDetail() {
         projectId={id}
         shot={currentShot}
       />
+
+      {/* Fullscreen video preview dialog */}
+      <Dialog
+        open={fullscreenVideo !== null}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setFullscreenVideo(null)
+        }}
+      >
+        <DialogContent className='max-w-3xl p-0'>
+          {fullscreenVideo ? (
+            <div className='flex flex-col'>
+              <video
+                src={fullscreenVideo.url}
+                poster={fullscreenVideo.poster}
+                controls
+                autoPlay
+                className='max-h-[80vh] w-full rounded-t-lg bg-black'
+              />
+              <div className='px-4 py-2 text-sm text-muted-foreground'>
+                {fullscreenVideo.label}
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

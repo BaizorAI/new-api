@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -51,13 +51,44 @@ export function useShotImageGen({
   const [generatingIds, setGeneratingIds] = useState<Set<number>>(
     () => new Set()
   )
+  // Use a ref mirror of generatingIds to avoid stale closure in batch calls
+  const generatingRef = useRef<Set<number>>(new Set())
   const pollTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(
     new Map()
   )
+  const unmountedRef = useRef(false)
+
+  // Cleanup all poll timers on unmount
+  useEffect(() => {
+    unmountedRef.current = false
+    return () => {
+      unmountedRef.current = true
+      for (const timer of pollTimers.current.values()) {
+        clearTimeout(timer)
+      }
+      pollTimers.current.clear()
+    }
+  }, [])
+
+  const addGenerating = useCallback((id: number) => {
+    generatingRef.current.add(id)
+    setGeneratingIds((prev) => new Set(prev).add(id))
+  }, [])
+
+  const removeGenerating = useCallback((id: number) => {
+    generatingRef.current.delete(id)
+    if (!unmountedRef.current) {
+      setGeneratingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    }
+  }, [])
 
   const generateImage = useCallback(
     async (shot: StudioShot) => {
-      if (generatingIds.has(shot.id)) return
+      if (generatingRef.current.has(shot.id)) return
 
       const prompt = (shot.image_prompt || shot.description).trim()
       if (!prompt) {
@@ -69,7 +100,7 @@ export function useShotImageGen({
         ? `${prompt}. Style: ${styleDna}`
         : prompt
 
-      setGeneratingIds((prev) => new Set(prev).add(shot.id))
+      addGenerating(shot.id)
 
       try {
         const pending = await submitImageGeneration({
@@ -83,13 +114,10 @@ export function useShotImageGen({
         // Start polling for completion
         let polls = 0
         const poll = async () => {
+          if (unmountedRef.current) return
           polls++
           if (polls > MAX_POLLS) {
-            setGeneratingIds((prev) => {
-              const next = new Set(prev)
-              next.delete(shot.id)
-              return next
-            })
+            removeGenerating(shot.id)
             pollTimers.current.delete(shot.id)
             toast.error(t('Image generation timed out.'))
             return
@@ -97,6 +125,7 @@ export function useShotImageGen({
 
           try {
             const history = await getImageHistory(1, 10)
+            if (unmountedRef.current) return
             const record = history.items.find((h) => h.id === pending.id)
 
             if (!record || record.status === IMAGE_STATUS.PENDING) {
@@ -113,25 +142,27 @@ export function useShotImageGen({
               await updateStudioShot(projectId, shot.id, {
                 image_url: record.image_url,
               })
-              void queryClient.invalidateQueries({
-                queryKey: [...STUDIO_QUERY_KEYS.shots(projectId)],
-              })
-              toast.success(t('Image generated.'))
+              if (!unmountedRef.current) {
+                void queryClient.invalidateQueries({
+                  queryKey: [...STUDIO_QUERY_KEYS.shots(projectId)],
+                })
+                toast.success(t('Image generated.'))
+              }
             } else {
-              toast.error(
-                record.error_message || t('Image generation failed.')
-              )
+              if (!unmountedRef.current) {
+                toast.error(
+                  record.error_message || t('Image generation failed.')
+                )
+              }
             }
           } catch {
-            toast.error(t('Image generation failed.'))
+            if (!unmountedRef.current) {
+              toast.error(t('Image generation failed.'))
+            }
           }
 
           // Done (success or failure) — remove from generating set
-          setGeneratingIds((prev) => {
-            const next = new Set(prev)
-            next.delete(shot.id)
-            return next
-          })
+          removeGenerating(shot.id)
           pollTimers.current.delete(shot.id)
         }
 
@@ -141,15 +172,11 @@ export function useShotImageGen({
           setTimeout(() => void poll(), POLL_INTERVAL)
         )
       } catch {
-        setGeneratingIds((prev) => {
-          const next = new Set(prev)
-          next.delete(shot.id)
-          return next
-        })
+        removeGenerating(shot.id)
         toast.error(t('Image generation failed.'))
       }
     },
-    [generatingIds, styleDna, model, projectId, queryClient, t]
+    [styleDna, model, projectId, queryClient, t, addGenerating, removeGenerating]
   )
 
   return { generateImage, generatingIds }

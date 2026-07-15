@@ -189,3 +189,32 @@ export function useDeleteStudioShot(projectId: number) {
     },
   })
 }
+
+/**
+ * Swap the sort_order of two shots (move up/down).
+ * No toast — the visual reorder is immediate feedback.
+ */
+export function useSwapShotOrder(projectId: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (params: {
+      shotA: { id: number; sort_order: number }
+      shotB: { id: number; sort_order: number }
+    }) => {
+      await Promise.all([
+        updateStudioShot(projectId, params.shotA.id, {
+          sort_order: params.shotB.sort_order,
+        }),
+        updateStudioShot(projectId, params.shotB.id, {
+          sort_order: params.shotA.sort_order,
+        }),
+      ])
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: [...STUDIO_QUERY_KEYS.shots(projectId)],
+      })
+    },
+  })
+}

@@ -487,6 +487,12 @@ func GetSelf(c *gin.Context) {
 		}
 	}
 
+	// 个人已用 = 总已用 - 团队已用（user.UsedQuota 包含所有消耗，需减去团队部分避免双重计算）
+	personalUsedQuota := user.UsedQuota - teamUsedQuota
+	if personalUsedQuota < 0 {
+		personalUsedQuota = 0
+	}
+
 	// 构建响应数据，包含用户信息和权限
 	responseData := map[string]interface{}{
 		"id":                 user.Id,
@@ -502,12 +508,12 @@ func GetSelf(c *gin.Context) {
 		"telegram_id":        user.TelegramId,
 		"group":              user.Group,
 		"quota":              user.Quota,
-		"used_quota":         user.UsedQuota,
+		"used_quota":         personalUsedQuota,
 		"team_quota":         teamQuota,
 		"team_used_quota":    teamUsedQuota,
 		"team_request_count": teamRequestCount,
 		"total_quota":        user.Quota + teamQuota,
-		"total_used_quota":   user.UsedQuota + teamUsedQuota,
+		"total_used_quota":   user.UsedQuota,
 		"team_pool_idle":     teamQuota > 0 && teamUsedQuota == 0,
 		"request_count":      user.RequestCount,
 		"aff_code":           user.AffCode,

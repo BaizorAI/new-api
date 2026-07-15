@@ -66,6 +66,7 @@ const characterFormSchema = z.object({
   description: z.string().max(500).default(''),
   visual_prompt: z.string().max(1000).default(''),
   reference_url: z.string().max(500).default(''),
+  lora_params: z.string().max(500).default(''),
 })
 
 type CharacterFormValues = z.infer<typeof characterFormSchema>
@@ -75,6 +76,7 @@ const DEFAULT_VALUES: CharacterFormValues = {
   description: '',
   visual_prompt: '',
   reference_url: '',
+  lora_params: '',
 }
 
 function characterToFormValues(char: StudioCharacter): CharacterFormValues {
@@ -83,6 +85,7 @@ function characterToFormValues(char: StudioCharacter): CharacterFormValues {
     description: char.description,
     visual_prompt: char.visual_prompt,
     reference_url: char.reference_url,
+    lora_params: char.lora_params,
   }
 }
 
@@ -242,6 +245,26 @@ export function StudioCharacterMutateDrawer({
                         placeholder='https://...'
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='lora_params'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('LoRA Parameters')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder={t('e.g. lora_name:0.8, trigger_word...')}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('Optional. LoRA model parameters for character consistency.')}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

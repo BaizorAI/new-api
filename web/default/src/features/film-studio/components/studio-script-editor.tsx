@@ -124,7 +124,7 @@ export function StudioScriptEditor({
     }
   }, [])
 
-  const wordCount = text.trim() ? text.trim().length : 0
+  const charCount = text.trim() ? text.trim().length : 0
 
   return (
     <div className='flex flex-col gap-3'>
@@ -159,7 +159,7 @@ export function StudioScriptEditor({
 
         {/* Word count */}
         <span className='text-muted-foreground text-xs'>
-          {wordCount} {t('words')}
+          {charCount} {t('characters')}
         </span>
 
         {/* Save status */}

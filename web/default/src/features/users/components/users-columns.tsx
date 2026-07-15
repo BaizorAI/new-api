@@ -170,13 +170,14 @@ export function useUsersColumns(): ColumnDef<User>[] {
       header: t('Quota'),
       cell: ({ row }) => {
         const user = row.original
-        const personalUsed = user.used_quota
-        const personalRemaining = user.quota
         const teams = user.team_quotas ?? []
         const teamRemaining = teams.reduce((s, t) => s + t.quota, 0)
         const teamUsed = teams.reduce((s, t) => s + t.used_quota, 0)
+        // user.used_quota includes team consumption; subtract to get personal-only
+        const personalUsed = Math.max(0, user.used_quota - teamUsed)
+        const personalRemaining = user.quota
         const totalRemaining = personalRemaining + teamRemaining
-        const totalUsed = personalUsed + teamUsed
+        const totalUsed = personalUsed + teamUsed // = user.used_quota (no double count)
         const total = totalUsed + totalRemaining
         const percentage = total > 0 ? (totalRemaining / total) * 100 : 0
 
