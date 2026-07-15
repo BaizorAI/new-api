@@ -19,6 +19,10 @@ var (
 		"flux-",
 		"flux.1-",
 	}
+	VideoGenerationModels = []string{
+		"huayu-drama-4",
+		"huayu-drama-4-video",
+	}
 	OpenAITextModels = []string{
 		"gpt-",
 		"o1",
@@ -53,6 +57,16 @@ func IsImageGenerationModel(modelName string) bool {
 func IsOpenAITextModel(modelName string) bool {
 	modelName = strings.ToLower(modelName)
 	for _, m := range OpenAITextModels {
+		if strings.Contains(modelName, m) {
+			return true
+		}
+	}
+	return false
+}
+
+func IsVideoGenerationModel(modelName string) bool {
+	modelName = strings.ToLower(modelName)
+	for _, m := range VideoGenerationModels {
 		if strings.Contains(modelName, m) {
 			return true
 		}

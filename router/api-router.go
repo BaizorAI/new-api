@@ -285,6 +285,15 @@ func SetApiRouter(router *gin.Engine) {
 			imagePlaygroundRoute.DELETE("/history/:id", controller.DeleteImagePlaygroundHistoryEntry)
 		}
 
+		videoPlaygroundRoute := apiRouter.Group("/user/video-playground")
+		videoPlaygroundRoute.Use(middleware.UserAuth())
+		{
+			videoPlaygroundRoute.GET("/history", controller.ListVideoPlaygroundHistory)
+			videoPlaygroundRoute.POST("/generate", controller.SubmitVideoPlaygroundGeneration)
+			videoPlaygroundRoute.DELETE("/history", controller.ClearVideoPlaygroundHistoryEntries)
+			videoPlaygroundRoute.DELETE("/history/:id", controller.DeleteVideoPlaygroundHistoryEntry)
+		}
+
 		usageRoute := apiRouter.Group("/usage")
 		usageRoute.Use(middleware.CORS(), middleware.CriticalRateLimit())
 		{
@@ -321,6 +330,28 @@ func SetApiRouter(router *gin.Engine) {
 			blogRoute.POST("/", controller.CreateBlogArticle)
 			blogRoute.PUT("/:id", controller.UpdateBlogArticle)
 			blogRoute.DELETE("/:id", controller.DeleteBlogArticle)
+		}
+		studioRoute := apiRouter.Group("/studio")
+		studioRoute.Use(middleware.UserAuth())
+		{
+			studioRoute.GET("/projects", controller.ListStudioProjects)
+			studioRoute.POST("/projects", controller.CreateStudioProject)
+			studioRoute.GET("/projects/:id", controller.GetStudioProject)
+			studioRoute.PUT("/projects/:id", controller.UpdateStudioProject)
+			studioRoute.DELETE("/projects/:id", controller.DeleteStudioProject)
+
+			studioRoute.GET("/projects/:id/stages", controller.ListStudioStages)
+			studioRoute.PUT("/projects/:id/stages/:key", controller.UpdateStudioStage)
+
+			studioRoute.GET("/projects/:id/shots", controller.ListStudioShots)
+			studioRoute.POST("/projects/:id/shots", controller.CreateStudioShots)
+			studioRoute.PUT("/projects/:id/shots/:shotId", controller.UpdateStudioShot)
+			studioRoute.DELETE("/projects/:id/shots/:shotId", controller.DeleteStudioShot)
+
+			studioRoute.GET("/projects/:id/characters", controller.ListStudioCharacters)
+			studioRoute.POST("/projects/:id/characters", controller.CreateStudioCharacter)
+			studioRoute.PUT("/projects/:id/characters/:charId", controller.UpdateStudioCharacter)
+			studioRoute.DELETE("/projects/:id/characters/:charId", controller.DeleteStudioCharacter)
 		}
 		logRoute := apiRouter.Group("/log")
 		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)

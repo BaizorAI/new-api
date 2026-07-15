@@ -42,6 +42,7 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
     playground: true,
     hermes_playground: true,
     one_person_company: true,
+    film_studio: true,
     team_workspace: true,
     chat: true,
   },
@@ -118,6 +119,12 @@ const MODULE_MATCHERS: ModuleMatcher[] = [
   },
   {
     type: 'exact',
+    path: '/video-playground',
+    section: 'chat',
+    module: 'playground',
+  },
+  {
+    type: 'exact',
     path: '/hermes-playground',
     section: 'chat',
     module: 'hermes_playground',
@@ -127,6 +134,12 @@ const MODULE_MATCHERS: ModuleMatcher[] = [
     path: '/one-person-company',
     section: 'chat',
     module: 'one_person_company',
+  },
+  {
+    type: 'prefix',
+    prefix: '/studio',
+    section: 'chat',
+    module: 'film_studio',
   },
   {
     type: 'exact',

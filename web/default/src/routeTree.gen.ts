@@ -37,10 +37,12 @@ import { Route as authOtpRouteImport } from './routes/(auth)/otp'
 import { Route as authOauthRouteImport } from './routes/(auth)/oauth'
 import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
 import { Route as AuthenticatedSystemSettingsRouteRouteImport } from './routes/_authenticated/system-settings/route'
+import { Route as AuthenticatedStudioRouteRouteImport } from './routes/_authenticated/studio/route'
 import { Route as AuthenticatedPricingRouteRouteImport } from './routes/_authenticated/pricing/route'
 import { Route as AuthenticatedBlogHallRouteRouteImport } from './routes/_authenticated/blog-hall/route'
 import { Route as BlogArticleIdIndexRouteImport } from './routes/blog/$articleId/index'
 import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenticated/wallet/index'
+import { Route as AuthenticatedVideoPlaygroundIndexRouteImport } from './routes/_authenticated/video-playground/index'
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
 import { Route as AuthenticatedUsageLogsIndexRouteImport } from './routes/_authenticated/usage-logs/index'
 import { Route as AuthenticatedToolsetDetailIndexRouteImport } from './routes/_authenticated/toolset-detail/index'
@@ -50,6 +52,7 @@ import { Route as AuthenticatedTeamWorkspaceIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedSystemSettingsIndexRouteImport } from './routes/_authenticated/system-settings/index'
 import { Route as AuthenticatedSystemInfoIndexRouteImport } from './routes/_authenticated/system-info/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
+import { Route as AuthenticatedStudioIndexRouteImport } from './routes/_authenticated/studio/index'
 import { Route as AuthenticatedSkillWorkspaceIndexRouteImport } from './routes/_authenticated/skill-workspace/index'
 import { Route as AuthenticatedSkillEditorIndexRouteImport } from './routes/_authenticated/skill-editor/index'
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
@@ -84,6 +87,7 @@ import { Route as AuthenticatedSystemSettingsModelsIndexRouteImport } from './ro
 import { Route as AuthenticatedSystemSettingsContentIndexRouteImport } from './routes/_authenticated/system-settings/content/index'
 import { Route as AuthenticatedSystemSettingsBillingIndexRouteImport } from './routes/_authenticated/system-settings/billing/index'
 import { Route as AuthenticatedSystemSettingsAuthIndexRouteImport } from './routes/_authenticated/system-settings/auth/index'
+import { Route as AuthenticatedStudioProjectIdIndexRouteImport } from './routes/_authenticated/studio/$projectId/index'
 import { Route as AuthenticatedPricingModelIdIndexRouteImport } from './routes/_authenticated/pricing/$modelId/index'
 import { Route as AuthenticatedBlogHallArticleIdIndexRouteImport } from './routes/_authenticated/blog-hall/$articleId/index'
 import { Route as AuthenticatedSystemSettingsSiteSectionRouteImport } from './routes/_authenticated/system-settings/site/$section'
@@ -93,6 +97,7 @@ import { Route as AuthenticatedSystemSettingsModelsSectionRouteImport } from './
 import { Route as AuthenticatedSystemSettingsContentSectionRouteImport } from './routes/_authenticated/system-settings/content/$section'
 import { Route as AuthenticatedSystemSettingsBillingSectionRouteImport } from './routes/_authenticated/system-settings/billing/$section'
 import { Route as AuthenticatedSystemSettingsAuthSectionRouteImport } from './routes/_authenticated/system-settings/auth/$section'
+import { Route as AuthenticatedStudioProjectIdStageKeyIndexRouteImport } from './routes/_authenticated/studio/$projectId/$stageKey/index'
 
 const UserAgreementRoute = UserAgreementRouteImport.update({
   id: '/user-agreement',
@@ -233,6 +238,12 @@ const AuthenticatedSystemSettingsRouteRoute =
     path: '/system-settings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedStudioRouteRoute =
+  AuthenticatedStudioRouteRouteImport.update({
+    id: '/studio',
+    path: '/studio',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPricingRouteRoute =
   AuthenticatedPricingRouteRouteImport.update({
     id: '/pricing',
@@ -254,6 +265,12 @@ const AuthenticatedWalletIndexRoute =
   AuthenticatedWalletIndexRouteImport.update({
     id: '/wallet/',
     path: '/wallet/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedVideoPlaygroundIndexRoute =
+  AuthenticatedVideoPlaygroundIndexRouteImport.update({
+    id: '/video-playground/',
+    path: '/video-playground/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedUsersIndexRoute = AuthenticatedUsersIndexRouteImport.update({
@@ -307,6 +324,12 @@ const AuthenticatedSubscriptionsIndexRoute =
     id: '/subscriptions/',
     path: '/subscriptions/',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedStudioIndexRoute =
+  AuthenticatedStudioIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedStudioRouteRoute,
   } as any)
 const AuthenticatedSkillWorkspaceIndexRoute =
   AuthenticatedSkillWorkspaceIndexRouteImport.update({
@@ -509,6 +532,12 @@ const AuthenticatedSystemSettingsAuthIndexRoute =
     path: '/auth/',
     getParentRoute: () => AuthenticatedSystemSettingsRouteRoute,
   } as any)
+const AuthenticatedStudioProjectIdIndexRoute =
+  AuthenticatedStudioProjectIdIndexRouteImport.update({
+    id: '/$projectId/',
+    path: '/$projectId/',
+    getParentRoute: () => AuthenticatedStudioRouteRoute,
+  } as any)
 const AuthenticatedPricingModelIdIndexRoute =
   AuthenticatedPricingModelIdIndexRouteImport.update({
     id: '/$modelId/',
@@ -563,6 +592,12 @@ const AuthenticatedSystemSettingsAuthSectionRoute =
     path: '/auth/$section',
     getParentRoute: () => AuthenticatedSystemSettingsRouteRoute,
   } as any)
+const AuthenticatedStudioProjectIdStageKeyIndexRoute =
+  AuthenticatedStudioProjectIdStageKeyIndexRouteImport.update({
+    id: '/$projectId/$stageKey/',
+    path: '/$projectId/$stageKey/',
+    getParentRoute: () => AuthenticatedStudioRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -570,6 +605,7 @@ export interface FileRoutesByFullPath {
   '/user-agreement': typeof UserAgreementRoute
   '/blog-hall': typeof AuthenticatedBlogHallRouteRouteWithChildren
   '/pricing': typeof AuthenticatedPricingRouteRouteWithChildren
+  '/studio': typeof AuthenticatedStudioRouteRouteWithChildren
   '/system-settings': typeof AuthenticatedSystemSettingsRouteRouteWithChildren
   '/forgot-password': typeof authForgotPasswordRoute
   '/oauth': typeof authOauthRoute
@@ -615,6 +651,7 @@ export interface FileRoutesByFullPath {
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/skill-editor/': typeof AuthenticatedSkillEditorIndexRoute
   '/skill-workspace/': typeof AuthenticatedSkillWorkspaceIndexRoute
+  '/studio/': typeof AuthenticatedStudioIndexRoute
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
@@ -624,6 +661,7 @@ export interface FileRoutesByFullPath {
   '/toolset-detail/': typeof AuthenticatedToolsetDetailIndexRoute
   '/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
+  '/video-playground/': typeof AuthenticatedVideoPlaygroundIndexRoute
   '/wallet/': typeof AuthenticatedWalletIndexRoute
   '/blog/$articleId/': typeof BlogArticleIdIndexRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
@@ -635,6 +673,7 @@ export interface FileRoutesByFullPath {
   '/system-settings/site/$section': typeof AuthenticatedSystemSettingsSiteSectionRoute
   '/blog-hall/$articleId/': typeof AuthenticatedBlogHallArticleIdIndexRoute
   '/pricing/$modelId/': typeof AuthenticatedPricingModelIdIndexRoute
+  '/studio/$projectId/': typeof AuthenticatedStudioProjectIdIndexRoute
   '/system-settings/auth/': typeof AuthenticatedSystemSettingsAuthIndexRoute
   '/system-settings/billing/': typeof AuthenticatedSystemSettingsBillingIndexRoute
   '/system-settings/content/': typeof AuthenticatedSystemSettingsContentIndexRoute
@@ -647,6 +686,7 @@ export interface FileRoutesByFullPath {
   '/wallet/redeem/': typeof AuthenticatedWalletRedeemIndexRoute
   '/wallet/subscriptions/': typeof AuthenticatedWalletSubscriptionsIndexRoute
   '/wallet/topup/': typeof AuthenticatedWalletTopupIndexRoute
+  '/studio/$projectId/$stageKey/': typeof AuthenticatedStudioProjectIdStageKeyIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -696,6 +736,7 @@ export interface FileRoutesByTo {
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
   '/skill-editor': typeof AuthenticatedSkillEditorIndexRoute
   '/skill-workspace': typeof AuthenticatedSkillWorkspaceIndexRoute
+  '/studio': typeof AuthenticatedStudioIndexRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings': typeof AuthenticatedSystemSettingsIndexRoute
@@ -705,6 +746,7 @@ export interface FileRoutesByTo {
   '/toolset-detail': typeof AuthenticatedToolsetDetailIndexRoute
   '/usage-logs': typeof AuthenticatedUsageLogsIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
+  '/video-playground': typeof AuthenticatedVideoPlaygroundIndexRoute
   '/wallet': typeof AuthenticatedWalletIndexRoute
   '/blog/$articleId': typeof BlogArticleIdIndexRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
@@ -716,6 +758,7 @@ export interface FileRoutesByTo {
   '/system-settings/site/$section': typeof AuthenticatedSystemSettingsSiteSectionRoute
   '/blog-hall/$articleId': typeof AuthenticatedBlogHallArticleIdIndexRoute
   '/pricing/$modelId': typeof AuthenticatedPricingModelIdIndexRoute
+  '/studio/$projectId': typeof AuthenticatedStudioProjectIdIndexRoute
   '/system-settings/auth': typeof AuthenticatedSystemSettingsAuthIndexRoute
   '/system-settings/billing': typeof AuthenticatedSystemSettingsBillingIndexRoute
   '/system-settings/content': typeof AuthenticatedSystemSettingsContentIndexRoute
@@ -728,6 +771,7 @@ export interface FileRoutesByTo {
   '/wallet/redeem': typeof AuthenticatedWalletRedeemIndexRoute
   '/wallet/subscriptions': typeof AuthenticatedWalletSubscriptionsIndexRoute
   '/wallet/topup': typeof AuthenticatedWalletTopupIndexRoute
+  '/studio/$projectId/$stageKey': typeof AuthenticatedStudioProjectIdStageKeyIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -738,6 +782,7 @@ export interface FileRoutesById {
   '/user-agreement': typeof UserAgreementRoute
   '/_authenticated/blog-hall': typeof AuthenticatedBlogHallRouteRouteWithChildren
   '/_authenticated/pricing': typeof AuthenticatedPricingRouteRouteWithChildren
+  '/_authenticated/studio': typeof AuthenticatedStudioRouteRouteWithChildren
   '/_authenticated/system-settings': typeof AuthenticatedSystemSettingsRouteRouteWithChildren
   '/(auth)/forgot-password': typeof authForgotPasswordRoute
   '/(auth)/oauth': typeof authOauthRoute
@@ -783,6 +828,7 @@ export interface FileRoutesById {
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/_authenticated/skill-editor/': typeof AuthenticatedSkillEditorIndexRoute
   '/_authenticated/skill-workspace/': typeof AuthenticatedSkillWorkspaceIndexRoute
+  '/_authenticated/studio/': typeof AuthenticatedStudioIndexRoute
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/_authenticated/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/_authenticated/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
@@ -792,6 +838,7 @@ export interface FileRoutesById {
   '/_authenticated/toolset-detail/': typeof AuthenticatedToolsetDetailIndexRoute
   '/_authenticated/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
+  '/_authenticated/video-playground/': typeof AuthenticatedVideoPlaygroundIndexRoute
   '/_authenticated/wallet/': typeof AuthenticatedWalletIndexRoute
   '/blog/$articleId/': typeof BlogArticleIdIndexRoute
   '/_authenticated/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
@@ -803,6 +850,7 @@ export interface FileRoutesById {
   '/_authenticated/system-settings/site/$section': typeof AuthenticatedSystemSettingsSiteSectionRoute
   '/_authenticated/blog-hall/$articleId/': typeof AuthenticatedBlogHallArticleIdIndexRoute
   '/_authenticated/pricing/$modelId/': typeof AuthenticatedPricingModelIdIndexRoute
+  '/_authenticated/studio/$projectId/': typeof AuthenticatedStudioProjectIdIndexRoute
   '/_authenticated/system-settings/auth/': typeof AuthenticatedSystemSettingsAuthIndexRoute
   '/_authenticated/system-settings/billing/': typeof AuthenticatedSystemSettingsBillingIndexRoute
   '/_authenticated/system-settings/content/': typeof AuthenticatedSystemSettingsContentIndexRoute
@@ -815,6 +863,7 @@ export interface FileRoutesById {
   '/_authenticated/wallet/redeem/': typeof AuthenticatedWalletRedeemIndexRoute
   '/_authenticated/wallet/subscriptions/': typeof AuthenticatedWalletSubscriptionsIndexRoute
   '/_authenticated/wallet/topup/': typeof AuthenticatedWalletTopupIndexRoute
+  '/_authenticated/studio/$projectId/$stageKey/': typeof AuthenticatedStudioProjectIdStageKeyIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -824,6 +873,7 @@ export interface FileRouteTypes {
     | '/user-agreement'
     | '/blog-hall'
     | '/pricing'
+    | '/studio'
     | '/system-settings'
     | '/forgot-password'
     | '/oauth'
@@ -869,6 +919,7 @@ export interface FileRouteTypes {
     | '/redemption-codes/'
     | '/skill-editor/'
     | '/skill-workspace/'
+    | '/studio/'
     | '/subscriptions/'
     | '/system-info/'
     | '/system-settings/'
@@ -878,6 +929,7 @@ export interface FileRouteTypes {
     | '/toolset-detail/'
     | '/usage-logs/'
     | '/users/'
+    | '/video-playground/'
     | '/wallet/'
     | '/blog/$articleId/'
     | '/system-settings/auth/$section'
@@ -889,6 +941,7 @@ export interface FileRouteTypes {
     | '/system-settings/site/$section'
     | '/blog-hall/$articleId/'
     | '/pricing/$modelId/'
+    | '/studio/$projectId/'
     | '/system-settings/auth/'
     | '/system-settings/billing/'
     | '/system-settings/content/'
@@ -901,6 +954,7 @@ export interface FileRouteTypes {
     | '/wallet/redeem/'
     | '/wallet/subscriptions/'
     | '/wallet/topup/'
+    | '/studio/$projectId/$stageKey/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -950,6 +1004,7 @@ export interface FileRouteTypes {
     | '/redemption-codes'
     | '/skill-editor'
     | '/skill-workspace'
+    | '/studio'
     | '/subscriptions'
     | '/system-info'
     | '/system-settings'
@@ -959,6 +1014,7 @@ export interface FileRouteTypes {
     | '/toolset-detail'
     | '/usage-logs'
     | '/users'
+    | '/video-playground'
     | '/wallet'
     | '/blog/$articleId'
     | '/system-settings/auth/$section'
@@ -970,6 +1026,7 @@ export interface FileRouteTypes {
     | '/system-settings/site/$section'
     | '/blog-hall/$articleId'
     | '/pricing/$modelId'
+    | '/studio/$projectId'
     | '/system-settings/auth'
     | '/system-settings/billing'
     | '/system-settings/content'
@@ -982,6 +1039,7 @@ export interface FileRouteTypes {
     | '/wallet/redeem'
     | '/wallet/subscriptions'
     | '/wallet/topup'
+    | '/studio/$projectId/$stageKey'
   id:
     | '__root__'
     | '/'
@@ -991,6 +1049,7 @@ export interface FileRouteTypes {
     | '/user-agreement'
     | '/_authenticated/blog-hall'
     | '/_authenticated/pricing'
+    | '/_authenticated/studio'
     | '/_authenticated/system-settings'
     | '/(auth)/forgot-password'
     | '/(auth)/oauth'
@@ -1036,6 +1095,7 @@ export interface FileRouteTypes {
     | '/_authenticated/redemption-codes/'
     | '/_authenticated/skill-editor/'
     | '/_authenticated/skill-workspace/'
+    | '/_authenticated/studio/'
     | '/_authenticated/subscriptions/'
     | '/_authenticated/system-info/'
     | '/_authenticated/system-settings/'
@@ -1045,6 +1105,7 @@ export interface FileRouteTypes {
     | '/_authenticated/toolset-detail/'
     | '/_authenticated/usage-logs/'
     | '/_authenticated/users/'
+    | '/_authenticated/video-playground/'
     | '/_authenticated/wallet/'
     | '/blog/$articleId/'
     | '/_authenticated/system-settings/auth/$section'
@@ -1056,6 +1117,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system-settings/site/$section'
     | '/_authenticated/blog-hall/$articleId/'
     | '/_authenticated/pricing/$modelId/'
+    | '/_authenticated/studio/$projectId/'
     | '/_authenticated/system-settings/auth/'
     | '/_authenticated/system-settings/billing/'
     | '/_authenticated/system-settings/content/'
@@ -1068,6 +1130,7 @@ export interface FileRouteTypes {
     | '/_authenticated/wallet/redeem/'
     | '/_authenticated/wallet/subscriptions/'
     | '/_authenticated/wallet/topup/'
+    | '/_authenticated/studio/$projectId/$stageKey/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1291,6 +1354,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemSettingsRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/studio': {
+      id: '/_authenticated/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof AuthenticatedStudioRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pricing': {
       id: '/_authenticated/pricing'
       path: '/pricing'
@@ -1317,6 +1387,13 @@ declare module '@tanstack/react-router' {
       path: '/wallet'
       fullPath: '/wallet/'
       preLoaderRoute: typeof AuthenticatedWalletIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/video-playground/': {
+      id: '/_authenticated/video-playground/'
+      path: '/video-playground'
+      fullPath: '/video-playground/'
+      preLoaderRoute: typeof AuthenticatedVideoPlaygroundIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/users/': {
@@ -1381,6 +1458,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/subscriptions/'
       preLoaderRoute: typeof AuthenticatedSubscriptionsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/studio/': {
+      id: '/_authenticated/studio/'
+      path: '/'
+      fullPath: '/studio/'
+      preLoaderRoute: typeof AuthenticatedStudioIndexRouteImport
+      parentRoute: typeof AuthenticatedStudioRouteRoute
     }
     '/_authenticated/skill-workspace/': {
       id: '/_authenticated/skill-workspace/'
@@ -1620,6 +1704,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemSettingsAuthIndexRouteImport
       parentRoute: typeof AuthenticatedSystemSettingsRouteRoute
     }
+    '/_authenticated/studio/$projectId/': {
+      id: '/_authenticated/studio/$projectId/'
+      path: '/$projectId'
+      fullPath: '/studio/$projectId/'
+      preLoaderRoute: typeof AuthenticatedStudioProjectIdIndexRouteImport
+      parentRoute: typeof AuthenticatedStudioRouteRoute
+    }
     '/_authenticated/pricing/$modelId/': {
       id: '/_authenticated/pricing/$modelId/'
       path: '/$modelId'
@@ -1682,6 +1773,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/system-settings/auth/$section'
       preLoaderRoute: typeof AuthenticatedSystemSettingsAuthSectionRouteImport
       parentRoute: typeof AuthenticatedSystemSettingsRouteRoute
+    }
+    '/_authenticated/studio/$projectId/$stageKey/': {
+      id: '/_authenticated/studio/$projectId/$stageKey/'
+      path: '/$projectId/$stageKey'
+      fullPath: '/studio/$projectId/$stageKey/'
+      preLoaderRoute: typeof AuthenticatedStudioProjectIdStageKeyIndexRouteImport
+      parentRoute: typeof AuthenticatedStudioRouteRoute
     }
   }
 }
@@ -1746,6 +1844,26 @@ const AuthenticatedPricingRouteRouteWithChildren =
     AuthenticatedPricingRouteRouteChildren,
   )
 
+interface AuthenticatedStudioRouteRouteChildren {
+  AuthenticatedStudioIndexRoute: typeof AuthenticatedStudioIndexRoute
+  AuthenticatedStudioProjectIdIndexRoute: typeof AuthenticatedStudioProjectIdIndexRoute
+  AuthenticatedStudioProjectIdStageKeyIndexRoute: typeof AuthenticatedStudioProjectIdStageKeyIndexRoute
+}
+
+const AuthenticatedStudioRouteRouteChildren: AuthenticatedStudioRouteRouteChildren =
+  {
+    AuthenticatedStudioIndexRoute: AuthenticatedStudioIndexRoute,
+    AuthenticatedStudioProjectIdIndexRoute:
+      AuthenticatedStudioProjectIdIndexRoute,
+    AuthenticatedStudioProjectIdStageKeyIndexRoute:
+      AuthenticatedStudioProjectIdStageKeyIndexRoute,
+  }
+
+const AuthenticatedStudioRouteRouteWithChildren =
+  AuthenticatedStudioRouteRoute._addFileChildren(
+    AuthenticatedStudioRouteRouteChildren,
+  )
+
 interface AuthenticatedSystemSettingsRouteRouteChildren {
   AuthenticatedSystemSettingsIndexRoute: typeof AuthenticatedSystemSettingsIndexRoute
   AuthenticatedSystemSettingsAuthSectionRoute: typeof AuthenticatedSystemSettingsAuthSectionRoute
@@ -1806,6 +1924,7 @@ const AuthenticatedSystemSettingsRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBlogHallRouteRoute: typeof AuthenticatedBlogHallRouteRouteWithChildren
   AuthenticatedPricingRouteRoute: typeof AuthenticatedPricingRouteRouteWithChildren
+  AuthenticatedStudioRouteRoute: typeof AuthenticatedStudioRouteRouteWithChildren
   AuthenticatedSystemSettingsRouteRoute: typeof AuthenticatedSystemSettingsRouteRouteWithChildren
   AuthenticatedChat2linkRoute: typeof AuthenticatedChat2linkRoute
   AuthenticatedChatChatIdRoute: typeof AuthenticatedChatChatIdRoute
@@ -1835,6 +1954,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedToolsetDetailIndexRoute: typeof AuthenticatedToolsetDetailIndexRoute
   AuthenticatedUsageLogsIndexRoute: typeof AuthenticatedUsageLogsIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
+  AuthenticatedVideoPlaygroundIndexRoute: typeof AuthenticatedVideoPlaygroundIndexRoute
   AuthenticatedWalletIndexRoute: typeof AuthenticatedWalletIndexRoute
   AuthenticatedWalletAffiliateIndexRoute: typeof AuthenticatedWalletAffiliateIndexRoute
   AuthenticatedWalletOverviewIndexRoute: typeof AuthenticatedWalletOverviewIndexRoute
@@ -1846,6 +1966,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBlogHallRouteRoute: AuthenticatedBlogHallRouteRouteWithChildren,
   AuthenticatedPricingRouteRoute: AuthenticatedPricingRouteRouteWithChildren,
+  AuthenticatedStudioRouteRoute: AuthenticatedStudioRouteRouteWithChildren,
   AuthenticatedSystemSettingsRouteRoute:
     AuthenticatedSystemSettingsRouteRouteWithChildren,
   AuthenticatedChat2linkRoute: AuthenticatedChat2linkRoute,
@@ -1880,6 +2001,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedToolsetDetailIndexRoute: AuthenticatedToolsetDetailIndexRoute,
   AuthenticatedUsageLogsIndexRoute: AuthenticatedUsageLogsIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
+  AuthenticatedVideoPlaygroundIndexRoute:
+    AuthenticatedVideoPlaygroundIndexRoute,
   AuthenticatedWalletIndexRoute: AuthenticatedWalletIndexRoute,
   AuthenticatedWalletAffiliateIndexRoute:
     AuthenticatedWalletAffiliateIndexRoute,

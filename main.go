@@ -207,6 +207,9 @@ func main() {
 	// Mark stale image playground generation tasks as failed after a restart.
 	go controller.RecoverImagePlaygroundHistories()
 
+	// Mark stale video playground generation tasks as failed after a restart.
+	go controller.RecoverVideoPlaygroundHistories()
+
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: server,

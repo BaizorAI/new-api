@@ -12,6 +12,7 @@ import (
 	"github.com/BaizorAI/new-api/dto"
 	"github.com/BaizorAI/new-api/logger"
 	relaycommon "github.com/BaizorAI/new-api/relay/common"
+	relayconstant "github.com/BaizorAI/new-api/relay/constant"
 	"github.com/BaizorAI/new-api/relay/helper"
 	"github.com/BaizorAI/new-api/service"
 	"github.com/BaizorAI/new-api/setting/model_setting"
@@ -46,11 +47,12 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 
 	var requestBody io.Reader
 
-	if model_setting.GetGlobalSettings().PassThroughRequestEnabled || info.ChannelSetting.PassThroughBodyEnabled {
+	if model_setting.GetGlobalSettings().PassThroughRequestEnabled || info.ChannelSetting.PassThroughBodyEnabled || info.RelayMode == relayconstant.RelayModeVideosGenerations {
 		storage, err := common.GetBodyStorage(c)
 		if err != nil {
 			return types.NewErrorWithStatusCode(err, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 		}
+		info.UpstreamRequestBodySize = storage.Size()
 		requestBody = common.ReaderOnly(storage)
 	} else {
 		convertedRequest, err := adaptor.ConvertImageRequest(c, info, *request)

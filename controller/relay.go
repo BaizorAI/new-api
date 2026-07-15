@@ -35,7 +35,7 @@ import (
 func relayHandler(c *gin.Context, info *relaycommon.RelayInfo) *types.NewAPIError {
 	var err *types.NewAPIError
 	switch info.RelayMode {
-	case relayconstant.RelayModeImagesGenerations, relayconstant.RelayModeImagesEdits:
+	case relayconstant.RelayModeImagesGenerations, relayconstant.RelayModeImagesEdits, relayconstant.RelayModeVideosGenerations:
 		err = relay.ImageHelper(c, info)
 	case relayconstant.RelayModeAudioSpeech:
 		fallthrough

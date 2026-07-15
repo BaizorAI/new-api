@@ -252,6 +252,10 @@ function resolveActiveRootGroup(
     return findGroup(navGroups, 'blog-hall')
   }
 
+  if (pathname.startsWith('/studio')) {
+    return findGroup(navGroups, 'film-studio')
+  }
+
   if (pathname === '/jilai-workspace' || pathname === '/skill-workspace' || pathname === '/skill-editor') {
     return findGroup(navGroups, 'capability-skills')
   }
@@ -260,7 +264,7 @@ function resolveActiveRootGroup(
     return findGroup(navGroups, 'capability-tools')
   }
 
-  if (pathname === '/playground' || pathname === '/image-playground' || pathname.startsWith('/chat/')) {
+  if (pathname === '/playground' || pathname === '/image-playground' || pathname === '/video-playground' || pathname.startsWith('/chat/')) {
     return findGroup(navGroups, 'model-trial')
   }
 

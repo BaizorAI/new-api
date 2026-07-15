@@ -34,6 +34,10 @@ func SetRouter(router *gin.Engine, assets ThemeAssets) {
 	// Files are written by controller.downloadAndSaveImage under image-playground/.
 	router.Static("/image-playground", "./image-playground")
 
+	// Serve locally saved video-playground videos.
+	// Files are written by controller.saveBase64Video under video-playground/.
+	router.Static("/video-playground", "./video-playground")
+
 	frontendBaseUrl := os.Getenv("FRONTEND_BASE_URL")
 	if common.IsMasterNode && frontendBaseUrl != "" {
 		frontendBaseUrl = ""
