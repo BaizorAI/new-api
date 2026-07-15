@@ -17,11 +17,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQuery } from '@tanstack/react-query'
 import { type FormEvent, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   SideDrawerSection,
   sideDrawerContentClassName,
@@ -40,6 +42,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Sheet,
   SheetClose,
@@ -51,6 +54,8 @@ import {
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
 
+import { getStudioCharacters } from '../api'
+import { STUDIO_QUERY_KEYS } from '../constants'
 import {
   useCreateStudioShot,
   useUpdateStudioShot,
@@ -70,6 +75,7 @@ const shotFormSchema = z.object({
   duration: z.coerce.number().min(0).default(0),
   image_prompt: z.string().max(1000).default(''),
   video_prompt: z.string().max(1000).default(''),
+  character_ids: z.string().default(''),
 })
 
 type ShotFormValues = z.infer<typeof shotFormSchema>
@@ -83,6 +89,7 @@ const DEFAULT_VALUES: ShotFormValues = {
   duration: 0,
   image_prompt: '',
   video_prompt: '',
+  character_ids: '',
 }
 
 function shotToFormValues(shot: StudioShot): ShotFormValues {
@@ -95,6 +102,7 @@ function shotToFormValues(shot: StudioShot): ShotFormValues {
     duration: shot.duration,
     image_prompt: shot.image_prompt,
     video_prompt: shot.video_prompt,
+    character_ids: shot.character_ids,
   }
 }
 
@@ -121,6 +129,13 @@ export function StudioShotMutateDrawer({
 
   const createMutation = useCreateStudioShot(projectId)
   const updateMutation = useUpdateStudioShot(projectId)
+
+  const { data: charactersData } = useQuery({
+    queryKey: [...STUDIO_QUERY_KEYS.characters(projectId)],
+    queryFn: () => getStudioCharacters(projectId),
+    enabled: open,
+  })
+  const characters = charactersData?.data ?? []
 
   const form = useForm<ShotFormValues>({
     resolver: zodResolver(shotFormSchema),
@@ -325,6 +340,59 @@ export function StudioShotMutateDrawer({
                   </FormItem>
                 )}
               />
+
+              {characters.length > 0 ? (
+                <FormField
+                  control={form.control}
+                  name='character_ids'
+                  render={({ field }) => {
+                    const selectedIds = new Set(
+                      field.value
+                        ? field.value.split(',').filter(Boolean)
+                        : []
+                    )
+
+                    const toggleCharacter = (charId: string, checked: boolean) => {
+                      const next = new Set(selectedIds)
+                      if (checked) {
+                        next.add(charId)
+                      } else {
+                        next.delete(charId)
+                      }
+                      field.onChange([...next].join(','))
+                    }
+
+                    return (
+                      <FormItem>
+                        <FormLabel>{t('Characters')}</FormLabel>
+                        <div className='border-input max-h-36 space-y-2 overflow-y-auto rounded-md border p-3'>
+                          {characters.map((char) => {
+                            const idStr = String(char.id)
+                            return (
+                              <Label
+                                key={char.id}
+                                className='flex cursor-pointer items-center gap-2 text-sm font-normal'
+                              >
+                                <Checkbox
+                                  checked={selectedIds.has(idStr)}
+                                  onCheckedChange={(checked) =>
+                                    toggleCharacter(idStr, checked === true)
+                                  }
+                                />
+                                {char.name}
+                              </Label>
+                            )
+                          })}
+                        </div>
+                        <FormDescription>
+                          {t('Select characters appearing in this shot.')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )
+                  }}
+                />
+              ) : null}
             </SideDrawerSection>
           </form>
         </Form>

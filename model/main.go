@@ -400,6 +400,15 @@ func migrateDBFast() error {
 			return err
 		}
 	}
+	// Migrate studio_stages: rename reserved-word column "order" → "stage_order"
+	if DB.Migrator().HasColumn(&StudioStage{}, "order") {
+		orderCol := "`order`"
+		if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
+			orderCol = `"order"`
+		}
+		_ = DB.Exec("UPDATE studio_stages SET stage_order = " + orderCol + " WHERE stage_order = 0 AND " + orderCol + " > 0").Error
+		_ = DB.Migrator().DropColumn(&StudioStage{}, "order")
+	}
 	if common.UsingMainDatabase(common.DatabaseTypeSQLite) {
 		if err := ensureSubscriptionPlanTableSQLite(); err != nil {
 			return err

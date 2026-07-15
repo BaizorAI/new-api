@@ -12,7 +12,7 @@ type StudioStage struct {
 	ProjectId  int    `json:"project_id" gorm:"index;uniqueIndex:idx_studio_stage_project_key"`
 	Key        string `json:"key" gorm:"type:varchar(32);uniqueIndex:idx_studio_stage_project_key"`
 	Name       string `json:"name" gorm:"type:varchar(64)"`
-	Order      int    `json:"order"`
+	Order      int    `json:"order" gorm:"column:stage_order"`
 	Status     int    `json:"status" gorm:"default:0"`
 	AutoSkill  string `json:"auto_skill" gorm:"type:varchar(64)"`
 	TotalItems int    `json:"total_items" gorm:"default:0"`
@@ -57,13 +57,13 @@ func buildDefaultStages(projectId int) []StudioStage {
 
 func GetStudioStagesByProjectId(projectId int) ([]StudioStage, error) {
 	var stages []StudioStage
-	err := DB.Where("project_id = ?", projectId).Order("`order` asc").Find(&stages).Error
+	err := DB.Where("project_id = ?", projectId).Order("stage_order asc").Find(&stages).Error
 	return stages, err
 }
 
 func GetStudioStageByProjectAndKey(projectId int, key string) (*StudioStage, error) {
 	var stage StudioStage
-	err := DB.Where("project_id = ? AND `key` = ?", projectId, key).First(&stage).Error
+	err := DB.Where("project_id = ? AND "+commonKeyCol+" = ?", projectId, key).First(&stage).Error
 	if err != nil {
 		return nil, err
 	}
