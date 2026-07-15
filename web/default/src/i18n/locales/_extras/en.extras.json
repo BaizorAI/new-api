@@ -1,0 +1,25 @@
+{
+  "translation.CC Admin": {
+    "singular": "CC Admin",
+    "plural": "CC Admins"
+  },
+  "translation.Available Hermes toolsets and their tools.": "Available Hermes toolsets and their tools.",
+  "translation.Back to tools": "Back to tools",
+  "translation.Browse and configure Hermes toolsets.": "Browse and configure Hermes toolsets.",
+  "translation.Legal domain skills from Jilai.": "Legal domain skills from Jilai.",
+  "translation.Manage skills and tools": "Manage skills and tools",
+  "translation.No toolsets available": "No toolsets available",
+  "translation.Official Baizor platform skills.": "Official Baizor platform skills.",
+  "translation.Selected": "Selected",
+  "translation.Skills you have created.": "Skills you have created.",
+  "translation.Skills shared with your teams.": "Skills shared with your teams.",
+  "translation.System built-in Hermes skills.": "System built-in Hermes skills.",
+  "translation.The requested toolset \"{{name}}\" was not found.": "The requested toolset \"{{name}}\" was not found.",
+  "translation.This toolset is configured and active.": "This toolset is configured and active.",
+  "translation.This toolset needs additional configuration.": "This toolset needs additional configuration.",
+  "translation.Toolset configuration is managed through the Hermes API server.": "Toolset configuration is managed through the Hermes API server.",
+  "translation.Toolset detail": "Toolset detail",
+  "translation.Toolset not found": "Toolset not found",
+  "translation.Toolsets": "Toolsets",
+  "translation.Tools in this toolset": "Tools in this toolset"
+}

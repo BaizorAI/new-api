@@ -19,6 +19,7 @@ import (
 	"github.com/BaizorAI/new-api/types"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tidwall/sjson"
 )
 
 func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types.NewAPIError) {
@@ -52,8 +53,24 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 		if err != nil {
 			return types.NewErrorWithStatusCode(err, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 		}
-		info.UpstreamRequestBodySize = storage.Size()
-		requestBody = common.ReaderOnly(storage)
+		// Apply model name mapping in pass-through body — the raw body still
+		// contains the original (gateway-facing) model name; upstream may
+		// only accept the mapped name.
+		if info.UpstreamModelName != "" && info.UpstreamModelName != info.OriginModelName {
+			bodyBytes, bErr := storage.Bytes()
+			if bErr != nil {
+				return types.NewErrorWithStatusCode(bErr, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+			}
+			bodyBytes, bErr = sjson.SetBytes(bodyBytes, "model", info.UpstreamModelName)
+			if bErr != nil {
+				return types.NewError(fmt.Errorf("failed to apply model mapping in pass-through body: %w", bErr), types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())
+			}
+			info.UpstreamRequestBodySize = int64(len(bodyBytes))
+			requestBody = bytes.NewReader(bodyBytes)
+		} else {
+			info.UpstreamRequestBodySize = storage.Size()
+			requestBody = common.ReaderOnly(storage)
+		}
 	} else {
 		convertedRequest, err := adaptor.ConvertImageRequest(c, info, *request)
 		if err != nil {

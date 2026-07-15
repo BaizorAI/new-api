@@ -87,6 +87,7 @@
   "Custom callback base URL. Leave blank to use server address": "Custom callback base URL. Leave blank to use server address",
   "Deploy with SQLite, MySQL or PostgreSQL depending on organizational scale.": "Deploy with SQLite, MySQL or PostgreSQL depending on organizational scale.",
   "Deploy with SQLite, MySQL or PostgreSQL depending on scale.": "Deploy with SQLite, MySQL or PostgreSQL depending on scale.",
+  "Describe the image you want to generate...": "Describe the image you want to generate...",
   "Designed for teams that need governed access to many AI providers without rebuilding authentication, billing and observability for each one.": "Designed for teams that need governed access to many AI providers without rebuilding authentication, billing and observability for each one.",
   "Directory containing apiclient_key.pem and wechatpay_cert.pem": "Directory containing apiclient_key.pem and wechatpay_cert.pem",
   "Edit your article and save changes.": "Edit your article and save changes.",
@@ -256,6 +257,7 @@
   "Support private, intranet and trusted deployment needs for organizations using AI capabilities in localized infrastructure environments.": "Support private, intranet and trusted deployment needs for organizations using AI capabilities in localized infrastructure environments.",
   "Support wallet balance, quota pre-consume, post-consume settlement, subscription plans, reset periods and dynamic billing expressions.": "Support wallet balance, quota pre-consume, post-consume settlement, subscription plans, reset periods and dynamic billing expressions.",
   "Switch between Codex and Claude": "Switch between Codex and Claude",
+  "Usage records for all API requests made with team tokens.": "Usage records for all API requests made with team tokens.",
   "Team members can collaborate around shared conversations, generated documents, uploaded files and exported outcomes.": "Team members can collaborate around shared conversations, generated documents, uploaded files and exported outcomes.",
   "Team members can continue from shared sessions, outputs and skill context, with model access and quota handled when needed.": "Team members can continue from shared sessions, outputs and skill context, with model access and quota handled when needed.",
   "Team members can see shared sessions, outputs and skill context while administrators keep model access and quota governed.": "Team members can see shared sessions, outputs and skill context while administrators keep model access and quota governed.",
@@ -322,5 +324,12 @@
   "When model access, quota, billing or audit matters, handle it in management without interrupting the workspace flow.": "When model access, quota, billing or audit matters, handle it in management without interrupting the workspace flow.",
   "Workspace tasks stay first; model access, quota, audit and private deployment support the work when stronger boundaries are needed.": "Workspace tasks stay first; model access, quota, audit and private deployment support the work when stronger boundaries are needed.",
   "Workspaces, skills, shared sessions and results are first. Technical controls are still available, but they live where operators expect them.": "Workspaces, skills, shared sessions and results are first. Technical controls are still available, but they live where operators expect them.",
-  "Write, edit and publish articles to Blog Hall.": "Write, edit and publish articles to Blog Hall."
+  "Write, edit and publish articles to Blog Hall.": "Write, edit and publish articles to Blog Hall.",
+  "Browse and configure Hermes toolsets": "Browse and configure Hermes toolsets",
+  "Failed to stop task": "Failed to stop task",
+  "Failed to delete task": "Failed to delete task",
+  "No content to preview": "No content to preview",
+  "Test the skill with a sample instruction before saving. The current skill content will be used.": "Test the skill with a sample instruction before saving. The current skill content will be used.",
+  "Failed to rename asset": "Failed to rename asset",
+  "This is how Hermes will see the skill when loaded.": "This is how Hermes will see the skill when loaded."
 }
