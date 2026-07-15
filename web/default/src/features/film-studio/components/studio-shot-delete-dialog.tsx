@@ -62,7 +62,7 @@ export function StudioShotDeleteDialog({
   }
 
   const shotLabel = shot
-    ? `S${shot.scene_number}-${shot.shot_number}`
+    ? t('S{{scene}}-{{shot}}', { scene: shot.scene_number, shot: shot.shot_number })
     : ''
 
   return (

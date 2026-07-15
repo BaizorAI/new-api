@@ -938,7 +938,7 @@ export function StudioStageDetail() {
                                   setFullscreenVideo({
                                     url: shot.video_url,
                                     poster: shot.image_url || undefined,
-                                    label: `S${shot.scene_number}-${shot.shot_number}`,
+                                    label: t('S{{scene}}-{{shot}}', { scene: shot.scene_number, shot: shot.shot_number }),
                                   })
                                 }
                                 title={t('Click to play video')}
@@ -1307,7 +1307,7 @@ function ReviewGallerySection(props: { shots: StudioShot[] }) {
             ) : null}
             <div className='p-2'>
               <p className='text-muted-foreground truncate text-xs'>
-                S{shot.scene_number}-{shot.shot_number}: {shot.description}
+                {t('S{{scene}}-{{shot}}: {{desc}}', { scene: shot.scene_number, shot: shot.shot_number, desc: shot.description })}
               </p>
             </div>
           </div>
@@ -1337,7 +1337,7 @@ function ChatBubble(props: { message: StageChatMessage }) {
             ···
           </span>
         ) : message.status === 'error' ? (
-          <span className='text-destructive text-xs'>{message.content}</span>
+          <span className='text-destructive text-xs'>{t(message.content)}</span>
         ) : (
           <div className='prose dark:prose-invert prose-sm'>
             <Markdown>{message.content}</Markdown>
@@ -1387,7 +1387,7 @@ function ScriptChatBubble(props: {
             ···
           </span>
         ) : message.status === 'error' ? (
-          <span className='text-destructive text-xs'>{message.content}</span>
+          <span className='text-destructive text-xs'>{t(message.content)}</span>
         ) : (
           <div className='prose dark:prose-invert prose-sm'>
             <Markdown>{message.content}</Markdown>

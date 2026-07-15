@@ -292,7 +292,7 @@ function ProjectCard(props: {
         ) : null}
         {stageTotal > 0 ? (
           <span className='text-muted-foreground'>
-            {t('Stages')}: {stageDone}/{stageTotal}
+            {t('Stages: {{done}}/{{total}}', { done: stageDone, total: stageTotal })}
           </span>
         ) : null}
       </div>
