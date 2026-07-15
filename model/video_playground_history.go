@@ -1,8 +1,6 @@
 package model
 
 import (
-	"time"
-
 	"github.com/BaizorAI/new-api/common"
 )
 
@@ -27,6 +25,8 @@ type VideoPlaygroundHistory struct {
 	Status          int     `json:"status" gorm:"default:1;not null;index"`
 	VideoURL        string  `json:"video_url" gorm:"type:text"`
 	ErrorMessage    string  `json:"error_message,omitempty" gorm:"type:text"`
+	ChannelId       int     `json:"channel_id,omitempty"`
+	UpstreamJobId   string  `json:"upstream_job_id,omitempty" gorm:"type:varchar(64)"`
 	CreatedAt       int64   `json:"created_at" gorm:"autoCreateTime"`
 }
 
@@ -62,14 +62,32 @@ func UpdateVideoPlaygroundHistoryError(id int, errMsg string) error {
 	}).Error
 }
 
-// MarkStaleVideoPlaygroundHistories marks pending records as failed on startup.
-// This avoids retrying (and double-billing) tasks that were interrupted by a server restart.
-func MarkStaleVideoPlaygroundHistories() error {
+// UpdateVideoPlaygroundUpstreamInfo stores the upstream job ID and channel ID
+// after a successful async submission (202 Accepted from sulphur2).
+func UpdateVideoPlaygroundUpstreamInfo(id int, upstreamJobId string, channelId int) error {
+	return DB.Model(&VideoPlaygroundHistory{}).Where("id = ?", id).Updates(map[string]any{
+		"upstream_job_id": upstreamJobId,
+		"channel_id":      channelId,
+	}).Error
+}
+
+// GetPendingVideoPlaygroundWithUpstreamJob returns pending records that already
+// have an upstream job ID — these need poll-loop recovery after a gateway restart.
+func GetPendingVideoPlaygroundWithUpstreamJob() ([]*VideoPlaygroundHistory, error) {
+	var records []*VideoPlaygroundHistory
+	err := DB.Where("status = ? AND upstream_job_id != ''", VideoPlaygroundStatusPending).
+		Find(&records).Error
+	return records, err
+}
+
+// MarkStaleVideoPlaygroundHistoriesWithoutUpstream marks pending records that
+// were never successfully submitted upstream (no job ID) as failed.
+func MarkStaleVideoPlaygroundHistoriesWithoutUpstream() error {
 	return DB.Model(&VideoPlaygroundHistory{}).
-		Where("status = ?", VideoPlaygroundStatusPending).
+		Where("status = ? AND (upstream_job_id = '' OR upstream_job_id IS NULL)", VideoPlaygroundStatusPending).
 		Updates(map[string]any{
 			"status":        VideoPlaygroundStatusFailed,
-			"error_message": "generation interrupted by server restart",
+			"error_message": "generation interrupted by server restart (not submitted)",
 		}).Error
 }
 
@@ -89,7 +107,3 @@ func GetVideoPlaygroundHistoryById(id int) (*VideoPlaygroundHistory, error) {
 	}
 	return &record, nil
 }
-
-// StaleVideoPlaygroundThreshold defines how long a pending task is allowed to run
-// before being considered stale (used for crash recovery on startup).
-var StaleVideoPlaygroundThreshold = 30 * time.Minute

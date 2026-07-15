@@ -121,6 +121,20 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 			if httpResp.StatusCode == http.StatusCreated && info.ApiType == constant.APITypeReplicate {
 				// replicate channel returns 201 Created when using Prefer: wait, treat it as success.
 				httpResp.StatusCode = http.StatusOK
+			} else if httpResp.StatusCode == http.StatusAccepted && info.RelayMode == relayconstant.RelayModeVideosGenerations {
+				// Async video generation: upstream returned 202 with a job ID.
+				// Pass the body through so the controller can extract the job_id
+				// and start a poll loop.
+				body, readErr := io.ReadAll(httpResp.Body)
+				httpResp.Body.Close()
+				if readErr != nil {
+					return types.NewError(fmt.Errorf("failed to read 202 response body: %w", readErr), types.ErrorCodeDoRequestFailed)
+				}
+				c.Data(http.StatusAccepted, "application/json", body)
+				// Pre-bill 1 token; final billing adjusts when video completes.
+				usage := &dto.Usage{PromptTokens: 1, TotalTokens: 1}
+				service.PostTextConsumeQuota(c, info, usage, []string{"async video"})
+				return nil
 			} else {
 				newAPIError = service.RelayErrorHandler(c.Request.Context(), httpResp, false)
 				// reset status code 重置状态码

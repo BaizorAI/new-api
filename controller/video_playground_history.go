@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/BaizorAI/new-api/common"
 	"github.com/BaizorAI/new-api/constant"
@@ -21,11 +24,15 @@ import (
 
 const videoPlaygroundDir = "video-playground"
 
-// videoGenSemaphore serializes video generation requests. ComfyUI processes one
-// job at a time; sending concurrent requests causes later ones to exceed the
-// upstream sync timeout and fail with "server is busy". A buffered channel of
-// size 1 ensures only one goroutine runs relay at a time while others wait.
-var videoGenSemaphore = make(chan struct{}, 1)
+const (
+	// videoPollInterval is the delay between upstream poll requests.
+	videoPollInterval = 15 * time.Second
+	// videoPollTimeout is the maximum wall-clock time a poll loop runs.
+	videoPollTimeout = 2 * time.Hour
+	// videoPollMaxConsecutiveErrors is the number of consecutive HTTP errors
+	// before giving up (transient failures are expected during restarts).
+	videoPollMaxConsecutiveErrors = 10
+)
 
 func init() {
 	if err := os.MkdirAll(videoPlaygroundDir, 0o755); err != nil {
@@ -124,19 +131,40 @@ func ClearVideoPlaygroundHistoryEntries(c *gin.Context) {
 	common.ApiSuccess(c, nil)
 }
 
-// RecoverVideoPlaygroundHistories marks any pending records as failed on startup.
+// RecoverVideoPlaygroundHistories restores in-flight video generation after
+// a gateway restart. Records that already received an upstream job ID are
+// resumed via pollVideoPlaygroundResult; the rest are marked failed.
 func RecoverVideoPlaygroundHistories() {
 	if model.DB == nil {
 		return
 	}
-	if err := model.MarkStaleVideoPlaygroundHistories(); err != nil {
-		common.SysError("failed to recover video playground histories: " + err.Error())
+	// Resume poll loops for records that were already submitted upstream.
+	records, err := model.GetPendingVideoPlaygroundWithUpstreamJob()
+	if err != nil {
+		common.SysError("video playground: failed to query recoverable records: " + err.Error())
+	} else {
+		for _, r := range records {
+			common.SysLog(fmt.Sprintf("video playground: recovering poll for record %d (upstream_job_id=%s, channel_id=%d)", r.Id, r.UpstreamJobId, r.ChannelId))
+			go pollVideoPlaygroundResult(r.Id, r.UpstreamJobId, r.ChannelId)
+		}
+	}
+	// Mark remaining pending records (never submitted) as failed.
+	if err := model.MarkStaleVideoPlaygroundHistoriesWithoutUpstream(); err != nil {
+		common.SysError("video playground: failed to mark stale entries: " + err.Error())
 		return
 	}
-	common.SysLog("video playground: marked stale pending entries as failed")
+	common.SysLog("video playground: recovery complete")
 }
 
-// ── Background generation ──────────────────────────────────────
+// ── Background generation (async submit + poll) ──────────────────
+
+// videoSubmitResult carries the relay response along with the selected channel
+// ID so the caller can persist it and later poll upstream directly.
+type videoSubmitResult struct {
+	ResponseBody []byte
+	StatusCode   int
+	ChannelId    int
+}
 
 func runVideoPlaygroundGeneration(recordId int) {
 	record, err := model.GetVideoPlaygroundHistoryById(recordId)
@@ -147,32 +175,38 @@ func runVideoPlaygroundGeneration(recordId int) {
 		return
 	}
 
-	// Serialize: only one video generation goes through relay at a time.
-	// Others wait here until the semaphore is released.
-	videoGenSemaphore <- struct{}{}
-	defer func() { <-videoGenSemaphore }()
-
-	// Re-check the record is still pending (it may have been deleted while waiting).
-	record, err = model.GetVideoPlaygroundHistoryById(recordId)
-	if err != nil || record == nil || record.Status != model.VideoPlaygroundStatusPending {
-		return
-	}
-
-	responseBody, statusCode, err := executeVideoPlaygroundGeneration(record)
+	result, err := executeVideoPlaygroundGeneration(record)
 	if err != nil {
 		_ = model.UpdateVideoPlaygroundHistoryError(recordId, err.Error())
 		return
 	}
-	if statusCode < 200 || statusCode >= 300 {
-		errMsg := extractVideoPlaygroundError(responseBody, statusCode)
+
+	// ── Async 202 path: upstream accepted the job ──
+	if result.StatusCode == http.StatusAccepted {
+		jobId := extractUpstreamJobId(result.ResponseBody)
+		if jobId == "" {
+			_ = model.UpdateVideoPlaygroundHistoryError(recordId, "upstream returned 202 but no job id")
+			return
+		}
+		if err := model.UpdateVideoPlaygroundUpstreamInfo(recordId, jobId, result.ChannelId); err != nil {
+			common.SysError("video playground: failed to save upstream info: " + err.Error())
+			_ = model.UpdateVideoPlaygroundHistoryError(recordId, "failed to save upstream info: "+err.Error())
+			return
+		}
+		common.SysLog(fmt.Sprintf("video playground: record %d submitted async (job_id=%s, channel_id=%d)", recordId, jobId, result.ChannelId))
+		pollVideoPlaygroundResult(recordId, jobId, result.ChannelId)
+		return
+	}
+
+	// ── Sync 200 path: response already contains the video ──
+	if result.StatusCode < 200 || result.StatusCode >= 300 {
+		errMsg := extractVideoPlaygroundError(result.ResponseBody, result.StatusCode)
 		_ = model.UpdateVideoPlaygroundHistoryError(recordId, errMsg)
 		return
 	}
 
-	// Parse the response — the upstream returns the same format as image API:
-	// { "created": <ts>, "data": [{ "b64_json": "<base64-mp4>" }] }
 	var resp dto.ImageResponse
-	if err := common.Unmarshal(responseBody, &resp); err != nil {
+	if err := common.Unmarshal(result.ResponseBody, &resp); err != nil {
 		_ = model.UpdateVideoPlaygroundHistoryError(recordId, "failed to parse video response: "+err.Error())
 		return
 	}
@@ -181,9 +215,112 @@ func runVideoPlaygroundGeneration(recordId int) {
 		return
 	}
 
-	videoData := resp.Data[0]
+	saveVideoFromImageResponse(recordId, resp.Data[0])
+}
 
-	// Save video locally — sulphur2 always returns b64_json
+// pollVideoPlaygroundResult polls the upstream sulphur2 endpoint until the
+// job reaches a terminal state (completed/failed) or the poll times out.
+func pollVideoPlaygroundResult(recordId int, upstreamJobId string, channelId int) {
+	channel, err := model.GetChannelById(channelId, true)
+	if err != nil {
+		_ = model.UpdateVideoPlaygroundHistoryError(recordId, "channel not found: "+err.Error())
+		return
+	}
+
+	baseURL := strings.TrimSuffix(channel.GetBaseURL(), "/")
+	apiKey := channel.Key
+	pollURL := fmt.Sprintf("%s/v1/videos/generations/%s", baseURL, upstreamJobId)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	deadline := time.Now().Add(videoPollTimeout)
+	consecutiveErrors := 0
+
+	for {
+		time.Sleep(videoPollInterval)
+
+		if time.Now().After(deadline) {
+			_ = model.UpdateVideoPlaygroundHistoryError(recordId, "video generation timed out after "+videoPollTimeout.String())
+			return
+		}
+
+		req, _ := http.NewRequest(http.MethodGet, pollURL, nil)
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+		resp, err := client.Do(req)
+		if err != nil {
+			consecutiveErrors++
+			common.SysError(fmt.Sprintf("video playground: poll error for record %d (%d/%d): %v", recordId, consecutiveErrors, videoPollMaxConsecutiveErrors, err))
+			if consecutiveErrors >= videoPollMaxConsecutiveErrors {
+				_ = model.UpdateVideoPlaygroundHistoryError(recordId, "too many poll errors: "+err.Error())
+				return
+			}
+			continue
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		consecutiveErrors = 0
+
+		if resp.StatusCode == http.StatusNotFound {
+			// Job vanished (sulphur2 restarted and lost state before SQLite
+			// persistence was added, or job was cleaned up).
+			_ = model.UpdateVideoPlaygroundHistoryError(recordId, "upstream job not found (may have been lost during restart)")
+			return
+		}
+		if resp.StatusCode != http.StatusOK {
+			common.SysError(fmt.Sprintf("video playground: poll status %d for record %d", resp.StatusCode, recordId))
+			continue
+		}
+
+		// Parse upstream job status.
+		var jobResp struct {
+			Status string `json:"status"`
+			Data   []struct {
+				B64Json string `json:"b64_json"`
+				Url     string `json:"url"`
+			} `json:"data"`
+			Error struct {
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		if err := common.Unmarshal(body, &jobResp); err != nil {
+			common.SysError(fmt.Sprintf("video playground: failed to parse poll response for record %d: %v", recordId, err))
+			continue
+		}
+
+		switch jobResp.Status {
+		case "completed":
+			if len(jobResp.Data) == 0 {
+				_ = model.UpdateVideoPlaygroundHistoryError(recordId, "upstream completed but no video data")
+				return
+			}
+			saveVideoFromPollData(recordId, jobResp.Data[0].B64Json, jobResp.Data[0].Url)
+			return
+		case "failed":
+			errMsg := jobResp.Error.Message
+			if errMsg == "" {
+				errMsg = "upstream video generation failed"
+			}
+			_ = model.UpdateVideoPlaygroundHistoryError(recordId, errMsg)
+			return
+		default:
+			// "queued" / "processing" — keep polling
+		}
+	}
+}
+
+// extractUpstreamJobId parses the async 202 response body to find the job id.
+func extractUpstreamJobId(body []byte) string {
+	var resp struct {
+		Id string `json:"id"`
+	}
+	if err := common.Unmarshal(body, &resp); err != nil {
+		return ""
+	}
+	return resp.Id
+}
+
+// saveVideoFromImageResponse handles saving a completed video from the sync
+// (200) code path where the upstream already returned data in ImageResponse format.
+func saveVideoFromImageResponse(recordId int, videoData dto.ImageData) {
 	if videoData.B64Json != "" {
 		localPath, err := saveBase64Video(recordId, videoData.B64Json)
 		if err != nil {
@@ -195,12 +332,32 @@ func runVideoPlaygroundGeneration(recordId int) {
 			common.SysError("video playground: failed to save result: " + err.Error())
 		}
 	} else if videoData.Url != "" {
-		// Fallback: if upstream returns a URL instead of base64
 		if err := model.UpdateVideoPlaygroundHistoryResult(recordId, videoData.Url); err != nil {
 			common.SysError("video playground: failed to save result: " + err.Error())
 		}
 	} else {
 		_ = model.UpdateVideoPlaygroundHistoryError(recordId, "no video url or base64 data in response")
+	}
+}
+
+// saveVideoFromPollData handles saving a completed video from the async poll path.
+func saveVideoFromPollData(recordId int, b64Json string, url string) {
+	if b64Json != "" {
+		localPath, err := saveBase64Video(recordId, b64Json)
+		if err != nil {
+			common.SysError("video playground: failed to save polled video: " + err.Error())
+			_ = model.UpdateVideoPlaygroundHistoryError(recordId, "failed to save video: "+err.Error())
+			return
+		}
+		if err := model.UpdateVideoPlaygroundHistoryResult(recordId, localPath); err != nil {
+			common.SysError("video playground: failed to save result: " + err.Error())
+		}
+	} else if url != "" {
+		if err := model.UpdateVideoPlaygroundHistoryResult(recordId, url); err != nil {
+			common.SysError("video playground: failed to save result: " + err.Error())
+		}
+	} else {
+		_ = model.UpdateVideoPlaygroundHistoryError(recordId, "no video url or base64 data in poll response")
 	}
 }
 
@@ -224,11 +381,12 @@ func saveBase64Video(recordId int, b64data string) (string, error) {
 	return "/video-playground/" + filename, nil
 }
 
-func executeVideoPlaygroundGeneration(record *model.VideoPlaygroundHistory) ([]byte, int, error) {
+func executeVideoPlaygroundGeneration(record *model.VideoPlaygroundHistory) (*videoSubmitResult, error) {
 	payload := map[string]any{
 		"model":  record.Model,
 		"prompt": record.Prompt,
 		"n":      1,
+		"async":  true, // Tell sulphur2 to return 202 immediately with a job ID
 	}
 	if record.Size != "" {
 		payload["size"] = record.Size
@@ -253,7 +411,7 @@ func executeVideoPlaygroundGeneration(record *model.VideoPlaygroundHistory) ([]b
 	}
 	payloadBytes, err := common.Marshal(payload)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, err
 	}
 
 	// Build synthetic HTTP request (same pattern as image playground)
@@ -274,7 +432,7 @@ func executeVideoPlaygroundGeneration(record *model.VideoPlaygroundHistory) ([]b
 
 	userCache, err := model.GetUserCache(record.UserId)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		return nil, err
 	}
 	c.Set("username", userCache.Username)
 	c.Set("role", userCache.Role)
@@ -287,12 +445,23 @@ func executeVideoPlaygroundGeneration(record *model.VideoPlaygroundHistory) ([]b
 	middleware.Distribute()(c)
 	if c.IsAborted() {
 		common.CleanupBodyStorage(c)
-		return response.Body.Bytes(), response.Code, nil
+		return &videoSubmitResult{
+			ResponseBody: response.Body.Bytes(),
+			StatusCode:   response.Code,
+		}, nil
 	}
+
+	// Capture the selected channel ID before relay runs.
+	channelId, _ := c.Get(string(constant.ContextKeyChannelId))
+	selectedChannelId, _ := channelId.(int)
 
 	PlaygroundVideo(c)
 	common.CleanupBodyStorage(c)
-	return response.Body.Bytes(), response.Code, nil
+	return &videoSubmitResult{
+		ResponseBody: response.Body.Bytes(),
+		StatusCode:   response.Code,
+		ChannelId:    selectedChannelId,
+	}, nil
 }
 
 func extractVideoPlaygroundError(body []byte, statusCode int) string {

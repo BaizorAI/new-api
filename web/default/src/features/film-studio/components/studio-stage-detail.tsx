@@ -20,11 +20,15 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
 import {
   ArrowLeft,
+  ImagePlus,
+  Loader2,
   MoreHorizontal,
   Pencil,
   Plus,
+  RefreshCw,
   SquareIcon,
   Trash2,
+  Wand2,
 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -62,6 +66,8 @@ import {
   useStudioStageChat,
   type StageChatMessage,
 } from '../hooks/use-studio-stage-chat'
+import { useExtractCharacters, useExtractShots } from '../hooks/use-ai-extraction'
+import { useShotImageGen } from '../hooks/use-shot-image-gen'
 import type { StudioCharacter, StudioShot } from '../types'
 import { StudioCharacterDeleteDialog } from './studio-character-delete-dialog'
 import { StudioCharacterMutateDrawer } from './studio-character-mutate-drawer'
@@ -133,11 +139,26 @@ export function StudioStageDetail() {
   const { messages, sendMessage, stopGeneration, isStreaming } =
     useStudioStageChat({ projectId: id, stageKey })
 
+  const { generateImage, generatingIds } = useShotImageGen({
+    projectId: id,
+    styleDna: projectData?.data?.style_dna,
+  })
+  const { extractCharacters, isExtracting: isExtractingChars } =
+    useExtractCharacters(id)
+  const { extractShots, isExtracting: isExtractingShots } =
+    useExtractShots(id)
+
   const project = projectData?.data
   const stages = stagesData?.data ?? []
   const stage = stages.find((s) => s.key === stageKey)
   const shots = shotsData?.data ?? []
   const characters = charsData?.data ?? []
+
+  // Get script text for AI extraction
+  const scriptText = useMemo(() => {
+    const scriptStage = stages.find((s) => s.key === 'script')
+    return scriptStage?.output_data ?? ''
+  }, [stages])
 
   const statusConfig = stage
     ? STAGE_STATUS_CONFIG[stage.status as StageStatusValue]
@@ -218,17 +239,37 @@ export function StudioStageDetail() {
                 <h2 className='text-sm font-medium'>
                   {t('Characters')} ({characters.length})
                 </h2>
-                <Button
-                  size='sm'
-                  variant='outline'
-                  onClick={() => {
-                    setCurrentChar(null)
-                    setCharDialog('create')
-                  }}
-                >
-                  <Plus className='mr-1.5 size-3.5' aria-hidden='true' />
-                  {t('Add Character')}
-                </Button>
+                <div className='flex items-center gap-2'>
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    disabled={!scriptText.trim() || isExtractingChars}
+                    onClick={() => void extractCharacters(scriptText)}
+                  >
+                    {isExtractingChars ? (
+                      <Loader2
+                        className='mr-1.5 size-3.5 animate-spin'
+                        aria-hidden='true'
+                      />
+                    ) : (
+                      <Wand2 className='mr-1.5 size-3.5' aria-hidden='true' />
+                    )}
+                    {isExtractingChars
+                      ? t('Extracting...')
+                      : t('AI Extract')}
+                  </Button>
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    onClick={() => {
+                      setCurrentChar(null)
+                      setCharDialog('create')
+                    }}
+                  >
+                    <Plus className='mr-1.5 size-3.5' aria-hidden='true' />
+                    {t('Add Character')}
+                  </Button>
+                </div>
               </div>
               {characters.length > 0 ? (
                 <div className='grid gap-3 sm:grid-cols-2'>
@@ -296,46 +337,128 @@ export function StudioStageDetail() {
                 <h2 className='text-sm font-medium'>
                   {t('Shots')} ({shots.length})
                 </h2>
-                <Button
-                  size='sm'
-                  variant='outline'
-                  onClick={() => {
-                    setCurrentShot(null)
-                    setShotDialog('create')
-                  }}
-                >
-                  <Plus className='mr-1.5 size-3.5' aria-hidden='true' />
-                  {t('Add Shot')}
-                </Button>
+                <div className='flex items-center gap-2'>
+                  {stageKey === 'storyboard' ? (
+                    <Button
+                      size='sm'
+                      variant='outline'
+                      disabled={!scriptText.trim() || isExtractingShots}
+                      onClick={() => void extractShots(scriptText)}
+                    >
+                      {isExtractingShots ? (
+                        <Loader2
+                          className='mr-1.5 size-3.5 animate-spin'
+                          aria-hidden='true'
+                        />
+                      ) : (
+                        <Wand2
+                          className='mr-1.5 size-3.5'
+                          aria-hidden='true'
+                        />
+                      )}
+                      {isExtractingShots
+                        ? t('Extracting...')
+                        : t('AI Extract')}
+                    </Button>
+                  ) : null}
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    onClick={() => {
+                      setCurrentShot(null)
+                      setShotDialog('create')
+                    }}
+                  >
+                    <Plus className='mr-1.5 size-3.5' aria-hidden='true' />
+                    {t('Add Shot')}
+                  </Button>
+                </div>
               </div>
               {shots.length > 0 ? (
                 <div className='space-y-2'>
-                  {shots.map((shot) => (
-                    <div
-                      key={shot.id}
-                      className='border-border group flex items-start gap-3 rounded-lg border p-3'
-                    >
-                      <span className='text-muted-foreground shrink-0 font-mono text-xs'>
-                        S{shot.scene_number}-{shot.shot_number}
-                      </span>
-                      <div className='min-w-0 flex-1'>
-                        <p className='text-sm'>{shot.description}</p>
-                        {shot.camera_angle || shot.camera_move ? (
-                          <p className='text-muted-foreground mt-0.5 text-xs'>
-                            {[shot.camera_angle, shot.camera_move]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </p>
+                  {shots.map((shot) => {
+                    const isGenerating = generatingIds.has(shot.id)
+                    const showImageGen =
+                      stageKey === 'image_gen' || stageKey === 'video_gen'
+
+                    return (
+                      <div
+                        key={shot.id}
+                        className='border-border group flex items-start gap-3 rounded-lg border p-3'
+                      >
+                        <span className='text-muted-foreground shrink-0 font-mono text-xs'>
+                          S{shot.scene_number}-{shot.shot_number}
+                        </span>
+                        <div className='min-w-0 flex-1'>
+                          <p className='text-sm'>{shot.description}</p>
+                          {shot.camera_angle || shot.camera_move ? (
+                            <p className='text-muted-foreground mt-0.5 text-xs'>
+                              {[shot.camera_angle, shot.camera_move]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </p>
+                          ) : null}
+                        </div>
+
+                        {/* Image thumbnail / generate button */}
+                        {showImageGen ? (
+                          shot.image_url ? (
+                            <div className='relative shrink-0'>
+                              <img
+                                src={shot.image_url}
+                                alt={shot.description}
+                                className='size-16 rounded object-cover'
+                              />
+                              <Button
+                                type='button'
+                                variant='secondary'
+                                size='icon'
+                                className='absolute -right-1 -top-1 size-6 opacity-0 shadow-sm group-hover:opacity-100'
+                                disabled={isGenerating}
+                                onClick={() => void generateImage(shot)}
+                                title={t('Regenerate')}
+                              >
+                                {isGenerating ? (
+                                  <Loader2 className='size-3 animate-spin' />
+                                ) : (
+                                  <RefreshCw className='size-3' />
+                                )}
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              type='button'
+                              variant='outline'
+                              size='sm'
+                              className='shrink-0'
+                              disabled={isGenerating}
+                              onClick={() => void generateImage(shot)}
+                            >
+                              {isGenerating ? (
+                                <Loader2
+                                  className='mr-1.5 size-3.5 animate-spin'
+                                  aria-hidden='true'
+                                />
+                              ) : (
+                                <ImagePlus
+                                  className='mr-1.5 size-3.5'
+                                  aria-hidden='true'
+                                />
+                              )}
+                              {isGenerating
+                                ? t('Generating...')
+                                : t('Generate Image')}
+                            </Button>
+                          )
+                        ) : shot.image_url ? (
+                          <img
+                            src={shot.image_url}
+                            alt={shot.description}
+                            className='size-16 shrink-0 rounded object-cover'
+                          />
                         ) : null}
-                      </div>
-                      {shot.image_url ? (
-                        <img
-                          src={shot.image_url}
-                          alt={shot.description}
-                          className='size-16 shrink-0 rounded object-cover'
-                        />
-                      ) : null}
-                      <DropdownMenu>
+
+                        <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant='ghost'
@@ -368,7 +491,8 @@ export function StudioStageDetail() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : null}
             </div>
