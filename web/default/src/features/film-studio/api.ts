@@ -114,10 +114,9 @@ export async function createStudioShots(
   projectId: number,
   shots: StudioShotFormData[]
 ): Promise<ApiResponse<StudioShot[]>> {
-  const payload = shots.length === 1 ? shots[0] : { shots }
   const res = await api.post(
     `/api/studio/projects/${projectId}/shots`,
-    payload
+    { shots }
   )
   return res.data
 }
@@ -184,6 +183,56 @@ export async function deleteStudioCharacter(
 ): Promise<ApiResponse> {
   const res = await api.delete(
     `/api/studio/projects/${projectId}/characters/${charId}`
+  )
+  return res.data
+}
+
+// ============================================================================
+// AI Generation
+// ============================================================================
+
+export interface StudioQuickGenRequest {
+  type: 'image' | 'analyze' | 'describe'
+  prompt: string
+  stage_key?: string
+  shot_id?: number
+  model?: string
+  size?: string
+}
+
+export interface StudioQuickGenResponse {
+  type: string
+  record_id?: number
+  image_url?: string
+  text?: string
+  shot_id?: number
+}
+
+export async function studioQuickGenerate(
+  projectId: number,
+  data: StudioQuickGenRequest
+): Promise<ApiResponse<StudioQuickGenResponse>> {
+  const res = await api.post(
+    `/api/studio/projects/${projectId}/quick-generate`,
+    data
+  )
+  return res.data
+}
+
+export interface StudioShotGenRequest {
+  type?: 'image' | 'video'
+  model?: string
+  size?: string
+}
+
+export async function studioShotGenerate(
+  projectId: number,
+  shotId: number,
+  data?: StudioShotGenRequest
+): Promise<ApiResponse<{ type: string; record_id: number; shot_id: number }>> {
+  const res = await api.post(
+    `/api/studio/projects/${projectId}/shots/${shotId}/generate`,
+    data ?? {}
   )
   return res.data
 }

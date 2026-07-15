@@ -352,6 +352,10 @@ func SetApiRouter(router *gin.Engine) {
 			studioRoute.POST("/projects/:id/characters", controller.CreateStudioCharacter)
 			studioRoute.PUT("/projects/:id/characters/:charId", controller.UpdateStudioCharacter)
 			studioRoute.DELETE("/projects/:id/characters/:charId", controller.DeleteStudioCharacter)
+
+			// AI generation endpoints
+			studioRoute.POST("/projects/:id/quick-generate", controller.StudioQuickGenerate)
+			studioRoute.POST("/projects/:id/shots/:shotId/generate", controller.StudioShotGenerate)
 		}
 		logRoute := apiRouter.Group("/log")
 		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)

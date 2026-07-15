@@ -158,6 +158,8 @@ export function StudioProjectMutateDialog({
           void queryClient.invalidateQueries({
             queryKey: [...STUDIO_QUERY_KEYS.project(currentRow.id)],
           })
+        } else {
+          toast.error(result.message || t('Failed to update project.'))
         }
       } else {
         const result = await createStudioProject(data)
@@ -171,8 +173,12 @@ export function StudioProjectMutateDialog({
             to: '/studio/$projectId',
             params: { projectId: String(result.data.id) },
           })
+        } else {
+          toast.error(result.message || t('Failed to create project.'))
         }
       }
+    } catch {
+      toast.error(t('An unexpected error occurred.'))
     } finally {
       setIsSubmitting(false)
     }

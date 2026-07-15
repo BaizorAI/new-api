@@ -20,7 +20,7 @@ type StudioProject struct {
 	Name      string         `json:"name" gorm:"type:varchar(128);not null"`
 	Brief     string         `json:"brief" gorm:"type:text"`
 	Genre     string         `json:"genre" gorm:"type:varchar(32)"`
-	Status    int            `json:"status" gorm:"default:1"`
+	Status    int            `json:"status"`
 	StyleDNA  string         `json:"style_dna" gorm:"type:text"`
 	CoverURL  string         `json:"cover_url" gorm:"type:varchar(500)"`
 	CreatedAt int64          `json:"created_at" gorm:"autoCreateTime:milli"`

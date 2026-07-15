@@ -24,9 +24,10 @@ import {
   CheckCircle2,
   Circle,
   Clock,
+  Lock,
   Pencil,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -68,6 +69,17 @@ export function StudioProjectBoard() {
 
   const project = data?.data
   const stages = project?.stages ?? []
+
+  // Build a set of completed stage keys for dependency checking
+  const completedKeys = useMemo(() => {
+    const keys = new Set<string>()
+    for (const s of stages) {
+      if (s.status === STAGE_STATUS.COMPLETED) {
+        keys.add(s.key)
+      }
+    }
+    return keys
+  }, [stages])
 
   if (isLoading) {
     return (
@@ -123,12 +135,17 @@ export function StudioProjectBoard() {
         <div className='grid gap-3 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           {PIPELINE_STAGES.map((stageConfig) => {
             const stage = stages.find((s) => s.key === stageConfig.key)
+            const depsUnmet = stageConfig.dependencies.filter(
+              (dep) => !completedKeys.has(dep)
+            )
             return (
               <StageCard
                 key={stageConfig.key}
                 projectId={id}
                 stageConfig={stageConfig}
                 stage={stage}
+                locked={depsUnmet.length > 0}
+                unmetDeps={depsUnmet}
                 onStatusChange={(newStatus) => {
                   updateStage.mutate({
                     key: stageConfig.key,
@@ -155,24 +172,27 @@ function StageCard(props: {
   projectId: number
   stageConfig: (typeof PIPELINE_STAGES)[number]
   stage?: StudioStage
+  locked: boolean
+  unmetDeps: string[]
   onStatusChange: (status: number) => void
 }) {
   const { t } = useTranslation()
-  const { projectId, stageConfig, stage, onStatusChange } = props
+  const { projectId, stageConfig, stage, locked, unmetDeps, onStatusChange } =
+    props
   const status = (stage?.status ?? STAGE_STATUS.NOT_STARTED) as StageStatusValue
   const statusConfig = STAGE_STATUS_CONFIG[status]
 
-  const StatusIcon = getStageStatusIcon(status)
+  const StatusIcon = locked ? Lock : getStageStatusIcon(status)
 
-  return (
-    <Link
-      to='/studio/$projectId/$stageKey'
-      params={{
-        projectId: String(projectId),
-        stageKey: stageConfig.key,
-      }}
-      className='border-border bg-card hover:bg-accent/50 flex flex-col rounded-lg border p-4 transition-colors'
-    >
+  const unmetLabels = unmetDeps
+    .map((dep) => {
+      const cfg = PIPELINE_STAGES.find((s) => s.key === dep)
+      return cfg ? t(cfg.labelKey) : dep
+    })
+    .join(', ')
+
+  const cardContent = (
+    <>
       {/* Stage header */}
       <div className='flex items-center gap-2'>
         <span className='text-lg' aria-hidden='true'>
@@ -186,58 +206,86 @@ function StageCard(props: {
         {t(stageConfig.descriptionKey)}
       </p>
 
-      {/* Status + progress */}
-      <div className='mt-3 flex items-center gap-1.5 text-xs'>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type='button'
-              className='hover:bg-accent flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors'
+      {/* Locked notice or status + progress */}
+      {locked ? (
+        <p className='text-muted-foreground mt-3 flex items-center gap-1.5 text-xs'>
+          <Lock className='size-3.5' aria-hidden='true' />
+          {t('Requires: {{stages}}', { stages: unmetLabels })}
+        </p>
+      ) : (
+        <div className='mt-3 flex items-center gap-1.5 text-xs'>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type='button'
+                className='hover:bg-accent flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors'
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+              >
+                <StatusIcon className='size-3.5' aria-hidden='true' />
+                <span className='text-muted-foreground'>
+                  {t(statusConfig?.labelKey ?? 'Not Started')}
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align='start'
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
               }}
             >
-              <StatusIcon className='size-3.5' aria-hidden='true' />
-              <span className='text-muted-foreground'>
-                {t(statusConfig?.labelKey ?? 'Not Started')}
-              </span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align='start'
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-            }}
-          >
-            {(
-              Object.entries(STAGE_STATUS_CONFIG) as [
-                string,
-                (typeof STAGE_STATUS_CONFIG)[StageStatusValue],
-              ][]
-            ).map(([value, config]) => {
-              const numValue = Number(value)
-              const ItemIcon = getStageStatusIcon(numValue as StageStatusValue)
-              return (
-                <DropdownMenuItem
-                  key={value}
-                  disabled={numValue === status}
-                  onClick={() => onStatusChange(numValue)}
-                >
-                  <ItemIcon className='mr-2 size-3.5' />
-                  {t(config.labelKey)}
-                </DropdownMenuItem>
-              )
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        {stage && stage.total_items > 0 ? (
-          <span className='text-muted-foreground ml-auto'>
-            {stage.done_items}/{stage.total_items}
-          </span>
-        ) : null}
+              {(
+                Object.entries(STAGE_STATUS_CONFIG) as [
+                  string,
+                  (typeof STAGE_STATUS_CONFIG)[StageStatusValue],
+                ][]
+              ).map(([value, config]) => {
+                const numValue = Number(value)
+                const ItemIcon = getStageStatusIcon(numValue as StageStatusValue)
+                return (
+                  <DropdownMenuItem
+                    key={value}
+                    disabled={numValue === status}
+                    onClick={() => onStatusChange(numValue)}
+                  >
+                    <ItemIcon className='mr-2 size-3.5' />
+                    {t(config.labelKey)}
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {stage && stage.total_items > 0 ? (
+            <span className='text-muted-foreground ml-auto'>
+              {stage.done_items}/{stage.total_items}
+            </span>
+          ) : null}
+        </div>
+      )}
+    </>
+  )
+
+  if (locked) {
+    return (
+      <div className='border-border bg-muted/50 flex cursor-not-allowed flex-col rounded-lg border p-4 opacity-60'>
+        {cardContent}
       </div>
+    )
+  }
+
+  return (
+    <Link
+      to='/studio/$projectId/$stageKey'
+      params={{
+        projectId: String(projectId),
+        stageKey: stageConfig.key,
+      }}
+      className='border-border bg-card hover:bg-accent/50 flex flex-col rounded-lg border p-4 transition-colors'
+    >
+      {cardContent}
     </Link>
   )
 }

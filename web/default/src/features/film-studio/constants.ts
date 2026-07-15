@@ -123,6 +123,8 @@ export interface StageConfig {
   labelKey: string
   descriptionKey: string
   icon: string
+  /** Keys of stages that must be completed before this one can start. */
+  dependencies: StageKey[]
 }
 
 export const PIPELINE_STAGES: StageConfig[] = [
@@ -131,42 +133,49 @@ export const PIPELINE_STAGES: StageConfig[] = [
     labelKey: 'Script Writing',
     descriptionKey: 'Write screenplay, dialogue and scene descriptions.',
     icon: '📝',
+    dependencies: [],
   },
   {
     key: 'characters',
     labelKey: 'Character Design',
     descriptionKey: 'Define characters with visual prompts and references.',
     icon: '👤',
+    dependencies: ['script'],
   },
   {
     key: 'storyboard',
     labelKey: 'Storyboard',
     descriptionKey: 'Break script into shots with camera and timing.',
     icon: '🎬',
+    dependencies: ['script'],
   },
   {
     key: 'image_gen',
     labelKey: 'Image Generation',
     descriptionKey: 'Generate key frame images for each shot.',
     icon: '🖼️',
+    dependencies: ['storyboard'],
   },
   {
     key: 'video_gen',
     labelKey: 'Video Generation',
     descriptionKey: 'Generate video clips from images and prompts.',
     icon: '🎥',
+    dependencies: ['image_gen'],
   },
   {
     key: 'post',
     labelKey: 'Post-Production',
     descriptionKey: 'Add transitions, audio, subtitles and effects.',
     icon: '✂️',
+    dependencies: ['video_gen'],
   },
   {
     key: 'review',
     labelKey: 'Review & Export',
     descriptionKey: 'Final review, adjustments and export.',
     icon: '✅',
+    dependencies: ['post'],
   },
 ]
 
@@ -180,6 +189,7 @@ export function getStageLabelKey(key: string): string {
 
 export const GENRE_OPTIONS = [
   'short_film',
+  'short_drama',
   'commercial',
   'music_video',
   'animation',
@@ -190,6 +200,7 @@ export const GENRE_OPTIONS = [
 export function getGenreOptions(t: TFunction) {
   const labels: Record<string, string> = {
     short_film: 'Short Film',
+    short_drama: 'Short Drama',
     commercial: 'Commercial',
     music_video: 'Music Video',
     animation: 'Animation',

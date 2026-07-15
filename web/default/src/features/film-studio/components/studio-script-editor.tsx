@@ -54,7 +54,7 @@ export function StudioScriptEditor({
   // Track whether the component has been initialized to avoid
   // triggering a save from the initial content load
   const initializedRef = useRef(false)
-  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const debouncedText = useDebounce(text, 1500)
 
@@ -178,7 +178,7 @@ export function StudioScriptEditor({
         <div className='border-border min-h-[400px] rounded-lg border p-4'>
           {text.trim() ? (
             <div className='prose dark:prose-invert prose-sm max-w-none'>
-              <Markdown content={text} />
+              <Markdown>{text}</Markdown>
             </div>
           ) : (
             <p className='text-muted-foreground text-sm'>
