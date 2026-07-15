@@ -19,15 +19,23 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
 import {
+  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   Circle,
   Clock,
-  AlertTriangle,
+  Pencil,
 } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 import { getStudioProject } from '../api'
@@ -38,7 +46,9 @@ import {
   STUDIO_QUERY_KEYS,
   type StageStatusValue,
 } from '../constants'
+import { useUpdateStudioStage } from '../hooks/use-studio-mutations'
 import type { StudioStage } from '../types'
+import { StudioProjectMutateDrawer } from './studio-project-mutate-drawer'
 
 export function StudioProjectBoard() {
   const { t } = useTranslation()
@@ -46,12 +56,15 @@ export function StudioProjectBoard() {
     from: '/_authenticated/studio/$projectId/',
   })
   const id = Number(projectId)
+  const [editOpen, setEditOpen] = useState(false)
 
   const { data, isLoading } = useQuery({
     queryKey: [...STUDIO_QUERY_KEYS.project(id)],
     queryFn: () => getStudioProject(id),
     enabled: id > 0,
   })
+
+  const updateStage = useUpdateStudioStage(id)
 
   const project = data?.data
   const stages = project?.stages ?? []
@@ -94,6 +107,15 @@ export function StudioProjectBoard() {
             </p>
           ) : null}
         </div>
+        <Button
+          variant='ghost'
+          size='icon'
+          className='size-8'
+          onClick={() => setEditOpen(true)}
+          aria-label={t('Edit Project')}
+        >
+          <Pencil className='size-4' />
+        </Button>
       </div>
 
       {/* Pipeline board */}
@@ -107,11 +129,24 @@ export function StudioProjectBoard() {
                 projectId={id}
                 stageConfig={stageConfig}
                 stage={stage}
+                onStatusChange={(newStatus) => {
+                  updateStage.mutate({
+                    key: stageConfig.key,
+                    data: { status: newStatus },
+                  })
+                }}
               />
             )
           })}
         </div>
       </ScrollArea>
+
+      {/* Edit project drawer */}
+      <StudioProjectMutateDrawer
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        currentRow={project}
+      />
     </div>
   )
 }
@@ -120,9 +155,10 @@ function StageCard(props: {
   projectId: number
   stageConfig: (typeof PIPELINE_STAGES)[number]
   stage?: StudioStage
+  onStatusChange: (status: number) => void
 }) {
   const { t } = useTranslation()
-  const { projectId, stageConfig, stage } = props
+  const { projectId, stageConfig, stage, onStatusChange } = props
   const status = (stage?.status ?? STAGE_STATUS.NOT_STARTED) as StageStatusValue
   const statusConfig = STAGE_STATUS_CONFIG[status]
 
@@ -152,10 +188,50 @@ function StageCard(props: {
 
       {/* Status + progress */}
       <div className='mt-3 flex items-center gap-1.5 text-xs'>
-        <StatusIcon className='size-3.5' aria-hidden='true' />
-        <span className='text-muted-foreground'>
-          {t(statusConfig?.labelKey ?? 'Not Started')}
-        </span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type='button'
+              className='hover:bg-accent flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors'
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+              }}
+            >
+              <StatusIcon className='size-3.5' aria-hidden='true' />
+              <span className='text-muted-foreground'>
+                {t(statusConfig?.labelKey ?? 'Not Started')}
+              </span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align='start'
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+          >
+            {(
+              Object.entries(STAGE_STATUS_CONFIG) as [
+                string,
+                (typeof STAGE_STATUS_CONFIG)[StageStatusValue],
+              ][]
+            ).map(([value, config]) => {
+              const numValue = Number(value)
+              const ItemIcon = getStageStatusIcon(numValue as StageStatusValue)
+              return (
+                <DropdownMenuItem
+                  key={value}
+                  disabled={numValue === status}
+                  onClick={() => onStatusChange(numValue)}
+                >
+                  <ItemIcon className='mr-2 size-3.5' />
+                  {t(config.labelKey)}
+                </DropdownMenuItem>
+              )
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
         {stage && stage.total_items > 0 ? (
           <span className='text-muted-foreground ml-auto'>
             {stage.done_items}/{stage.total_items}

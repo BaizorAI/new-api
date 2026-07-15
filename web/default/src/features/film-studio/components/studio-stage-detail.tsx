@@ -18,8 +18,15 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
-import { ArrowLeft, SquareIcon } from 'lucide-react'
-import { useCallback, useMemo } from 'react'
+import {
+  ArrowLeft,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  SquareIcon,
+  Trash2,
+} from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -30,6 +37,12 @@ import {
   type PromptInputMessage,
 } from '@/components/ai-elements/prompt-input'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Markdown } from '@/components/ui/markdown'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
@@ -49,6 +62,11 @@ import {
   useStudioStageChat,
   type StageChatMessage,
 } from '../hooks/use-studio-stage-chat'
+import type { StudioCharacter, StudioShot } from '../types'
+import { StudioCharacterDeleteDialog } from './studio-character-delete-dialog'
+import { StudioCharacterMutateDrawer } from './studio-character-mutate-drawer'
+import { StudioShotDeleteDialog } from './studio-shot-delete-dialog'
+import { StudioShotMutateDrawer } from './studio-shot-mutate-drawer'
 
 // Stage-specific placeholder text for the chat input
 const STAGE_PLACEHOLDERS: Record<string, string> = {
@@ -61,12 +79,22 @@ const STAGE_PLACEHOLDERS: Record<string, string> = {
   review: 'Ask for a review of the final output...',
 }
 
+type DialogType = 'create' | 'update' | 'delete'
+
 export function StudioStageDetail() {
   const { t } = useTranslation()
   const { projectId, stageKey } = useParams({
     from: '/_authenticated/studio/$projectId/$stageKey/',
   })
   const id = Number(projectId)
+
+  // Dialog state for characters
+  const [charDialog, setCharDialog] = useState<DialogType | null>(null)
+  const [currentChar, setCurrentChar] = useState<StudioCharacter | null>(null)
+
+  // Dialog state for shots
+  const [shotDialog, setShotDialog] = useState<DialogType | null>(null)
+  const [currentShot, setCurrentShot] = useState<StudioShot | null>(null)
 
   const stageConfig = useMemo(
     () => PIPELINE_STAGES.find((s) => s.key === stageKey),
@@ -126,6 +154,11 @@ export function StudioStageDetail() {
   const placeholder =
     STAGE_PLACEHOLDERS[stageKey] ?? 'Ask AI to help with this stage...'
 
+  const showShotsCrud =
+    stageKey === 'storyboard' ||
+    stageKey === 'image_gen' ||
+    stageKey === 'video_gen'
+
   return (
     <div className='flex h-full flex-col'>
       {/* Header */}
@@ -168,68 +201,166 @@ export function StudioStageDetail() {
             </p>
           ) : null}
 
-          {/* Characters list */}
-          {stageKey === 'characters' && characters.length > 0 ? (
+          {/* Characters section */}
+          {stageKey === 'characters' ? (
             <div className='space-y-3'>
-              <h2 className='text-sm font-medium'>
-                {t('Characters')} ({characters.length})
-              </h2>
-              <div className='grid gap-3 sm:grid-cols-2'>
-                {characters.map((char) => (
-                  <div
-                    key={char.id}
-                    className='border-border rounded-lg border p-3'
-                  >
-                    <h3 className='text-sm font-medium'>{char.name}</h3>
-                    {char.description ? (
-                      <p className='text-muted-foreground mt-1 text-xs'>
-                        {char.description}
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
+              <div className='flex items-center justify-between'>
+                <h2 className='text-sm font-medium'>
+                  {t('Characters')} ({characters.length})
+                </h2>
+                <Button
+                  size='sm'
+                  variant='outline'
+                  onClick={() => {
+                    setCurrentChar(null)
+                    setCharDialog('create')
+                  }}
+                >
+                  <Plus className='mr-1.5 size-3.5' aria-hidden='true' />
+                  {t('Add Character')}
+                </Button>
               </div>
-            </div>
-          ) : null}
-
-          {/* Shots list */}
-          {(stageKey === 'storyboard' ||
-            stageKey === 'image_gen' ||
-            stageKey === 'video_gen') &&
-          shots.length > 0 ? (
-            <div className='space-y-3'>
-              <h2 className='text-sm font-medium'>
-                {t('Shots')} ({shots.length})
-              </h2>
-              <div className='space-y-2'>
-                {shots.map((shot) => (
-                  <div
-                    key={shot.id}
-                    className='border-border flex items-start gap-3 rounded-lg border p-3'
-                  >
-                    <span className='text-muted-foreground shrink-0 font-mono text-xs'>
-                      S{shot.scene_number}-{shot.shot_number}
-                    </span>
-                    <div className='min-w-0 flex-1'>
-                      <p className='text-sm'>{shot.description}</p>
-                      {shot.camera_angle || shot.camera_move ? (
-                        <p className='text-muted-foreground mt-0.5 text-xs'>
-                          {[shot.camera_angle, shot.camera_move]
-                            .filter(Boolean)
-                            .join(' · ')}
+              {characters.length > 0 ? (
+                <div className='grid gap-3 sm:grid-cols-2'>
+                  {characters.map((char) => (
+                    <div
+                      key={char.id}
+                      className='border-border group relative rounded-lg border p-3'
+                    >
+                      <div className='flex items-start justify-between gap-2'>
+                        <h3 className='text-sm font-medium'>{char.name}</h3>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='size-7 shrink-0 opacity-0 group-hover:opacity-100'
+                            >
+                              <MoreHorizontal className='size-4' />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align='end'>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setCurrentChar(char)
+                                setCharDialog('update')
+                              }}
+                            >
+                              <Pencil className='mr-2 size-4' />
+                              {t('Edit')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className='text-destructive'
+                              onClick={() => {
+                                setCurrentChar(char)
+                                setCharDialog('delete')
+                              }}
+                            >
+                              <Trash2 className='mr-2 size-4' />
+                              {t('Delete')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      {char.description ? (
+                        <p className='text-muted-foreground mt-1 text-xs'>
+                          {char.description}
+                        </p>
+                      ) : null}
+                      {char.visual_prompt ? (
+                        <p className='text-muted-foreground mt-1 truncate text-xs italic'>
+                          {char.visual_prompt}
                         </p>
                       ) : null}
                     </div>
-                    {shot.image_url ? (
-                      <img
-                        src={shot.image_url}
-                        alt={shot.description}
-                        className='size-16 shrink-0 rounded object-cover'
-                      />
-                    ) : null}
-                  </div>
-                ))}
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Shots section */}
+          {showShotsCrud ? (
+            <div className='space-y-3'>
+              <div className='flex items-center justify-between'>
+                <h2 className='text-sm font-medium'>
+                  {t('Shots')} ({shots.length})
+                </h2>
+                <Button
+                  size='sm'
+                  variant='outline'
+                  onClick={() => {
+                    setCurrentShot(null)
+                    setShotDialog('create')
+                  }}
+                >
+                  <Plus className='mr-1.5 size-3.5' aria-hidden='true' />
+                  {t('Add Shot')}
+                </Button>
               </div>
+              {shots.length > 0 ? (
+                <div className='space-y-2'>
+                  {shots.map((shot) => (
+                    <div
+                      key={shot.id}
+                      className='border-border group flex items-start gap-3 rounded-lg border p-3'
+                    >
+                      <span className='text-muted-foreground shrink-0 font-mono text-xs'>
+                        S{shot.scene_number}-{shot.shot_number}
+                      </span>
+                      <div className='min-w-0 flex-1'>
+                        <p className='text-sm'>{shot.description}</p>
+                        {shot.camera_angle || shot.camera_move ? (
+                          <p className='text-muted-foreground mt-0.5 text-xs'>
+                            {[shot.camera_angle, shot.camera_move]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </p>
+                        ) : null}
+                      </div>
+                      {shot.image_url ? (
+                        <img
+                          src={shot.image_url}
+                          alt={shot.description}
+                          className='size-16 shrink-0 rounded object-cover'
+                        />
+                      ) : null}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant='ghost'
+                            size='icon'
+                            className='size-7 shrink-0 opacity-0 group-hover:opacity-100'
+                          >
+                            <MoreHorizontal className='size-4' />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align='end'>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setCurrentShot(shot)
+                              setShotDialog('update')
+                            }}
+                          >
+                            <Pencil className='mr-2 size-4' />
+                            {t('Edit')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className='text-destructive'
+                            onClick={() => {
+                              setCurrentShot(shot)
+                              setShotDialog('delete')
+                            }}
+                          >
+                            <Trash2 className='mr-2 size-4' />
+                            {t('Delete')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -272,6 +403,54 @@ export function StudioStageDetail() {
           </PromptInputFooter>
         </PromptInput>
       </div>
+
+      {/* Character dialogs */}
+      <StudioCharacterMutateDrawer
+        open={charDialog === 'create' || charDialog === 'update'}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setCharDialog(null)
+            setCurrentChar(null)
+          }
+        }}
+        projectId={id}
+        currentRow={charDialog === 'update' ? (currentChar ?? undefined) : undefined}
+      />
+      <StudioCharacterDeleteDialog
+        open={charDialog === 'delete'}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setCharDialog(null)
+            setCurrentChar(null)
+          }
+        }}
+        projectId={id}
+        character={currentChar}
+      />
+
+      {/* Shot dialogs */}
+      <StudioShotMutateDrawer
+        open={shotDialog === 'create' || shotDialog === 'update'}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setShotDialog(null)
+            setCurrentShot(null)
+          }
+        }}
+        projectId={id}
+        currentRow={shotDialog === 'update' ? (currentShot ?? undefined) : undefined}
+      />
+      <StudioShotDeleteDialog
+        open={shotDialog === 'delete'}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setShotDialog(null)
+            setCurrentShot(null)
+          }
+        }}
+        projectId={id}
+        shot={currentShot}
+      />
     </div>
   )
 }
