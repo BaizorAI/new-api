@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -51,13 +51,44 @@ export function useShotVideoGen({
   const [generatingIds, setGeneratingIds] = useState<Set<number>>(
     () => new Set()
   )
+  // Use a ref mirror of generatingIds to avoid stale closure in batch calls
+  const generatingRef = useRef<Set<number>>(new Set())
   const pollTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(
     new Map()
   )
+  const unmountedRef = useRef(false)
+
+  // Cleanup all poll timers on unmount
+  useEffect(() => {
+    unmountedRef.current = false
+    return () => {
+      unmountedRef.current = true
+      for (const timer of pollTimers.current.values()) {
+        clearTimeout(timer)
+      }
+      pollTimers.current.clear()
+    }
+  }, [])
+
+  const addGenerating = useCallback((id: number) => {
+    generatingRef.current.add(id)
+    setGeneratingIds((prev) => new Set(prev).add(id))
+  }, [])
+
+  const removeGenerating = useCallback((id: number) => {
+    generatingRef.current.delete(id)
+    if (!unmountedRef.current) {
+      setGeneratingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    }
+  }, [])
 
   const generateVideo = useCallback(
     async (shot: StudioShot) => {
-      if (generatingIds.has(shot.id)) return
+      if (generatingRef.current.has(shot.id)) return
 
       const prompt = (
         shot.video_prompt || shot.image_prompt || shot.description
@@ -69,7 +100,7 @@ export function useShotVideoGen({
 
       const fullPrompt = styleDna ? `${prompt}. Style: ${styleDna}` : prompt
 
-      setGeneratingIds((prev) => new Set(prev).add(shot.id))
+      addGenerating(shot.id)
 
       try {
         // I2V if shot has an image, otherwise T2V
@@ -101,13 +132,10 @@ export function useShotVideoGen({
         // Start polling for completion
         let polls = 0
         const poll = async () => {
+          if (unmountedRef.current) return
           polls++
           if (polls > MAX_POLLS) {
-            setGeneratingIds((prev) => {
-              const next = new Set(prev)
-              next.delete(shot.id)
-              return next
-            })
+            removeGenerating(shot.id)
             pollTimers.current.delete(shot.id)
             toast.error(t('Video generation timed out.'))
             return
@@ -115,6 +143,7 @@ export function useShotVideoGen({
 
           try {
             const history = await getVideoHistory(1, 10)
+            if (unmountedRef.current) return
             const record = history.items.find((h) => h.id === pending.id)
 
             if (!record || record.status === VIDEO_STATUS.PENDING) {
@@ -132,10 +161,12 @@ export function useShotVideoGen({
                 video_url: record.video_url,
                 status: 2, // COMPLETED
               })
-              void queryClient.invalidateQueries({
-                queryKey: [...STUDIO_QUERY_KEYS.shots(projectId)],
-              })
-              toast.success(t('Video generated.'))
+              if (!unmountedRef.current) {
+                void queryClient.invalidateQueries({
+                  queryKey: [...STUDIO_QUERY_KEYS.shots(projectId)],
+                })
+                toast.success(t('Video generated.'))
+              }
             } else {
               // Failed
               try {
@@ -143,20 +174,20 @@ export function useShotVideoGen({
               } catch {
                 // Non-fatal
               }
-              toast.error(
-                record.error_message || t('Video generation failed.')
-              )
+              if (!unmountedRef.current) {
+                toast.error(
+                  record.error_message || t('Video generation failed.')
+                )
+              }
             }
           } catch {
-            toast.error(t('Video generation failed.'))
+            if (!unmountedRef.current) {
+              toast.error(t('Video generation failed.'))
+            }
           }
 
           // Done (success or failure) — remove from generating set
-          setGeneratingIds((prev) => {
-            const next = new Set(prev)
-            next.delete(shot.id)
-            return next
-          })
+          removeGenerating(shot.id)
           pollTimers.current.delete(shot.id)
         }
 
@@ -166,15 +197,11 @@ export function useShotVideoGen({
           setTimeout(() => void poll(), POLL_INTERVAL)
         )
       } catch {
-        setGeneratingIds((prev) => {
-          const next = new Set(prev)
-          next.delete(shot.id)
-          return next
-        })
+        removeGenerating(shot.id)
         toast.error(t('Video generation failed.'))
       }
     },
-    [generatingIds, styleDna, model, projectId, queryClient, t]
+    [styleDna, model, projectId, queryClient, t, addGenerating, removeGenerating]
   )
 
   return { generateVideo, generatingIds }
