@@ -60,7 +60,7 @@ export function useStudioStageChat({
       'X-Baizor-Playground': 'hermes',
       'X-Baizor-Hermes-Session': hermesSessionId,
       'X-Baizor-Hermes-Workspace': 'skill_film_studio',
-      'X-Baizor-Hermes-Skill-Activate': 'film_studio',
+      'X-Baizor-Hermes-Skill-Activate': '/magicalbrush',
     }),
     [hermesSessionId]
   )
