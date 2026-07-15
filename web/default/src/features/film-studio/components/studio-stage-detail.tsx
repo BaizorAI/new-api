@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
 import {
   ArrowLeft,
@@ -64,6 +64,7 @@ import {
   getStudioProject,
   getStudioShots,
   getStudioStages,
+  updateStudioStage,
 } from '../api'
 import {
   PIPELINE_STAGES,
@@ -869,6 +870,155 @@ export function StudioStageDetail() {
           ) : null}
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+// ============================================================================
+// Post-Production Checklist
+// ============================================================================
+
+const POST_CHECKLIST_ITEMS = [
+  { key: 'color_grading', labelKey: 'Color Grading' },
+  { key: 'sound_design', labelKey: 'Sound Design & Music' },
+  { key: 'subtitles', labelKey: 'Subtitles & Captions' },
+  { key: 'transitions', labelKey: 'Transitions & Effects' },
+  { key: 'final_cut', labelKey: 'Final Cut Assembly' },
+] as const
+
+function PostProductionSection(props: {
+  outputData: string
+  projectId: number
+  stageKey: string
+}) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const { outputData, projectId, stageKey } = props
+
+  const [checked, setChecked] = useState<Record<string, boolean>>(() => {
+    try {
+      return JSON.parse(outputData || '{}')
+    } catch {
+      return {}
+    }
+  })
+  const [saving, setSaving] = useState(false)
+
+  const toggleItem = async (key: string) => {
+    const next = { ...checked, [key]: !checked[key] }
+    setChecked(next)
+    setSaving(true)
+    try {
+      await updateStudioStage(projectId, stageKey, {
+        output_data: JSON.stringify(next),
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...STUDIO_QUERY_KEYS.stages(projectId)],
+      })
+    } catch {
+      // Revert on error
+      setChecked(checked)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const doneCount = POST_CHECKLIST_ITEMS.filter((i) => checked[i.key]).length
+
+  return (
+    <div className='space-y-3'>
+      <div className='flex items-center justify-between'>
+        <h2 className='text-sm font-medium'>
+          {t('Post-Production Checklist')} ({doneCount}/{POST_CHECKLIST_ITEMS.length})
+        </h2>
+        {saving ? (
+          <span className='text-muted-foreground animate-pulse text-xs'>
+            {t('Saving...')}
+          </span>
+        ) : null}
+      </div>
+      <div className='space-y-1.5'>
+        {POST_CHECKLIST_ITEMS.map((item) => (
+          <label
+            key={item.key}
+            className='border-border hover:bg-accent/50 flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors'
+          >
+            <input
+              type='checkbox'
+              checked={!!checked[item.key]}
+              onChange={() => void toggleItem(item.key)}
+              className='accent-primary size-4 shrink-0 rounded'
+            />
+            <span
+              className={
+                checked[item.key]
+                  ? 'text-muted-foreground text-sm line-through'
+                  : 'text-sm'
+              }
+            >
+              {t(item.labelKey)}
+            </span>
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// Review Gallery
+// ============================================================================
+
+function ReviewGallerySection(props: { shots: StudioShot[] }) {
+  const { t } = useTranslation()
+  const { shots } = props
+
+  const shotsWithMedia = shots.filter((s) => s.image_url || s.video_url)
+
+  if (shotsWithMedia.length === 0) {
+    return (
+      <div className='flex h-32 items-center justify-center'>
+        <p className='text-muted-foreground text-sm'>
+          {t('No generated media yet. Complete the image and video generation stages first.')}
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className='space-y-3'>
+      <h2 className='text-sm font-medium'>
+        {t('Generated Media')} ({shotsWithMedia.length})
+      </h2>
+      <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
+        {shotsWithMedia.map((shot) => (
+          <div
+            key={shot.id}
+            className='border-border overflow-hidden rounded-lg border'
+          >
+            {shot.video_url ? (
+              <video
+                src={shot.video_url}
+                poster={shot.image_url || undefined}
+                controls
+                className='h-40 w-full bg-black object-cover'
+                preload='metadata'
+              />
+            ) : shot.image_url ? (
+              <img
+                src={shot.image_url}
+                alt={shot.description}
+                className='h-40 w-full object-cover'
+              />
+            ) : null}
+            <div className='p-2'>
+              <p className='text-muted-foreground truncate text-xs'>
+                S{shot.scene_number}-{shot.shot_number}: {shot.description}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
