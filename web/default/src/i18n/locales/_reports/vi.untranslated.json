@@ -377,5 +377,12 @@
   "Tip: click a paragraph to select it for AI modification.": "Tip: click a paragraph to select it for AI modification.",
   "Failed to update stage.": "Failed to update stage.",
   "Mark this stage as complete to unlock the next stage.": "Mark this stage as complete to unlock the next stage.",
-  "AI analyzes the script and gives a readiness recommendation.": "AI analyzes the script and gives a readiness recommendation."
+  "AI analyzes the script and gives a readiness recommendation.": "AI analyzes the script and gives a readiness recommendation.",
+  "Optional. Fill in to auto-generate the initial script via AI.": "Optional. Fill in to auto-generate the initial script via AI.",
+  "Set up a new film project. Fill in the brief to have AI auto-generate the initial script.": "Set up a new film project. Fill in the brief to have AI auto-generate the initial script.",
+  "Ready to start?": "Ready to start?",
+  "Rewrite with Suggestions": "Rewrite with Suggestions",
+  "AI analysis passed. Mark this stage as complete to unlock the next stage.": "AI analysis passed. Mark this stage as complete to unlock the next stage.",
+  "AI analysis suggests revisions. Rewrite with suggestions first.": "AI analysis suggests revisions. Rewrite with suggestions first.",
+  "Run AI analysis before marking the stage complete.": "Run AI analysis before marking the stage complete."
 }

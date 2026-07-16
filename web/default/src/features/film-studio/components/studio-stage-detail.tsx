@@ -134,6 +134,7 @@ type DialogType = 'create' | 'update' | 'delete'
 
 export function StudioStageDetail() {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const { projectId, stageKey } = useParams({
     from: '/_authenticated/studio/$projectId/$stageKey/',
   })
@@ -232,8 +233,22 @@ export function StudioStageDetail() {
 
   const isPageLoading = isLoadingProject || isLoadingStages
 
+  // AI analyze state — placed before useStudioStageChat so the callback can reference it
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const analysisRef = useRef(false)
+  analysisRef.current = !!isAnalyzing
+
   const { messages, sendMessage, stopGeneration, clearMessages, deleteMessage, loadingHistory, isStreaming } =
-    useStudioStageChat({ projectId: id, stageKey })
+    useStudioStageChat({
+      projectId: id,
+      stageKey,
+      onMessageComplete: (_msgId, _content) => {
+        // Stop the analyzing spinner when the AI response completes
+        if (analysisRef.current) {
+          setIsAnalyzing(false)
+        }
+      },
+    })
 
   const { generateImage, generatingIds } = useShotImageGen({
     projectId: id,
@@ -251,10 +266,6 @@ export function StudioStageDetail() {
   const { extractShots, isExtracting: isExtractingShots } =
     useExtractShots(id)
   const swapShotOrder = useSwapShotOrder(id)
-
-  // AI analyze state
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisRan, setAnalysisRan] = useState(false)
 
   const project = projectData?.data
   const stages = stagesData?.data ?? []
@@ -318,8 +329,6 @@ export function StudioStageDetail() {
       scriptContext: script,
       modificationType: 'analyze',
     })
-    setAnalysisRan(true)
-    setIsAnalyzing(false)
   }, [sendMessage])
 
   const handleMarkComplete = useCallback(async () => {
@@ -342,6 +351,39 @@ export function StudioStageDetail() {
       toast.error(t('Failed to update stage.'))
     }
   }, [id, stageKey, t, queryClient])
+
+  // "Start" button — kick off AI script generation and move to In Progress
+  const handleStartGeneration = useCallback(() => {
+    const brief = project?.brief?.trim()
+    if (!brief) return
+
+    // Mark stage as In Progress
+    updateStudioStage(id, stageKey, {
+      status: STAGE_STATUS.IN_PROGRESS,
+    }).then((result) => {
+      if (result.success) {
+        void queryClient.invalidateQueries({
+          queryKey: [...STUDIO_QUERY_KEYS.stages(id)],
+        })
+      }
+    }).catch(() => {})
+
+    const genPrompt = `基于以下项目简报，生成一份完整的影视剧本：
+
+项目名称：${project?.name ?? ''}
+类型：${project?.genre ?? ''}
+风格关键词：${project?.style_dna ?? ''}
+
+项目简报：
+${brief}
+
+请生成一份结构完整的剧本，包括场景标题、动作描述、人物对话，用标准剧本格式。用 \`\`\`script 代码块包裹完整剧本。`
+
+    sendMessage(genPrompt, {
+      scriptContext: brief,
+      modificationType: 'generate',
+    })
+  }, [id, stageKey, project, sendMessage, queryClient])
 
   const placeholder =
     STAGE_PLACEHOLDERS[stageKey] ?? 'Ask AI to help with this stage...'
@@ -450,18 +492,6 @@ export function StudioStageDetail() {
                   ? t('Analyzing...')
                   : t('AI Analyze')}
               </Button>
-              {stage && stage.status !== STAGE_STATUS.COMPLETED ? (
-                <Button
-                  size='sm'
-                  variant={analysisRan ? 'default' : 'outline'}
-                  disabled={isStreaming}
-                  onClick={() => void handleMarkComplete()}
-                  title={t('Mark this stage as complete to unlock the next stage.')}
-                >
-                  <Check className='mr-1.5 size-3.5' aria-hidden='true' />
-                  {t('Complete Stage')}
-                </Button>
-              ) : null}
             </>
           ) : null}
         </div>
@@ -477,6 +507,29 @@ export function StudioStageDetail() {
                 <p className='text-muted-foreground mb-4 shrink-0 text-sm'>
                   {t(stageConfig.descriptionKey)}
                 </p>
+              ) : null}
+              {/* Start button — kick off AI generation from project brief */}
+              {stageKey === 'script' &&
+              stage?.status === STAGE_STATUS.NOT_STARTED &&
+              project?.brief?.trim() ? (
+                <div className='bg-primary/5 border-primary/20 mb-4 flex items-center gap-4 rounded-lg border px-4 py-3'>
+                  <div className='min-w-0 flex-1'>
+                    <p className='text-sm font-medium'>
+                      {t('Ready to start?')}
+                    </p>
+                    <p className='text-muted-foreground text-xs'>
+                      {t('AI will generate an initial script based on your project brief.')}
+                    </p>
+                  </div>
+                  <Button
+                    size='sm'
+                    onClick={() => handleStartGeneration()}
+                    disabled={isStreaming}
+                  >
+                    <Play className='mr-1.5 size-3.5' aria-hidden='true' />
+                    {t('Start')}
+                  </Button>
+                </div>
               ) : null}
               <StudioScriptEditor
                 ref={scriptEditorRef}
@@ -564,6 +617,18 @@ export function StudioStageDetail() {
                             scriptEditorRef.current?.setText(content)
                           }
                         }}
+                        onRewrite={(analysisContent) => {
+                          // Follow-up: ask AI to rewrite the script based on analysis
+                          const fullScript = scriptEditorRef.current?.getText() ?? ''
+                          sendMessage(
+                            '请根据以上分析建议，重写完整剧本。保留所有改进点，用 ```script 代码块包裹修改后的完整剧本。',
+                            {
+                              scriptContext: fullScript || undefined,
+                              modificationType: 'rewrite_from_analysis',
+                            }
+                          )
+                        }}
+                        onComplete={() => void handleMarkComplete()}
                         onDelete={() => deleteMessage(msg.id)}
                       />
                     ))
@@ -1477,21 +1542,30 @@ function extractScriptBlock(content: string): string | null {
   return scriptMatch?.[1]?.trimEnd() ?? null
 }
 
+function isAnalysisMessage(content: string): boolean {
+  // Analysis messages contain ✅ or ⚠️ markers with recommendations,
+  // and do NOT contain a script/revised-paragraph code block.
+  if (extractScriptBlock(content)) return false
+  return /✅|⚠️/.test(content)
+}
+
 function ScriptChatBubble(props: {
   message: StageChatMessage
   onApply?: (content: string) => void
+  onRewrite?: (analysisContent: string) => void
+  onComplete?: () => void
   onDelete?: () => void
 }) {
   const { t } = useTranslation()
-  const { message, onApply, onDelete } = props
+  const { message, onApply, onRewrite, onComplete, onDelete } = props
   const isUser = message.role === 'user'
   const [applied, setApplied] = useState(false)
+  const [completed, setCompleted] = useState(false)
 
   const isComplete = !isUser && message.status === 'complete'
-  // Prefer a fenced code block; fall back to the full message content.
-  const applyContent = isComplete
-    ? (extractScriptBlock(message.content) ?? message.content.trim())
-    : null
+  const scriptBlock = isComplete ? extractScriptBlock(message.content) : null
+  const isAnalysis = isComplete && isAnalysisMessage(message.content)
+  const analysisPassed = isAnalysis && message.content.includes('✅')
 
   return (
     <div className={isUser ? 'flex justify-end' : ''}>
@@ -1515,7 +1589,7 @@ function ScriptChatBubble(props: {
             <Markdown>{message.content}</Markdown>
           </div>
         )}
-        {/* Delete button — shown on hover, inside the bubble so it stays clickable */}
+        {/* Delete button — shown on hover */}
         {onDelete ? (
           <button
             type='button'
@@ -1527,7 +1601,8 @@ function ScriptChatBubble(props: {
           </button>
         ) : null}
       </div>
-      {applyContent && onApply ? (
+      {/* Script block → "Apply to Script" */}
+      {scriptBlock && onApply && !isAnalysis ? (
         <div className='mt-1'>
           <Button
             size='sm'
@@ -1535,13 +1610,46 @@ function ScriptChatBubble(props: {
             className='h-7 gap-1 px-2 text-xs'
             disabled={applied}
             onClick={() => {
-              onApply(applyContent)
+              onApply(scriptBlock)
               setApplied(true)
             }}
           >
             <Check className='size-3' aria-hidden='true' />
             {applied ? t('Applied') : t('Apply to Script')}
           </Button>
+        </div>
+      ) : null}
+      {/* Analysis → "Rewrite with Suggestions" + "Complete Stage" */}
+      {isAnalysis && onRewrite ? (
+        <div className='mt-1 flex items-center gap-1.5'>
+          <Button
+            size='sm'
+            variant={applied ? 'ghost' : 'outline'}
+            className='h-7 gap-1 px-2 text-xs'
+            disabled={applied}
+            onClick={() => {
+              onRewrite(message.content)
+              setApplied(true)
+            }}
+          >
+            <RefreshCw className='size-3' aria-hidden='true' />
+            {applied ? t('Rewriting...') : t('Rewrite with Suggestions')}
+          </Button>
+          {analysisPassed && onComplete ? (
+            <Button
+              size='sm'
+              variant={completed ? 'ghost' : 'default'}
+              className='h-7 gap-1 px-2 text-xs'
+              disabled={completed}
+              onClick={() => {
+                onComplete()
+                setCompleted(true)
+              }}
+            >
+              <Check className='size-3' aria-hidden='true' />
+              {completed ? t('Done') : t('Complete Stage')}
+            </Button>
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -170,9 +170,10 @@ export function StudioProjectMutateDialog({
           void queryClient.invalidateQueries({
             queryKey: [...STUDIO_QUERY_KEYS.projects],
           })
+          // Navigate to the script stage — user can click "Start" to begin AI generation
           void navigate({
-            to: '/studio/$projectId',
-            params: { projectId: String(result.data.id) },
+            to: '/studio/$projectId/$stageKey',
+            params: { projectId: String(result.data.id), stageKey: 'script' },
           })
         } else {
           toast.error(result.message || t('Failed to create project.'))
@@ -245,7 +246,7 @@ export function StudioProjectMutateDialog({
                     />
                   </FormControl>
                   <FormDescription>
-                    {t('Optional. Up to 500 characters.')}
+                    {t('Optional. Fill in to auto-generate the initial script via AI.')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

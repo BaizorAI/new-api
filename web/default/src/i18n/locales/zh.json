@@ -6319,6 +6319,15 @@
     "Stage marked as completed.": "阶段已标记为完成。",
     "Failed to update stage.": "更新阶段失败。",
     "Mark this stage as complete to unlock the next stage.": "将此阶段标记为完成以解锁下一阶段。",
-    "AI analyzes the script and gives a readiness recommendation.": "AI 分析剧本并给出就绪建议。"
+    "AI analyzes the script and gives a readiness recommendation.": "AI 分析剧本并给出就绪建议。",
+    "Optional. Fill in to auto-generate the initial script via AI.": "可选。填写后 AI 将自动生成初步剧本。",
+    "Set up a new film project. Fill in the brief to have AI auto-generate the initial script.": "创建新的影视项目。填写项目简报，AI 将自动生成初步剧本。",
+    "Ready to start?": "准备好开始了吗？",
+    "AI will generate an initial script based on your project brief.": "AI 将根据项目简报生成初步剧本。",
+    "Rewrite with Suggestions": "按建议重写",
+    "Rewriting...": "重写中...",
+    "AI analysis passed. Mark this stage as complete to unlock the next stage.": "AI 分析已通过。标记此阶段为完成以解锁下一阶段。",
+    "AI analysis suggests revisions. Rewrite with suggestions first.": "AI 分析建议修改。请先按建议重写。",
+    "Run AI analysis before marking the stage complete.": "请先运行 AI 分析再完成阶段。"
   }
 }

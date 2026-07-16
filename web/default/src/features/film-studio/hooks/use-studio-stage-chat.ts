@@ -199,6 +199,19 @@ export function useStudioStageChat({
           systemContent += `- 如果可以通过：✅ **可以进入下一阶段**，简述理由\n`
           systemContent += `- 如果需要修改：⚠️ **建议修改**，列出需要改进的地方\n\n`
           systemContent += `以下是剧本全文：\n---\n${opts.scriptContext}\n---`
+        } else if (opts.modificationType === 'generate') {
+          // Script generation mode — create a script from a project brief
+          systemContent = `你是专业影视编剧，使用 MagicalBrush 技能。请根据项目简报生成一份完整的影视剧本。\n`
+          systemContent += `使用标准剧本格式，包括场景标题（INT./EXT. 地点 - 时间）、动作描述和人物对话。\n`
+          systemContent += `确保故事有清晰的开头、发展和结尾。\n`
+          systemContent += `用 \`\`\`script 代码块包裹完整剧本。`
+        } else if (opts.modificationType === 'rewrite_from_analysis') {
+          // Rewrite script based on prior analysis suggestions
+          systemContent = `你是专业影视编剧，使用 MagicalBrush 技能。\n`
+          systemContent += `之前的分析已经指出了剧本的改进方向。请根据分析建议，重写以下完整剧本。\n`
+          systemContent += `保留原剧本的故事核心和角色，融入所有可行的改进建议。\n`
+          systemContent += `输出完整的修改后剧本，用 \`\`\`script 代码块包裹。\n\n`
+          systemContent += `以下是需要修改的当前剧本：\n---\n${opts.scriptContext}\n---`
         } else {
           systemContent = `你是影视剧本创作助手，使用 MagicalBrush 技能。以下是当前剧本全文：\n---\n${opts.scriptContext}\n---\n`
           if (opts.paragraphContext) {
