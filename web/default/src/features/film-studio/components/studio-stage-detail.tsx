@@ -484,29 +484,27 @@ export function StudioStageDetail() {
       {stageKey === 'script' ? (
         <ResizablePanelGroup orientation='horizontal' className='min-h-0 flex-1'>
           {/* Left panel: Script editor */}
-          <ResizablePanel defaultSize={55} minSize={30}>
-            <div className='flex h-full flex-col px-6 pt-6'>
+          <ResizablePanel defaultSize={55} minSize={30} className='flex flex-col'>
+            <div className='flex min-h-0 flex-1 flex-col px-6 pt-6'>
               {stageConfig ? (
                 <p className='text-muted-foreground mb-4 shrink-0 text-sm'>
                   {t(stageConfig.descriptionKey)}
                 </p>
               ) : null}
-              <div className='min-h-0 flex-1'>
-                <StudioScriptEditor
-                  ref={scriptEditorRef}
-                  projectId={id}
-                  stageKey={stageKey}
-                  initialContent={stage?.output_data ?? ''}
-                  onSelectionChange={setCurrentSelection}
-                />
-              </div>
+              <StudioScriptEditor
+                ref={scriptEditorRef}
+                projectId={id}
+                stageKey={stageKey}
+                initialContent={stage?.output_data ?? ''}
+                onSelectionChange={setCurrentSelection}
+              />
             </div>
           </ResizablePanel>
 
           <ResizableHandle withHandle />
 
           {/* Right panel: AI Chat */}
-          <ResizablePanel defaultSize={45} minSize={25}>
+          <ResizablePanel defaultSize={45} minSize={25} className='flex flex-col'>
             <div className='flex h-full flex-col'>
               {/* MagicBrush skill indicator */}
               {stageKey === 'script' ? (

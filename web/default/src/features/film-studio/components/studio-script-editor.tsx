@@ -261,7 +261,7 @@ export const StudioScriptEditor = forwardRef<
   const charCount = text.trim() ? text.trim().length : 0
 
   return (
-    <div className='flex h-full flex-col gap-3'>
+    <div className='flex min-h-0 flex-1 flex-col gap-3'>
       {/* Toolbar */}
       <div className='flex shrink-0 items-center gap-2'>
         {/* Mode toggle — three modes: Edit / Select / Preview */}
@@ -338,7 +338,7 @@ export const StudioScriptEditor = forwardRef<
             }
           }}
           placeholder={t('Write your screenplay here...')}
-          className='min-h-0 flex-1 resize-none font-mono text-sm leading-relaxed'
+          className='min-h-0 flex-1 resize-none font-mono text-sm leading-relaxed max-h-none field-sizing-fixed'
         />
       ) : mode === 'select' ? (
         <div className='min-h-0 flex-1 overflow-hidden rounded-lg border'>
