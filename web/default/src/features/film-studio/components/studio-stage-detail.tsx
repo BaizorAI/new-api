@@ -85,7 +85,6 @@ import {
   getStudioShots,
   getStudioStages,
   studioAgentCreate,
-  studioQuickGenerate,
   updateStudioStage,
 } from '../api'
 import {
@@ -233,7 +232,7 @@ export function StudioStageDetail() {
 
   const isPageLoading = isLoadingProject || isLoadingStages
 
-  const { messages, sendMessage, stopGeneration, addAssistantMessage, isStreaming } =
+  const { messages, sendMessage, stopGeneration, isStreaming } =
     useStudioStageChat({ projectId: id, stageKey })
 
   const { generateImage, generatingIds } = useShotImageGen({
@@ -255,7 +254,6 @@ export function StudioStageDetail() {
 
   // Agent create & quick generate state
   const [isAgentCreating, setIsAgentCreating] = useState(false)
-  const [isQuickAnalyzing, setIsQuickAnalyzing] = useState(false)
 
   const project = projectData?.data
   const stages = stagesData?.data ?? []
@@ -328,29 +326,6 @@ export function StudioStageDetail() {
       setIsAgentCreating(false)
     }
   }, [id, stageKey, scriptText, t])
-
-  const handleQuickAnalyze = useCallback(async () => {
-    if (!scriptText.trim()) return
-    setIsQuickAnalyzing(true)
-    try {
-      const result = await studioQuickGenerate(id, {
-        type: 'analyze',
-        prompt: scriptText,
-        stage_key: stageKey,
-      })
-      if (result.success && result.data?.text) {
-        // Output the analysis result into the chat panel
-        addAssistantMessage(result.data.text)
-        toast.success(t('Analysis complete.'))
-      } else {
-        toast.error(result.message ?? t('Analysis failed.'))
-      }
-    } catch {
-      toast.error(t('Analysis failed.'))
-    } finally {
-      setIsQuickAnalyzing(false)
-    }
-  }, [id, stageKey, scriptText, t, addAssistantMessage])
 
   const placeholder =
     STAGE_PLACEHOLDERS[stageKey] ?? 'Ask AI to help with this stage...'
@@ -433,32 +408,6 @@ export function StudioStageDetail() {
 
         {/* AI action buttons */}
         <div className='flex items-center gap-2'>
-          {stageKey === 'script' && scriptText.trim() ? (
-            <Button
-              size='sm'
-              variant='outline'
-              disabled={isQuickAnalyzing}
-              onClick={() => void handleQuickAnalyze()}
-              title={t(
-                'Sync AI analysis of the full script. Results appear in the chat panel and can be applied to the script.'
-              )}
-            >
-              {isQuickAnalyzing ? (
-                <Loader2
-                  className='mr-1.5 size-3.5 animate-spin'
-                  aria-hidden='true'
-                />
-              ) : (
-                <Sparkles
-                  className='mr-1.5 size-3.5'
-                  aria-hidden='true'
-                />
-              )}
-              {isQuickAnalyzing
-                ? t('Analyzing...')
-                : t('Quick Analyze')}
-            </Button>
-          ) : null}
           {STAGE_SKILL_MAP[stageKey] ? (
             <Button
               size='sm'
