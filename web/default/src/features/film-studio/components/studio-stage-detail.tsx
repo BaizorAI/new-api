@@ -115,6 +115,7 @@ import { StudioScriptEditor, type ScriptEditorHandle, type ScriptEditorSelection
 import { StudioShotDeleteDialog } from './studio-shot-delete-dialog'
 import { StudioShotMutateDrawer } from './studio-shot-mutate-drawer'
 import { CharacterChatPanel } from './character-chat-panel'
+import { CharactersStage } from './characters-stage'
 
 // Stage-specific placeholder text for the chat input
 const STAGE_PLACEHOLDERS: Record<string, string> = {
@@ -770,6 +771,22 @@ ${brief}
               </Button>
             </>
           ) : null}
+
+          {/* Shots: AI Extract + Add */}
+          {showShotsCrud ? (
+            <>
+              {stageKey === 'storyboard' ? (
+                <Button size='sm' variant='outline' disabled={!scriptText.trim() || isExtractingShots}
+                  onClick={() => void extractShots(scriptText)}>
+                  {isExtractingShots ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Wand2 className='mr-1.5 size-3.5' />}
+                  {isExtractingShots ? t('Extracting...') : t('AI Extract')}
+                </Button>
+              ) : null}
+              <Button size='sm' variant='outline' onClick={() => { setCurrentShot(null); setShotDialog('create') }}>
+                <Plus className='mr-1.5 size-3.5' />{t('Add Shot')}
+              </Button>
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -1005,158 +1022,12 @@ ${brief}
       ) : (
         <>
           {/* Characters stage: full-width left-aligned with split layout */}
-          {stageKey === 'characters' ? (
-            <div className='flex min-h-0 flex-1'>
-              {/* Left sidebar — own scroll */}
-              <div className='border-border w-[260px] shrink-0 space-y-1 overflow-auto border-r p-4'>
-                <div className='flex items-center justify-between'>
-                  <h2 className='text-sm font-medium'>
-                    {t('Characters')} ({characters.length})
-                  </h2>
-                </div>
-                {characters.length > 0 ? (
-                  characters.map((char) => (
-                    <div
-                      key={char.id}
-                      className={`border-border bg-card text-card-foreground rounded-lg border p-3 ${
-                        selectedCharId === char.id ? 'ring-ring ring-2' : ''
-                      }`}
-                    >
-                      <button
-                        type='button'
-                        onClick={() => setSelectedCharId(char.id)}
-                        className='hover:bg-muted/60 flex w-full items-center gap-3 text-left text-sm transition-colors rounded-md -m-1 p-1'
-                      >
-                        {char.reference_url ? (
-                          <img src={char.reference_url} alt={char.name} className='bg-muted size-10 shrink-0 rounded-md object-cover' loading='lazy' />
-                        ) : (
-                          <span className='bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-md text-lg font-medium'>{char.name.charAt(0)}</span>
-                        )}
-                        <span className='min-w-0'>
-                          <span className='block truncate font-medium'>{char.name}</span>
-                          {char.description ? (
-                            <span className='text-muted-foreground block truncate text-[11px]'>{char.description}</span>
-                          ) : null}
-                        </span>
-                      </button>
-                      {/* Inline save/delete for this character */}
-                      {selectedCharId === char.id ? (
-                        <div className='mt-2 flex items-center gap-1 border-t pt-2'>
-                          <Button size='sm' className='h-6 flex-1 gap-1 text-[11px]' onClick={handleSaveChar}>
-                            <Check className='size-3' />{t('Save')}
-                          </Button>
-                          <Button size='sm' variant='outline' className='text-destructive h-6 gap-1 text-[11px]' onClick={handleDeleteChar}>
-                            <Trash2 className='size-3' />{t('Delete')}
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                  ))
-                ) : (
-                  <p className='text-muted-foreground px-1 text-xs'>{t('No characters found in the script.')}</p>
-                )}
-              </div>
-
-              {/* Right detail — own scroll, left-aligned */}
-              <div className='min-w-0 flex-1 overflow-auto p-6'>
-                {selectedChar ? (
-                  <div className='mx-auto max-w-xl space-y-5'>
-                    <div className='space-y-3'>
-                      <div className='flex items-center justify-between'>
-                        <Label className='text-xs font-medium'>{t('Reference Image')}</Label>
-                        <div className='flex items-center gap-2'>
-                          <Input value={charForm.reference_url} onChange={(e) => setCharForm((f) => ({ ...f, reference_url: e.target.value }))} placeholder='https://...' className='h-7 w-48 text-xs' />
-                          <Button
-                            size='sm'
-                            className='h-7 gap-1 text-xs'
-                            disabled={charImageGenIds.has(selectedChar.id) || generatingFields.has(`${selectedChar.id}_reference_url`)}
-                            onClick={() => {
-                              const vp = charForm.visual_prompt?.trim() || selectedChar.visual_prompt?.trim()
-                              if (!vp) {
-                                handleGenerateCharField(selectedChar, 'visual_prompt')
-                                return
-                              }
-                              void handleGenerateCharImage(selectedChar)
-                            }}
-                          >
-                            {charImageGenIds.has(selectedChar.id) || generatingFields.has(`${selectedChar.id}_reference_url`) ? (
-                              <Loader2 className='size-3 animate-spin' />
-                            ) : (
-                              <ImagePlus className='size-3' />
-                            )}
-                            {charImageGenIds.has(selectedChar.id)
-                              ? t('Generating...')
-                              : generatingFields.has(`${selectedChar.id}_reference_url`)
-                                ? t('Refining...')
-                                : t('Generate')}
-                          </Button>
-                        </div>
-                      </div>
-                      <div className='bg-muted border-border flex aspect-square items-center justify-center overflow-hidden rounded-lg border'>
-                        {charForm.reference_url || selectedChar.reference_url ? (
-                          <img src={charForm.reference_url || selectedChar.reference_url} alt={selectedChar.name} className='size-full object-contain' />
-                        ) : (
-                          <div className='flex flex-col items-center gap-3 text-center'>
-                            <ImagePlus className='text-muted-foreground size-10' />
-                            <p className='text-muted-foreground text-xs'>{t('Upload a reference image or generate one')}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className='grid grid-cols-2 gap-4'>
-                      <div>
-                        <Label htmlFor='char-name' className='text-xs font-medium'>{t('Character Name')}</Label>
-                        <Input id='char-name' value={charForm.name} onChange={(e) => setCharForm((f) => ({ ...f, name: e.target.value }))} className='mt-1' />
-                      </div>
-                      <div>
-                        <Label htmlFor='char-desc' className='text-xs font-medium'>{t('Description')}</Label>
-                        <Textarea id='char-desc' value={charForm.description} onChange={(e) => setCharForm((f) => ({ ...f, description: e.target.value }))} placeholder={t('Describe the character...')} className='mt-1 h-[68px] resize-y text-sm' />
-                      </div>
-                    </div>
-
-                    <div className='grid grid-cols-2 gap-4'>
-                      <div>
-                        <div className='flex items-center justify-between'>
-                          <Label className='text-xs font-medium'>{t('Visual Prompt')}</Label>
-                          <Button size='sm' variant='ghost' className='h-6 gap-1 text-[11px]' disabled={generatingFields.has(`${selectedChar.id}_visual_prompt`)} onClick={() => handleGenerateCharField(selectedChar, 'visual_prompt')}>
-                            {generatingFields.has(`${selectedChar.id}_visual_prompt`) ? <Loader2 className='size-3 animate-spin' /> : <Sparkles className='size-3' />}
-                            {generatingFields.has(`${selectedChar.id}_visual_prompt`) ? t('Generating...') : t('AI generate')}
-                          </Button>
-                        </div>
-                        <Textarea value={charForm.visual_prompt} onChange={(e) => setCharForm((f) => ({ ...f, visual_prompt: e.target.value }))} className='mt-1 h-20 resize-y text-xs' />
-                      </div>
-                      <div>
-                        <div className='flex items-center justify-between'>
-                          <Label className='text-xs font-medium'>{t('LoRA Parameters')}</Label>
-                          <Button size='sm' variant='ghost' className='h-6 gap-1 text-[11px]' disabled={generatingFields.has(`${selectedChar.id}_lora_params`)} onClick={() => handleGenerateCharField(selectedChar, 'lora_params')}>
-                            {generatingFields.has(`${selectedChar.id}_lora_params`) ? <Loader2 className='size-3 animate-spin' /> : <Sparkles className='size-3' />}
-                            {generatingFields.has(`${selectedChar.id}_lora_params`) ? t('Generating...') : t('AI generate')}
-                          </Button>
-                        </div>
-                        <Input value={charForm.lora_params} onChange={(e) => setCharForm((f) => ({ ...f, lora_params: e.target.value }))} placeholder={t('e.g. lora_name:0.8, trigger_word...')} className='mt-1 text-xs' />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className='flex h-full items-center justify-center'>
-                    <p className='text-muted-foreground text-sm'>
-                      {characters.length > 0 ? t('Select a character to view details.') : t('No characters yet. Use AI Extract or Add Character to get started.')}
-                    </p>
-                  </div>
-                )}
-              </div>
-              <CharacterChatPanel
-                messages={messages}
-                loadingHistory={loadingHistory}
-                isStreaming={isStreaming}
-                placeholder={placeholder}
-                onClearMessages={clearMessages}
-                onDeleteMessage={deleteMessage}
-                onSubmit={handleSubmit}
-                onStopGeneration={stopGeneration}
-              />
-            </div>
+{stageKey === 'characters' ? (
+  <CharactersStage projectId={id} stageKey={stageKey} scriptText={scriptText} project={project}
+    messages={messages} loadingHistory={loadingHistory} isStreaming={isStreaming}
+    placeholder={placeholder} onClearMessages={clearMessages} onDeleteMessage={deleteMessage}
+    onSubmit={handleSubmit} onStopGeneration={stopGeneration}
+  />
           ) : (
             /* Other non-script stages */
             <ScrollArea className='min-h-0 flex-1'>
@@ -1563,73 +1434,17 @@ ${brief}
             <ReviewGallerySection shots={shots} />
           ) : null}
 
-          {/* Chat panel for non-script, non-character stages */}
           {stageKey !== 'characters' ? (
-          <div className='border-border flex shrink-0 flex-col border-t'>
-            <div className='flex items-center justify-between border-b px-4 py-1.5'>
-              <span className='text-muted-foreground text-[11px]'>
-                {t('Chat History')}
-              </span>
-              {messages.length > 0 ? (
-                <Button
-                  size='sm'
-                  variant='ghost'
-                  className='text-muted-foreground hover:text-destructive h-6 gap-1 px-1.5 text-[11px]'
-                  onClick={() => clearMessages()}
-                >
-                  <Trash2 className='size-3' />
-                  {t('Clear all')}
-                </Button>
-              ) : null}
-            </div>
-            <Conversation className='min-h-0 flex-1 max-h-[40vh]'>
-              <ConversationContent className='space-y-4'>
-                {loadingHistory ? (
-                  <ConversationEmptyState
-                    title={t('Loading...')}
-                    description=''
-                    icon={<Loader2 className='size-8 animate-spin' />}
-                  />
-                ) : messages.length === 0 ? null : (
-                  messages.map((msg) => (
-                    <ScriptChatBubble
-                      key={msg.id}
-                      message={msg}
-                      onApply={(content) => {
-                        if (stageKey === 'script') {
-                          const sel = pendingSelectionRef.current
-                          if (sel) {
-                            scriptEditorRef.current?.replaceRange(sel.start, sel.end, content)
-                            pendingSelectionRef.current = null
-                          } else {
-                            scriptEditorRef.current?.setText(content)
-                          }
-                        }
-                      }}
-                      onDelete={() => deleteMessage(msg.id)}
-                    />
-                  ))
-                )}
-              </ConversationContent>
-              <ConversationScrollButton />
-            </Conversation>
-
-            {/* Chat input */}
-            <div className='border-t p-3'>
-              <PromptInput onSubmit={handleSubmit} className='rounded-lg border shadow-sm'>
-                <PromptInputTextarea placeholder={t(placeholder)} className='min-h-[40px] resize-none text-sm' />
-                <PromptInputFooter className='justify-end p-1'>
-                  {isStreaming ? (
-                    <Button type='button' size='icon' variant='ghost' className='size-7' onClick={stopGeneration} aria-label={t('Stop')}>
-                      <SquareIcon className='size-4' />
-                    </Button>
-                  ) : (
-                    <PromptInputSubmit className='size-7' />
-                  )}
-                </PromptInputFooter>
-              </PromptInput>
-            </div>
-          </div>
+            <CharacterChatPanel
+              messages={messages}
+              loadingHistory={loadingHistory}
+              isStreaming={isStreaming}
+              placeholder={placeholder}
+              onClearMessages={clearMessages}
+              onDeleteMessage={deleteMessage}
+              onSubmit={handleSubmit}
+              onStopGeneration={stopGeneration}
+            />
           ) : null}
         </>
       )}
