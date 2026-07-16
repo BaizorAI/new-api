@@ -1760,55 +1760,6 @@ function ChatBubble(props: { message: StageChatMessage }) {
 }
 
 // ============================================================================
-// Inline AI field generator for character cards
-// ============================================================================
-
-function CharFieldWithAI(props: {
-  field: string
-  value?: string
-  charId: number
-  generating: boolean
-  onGenerate: () => void
-  t: (key: string) => string
-}) {
-  const { value, generating, onGenerate, t } = props
-  return (
-    <div className='min-w-0 flex-1'>
-      {value ? (
-        <div className='flex items-start gap-1'>
-          <p className='text-muted-foreground min-w-0 flex-1 truncate text-[11px] italic'>
-            {value}
-          </p>
-          <button
-            type='button'
-            className='text-muted-foreground hover:text-primary shrink-0 rounded p-0.5 transition-colors'
-            disabled={generating}
-            onClick={onGenerate}
-            title={t('Regenerate')}
-          >
-            <Sparkles className='size-3' aria-hidden='true' />
-          </button>
-        </div>
-      ) : (
-        <button
-          type='button'
-          className='text-primary flex items-center gap-1 text-[11px] transition-colors hover:underline'
-          disabled={generating}
-          onClick={onGenerate}
-        >
-          {generating ? (
-            <Loader2 className='size-3 animate-spin' aria-hidden='true' />
-          ) : (
-            <Sparkles className='size-3' aria-hidden='true' />
-          )}
-          {generating ? t('Generating...') : t('AI generate')}
-        </button>
-      )}
-    </div>
-  )
-}
-
-// ============================================================================
 // Script-specific Chat Bubble with "Apply to Script" button
 // ============================================================================
 

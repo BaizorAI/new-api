@@ -6331,6 +6331,13 @@
     "Run AI analysis before marking the stage complete.": "请先运行 AI 分析再完成阶段。",
     "Reference": "参考",
     "LoRA": "LoRA",
-    "AI generate": "AI 生成"
+    "AI generate": "AI 生成",
+    "Character saved.": "角色已保存。",
+    "Select a character to view details.": "选择一个角色查看详情。",
+    "No characters yet. Use AI Extract or Add Character to get started.": "暂无角色。使用 AI 提取或添加角色开始创建。",
+    "New Character": "新角色",
+    "Failed to save character.": "保存角色失败。",
+    "Failed to delete character.": "删除角色失败。",
+    "Failed to create character.": "创建角色失败。"
   }
 }

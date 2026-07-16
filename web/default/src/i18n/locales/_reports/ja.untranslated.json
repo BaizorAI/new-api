@@ -867,5 +867,12 @@
   "AI analysis suggests revisions. Rewrite with suggestions first.": "AI analysis suggests revisions. Rewrite with suggestions first.",
   "Run AI analysis before marking the stage complete.": "Run AI analysis before marking the stage complete.",
   "Reference": "Reference",
-  "AI generate": "AI generate"
+  "AI generate": "AI generate",
+  "Character saved.": "Character saved.",
+  "Select a character to view details.": "Select a character to view details.",
+  "No characters yet. Use AI Extract or Add Character to get started.": "No characters yet. Use AI Extract or Add Character to get started.",
+  "New Character": "New Character",
+  "Failed to save character.": "Failed to save character.",
+  "Failed to delete character.": "Failed to delete character.",
+  "Failed to create character.": "Failed to create character."
 }

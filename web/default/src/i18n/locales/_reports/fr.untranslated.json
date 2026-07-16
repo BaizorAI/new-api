@@ -383,5 +383,10 @@
   "Rewrite with Suggestions": "Rewrite with Suggestions",
   "AI analysis passed. Mark this stage as complete to unlock the next stage.": "AI analysis passed. Mark this stage as complete to unlock the next stage.",
   "AI analysis suggests revisions. Rewrite with suggestions first.": "AI analysis suggests revisions. Rewrite with suggestions first.",
-  "Run AI analysis before marking the stage complete.": "Run AI analysis before marking the stage complete."
+  "Run AI analysis before marking the stage complete.": "Run AI analysis before marking the stage complete.",
+  "Select a character to view details.": "Select a character to view details.",
+  "No characters yet. Use AI Extract or Add Character to get started.": "No characters yet. Use AI Extract or Add Character to get started.",
+  "Failed to save character.": "Failed to save character.",
+  "Failed to delete character.": "Failed to delete character.",
+  "Failed to create character.": "Failed to create character."
 }
