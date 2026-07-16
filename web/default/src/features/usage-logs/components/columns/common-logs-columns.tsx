@@ -275,7 +275,8 @@ function buildDetailSegments(
   return segments
 }
 
-export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
+export function useCommonLogsColumns(isAdmin: boolean, showActualModel?: boolean): ColumnDef<UsageLog>[] {
+  const effectiveShowActualModel = showActualModel ?? isAdmin
   const { t } = useTranslation()
   const columns: ColumnDef<UsageLog>[] = [
     {
@@ -615,7 +616,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
           <div className='flex w-fit flex-col gap-0.5'>
             <ModelBadge
               modelName={modelInfo.name}
-              actualModel={isAdmin ? modelInfo.actualModel : undefined}
+              actualModel={effectiveShowActualModel ? modelInfo.actualModel : undefined}
             />
           </div>
         )
