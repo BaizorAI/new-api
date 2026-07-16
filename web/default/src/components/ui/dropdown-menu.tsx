@@ -51,7 +51,9 @@ function DropdownMenuTrigger({
       data-slot='dropdown-menu-trigger'
       render={render}
       {...safeProps}
-    />
+    >
+      {render ? null : children}
+    </MenuPrimitive.Trigger>
   )
 }
 
