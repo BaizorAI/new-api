@@ -43,7 +43,7 @@ export function Search({ className, placeholder, ...props }: SearchProps) {
       onClick={() => setOpen(true)}
       {...props}
     >
-      <SearchIcon className='size-4' />
+      <SearchIcon className='size-4 text-muted-foreground' />
       <span className='ms-2 truncate'>{resolvedPlaceholder}</span>
       <kbd className='bg-muted pointer-events-none absolute end-[0.3rem] top-[0.3rem] hidden h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 select-none sm:flex'>
         <span className='text-xs'>Ctrl</span>

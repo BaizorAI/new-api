@@ -59,7 +59,7 @@ export function LanguageSwitcher() {
       <DropdownMenuTrigger
         render={<Button variant='ghost' size='icon' className='h-9 w-9' />}
       >
-        <Languages className='size-[1.2rem]' />
+        <Languages className='size-[1.2rem] text-indigo-500' />
         <span className='sr-only'>{t('Change language')}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
@@ -72,7 +72,7 @@ export function LanguageSwitcher() {
             <Check
               size={14}
               className={cn(
-                'ms-auto',
+                'ms-auto text-emerald-500',
                 currentLanguage !== lang.code && 'hidden'
               )}
             />

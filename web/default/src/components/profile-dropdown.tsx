@@ -103,13 +103,13 @@ export function ProfileDropdown() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem onClick={() => navigate({ to: '/profile' })}>
-            <User className='size-4' />
+            <User className='size-4 text-sky-500' />
             {t('Profile')}
           </DropdownMenuItem>
 
           {isWalletVisible && (
             <DropdownMenuItem onClick={() => navigate({ to: '/wallet/overview' })}>
-              <Wallet className='size-4' />
+              <Wallet className='size-4 text-emerald-500' />
               {t('Wallet')}
             </DropdownMenuItem>
           )}
@@ -123,7 +123,7 @@ export function ProfileDropdown() {
                 })
               }
             >
-              <Settings className='size-4' />
+              <Settings className='size-4 text-slate-500' />
               {t('System Settings')}
             </DropdownMenuItem>
           )}
@@ -131,7 +131,7 @@ export function ProfileDropdown() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem variant='destructive' onClick={() => setOpen(true)}>
-            <LogOut className='size-4' />
+            <LogOut className='size-4 text-red-500' />
             {t('Sign out')}
           </DropdownMenuItem>
         </DropdownMenuContent>

@@ -170,7 +170,7 @@ function NoticeContent({
   if (loading) {
     return (
       <EmptyState
-        icon={<Bell />}
+        icon={<Bell className='text-amber-500' />}
         title={t('Loading...')}
         description={t('Latest platform updates and notices')}
       />
@@ -179,7 +179,7 @@ function NoticeContent({
 
   if (!notice) {
     return (
-      <EmptyState icon={<Bell />} title={t('No announcements at this time')} />
+      <EmptyState icon={<Bell className='text-amber-500' />} title={t('No announcements at this time')} />
     )
   }
 
@@ -205,7 +205,7 @@ function AnnouncementsContent({
   if (loading) {
     return (
       <EmptyState
-        icon={<Megaphone />}
+        icon={<Megaphone className='text-rose-500' />}
         title={t('Loading...')}
         description={t('Latest platform updates and notices')}
       />
@@ -214,7 +214,7 @@ function AnnouncementsContent({
 
   if (announcements.length === 0) {
     return (
-      <EmptyState icon={<Megaphone />} title={t('No system announcements')} />
+      <EmptyState icon={<Megaphone className='text-rose-500' />} title={t('No system announcements')} />
     )
   }
 
@@ -293,7 +293,7 @@ export function NotificationPopover({
           />
         }
       >
-        <Bell className='size-[1.2rem]' />
+        <Bell className='size-[1.2rem] text-amber-500' />
         {unreadCount > 0 ? (
           <Badge
             variant='destructive'
@@ -322,11 +322,11 @@ export function NotificationPopover({
         >
           <TabsList className='grid w-full grid-cols-2'>
             <TabsTrigger value='notice' className='gap-1.5'>
-              <Bell className='size-3.5' />
+              <Bell className='size-3.5 text-amber-500' />
               {t('Notice')}
             </TabsTrigger>
             <TabsTrigger value='announcements' className='gap-1.5'>
-              <Megaphone className='size-3.5' />
+              <Megaphone className='size-3.5 text-rose-500' />
               {t('Timeline')}
             </TabsTrigger>
           </TabsList>

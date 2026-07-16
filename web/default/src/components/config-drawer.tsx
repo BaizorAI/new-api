@@ -95,7 +95,7 @@ export function ConfigDrawer() {
           />
         }
       >
-        <Palette className='size-[1.2rem]' aria-hidden='true' />
+        <Palette className='size-[1.2rem] text-purple-500' aria-hidden='true' />
       </SheetTrigger>
       <SheetContent className={sideDrawerContentClassName('sm:max-w-md')}>
         <SheetHeader className={sideDrawerHeaderClassName()}>
@@ -151,7 +151,7 @@ function SectionTitle(props: {
           onClick={props.onReset}
           aria-label='Reset'
         >
-          <RotateCcw className='size-3' aria-hidden='true' />
+          <RotateCcw className='size-3 text-amber-500' aria-hidden='true' />
         </Button>
       )}
     </div>
