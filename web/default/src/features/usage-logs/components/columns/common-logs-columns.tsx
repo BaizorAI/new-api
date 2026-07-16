@@ -276,7 +276,7 @@ function buildDetailSegments(
 }
 
 export function useCommonLogsColumns(isAdmin: boolean, showActualModel?: boolean): ColumnDef<UsageLog>[] {
-  const effectiveShowActualModel = showActualModel ?? isAdmin
+  const effectiveShowActualModel = false
   const { t } = useTranslation()
   const columns: ColumnDef<UsageLog>[] = [
     {

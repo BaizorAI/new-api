@@ -1435,16 +1435,18 @@ ${brief}
           ) : null}
 
           {stageKey !== 'characters' ? (
-            <CharacterChatPanel
-              messages={messages}
-              loadingHistory={loadingHistory}
-              isStreaming={isStreaming}
-              placeholder={placeholder}
-              onClearMessages={clearMessages}
-              onDeleteMessage={deleteMessage}
-              onSubmit={handleSubmit}
-              onStopGeneration={stopGeneration}
-            />
+            <div className='w-[340px]'>
+              <CharacterChatPanel
+                messages={messages}
+                loadingHistory={loadingHistory}
+                isStreaming={isStreaming}
+                placeholder={placeholder}
+                onClearMessages={clearMessages}
+                onDeleteMessage={deleteMessage}
+                onSubmit={handleSubmit}
+                onStopGeneration={stopGeneration}
+              />
+            </div>
           ) : null}
         </>
       )}
