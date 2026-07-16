@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { SystemBehaviorSection } from '../general/system-behavior-section'
+import { DownstreamSiteSettingsSection } from '../integrations/downstream-site-settings-section'
 import { EmailSettingsSection } from '../integrations/email-settings-section'
 import { MonitoringSettingsSection } from '../integrations/monitoring-settings-section'
 import { WorkerSettingsSection } from '../integrations/worker-settings-section'
@@ -138,6 +139,19 @@ const OPERATIONS_SECTIONS = [
       <UpdateCheckerSection
         currentVersion={currentVersion}
         startTime={startTime}
+      />
+    ),
+  },
+  {
+    id: 'downstream-site',
+    titleKey: 'Downstream Site',
+    build: (settings: OperationsSettings) => (
+      <DownstreamSiteSettingsSection
+        defaultValues={{
+          enabled: settings['site.downstream.enabled'] ?? false,
+          name: settings['site.downstream.name'] ?? '',
+          upstream_url: settings['site.downstream.upstream_url'] ?? '',
+        }}
       />
     ),
   },
