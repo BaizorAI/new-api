@@ -372,5 +372,7 @@
   "This toolset is configured and active.": "This toolset is configured and active.",
   "Toolset configuration is managed through the Hermes API server.": "Toolset configuration is managed through the Hermes API server.",
   "Modify with AI": "Modify with AI",
-  "AI powered by MagicalBrush will modify your script based on the response.": "AI powered by MagicalBrush will modify your script based on the response."
+  "AI powered by MagicalBrush will modify your script based on the response.": "AI powered by MagicalBrush will modify your script based on the response.",
+  "Tip: double-click a paragraph to select it, then use the AI panel to modify.": "Tip: double-click a paragraph to select it, then use the AI panel to modify.",
+  "Tip: click a paragraph to select it for AI modification.": "Tip: click a paragraph to select it for AI modification."
 }

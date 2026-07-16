@@ -845,5 +845,8 @@
   "Selected paragraph {{index}}": "Selected paragraph {{index}}",
   "Modify with AI": "Modify with AI",
   "Skill active: MagicalBrush": "Skill active: MagicalBrush",
-  "AI powered by MagicalBrush will modify your script based on the response.": "AI powered by MagicalBrush will modify your script based on the response."
+  "AI powered by MagicalBrush will modify your script based on the response.": "AI powered by MagicalBrush will modify your script based on the response.",
+  "Tip: double-click a paragraph to select it, then use the AI panel to modify.": "Tip: double-click a paragraph to select it, then use the AI panel to modify.",
+  "Tip: click a paragraph to select it for AI modification.": "Tip: click a paragraph to select it for AI modification.",
+  "Select": "Select"
 }

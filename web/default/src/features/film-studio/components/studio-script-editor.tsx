@@ -261,10 +261,10 @@ export const StudioScriptEditor = forwardRef<
   const charCount = text.trim() ? text.trim().length : 0
 
   return (
-    <div className='flex flex-col gap-3'>
+    <div className='flex h-full flex-col gap-3'>
       {/* Toolbar */}
-      <div className='flex items-center gap-2'>
-        {/* Mode toggle */}
+      <div className='flex shrink-0 items-center gap-2'>
+        {/* Mode toggle — three modes: Edit / Select / Preview */}
         <div className='bg-muted flex rounded-md p-0.5'>
           <Button
             type='button'
@@ -310,7 +310,14 @@ export const StudioScriptEditor = forwardRef<
         <SaveStatusIndicator status={saveStatus} />
       </div>
 
-      {/* Editor / Select / Preview area */}
+      {/* Tip — shown above the editor area for visibility */}
+      {mode !== 'preview' && text.trim() ? (
+        <p className='text-muted-foreground shrink-0 text-xs'>
+          {t('Tip: double-click a paragraph to select it, then use the AI panel to modify.')}
+        </p>
+      ) : null}
+
+      {/* Editor / Select / Preview area — fills remaining height */}
       {mode === 'edit' ? (
         <Textarea
           ref={textareaRef}
@@ -331,13 +338,13 @@ export const StudioScriptEditor = forwardRef<
             }
           }}
           placeholder={t('Write your screenplay here...')}
-          className='min-h-[400px] resize-none font-mono text-sm leading-relaxed'
+          className='min-h-0 flex-1 resize-none font-mono text-sm leading-relaxed'
         />
       ) : mode === 'select' ? (
-        <div className='border-border min-h-[400px] rounded-lg border p-4'>
+        <div className='min-h-0 flex-1 overflow-hidden rounded-lg border'>
           {text.trim() ? (
-            <ScrollArea className='max-h-[60vh]'>
-              <div className='space-y-2'>
+            <ScrollArea className='h-full'>
+              <div className='space-y-2 p-4'>
                 {splitScriptIntoParagraphs(text).map((para) => {
                   const isSelected = selectedParagraphIndex === para.index
                   return (
@@ -345,22 +352,27 @@ export const StudioScriptEditor = forwardRef<
                       key={para.index}
                       role='button'
                       tabIndex={0}
-                      className={`rounded-md border px-4 py-3 text-sm leading-relaxed transition-colors cursor-pointer outline-none
+                      className={`rounded-lg border px-4 py-3 text-sm leading-relaxed transition-all cursor-pointer outline-none
                         ${isSelected
-                          ? 'border-primary/30 bg-primary/5 ring-1 ring-primary/10'
-                          : 'border-transparent hover:border-accent hover:bg-accent/5'
+                          ? 'border-primary/40 bg-primary/5 shadow-sm ring-1 ring-primary/20'
+                          : 'border-border/50 hover:border-accent hover:bg-accent/10 hover:shadow-sm'
                         }
                       `}
                       onClick={() => {
-                        setSelectedParagraphIndex(para.index)
-                        onSelectionChange?.({
-                          start: para.startOffset,
-                          end: para.endOffset,
-                          text: para.text,
-                          paragraphIndex: para.index,
-                          paragraphText: para.text,
-                          isFullParagraph: true,
-                        })
+                        if (isSelected) {
+                          setSelectedParagraphIndex(null)
+                          onSelectionChange?.(null)
+                        } else {
+                          setSelectedParagraphIndex(para.index)
+                          onSelectionChange?.({
+                            start: para.startOffset,
+                            end: para.endOffset,
+                            text: para.text,
+                            paragraphIndex: para.index,
+                            paragraphText: para.text,
+                            isFullParagraph: true,
+                          })
+                        }
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -377,32 +389,34 @@ export const StudioScriptEditor = forwardRef<
                         }
                       }}
                     >
-                      <span className='text-muted-foreground mr-2 text-xs font-medium select-none'>
+                      <span className='text-muted-foreground mr-2 text-[11px] font-medium tabular-nums select-none opacity-60'>
                         {para.index + 1}
                       </span>
-                      {para.text}
+                      <Markdown>{para.text}</Markdown>
                     </div>
                   )
                 })}
               </div>
             </ScrollArea>
           ) : (
-            <p className='text-muted-foreground text-sm'>
-              {t('Nothing to preview yet.')}
-            </p>
+            <div className='flex h-full items-center justify-center'>
+              <p className='text-muted-foreground text-sm'>
+                {t('Nothing to preview yet.')}
+              </p>
+            </div>
           )}
         </div>
+      ) : text.trim() ? (
+        <ScrollArea className='min-h-0 flex-1'>
+          <div className='prose dark:prose-invert prose-sm max-w-none p-1'>
+            <Markdown>{text}</Markdown>
+          </div>
+        </ScrollArea>
       ) : (
-        <div className='border-border min-h-[400px] rounded-lg border p-4'>
-          {text.trim() ? (
-            <div className='prose dark:prose-invert prose-sm max-w-none'>
-              <Markdown>{text}</Markdown>
-            </div>
-          ) : (
-            <p className='text-muted-foreground text-sm'>
-              {t('Nothing to preview yet.')}
-            </p>
-          )}
+        <div className='border-border flex min-h-0 flex-1 items-center justify-center rounded-lg border'>
+          <p className='text-muted-foreground text-sm'>
+            {t('Nothing to preview yet.')}
+          </p>
         </div>
       )}
     </div>

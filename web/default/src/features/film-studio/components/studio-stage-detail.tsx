@@ -485,13 +485,13 @@ export function StudioStageDetail() {
         <ResizablePanelGroup orientation='horizontal' className='min-h-0 flex-1'>
           {/* Left panel: Script editor */}
           <ResizablePanel defaultSize={55} minSize={30}>
-            <ScrollArea className='h-full'>
-              <div className='p-6'>
-                {stageConfig ? (
-                  <p className='text-muted-foreground mb-6 text-sm'>
-                    {t(stageConfig.descriptionKey)}
-                  </p>
-                ) : null}
+            <div className='flex h-full flex-col px-6 pt-6'>
+              {stageConfig ? (
+                <p className='text-muted-foreground mb-4 shrink-0 text-sm'>
+                  {t(stageConfig.descriptionKey)}
+                </p>
+              ) : null}
+              <div className='min-h-0 flex-1'>
                 <StudioScriptEditor
                   ref={scriptEditorRef}
                   projectId={id}
@@ -500,7 +500,7 @@ export function StudioStageDetail() {
                   onSelectionChange={setCurrentSelection}
                 />
               </div>
-            </ScrollArea>
+            </div>
           </ResizablePanel>
 
           <ResizableHandle withHandle />
@@ -1460,12 +1460,12 @@ function ChatBubble(props: { message: StageChatMessage }) {
 // ============================================================================
 
 function extractScriptBlock(content: string): string | null {
-  // Check for targeted paragraph revision first (more precise)
-  const paraMatch = content.match(/```revised-paragraph\n([\s\S]*?)```/)
+  // Try targeted paragraph revision first
+  const paraMatch = content.match(/```revised-paragraph\s*\n([\s\S]*?)```/)
   if (paraMatch?.[1]?.trimEnd()) return paraMatch[1].trimEnd()
   // Fallback to full script block
-  const match = content.match(/```script\n([\s\S]*?)```/)
-  return match?.[1]?.trimEnd() ?? null
+  const scriptMatch = content.match(/```script\s*\n([\s\S]*?)```/)
+  return scriptMatch?.[1]?.trimEnd() ?? null
 }
 
 function ScriptChatBubble(props: {
@@ -1477,10 +1477,11 @@ function ScriptChatBubble(props: {
   const isUser = message.role === 'user'
   const [applied, setApplied] = useState(false)
 
-  const scriptBlock =
-    !isUser && message.status === 'complete'
-      ? extractScriptBlock(message.content)
-      : null
+  const isComplete = !isUser && message.status === 'complete'
+  // Prefer a fenced code block; fall back to the full message content.
+  const applyContent = isComplete
+    ? (extractScriptBlock(message.content) ?? message.content.trim())
+    : null
 
   return (
     <div className={isUser ? 'flex justify-end' : ''}>
@@ -1505,7 +1506,7 @@ function ScriptChatBubble(props: {
           </div>
         )}
       </div>
-      {scriptBlock && onApply ? (
+      {applyContent && onApply ? (
         <div className='mt-1'>
           <Button
             size='sm'
@@ -1513,7 +1514,7 @@ function ScriptChatBubble(props: {
             className='h-7 gap-1 px-2 text-xs'
             disabled={applied}
             onClick={() => {
-              onApply(scriptBlock)
+              onApply(applyContent)
               setApplied(true)
             }}
           >

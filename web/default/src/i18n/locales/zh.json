@@ -4718,7 +4718,6 @@
     "Security verification": "安全验证",
     "See how it works": "查看使用方式",
     "Segment access by group, model and token while keeping a stable compatible endpoint for many upstream providers.": "按分组、模型和令牌划分访问，同时为多个上游供应商保持稳定兼容端点。",
-    "Select": "选择",
     "Select a color": "选择颜色",
     "Select a group": "选择一个分组",
     "Select a group type": "选择分组类型",
@@ -6302,6 +6301,9 @@
     "Selected paragraph {{index}}": "已选择第 {{index}} 段",
     "Modify with AI": "AI 修改",
     "Skill active: MagicalBrush": "技能已激活：MagicalBrush",
-    "AI powered by MagicalBrush will modify your script based on the response.": "由 MagicalBrush 驱动的 AI 将根据回复修改您的剧本。"
+    "AI powered by MagicalBrush will modify your script based on the response.": "由 MagicalBrush 驱动的 AI 将根据回复修改您的剧本。",
+    "Tip: double-click a paragraph to select it, then use the AI panel to modify.": "提示：双击段落即可选中，然后用右侧 AI 面板修改。",
+    "Tip: click a paragraph to select it for AI modification.": "提示：点击段落即可选中，用 AI 进行针对性修改。",
+    "Select": "选择"
   }
 }

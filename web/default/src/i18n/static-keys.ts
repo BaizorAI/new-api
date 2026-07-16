@@ -551,6 +551,8 @@ export const STATIC_I18N_KEYS = [
 
   // Film Studio — script editor smart selection & MagicBrush
   'Select',
+  'Tip: double-click a paragraph to select it, then use the AI panel to modify.',
+  'Tip: click a paragraph to select it for AI modification.',
   'Polish',
   'Expand',
   'Shorten',
