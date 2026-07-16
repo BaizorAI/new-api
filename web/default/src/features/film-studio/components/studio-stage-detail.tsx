@@ -1601,9 +1601,9 @@ function ScriptChatBubble(props: {
           </button>
         ) : null}
       </div>
-      {/* Script block → "Apply to Script" */}
+      {/* Script block → "Apply to Script" + "Complete Stage" */}
       {scriptBlock && onApply && !isAnalysis ? (
-        <div className='mt-1'>
+        <div className='mt-1 flex items-center gap-1.5'>
           <Button
             size='sm'
             variant={applied ? 'ghost' : 'outline'}
@@ -1617,6 +1617,21 @@ function ScriptChatBubble(props: {
             <Check className='size-3' aria-hidden='true' />
             {applied ? t('Applied') : t('Apply to Script')}
           </Button>
+          {onComplete ? (
+            <Button
+              size='sm'
+              variant={completed ? 'ghost' : 'default'}
+              className='h-7 gap-1 px-2 text-xs'
+              disabled={completed}
+              onClick={() => {
+                onComplete()
+                setCompleted(true)
+              }}
+            >
+              <Check className='size-3' aria-hidden='true' />
+              {completed ? t('Done') : t('Complete Stage')}
+            </Button>
+          ) : null}
         </div>
       ) : null}
       {/* Analysis → "Rewrite with Suggestions" + "Complete Stage" */}
