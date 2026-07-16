@@ -1563,7 +1563,8 @@ ${brief}
             <ReviewGallerySection shots={shots} />
           ) : null}
 
-          {/* Chat panel for non-script stages */}
+          {/* Chat panel for non-script, non-character stages */}
+          {stageKey !== 'characters' ? (
           <div className='border-border flex shrink-0 flex-col border-t'>
             <div className='flex items-center justify-between border-b px-4 py-1.5'>
               <span className='text-muted-foreground text-[11px]'>
@@ -1629,6 +1630,7 @@ ${brief}
               </PromptInput>
             </div>
           </div>
+          ) : null}
         </>
       )}
 
