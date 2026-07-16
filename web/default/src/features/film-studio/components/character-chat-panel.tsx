@@ -86,6 +86,7 @@ export function CharacterChatPanel({
         <span className='flex items-center gap-1.5 rounded-md bg-purple-500/10 px-2 py-0.5 text-xs font-medium text-purple-600 dark:text-purple-400'>
           <Wand2 className='size-3' />MagicalBrush
         </span>
+        <span className='text-muted-foreground text-xs'>{t('Skill active: MagicalBrush')}</span>
       </div>
       <div className='flex items-center justify-between border-b px-4 py-1.5'>
         <span className='text-muted-foreground text-[11px]'>{t('Chat History')}</span>
