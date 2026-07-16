@@ -949,6 +949,7 @@ func executeStudioChatCompletion(userId int, payload map[string]any) ([]byte, in
 	request := httptest.NewRequest(http.MethodPost, "/pg/chat/completions", bytes.NewReader(payloadBytes))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("New-Api-User", strconv.Itoa(userId))
+	request.Header.Set("X-Baizor-Playground", "hermes")
 
 	response := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(response)

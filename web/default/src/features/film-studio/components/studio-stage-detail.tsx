@@ -233,7 +233,7 @@ export function StudioStageDetail() {
 
   const isPageLoading = isLoadingProject || isLoadingStages
 
-  const { messages, sendMessage, stopGeneration, isStreaming } =
+  const { messages, sendMessage, stopGeneration, addAssistantMessage, isStreaming } =
     useStudioStageChat({ projectId: id, stageKey })
 
   const { generateImage, generatingIds } = useShotImageGen({
@@ -339,6 +339,8 @@ export function StudioStageDetail() {
         stage_key: stageKey,
       })
       if (result.success && result.data?.text) {
+        // Output the analysis result into the chat panel
+        addAssistantMessage(result.data.text)
         toast.success(t('Analysis complete.'))
       } else {
         toast.error(result.message ?? t('Analysis failed.'))
@@ -348,7 +350,7 @@ export function StudioStageDetail() {
     } finally {
       setIsQuickAnalyzing(false)
     }
-  }, [id, stageKey, scriptText, t])
+  }, [id, stageKey, scriptText, t, addAssistantMessage])
 
   const placeholder =
     STAGE_PLACEHOLDERS[stageKey] ?? 'Ask AI to help with this stage...'
@@ -437,6 +439,9 @@ export function StudioStageDetail() {
               variant='outline'
               disabled={isQuickAnalyzing}
               onClick={() => void handleQuickAnalyze()}
+              title={t(
+                'Sync AI analysis of the full script. Results appear in the chat panel and can be applied to the script.'
+              )}
             >
               {isQuickAnalyzing ? (
                 <Loader2
@@ -460,6 +465,9 @@ export function StudioStageDetail() {
               variant='outline'
               disabled={isAgentCreating}
               onClick={() => void handleAgentCreate()}
+              title={t(
+                'Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.'
+              )}
             >
               {isAgentCreating ? (
                 <Loader2

@@ -553,6 +553,8 @@ export const STATIC_I18N_KEYS = [
   'Select',
   'Tip: double-click a paragraph to select it, then use the AI panel to modify.',
   'Tip: click a paragraph to select it for AI modification.',
+  'Sync AI analysis of the full script. Results appear in the chat panel and can be applied to the script.',
+  'Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.',
   'Polish',
   'Expand',
   'Shorten',

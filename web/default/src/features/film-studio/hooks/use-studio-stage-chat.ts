@@ -202,6 +202,17 @@ export function useStudioStageChat({
     setMessages([])
   }, [])
 
+  /** Add a pre-completed assistant message to the chat (e.g. from Quick Analyze). */
+  const addAssistantMessage = useCallback((content: string) => {
+    const msg: StageChatMessage = {
+      id: nanoid(),
+      role: 'assistant',
+      content,
+      status: 'complete',
+    }
+    setMessages((prev) => [...prev, msg])
+  }, [])
+
   const isStreaming = messages.some(
     (m) => m.status === 'loading' || m.status === 'streaming'
   )
@@ -211,6 +222,7 @@ export function useStudioStageChat({
     sendMessage,
     stopGeneration,
     clearMessages,
+    addAssistantMessage,
     isStreaming,
   }
 }

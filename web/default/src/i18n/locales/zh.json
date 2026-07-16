@@ -6304,6 +6304,8 @@
     "AI powered by MagicalBrush will modify your script based on the response.": "由 MagicalBrush 驱动的 AI 将根据回复修改您的剧本。",
     "Tip: double-click a paragraph to select it, then use the AI panel to modify.": "提示：双击段落即可选中，然后用右侧 AI 面板修改。",
     "Tip: click a paragraph to select it for AI modification.": "提示：点击段落即可选中，用 AI 进行针对性修改。",
-    "Select": "选择"
+    "Select": "选择",
+    "Sync AI analysis of the full script. Results appear in the chat panel and can be applied to the script.": "同步 AI 分析完整剧本，结果显示在聊天面板中，可应用到剧本。",
+    "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.": "创建异步 Hermes Agent 任务，运行 MagicalBrush 技能。在 Hermes 执行任务列表中跟踪进度。"
   }
 }
