@@ -389,5 +389,8 @@
   "No characters yet. Use AI Extract or Add Character to get started.": "No characters yet. Use AI Extract or Add Character to get started.",
   "Failed to save character.": "Failed to save character.",
   "Failed to delete character.": "Failed to delete character.",
-  "Failed to create character.": "Failed to create character."
+  "Failed to create character.": "Failed to create character.",
+  "Upload a reference image or generate one": "Upload a reference image or generate one",
+  "Failed to update script.": "Failed to update script.",
+  "Add a visual prompt or description first.": "Add a visual prompt or description first."
 }

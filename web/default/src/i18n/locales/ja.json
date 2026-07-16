@@ -6338,6 +6338,15 @@
     "New Character": "New Character",
     "Failed to save character.": "Failed to save character.",
     "Failed to delete character.": "Failed to delete character.",
-    "Failed to create character.": "Failed to create character."
+    "Failed to create character.": "Failed to create character.",
+    "Reference Image": "Reference Image",
+    "Upload a reference image or generate one": "Upload a reference image or generate one",
+    "Character name changed. Update script references?": "Character name changed. Update script references?",
+    "Script updated.": "Script updated.",
+    "Failed to update script.": "Failed to update script.",
+    "Generating image...": "Generating image...",
+    "Refining prompt...": "Refining prompt...",
+    "Reference image generated.": "Reference image generated.",
+    "Add a visual prompt or description first.": "Add a visual prompt or description first."
   }
 }

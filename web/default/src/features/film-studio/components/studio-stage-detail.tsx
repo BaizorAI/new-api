@@ -108,6 +108,8 @@ import { useShotImageGen } from '../hooks/use-shot-image-gen'
 import { useShotVideoGen } from '../hooks/use-shot-video-gen'
 import { useSwapShotOrder } from '../hooks/use-studio-mutations'
 import { sendChatCompletion } from '@/features/playground/api'
+import { getImageHistory, submitImageGeneration } from '@/features/image-playground/api'
+import { IMAGE_STATUS } from '@/features/image-playground/types'
 import type { StudioCharacter, StudioShot } from '../types'
 import { StudioScriptEditor, type ScriptEditorHandle, type ScriptEditorSelection } from './studio-script-editor'
 import { StudioShotDeleteDialog } from './studio-shot-delete-dialog'
@@ -154,7 +156,6 @@ export function StudioStageDetail() {
     reference_url: '',
     lora_params: '',
   })
-  const selectedChar = characters.find((c) => c.id === selectedCharId) ?? null
 
   // Dialog state for shots
   const [shotDialog, setShotDialog] = useState<DialogType | null>(null)
@@ -252,6 +253,9 @@ export function StudioStageDetail() {
 
   // Track which character fields are being AI-generated
   const [generatingFields, setGeneratingFields] = useState<Set<string>>(new Set())
+  // Track image generation for character reference — submit → poll → write back
+  const [charImageGenId, setCharImageGenId] = useState<number | null>(null)
+  const charImagePollRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const handleGenerateCharField = useCallback(async (
     char: StudioCharacter,
@@ -304,6 +308,86 @@ export function StudioStageDetail() {
     }
   }, [id, queryClient])
 
+  // Generate character reference image — submits visual_prompt to image generation
+  // and polls for the result. The visual_prompt should already be refined via MagicalBrush AI.
+  const handleGenerateCharImage = useCallback(async (char: StudioCharacter) => {
+    const prompt = charForm.visual_prompt?.trim() || selectedChar?.visual_prompt?.trim() || char.description?.trim()
+    if (!prompt) {
+      toast.warning(t('Add a visual prompt or description first.'))
+      return
+    }
+    if (charImageGenId) return // already generating
+
+    // Auto-save before generating
+    if (charForm.visual_prompt !== selectedChar?.visual_prompt) {
+      await updateStudioCharacter(id, char.id, { visual_prompt: charForm.visual_prompt } as Record<string, string>)
+      void queryClient.invalidateQueries({ queryKey: [...STUDIO_QUERY_KEYS.characters(id)] })
+    }
+
+    const key = `${char.id}_reference_url`
+    setGeneratingFields((prev) => new Set(prev).add(key))
+    setCharImageGenId(char.id)
+
+    try {
+      const pending = await submitImageGeneration({
+        prompt,
+        model: 'huayu-drama-4',
+        size: '1024x1024',
+        quality: 'standard',
+        group: 'default',
+      })
+
+      // Poll for completion
+      let polls = 0
+      const MAX_POLLS = 40 // ~2 minutes
+      const poll = async () => {
+        polls++
+        if (polls > MAX_POLLS) {
+          setCharImageGenId(null)
+          setGeneratingFields((prev) => {
+            const next = new Set(prev); next.delete(key); return next
+          })
+          toast.error(t('Image generation timed out.'))
+          return
+        }
+        try {
+          const history = await getImageHistory(1, 10)
+          const record = history.items.find((h) => h.id === pending.id)
+          if (!record || record.status === IMAGE_STATUS.PENDING) {
+            charImagePollRef.current = setTimeout(() => void poll(), 3000)
+            return
+          }
+          setCharImageGenId(null)
+          setGeneratingFields((prev) => {
+            const next = new Set(prev); next.delete(key); return next
+          })
+          if (record.status === IMAGE_STATUS.COMPLETED && record.image_url) {
+            await updateStudioCharacter(id, char.id, { reference_url: record.image_url } as Record<string, string>)
+            void queryClient.invalidateQueries({ queryKey: [...STUDIO_QUERY_KEYS.characters(id)] })
+            toast.success(t('Reference image generated.'))
+            // Update local form
+            setCharForm((f) => ({ ...f, reference_url: record.image_url! }))
+          } else {
+            toast.error(record.error_message || t('Image generation failed.'))
+          }
+        } catch {
+          setCharImageGenId(null)
+          setGeneratingFields((prev) => {
+            const next = new Set(prev); next.delete(key); return next
+          })
+          toast.error(t('Image generation failed.'))
+        }
+      }
+      charImagePollRef.current = setTimeout(() => void poll(), 3000)
+    } catch {
+      setCharImageGenId(null)
+      setGeneratingFields((prev) => {
+        const next = new Set(prev); next.delete(key); return next
+      })
+      toast.error(t('Image generation failed.'))
+    }
+  }, [id, queryClient, charForm.visual_prompt, selectedChar, charImageGenId, t])
+
   const { messages, sendMessage, stopGeneration, clearMessages, deleteMessage, loadingHistory, isStreaming } =
     useStudioStageChat({
       projectId: id,
@@ -338,6 +422,7 @@ export function StudioStageDetail() {
   const stage = stages.find((s) => s.key === stageKey)
   const shots = shotsData?.data ?? []
   const characters = charsData?.data ?? []
+  const selectedChar = characters.find((c) => c.id === selectedCharId) ?? null
 
   // Get script text for AI extraction
   const scriptText = useMemo(() => {
@@ -852,27 +937,17 @@ ${brief}
         </ResizablePanelGroup>
       ) : (
         <>
-          {/* Non-script stages: existing vertical layout */}
-          <ScrollArea className='min-h-0 flex-1'>
-            <div className='mx-auto max-w-4xl p-6'>
-              {/* Stage description */}
-              {stageConfig ? (
-                <p className='text-muted-foreground mb-6 text-sm'>
-                  {t(stageConfig.descriptionKey)}
-                </p>
-              ) : null}
-
-          {/* Characters section — sidebar + detail split layout */}
+          {/* Characters stage: full-width left-aligned with split layout */}
           {stageKey === 'characters' ? (
-            <div className='grid h-full min-h-0 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]'>
-              {/* Left sidebar — character list */}
-              <div className='min-h-0 space-y-2 overflow-auto'>
+            <div className='flex min-h-0 flex-1'>
+              {/* Left sidebar — own scroll */}
+              <div className='border-border w-[260px] shrink-0 space-y-1 overflow-auto border-r p-4'>
                 <div className='flex items-center justify-between'>
                   <h2 className='text-sm font-medium'>
                     {t('Characters')} ({characters.length})
                   </h2>
                 </div>
-                <div className='flex flex-wrap items-center gap-2'>
+                <div className='flex flex-wrap items-center gap-2 pb-2'>
                   <Button
                     size='sm'
                     variant='outline'
@@ -901,197 +976,131 @@ ${brief}
                         selectedCharId === char.id ? 'ring-ring ring-2' : ''
                       }`}
                     >
-                      {/* Small avatar */}
                       {char.reference_url ? (
-                        <img
-                          src={char.reference_url}
-                          alt={char.name}
-                          className='bg-muted size-10 shrink-0 rounded-md object-cover'
-                          loading='lazy'
-                        />
+                        <img src={char.reference_url} alt={char.name} className='bg-muted size-10 shrink-0 rounded-md object-cover' loading='lazy' />
                       ) : (
-                        <span className='bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-md text-lg font-medium'>
-                          {char.name.charAt(0)}
-                        </span>
+                        <span className='bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-md text-lg font-medium'>{char.name.charAt(0)}</span>
                       )}
                       <span className='min-w-0'>
-                        <span className='block truncate font-medium'>
-                          {char.name}
-                        </span>
+                        <span className='block truncate font-medium'>{char.name}</span>
                         {char.description ? (
-                          <span className='text-muted-foreground block truncate text-[11px]'>
-                            {char.description}
-                          </span>
+                          <span className='text-muted-foreground block truncate text-[11px]'>{char.description}</span>
                         ) : null}
                       </span>
                     </button>
                   ))
                 ) : (
-                  <p className='text-muted-foreground px-1 text-xs'>
-                    {t('No characters found in the script.')}
-                  </p>
+                  <p className='text-muted-foreground px-1 text-xs'>{t('No characters found in the script.')}</p>
                 )}
               </div>
 
-              {/* Right detail — inline edit selected character */}
-              <div className='min-h-0 overflow-auto'>
+              {/* Right detail — own scroll, left-aligned */}
+              <div className='min-w-0 flex-1 overflow-auto p-6'>
                 {selectedChar ? (
-                  <div className='space-y-4'>
-                    {/* Reference image preview */}
-                    <div className='bg-muted flex aspect-video items-center justify-center overflow-hidden rounded-lg'>
-                      {selectedChar.reference_url || charForm.reference_url ? (
-                        <img
-                          src={charForm.reference_url || selectedChar.reference_url}
-                          alt={selectedChar.name}
-                          className='size-full object-cover'
-                        />
-                      ) : (
-                        <span className='text-muted-foreground/30 text-6xl'>
-                          {selectedChar.name.charAt(0)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Name */}
-                    <div>
-                      <Label htmlFor='char-name' className='text-xs'>
-                        {t('Character Name')}
-                      </Label>
-                      <Input
-                        id='char-name'
-                        value={charForm.name}
-                        onChange={(e) =>
-                          setCharForm((f) => ({ ...f, name: e.target.value }))
-                        }
-                        className='mt-1'
-                      />
-                    </div>
-
-                    {/* Description */}
-                    <div>
-                      <Label htmlFor='char-desc' className='text-xs'>
-                        {t('Description')}
-                      </Label>
-                      <Textarea
-                        id='char-desc'
-                        value={charForm.description}
-                        onChange={(e) =>
-                          setCharForm((f) => ({ ...f, description: e.target.value }))
-                        }
-                        placeholder={t('Describe the character...')}
-                        className='mt-1 h-20 resize-y text-sm'
-                      />
-                    </div>
-
-                    {/* Visual Prompt */}
-                    <div>
-                      <div className='flex items-center justify-between'>
-                        <Label className='text-xs'>{t('Visual Prompt')}</Label>
+                  <div className='mx-auto max-w-xl space-y-5'>
+                    <div className='space-y-3'>
+                      <Label className='text-xs font-medium'>{t('Reference Image')}</Label>
+                      <div className='bg-muted border-border flex aspect-video items-center justify-center overflow-hidden rounded-lg border'>
+                        {charForm.reference_url || selectedChar.reference_url ? (
+                          <img src={charForm.reference_url || selectedChar.reference_url} alt={selectedChar.name} className='size-full object-cover' />
+                        ) : (
+                          <div className='flex flex-col items-center gap-3 text-center'>
+                            <ImagePlus className='text-muted-foreground size-10' />
+                            <p className='text-muted-foreground text-xs'>{t('Upload a reference image or generate one')}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <Input value={charForm.reference_url} onChange={(e) => setCharForm((f) => ({ ...f, reference_url: e.target.value }))} placeholder='https://...' className='h-8 flex-1 text-xs' />
                         <Button
                           size='sm'
-                          variant='ghost'
-                          className='h-6 gap-1 text-[11px]'
-                          disabled={generatingFields.has(`${selectedChar.id}_visual_prompt`)}
-                          onClick={() =>
-                            handleGenerateCharField(selectedChar, 'visual_prompt')
-                          }
+                          className='h-8 gap-1 text-xs'
+                          disabled={charImageGenId === selectedChar.id || generatingFields.has(`${selectedChar.id}_reference_url`)}
+                          onClick={() => {
+                            // Generate visual prompt first if needed, then generate image
+                            const vp = charForm.visual_prompt?.trim() || selectedChar.visual_prompt?.trim()
+                            if (!vp) {
+                              handleGenerateCharField(selectedChar, 'visual_prompt')
+                              return
+                            }
+                            void handleGenerateCharImage(selectedChar)
+                          }}
                         >
-                          {generatingFields.has(`${selectedChar.id}_visual_prompt`) ? (
+                          {charImageGenId === selectedChar.id || generatingFields.has(`${selectedChar.id}_reference_url`) ? (
                             <Loader2 className='size-3 animate-spin' />
                           ) : (
-                            <Sparkles className='size-3' />
+                            <ImagePlus className='size-3' />
                           )}
-                          {generatingFields.has(`${selectedChar.id}_visual_prompt`)
-                            ? t('Generating...')
-                            : t('AI generate')}
+                          {charImageGenId === selectedChar.id
+                            ? t('Generating image...')
+                            : generatingFields.has(`${selectedChar.id}_reference_url`)
+                              ? t('Refining prompt...')
+                              : t('Generate Image')}
                         </Button>
                       </div>
-                      <Textarea
-                        value={charForm.visual_prompt}
-                        onChange={(e) =>
-                          setCharForm((f) => ({ ...f, visual_prompt: e.target.value }))
-                        }
-                        className='mt-1 h-16 resize-y text-xs'
-                      />
                     </div>
 
-                    {/* Reference URL */}
-                    <div>
-                      <Label className='text-xs'>{t('Reference Image URL')}</Label>
-                      <Input
-                        value={charForm.reference_url}
-                        onChange={(e) =>
-                          setCharForm((f) => ({ ...f, reference_url: e.target.value }))
-                        }
-                        placeholder='https://...'
-                        className='mt-1 text-xs'
-                      />
-                    </div>
-
-                    {/* LoRA */}
-                    <div>
-                      <div className='flex items-center justify-between'>
-                        <Label className='text-xs'>{t('LoRA Parameters')}</Label>
-                        <Button
-                          size='sm'
-                          variant='ghost'
-                          className='h-6 gap-1 text-[11px]'
-                          disabled={generatingFields.has(`${selectedChar.id}_lora_params`)}
-                          onClick={() =>
-                            handleGenerateCharField(selectedChar, 'lora_params')
-                          }
-                        >
-                          {generatingFields.has(`${selectedChar.id}_lora_params`) ? (
-                            <Loader2 className='size-3 animate-spin' />
-                          ) : (
-                            <Sparkles className='size-3' />
-                          )}
-                          {generatingFields.has(`${selectedChar.id}_lora_params`)
-                            ? t('Generating...')
-                            : t('AI generate')}
-                        </Button>
+                    <div className='grid grid-cols-2 gap-4'>
+                      <div>
+                        <Label htmlFor='char-name' className='text-xs font-medium'>{t('Character Name')}</Label>
+                        <Input id='char-name' value={charForm.name} onChange={(e) => setCharForm((f) => ({ ...f, name: e.target.value }))} className='mt-1' />
                       </div>
-                      <Input
-                        value={charForm.lora_params}
-                        onChange={(e) =>
-                          setCharForm((f) => ({ ...f, lora_params: e.target.value }))
-                        }
-                        placeholder={t('e.g. lora_name:0.8, trigger_word...')}
-                        className='mt-1 text-xs'
-                      />
+                      <div>
+                        <Label htmlFor='char-desc' className='text-xs font-medium'>{t('Description')}</Label>
+                        <Textarea id='char-desc' value={charForm.description} onChange={(e) => setCharForm((f) => ({ ...f, description: e.target.value }))} placeholder={t('Describe the character...')} className='mt-1 h-[68px] resize-y text-sm' />
+                      </div>
                     </div>
 
-                    {/* Action buttons */}
+                    <div className='grid grid-cols-2 gap-4'>
+                      <div>
+                        <div className='flex items-center justify-between'>
+                          <Label className='text-xs font-medium'>{t('Visual Prompt')}</Label>
+                          <Button size='sm' variant='ghost' className='h-6 gap-1 text-[11px]' disabled={generatingFields.has(`${selectedChar.id}_visual_prompt`)} onClick={() => handleGenerateCharField(selectedChar, 'visual_prompt')}>
+                            {generatingFields.has(`${selectedChar.id}_visual_prompt`) ? <Loader2 className='size-3 animate-spin' /> : <Sparkles className='size-3' />}
+                            {generatingFields.has(`${selectedChar.id}_visual_prompt`) ? t('Generating...') : t('AI generate')}
+                          </Button>
+                        </div>
+                        <Textarea value={charForm.visual_prompt} onChange={(e) => setCharForm((f) => ({ ...f, visual_prompt: e.target.value }))} className='mt-1 h-20 resize-y text-xs' />
+                      </div>
+                      <div>
+                        <div className='flex items-center justify-between'>
+                          <Label className='text-xs font-medium'>{t('LoRA Parameters')}</Label>
+                          <Button size='sm' variant='ghost' className='h-6 gap-1 text-[11px]' disabled={generatingFields.has(`${selectedChar.id}_lora_params`)} onClick={() => handleGenerateCharField(selectedChar, 'lora_params')}>
+                            {generatingFields.has(`${selectedChar.id}_lora_params`) ? <Loader2 className='size-3 animate-spin' /> : <Sparkles className='size-3' />}
+                            {generatingFields.has(`${selectedChar.id}_lora_params`) ? t('Generating...') : t('AI generate')}
+                          </Button>
+                        </div>
+                        <Input value={charForm.lora_params} onChange={(e) => setCharForm((f) => ({ ...f, lora_params: e.target.value }))} placeholder={t('e.g. lora_name:0.8, trigger_word...')} className='mt-1 text-xs' />
+                      </div>
+                    </div>
+
                     <div className='flex items-center gap-2 border-t pt-4'>
-                      <Button size='sm' onClick={handleSaveChar}>
-                        <Check className='mr-1.5 size-3.5' />
-                        {t('Save')}
-                      </Button>
-                      <Button
-                        size='sm'
-                        variant='outline'
-                        className='text-destructive'
-                        onClick={handleDeleteChar}
-                      >
-                        <Trash2 className='mr-1.5 size-3.5' />
-                        {t('Delete')}
-                      </Button>
+                      <Button size='sm' onClick={handleSaveChar}><Check className='mr-1.5 size-3.5' />{t('Save')}</Button>
+                      <Button size='sm' variant='outline' className='text-destructive' onClick={handleDeleteChar}><Trash2 className='mr-1.5 size-3.5' />{t('Delete')}</Button>
                     </div>
                   </div>
                 ) : (
                   <div className='flex h-full items-center justify-center'>
                     <p className='text-muted-foreground text-sm'>
-                      {characters.length > 0
-                        ? t('Select a character to view details.')
-                        : t('No characters yet. Use AI Extract or Add Character to get started.')}
+                      {characters.length > 0 ? t('Select a character to view details.') : t('No characters yet. Use AI Extract or Add Character to get started.')}
                     </p>
                   </div>
                 )}
               </div>
             </div>
-          ) : null}
+          ) : (
+            /* Other non-script stages */
+            <ScrollArea className='min-h-0 flex-1'>
+              <div className='mx-auto max-w-4xl p-6'>
+                {stageConfig ? (
+                  <p className='text-muted-foreground mb-6 text-sm'>
+                    {t(stageConfig.descriptionKey)}
+                  </p>
+                ) : null}
+              </div>
+            </ScrollArea>
+          )}
 
-          {/* Shots section */}
           {showShotsCrud ? (
             <div className='space-y-3'>
               <div className='flex items-center justify-between'>
@@ -1493,8 +1502,6 @@ ${brief}
               ))}
             </div>
           ) : null}
-        </div>
-      </ScrollArea>
 
       {/* Chat input bar for non-script stages */}
       <div className='border-border shrink-0 border-t p-3'>

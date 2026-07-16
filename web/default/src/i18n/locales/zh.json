@@ -6338,6 +6338,15 @@
     "New Character": "新角色",
     "Failed to save character.": "保存角色失败。",
     "Failed to delete character.": "删除角色失败。",
-    "Failed to create character.": "创建角色失败。"
+    "Failed to create character.": "创建角色失败。",
+    "Reference Image": "参考图片",
+    "Upload a reference image or generate one": "上传参考图片或 AI 生成",
+    "Character name changed. Update script references?": "角色名称已更改。是否更新剧本中的引用？",
+    "Script updated.": "剧本已更新。",
+    "Failed to update script.": "更新剧本失败。",
+    "Generating image...": "正在生成图片...",
+    "Refining prompt...": "正在优化提示词...",
+    "Reference image generated.": "参考图片已生成。",
+    "Add a visual prompt or description first.": "请先生成视觉提示词或描述。"
   }
 }
