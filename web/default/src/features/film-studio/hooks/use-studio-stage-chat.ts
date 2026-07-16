@@ -29,6 +29,7 @@ import {
   deleteStudioChatMessage,
   getStudioAgentTask,
   getStudioChatMessages,
+  saveStudioChatMessages,
 } from '../api'
 
 export interface StageChatMessage {
@@ -174,6 +175,9 @@ export function useStudioStageChat({
         status: 'loading',
       }
 
+      // Capture for the onComplete closure
+      const userContent = text
+
       setMessages((prev) => [...prev, userMessage, assistantMessage])
       isStreamingRef.current = true
 
@@ -235,6 +239,11 @@ export function useStudioStageChat({
             const last = prev[prev.length - 1]
             if (!last || last.role !== 'assistant') return prev
             const completed = { ...last, status: 'complete' as const }
+            // Persist both messages to the backend
+            saveStudioChatMessages(projectId, stageKey, [
+              { role: 'user', content: userContent },
+              { role: 'assistant', content: completed.content },
+            ]).catch(() => {})
             // Notify parent that the assistant message is complete
             onMessageCompleteRef.current?.(completed.id, completed.content)
             return [

@@ -363,6 +363,7 @@ func SetApiRouter(router *gin.Engine) {
 
 			// Chat history persistence
 			studioRoute.GET("/projects/:id/stages/:key/messages", controller.ListStudioChatMessages)
+			studioRoute.POST("/projects/:id/stages/:key/messages", controller.SaveStudioChatMessages)
 			studioRoute.DELETE("/projects/:id/stages/:key/messages/:msgId", controller.DeleteStudioChatMessage)
 			studioRoute.DELETE("/projects/:id/stages/:key/messages", controller.ClearStudioChatMessages)
 		}

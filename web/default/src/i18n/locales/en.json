@@ -2324,7 +2324,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "Related Projects",
     "footer.defaultCopyright": "All rights reserved.",
-    "footer.new\u0061pi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
+    "footer.newapi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
     "For administrators and builders": "For administrators and builders",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment",
     "For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.": "For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.",
@@ -6307,6 +6307,13 @@
     "Select": "Select",
     "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.": "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.",
     "Chat History": "Chat History",
-    "View task": "View task"
+    "View task": "View task",
+    "主页": "主页",
+    "工作台": "工作台",
+    "操作指南": "操作指南",
+    "关于": "关于",
+    "博客": "博客",
+    "华宇客户端": "华宇客户端",
+    "排行榜": "排行榜"
   }
 }

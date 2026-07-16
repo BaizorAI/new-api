@@ -1218,3 +1218,54 @@ func ClearStudioChatMessages(c *gin.Context) {
 	}
 	common.ApiSuccess(c, nil)
 }
+
+type studioSaveChatMessagesRequest struct {
+	Messages []studioChatMessageBody `json:"messages"`
+}
+
+type studioChatMessageBody struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+// SaveStudioChatMessages POST /api/studio/projects/:id/stages/:key/messages
+func SaveStudioChatMessages(c *gin.Context) {
+	project, ok := studioProjectFromParam(c)
+	if !ok {
+		return
+	}
+	key := c.Param("key")
+	if !model.ValidStageKey(key) {
+		common.ApiErrorMsg(c, "invalid stage key")
+		return
+	}
+	var req studioSaveChatMessagesRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiErrorMsg(c, "invalid request body")
+		return
+	}
+	userId := c.GetInt("id")
+
+	var saved []model.StudioChatMessage
+	for _, m := range req.Messages {
+		if m.Role != "user" && m.Role != "assistant" {
+			continue
+		}
+		if strings.TrimSpace(m.Content) == "" {
+			continue
+		}
+		msg := model.StudioChatMessage{
+			ProjectId: project.Id,
+			StageKey:  key,
+			UserId:    userId,
+			Role:      m.Role,
+			Content:   m.Content,
+		}
+		if err := msg.Insert(); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		saved = append(saved, msg)
+	}
+	common.ApiSuccess(c, saved)
+}

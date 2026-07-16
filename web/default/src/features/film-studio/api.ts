@@ -289,6 +289,18 @@ export async function getStudioChatMessages(
   return res.data
 }
 
+export async function saveStudioChatMessages(
+  projectId: number,
+  stageKey: string,
+  messages: { role: 'user' | 'assistant'; content: string }[]
+): Promise<ApiResponse<StudioChatMessage[]>> {
+  const res = await api.post(
+    `/api/studio/projects/${projectId}/stages/${stageKey}/messages`,
+    { messages }
+  )
+  return res.data
+}
+
 export async function deleteStudioChatMessage(
   projectId: number,
   stageKey: string,

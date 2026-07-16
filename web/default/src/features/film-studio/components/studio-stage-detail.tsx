@@ -490,24 +490,25 @@ export function StudioStageDetail() {
                   </span>
                 </div>
               ) : null}
+              {/* Chat header bar */}
+              <div className='border-border flex shrink-0 items-center justify-between border-b px-4 py-1.5'>
+                <span className='text-muted-foreground text-[11px]'>
+                  {t('Chat History')}
+                </span>
+                {messages.length > 0 ? (
+                  <Button
+                    size='sm'
+                    variant='ghost'
+                    className='text-muted-foreground hover:text-destructive h-6 gap-1 px-1.5 text-[11px]'
+                    onClick={() => clearMessages()}
+                  >
+                    <Trash2 className='size-3' aria-hidden='true' />
+                    {t('Clear all')}
+                  </Button>
+                ) : null}
+              </div>
               {/* Chat messages with auto-scroll */}
               <Conversation className='min-h-0 flex-1'>
-                <div className='border-border flex items-center justify-between border-b px-4 py-1.5'>
-                  <span className='text-muted-foreground text-[11px]'>
-                    {t('Chat History')}
-                  </span>
-                  {messages.length > 0 ? (
-                    <Button
-                      size='sm'
-                      variant='ghost'
-                      className='text-muted-foreground hover:text-destructive h-6 gap-1 px-1.5 text-[11px]'
-                      onClick={() => clearMessages()}
-                    >
-                      <Trash2 className='size-3' aria-hidden='true' />
-                      {t('Clear all')}
-                    </Button>
-                  ) : null}
-                </div>
                 <ConversationContent className='space-y-4'>
                   {loadingHistory ? (
                     <ConversationEmptyState
@@ -1472,33 +1473,31 @@ function ScriptChatBubble(props: {
 
   return (
     <div className={isUser ? 'flex justify-end' : ''}>
-      <div className='group relative'>
-        <div
-          className={
-            isUser
-              ? 'bg-primary text-primary-foreground max-w-[80%] rounded-lg px-3 py-2 text-sm'
-              : 'max-w-[80%] text-sm'
-          }
-        >
-          {isUser ? (
-            message.content
-          ) : message.status === 'loading' ? (
-            <span className='text-muted-foreground animate-pulse text-xs'>
-              ···
-            </span>
-          ) : message.status === 'error' ? (
-            <span className='text-destructive text-xs'>{t(message.content)}</span>
-          ) : (
-            <div className='prose dark:prose-invert prose-sm'>
-              <Markdown>{message.content}</Markdown>
-            </div>
-          )}
-        </div>
-        {/* Delete button — shown on hover */}
+      <div
+        className={`group relative max-w-[80%] ${
+          isUser
+            ? 'bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm'
+            : 'text-sm'
+        }`}
+      >
+        {isUser ? (
+          message.content
+        ) : message.status === 'loading' ? (
+          <span className='text-muted-foreground animate-pulse text-xs'>
+            ···
+          </span>
+        ) : message.status === 'error' ? (
+          <span className='text-destructive text-xs'>{t(message.content)}</span>
+        ) : (
+          <div className='prose dark:prose-invert prose-sm'>
+            <Markdown>{message.content}</Markdown>
+          </div>
+        )}
+        {/* Delete button — shown on hover, inside the bubble so it stays clickable */}
         {onDelete ? (
           <button
             type='button'
-            className='text-muted-foreground hover:text-destructive absolute -right-6 top-0 hidden rounded p-0.5 transition-colors group-hover:block'
+            className='text-muted-foreground hover:text-destructive absolute right-1 top-1 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100'
             onClick={onDelete}
             aria-label={t('Delete')}
           >
