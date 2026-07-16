@@ -90,9 +90,9 @@ export function CharacterChatPanel({
       </div>
       <div className='flex items-center justify-between border-b px-4 py-1.5'>
         <span className='text-muted-foreground text-[11px]'>{t('Chat History')}</span>
-        {messages.length > 0 ? (
-          <Button size='sm' variant='ghost' className='text-muted-foreground hover:text-destructive h-6 gap-1 px-1.5 text-[11px]' onClick={onClearMessages}><Trash2 className='size-3' />{t('Clear all')}</Button>
-        ) : null}
+        <Button size='sm' variant='ghost' className='text-muted-foreground hover:text-destructive h-6 gap-1 px-1.5 text-[11px]' onClick={onClearMessages}>
+          <Trash2 className='size-3' />{t('Clear all')}
+        </Button>
       </div>
       <Conversation className='min-h-0 flex-1'>
         <ConversationContent className='space-y-4 p-4'>
