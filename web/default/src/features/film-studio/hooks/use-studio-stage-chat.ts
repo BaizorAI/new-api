@@ -17,12 +17,19 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { nanoid } from 'nanoid'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useStreamRequest } from '@/features/playground/hooks/use-stream-request'
 import { getOrCreatePlaygroundSessionId } from '@/features/playground/lib/storage'
 import type { ChatCompletionRequest } from '@/features/playground/types'
 import { useAuthStore } from '@/stores/auth-store'
+
+import {
+  clearStudioChatMessages,
+  deleteStudioChatMessage,
+  getStudioAgentTask,
+  getStudioChatMessages,
+} from '../api'
 
 export interface StageChatMessage {
   id: string
@@ -45,6 +52,8 @@ export function useStudioStageChat({
   onMessageComplete,
 }: UseStudioStageChatOptions) {
   const [messages, setMessages] = useState<StageChatMessage[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(true)
+  const [agentTaskId, setAgentTaskId] = useState<string | null>(null)
   const messagesRef = useRef(messages)
   messagesRef.current = messages
   const { sendStreamRequest, stopStream } = useStreamRequest()
@@ -69,6 +78,75 @@ export function useStudioStageChat({
 
   const onMessageCompleteRef = useRef(onMessageComplete)
   onMessageCompleteRef.current = onMessageComplete
+
+  // Load persisted chat history on mount
+  useEffect(() => {
+    let cancelled = false
+    getStudioChatMessages(projectId, stageKey)
+      .then((res) => {
+        if (cancelled) return
+        if (res.success && Array.isArray(res.data)) {
+          const history: StageChatMessage[] = res.data.map((m) => ({
+            id: String(m.id),
+            role: m.role,
+            content: m.content,
+            status: 'complete' as const,
+          }))
+          setMessages(history)
+        }
+      })
+      .catch(() => {
+        // Silently ignore load failures — chat still works without history
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingHistory(false)
+      })
+    return () => { cancelled = true }
+  }, [projectId, stageKey])
+
+  // Poll agent task result when one is pending
+  useEffect(() => {
+    if (!agentTaskId) return
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const res = await getStudioAgentTask(agentTaskId)
+        if (cancelled) return
+        if (!res.success || !res.data) return
+        const { status, response_payload } = res.data
+        if (status === 'succeeded' && response_payload) {
+          // Extract assistant text from OpenAI response
+          let text = ''
+          try {
+            const parsed = JSON.parse(response_payload)
+            text = parsed?.choices?.[0]?.message?.content ?? ''
+          } catch { /* ignore parse failures */ }
+          if (text) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `agent_${agentTaskId}`,
+                role: 'assistant',
+                content: text,
+                status: 'complete',
+              },
+            ])
+          }
+          setAgentTaskId(null)
+        } else if (status === 'failed' || status === 'canceled') {
+          setAgentTaskId(null)
+        } else {
+          // Still running — poll again in 3s
+          setTimeout(() => { if (!cancelled) poll() }, 3000)
+        }
+      } catch {
+        // Retry on network error
+        setTimeout(() => { if (!cancelled) poll() }, 5000)
+      }
+    }
+    poll()
+    return () => { cancelled = true }
+  }, [agentTaskId])
 
   const sendMessage = useCallback(
     (
@@ -198,8 +276,23 @@ export function useStudioStageChat({
     })
   }, [stopStream])
 
-  const clearMessages = useCallback(() => {
+  const clearMessages = useCallback(async () => {
     setMessages([])
+    // Fire-and-forget: clear server-side too
+    clearStudioChatMessages(projectId, stageKey).catch(() => {})
+  }, [projectId, stageKey])
+
+  const deleteMessage = useCallback(async (msgId: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== msgId))
+    const numericId = Number(msgId)
+    if (!Number.isNaN(numericId)) {
+      deleteStudioChatMessage(projectId, stageKey, numericId).catch(() => {})
+    }
+  }, [projectId, stageKey])
+
+  /** Start polling an agent task. Called after creating a task. */
+  const startAgentTask = useCallback((taskId: string) => {
+    setAgentTaskId(taskId)
   }, [])
 
   /** Add a pre-completed assistant message to the chat (e.g. from Quick Analyze). */
@@ -219,10 +312,13 @@ export function useStudioStageChat({
 
   return {
     messages,
+    loadingHistory,
     sendMessage,
     stopGeneration,
     clearMessages,
+    deleteMessage,
     addAssistantMessage,
+    startAgentTask,
     isStreaming,
   }
 }

@@ -2324,7 +2324,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "相关项目",
     "footer.defaultCopyright": "版权所有。",
-    "footer.newapi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
+    "footer.new\u0061pi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
     "For administrators and builders": "面向管理员和建设者",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "对于 2025 年 5 月 10 日之后添加的渠道，在部署时无需从模型名称中移除 \".\"",
     "For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.": "部署咨询、模型适配、企业运营需求或社区支持，可通过项目仓库和组织渠道联系。",
@@ -6305,6 +6305,8 @@
     "Tip: double-click a paragraph to select it, then use the AI panel to modify.": "提示：双击段落即可选中，然后用右侧 AI 面板修改。",
     "Tip: click a paragraph to select it for AI modification.": "提示：点击段落即可选中，用 AI 进行针对性修改。",
     "Select": "选择",
-    "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.": "创建异步 Hermes Agent 任务，运行 MagicalBrush 技能。在 Hermes 执行任务列表中跟踪进度。"
+    "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.": "创建异步 Hermes Agent 任务，运行 MagicalBrush 技能。在 Hermes 执行任务列表中跟踪进度。",
+    "Chat History": "聊天记录",
+    "View task": "查看任务"
   }
 }

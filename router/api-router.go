@@ -360,6 +360,11 @@ func SetApiRouter(router *gin.Engine) {
 			studioRoute.POST("/projects/:id/quick-generate", controller.StudioQuickGenerate)
 			studioRoute.POST("/projects/:id/agent-create", controller.StudioAgentCreate)
 			studioRoute.POST("/projects/:id/shots/:shotId/generate", controller.StudioShotGenerate)
+
+			// Chat history persistence
+			studioRoute.GET("/projects/:id/stages/:key/messages", controller.ListStudioChatMessages)
+			studioRoute.DELETE("/projects/:id/stages/:key/messages/:msgId", controller.DeleteStudioChatMessage)
+			studioRoute.DELETE("/projects/:id/stages/:key/messages", controller.ClearStudioChatMessages)
 		}
 		logRoute := apiRouter.Group("/log")
 		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)

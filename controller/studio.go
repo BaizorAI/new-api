@@ -1150,3 +1150,71 @@ Provide step-by-step guidance and execute each stage.`
 		return "You are a helpful AI assistant for film production. Help the user with their creative project."
 	}
 }
+
+// -- Chat Messages ----------------------------------------------------
+
+// ListStudioChatMessages GET /api/studio/projects/:id/stages/:key/messages
+func ListStudioChatMessages(c *gin.Context) {
+	project, ok := studioProjectFromParam(c)
+	if !ok {
+		return
+	}
+	key := c.Param("key")
+	if !model.ValidStageKey(key) {
+		common.ApiErrorMsg(c, "invalid stage key")
+		return
+	}
+	userId := c.GetInt("id")
+	messages, err := model.GetStudioChatMessages(project.Id, key, userId)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if messages == nil {
+		messages = []model.StudioChatMessage{}
+	}
+	common.ApiSuccess(c, messages)
+}
+
+// DeleteStudioChatMessage DELETE /api/studio/projects/:id/stages/:key/messages/:msgId
+func DeleteStudioChatMessage(c *gin.Context) {
+	_, ok := studioProjectFromParam(c)
+	if !ok {
+		return
+	}
+	key := c.Param("key")
+	if !model.ValidStageKey(key) {
+		common.ApiErrorMsg(c, "invalid stage key")
+		return
+	}
+	msgId, err := strconv.Atoi(c.Param("msgId"))
+	if err != nil {
+		common.ApiErrorMsg(c, "invalid message id")
+		return
+	}
+	userId := c.GetInt("id")
+	if err := model.DeleteStudioChatMessageById(msgId, userId); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, nil)
+}
+
+// ClearStudioChatMessages DELETE /api/studio/projects/:id/stages/:key/messages
+func ClearStudioChatMessages(c *gin.Context) {
+	project, ok := studioProjectFromParam(c)
+	if !ok {
+		return
+	}
+	key := c.Param("key")
+	if !model.ValidStageKey(key) {
+		common.ApiErrorMsg(c, "invalid stage key")
+		return
+	}
+	userId := c.GetInt("id")
+	if err := model.ClearStudioChatMessages(project.Id, key, userId); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, nil)
+}

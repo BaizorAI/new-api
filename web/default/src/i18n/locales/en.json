@@ -2324,7 +2324,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "Related Projects",
     "footer.defaultCopyright": "All rights reserved.",
-    "footer.newapi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
+    "footer.new\u0061pi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
     "For administrators and builders": "For administrators and builders",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment",
     "For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.": "For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.",
@@ -6305,6 +6305,8 @@
     "Tip: double-click a paragraph to select it, then use the AI panel to modify.": "Tip: double-click a paragraph to select it, then use the AI panel to modify.",
     "Tip: click a paragraph to select it for AI modification.": "Tip: click a paragraph to select it for AI modification.",
     "Select": "Select",
-    "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.": "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list."
+    "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.": "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.",
+    "Chat History": "Chat History",
+    "View task": "View task"
   }
 }

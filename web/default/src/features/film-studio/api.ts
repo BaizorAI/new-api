@@ -264,3 +264,68 @@ export async function studioAgentCreate(
   )
   return res.data
 }
+
+// ============================================================================
+// Chat Messages (persistence)
+// ============================================================================
+
+export interface StudioChatMessage {
+  id: number
+  project_id: number
+  stage_key: string
+  user_id: number
+  role: 'user' | 'assistant'
+  content: string
+  created_at: number
+}
+
+export async function getStudioChatMessages(
+  projectId: number,
+  stageKey: string
+): Promise<ApiResponse<StudioChatMessage[]>> {
+  const res = await api.get(
+    `/api/studio/projects/${projectId}/stages/${stageKey}/messages`
+  )
+  return res.data
+}
+
+export async function deleteStudioChatMessage(
+  projectId: number,
+  stageKey: string,
+  msgId: number
+): Promise<ApiResponse> {
+  const res = await api.delete(
+    `/api/studio/projects/${projectId}/stages/${stageKey}/messages/${msgId}`
+  )
+  return res.data
+}
+
+export async function clearStudioChatMessages(
+  projectId: number,
+  stageKey: string
+): Promise<ApiResponse> {
+  const res = await api.delete(
+    `/api/studio/projects/${projectId}/stages/${stageKey}/messages`
+  )
+  return res.data
+}
+
+// ============================================================================
+// Hermes Agent Task (for polling results)
+// ============================================================================
+
+export interface HermesAgentTask {
+  task_id: string
+  title: string
+  status: string
+  progress: number
+  response_payload?: string
+  error?: string
+}
+
+export async function getStudioAgentTask(
+  taskId: string
+): Promise<ApiResponse<HermesAgentTask>> {
+  const res = await api.get(`/pg/hermes/execution-tasks/${taskId}?include_payload=true`)
+  return res.data
+}
