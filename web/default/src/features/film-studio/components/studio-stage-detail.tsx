@@ -114,6 +114,7 @@ import type { StudioCharacter, StudioShot } from '../types'
 import { StudioScriptEditor, type ScriptEditorHandle, type ScriptEditorSelection } from './studio-script-editor'
 import { StudioShotDeleteDialog } from './studio-shot-delete-dialog'
 import { StudioShotMutateDrawer } from './studio-shot-mutate-drawer'
+import { CharacterChatPanel } from './character-chat-panel'
 
 // Stage-specific placeholder text for the chat input
 const STAGE_PLACEHOLDERS: Record<string, string> = {
@@ -1145,6 +1146,16 @@ ${brief}
                   </div>
                 )}
               </div>
+              <CharacterChatPanel
+                messages={messages}
+                loadingHistory={loadingHistory}
+                isStreaming={isStreaming}
+                placeholder={placeholder}
+                onClearMessages={clearMessages}
+                onDeleteMessage={deleteMessage}
+                onSubmit={handleSubmit}
+                onStopGeneration={stopGeneration}
+              />
             </div>
           ) : (
             /* Other non-script stages */
