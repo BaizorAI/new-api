@@ -1552,43 +1552,72 @@ ${brief}
             <ReviewGallerySection shots={shots} />
           ) : null}
 
-          {/* Chat messages */}
-          {messages.length > 0 ? (
-            <div className='mt-6 space-y-4'>
-              {messages.map((msg) => (
-                <ChatBubble key={msg.id} message={msg} />
-              ))}
+          {/* Chat panel for non-script stages */}
+          <div className='border-border flex shrink-0 flex-col border-t'>
+            <div className='flex items-center justify-between border-b px-4 py-1.5'>
+              <span className='text-muted-foreground text-[11px]'>
+                {t('Chat History')}
+              </span>
+              {messages.length > 0 ? (
+                <Button
+                  size='sm'
+                  variant='ghost'
+                  className='text-muted-foreground hover:text-destructive h-6 gap-1 px-1.5 text-[11px]'
+                  onClick={() => clearMessages()}
+                >
+                  <Trash2 className='size-3' />
+                  {t('Clear all')}
+                </Button>
+              ) : null}
             </div>
-          ) : null}
+            <Conversation className='min-h-0 flex-1 max-h-[40vh]'>
+              <ConversationContent className='space-y-4'>
+                {loadingHistory ? (
+                  <ConversationEmptyState
+                    title={t('Loading...')}
+                    description=''
+                    icon={<Loader2 className='size-8 animate-spin' />}
+                  />
+                ) : messages.length === 0 ? null : (
+                  messages.map((msg) => (
+                    <ScriptChatBubble
+                      key={msg.id}
+                      message={msg}
+                      onApply={(content) => {
+                        if (stageKey === 'script') {
+                          const sel = pendingSelectionRef.current
+                          if (sel) {
+                            scriptEditorRef.current?.replaceRange(sel.start, sel.end, content)
+                            pendingSelectionRef.current = null
+                          } else {
+                            scriptEditorRef.current?.setText(content)
+                          }
+                        }
+                      }}
+                      onDelete={() => deleteMessage(msg.id)}
+                    />
+                  ))
+                )}
+              </ConversationContent>
+              <ConversationScrollButton />
+            </Conversation>
 
-      {/* Chat input bar for non-script stages */}
-      <div className='border-border shrink-0 border-t p-3'>
-        <PromptInput
-          onSubmit={handleSubmit}
-          className='rounded-lg border shadow-sm'
-        >
-          <PromptInputTextarea
-            placeholder={t(placeholder)}
-            className='min-h-[40px] resize-none text-sm'
-          />
-          <PromptInputFooter className='justify-end p-1'>
-            {isStreaming ? (
-              <Button
-                type='button'
-                size='icon'
-                variant='ghost'
-                className='size-7'
-                onClick={stopGeneration}
-                aria-label={t('Stop')}
-              >
-                <SquareIcon className='size-4' aria-hidden='true' />
-              </Button>
-            ) : (
-              <PromptInputSubmit className='size-7' />
-            )}
-          </PromptInputFooter>
-        </PromptInput>
-      </div>
+            {/* Chat input */}
+            <div className='border-t p-3'>
+              <PromptInput onSubmit={handleSubmit} className='rounded-lg border shadow-sm'>
+                <PromptInputTextarea placeholder={t(placeholder)} className='min-h-[40px] resize-none text-sm' />
+                <PromptInputFooter className='justify-end p-1'>
+                  {isStreaming ? (
+                    <Button type='button' size='icon' variant='ghost' className='size-7' onClick={stopGeneration} aria-label={t('Stop')}>
+                      <SquareIcon className='size-4' />
+                    </Button>
+                  ) : (
+                    <PromptInputSubmit className='size-7' />
+                  )}
+                </PromptInputFooter>
+              </PromptInput>
+            </div>
+          </div>
         </>
       )}
 
