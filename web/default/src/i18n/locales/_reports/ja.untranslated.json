@@ -849,7 +849,12 @@
   "Tip: double-click a paragraph to select it, then use the AI panel to modify.": "Tip: double-click a paragraph to select it, then use the AI panel to modify.",
   "Tip: click a paragraph to select it for AI modification.": "Tip: click a paragraph to select it for AI modification.",
   "Select": "Select",
-  "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.": "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.",
   "Chat History": "Chat History",
-  "View task": "View task"
+  "View task": "View task",
+  "AI Analyze": "AI Analyze",
+  "Complete Stage": "Complete Stage",
+  "Stage marked as completed.": "Stage marked as completed.",
+  "Failed to update stage.": "Failed to update stage.",
+  "Mark this stage as complete to unlock the next stage.": "Mark this stage as complete to unlock the next stage.",
+  "AI analyzes the script and gives a readiness recommendation.": "AI analyzes the script and gives a readiness recommendation."
 }

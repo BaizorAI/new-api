@@ -84,11 +84,11 @@ import {
   getStudioProject,
   getStudioShots,
   getStudioStages,
-  studioAgentCreate,
   updateStudioStage,
 } from '../api'
 import {
   PIPELINE_STAGES,
+  STAGE_STATUS,
   STAGE_STATUS_CONFIG,
   STUDIO_QUERY_KEYS,
   type StageStatusValue,
@@ -232,7 +232,7 @@ export function StudioStageDetail() {
 
   const isPageLoading = isLoadingProject || isLoadingStages
 
-  const { messages, sendMessage, stopGeneration, clearMessages, deleteMessage, startAgentTask, loadingHistory, isStreaming } =
+  const { messages, sendMessage, stopGeneration, clearMessages, deleteMessage, loadingHistory, isStreaming } =
     useStudioStageChat({ projectId: id, stageKey })
 
   const { generateImage, generatingIds } = useShotImageGen({
@@ -252,8 +252,9 @@ export function StudioStageDetail() {
     useExtractShots(id)
   const swapShotOrder = useSwapShotOrder(id)
 
-  // Agent create & quick generate state
-  const [isAgentCreating, setIsAgentCreating] = useState(false)
+  // AI analyze state
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analysisRan, setAnalysisRan] = useState(false)
 
   const project = projectData?.data
   const stages = stagesData?.data ?? []
@@ -301,39 +302,46 @@ export function StudioStageDetail() {
     [isStreaming, sendMessage, stageKey, currentSelection]
   )
 
-  const handleAgentCreate = useCallback(async () => {
-    const skill = STAGE_SKILL_MAP[stageKey]
-    if (!skill) return
-    setIsAgentCreating(true)
+  const handleAIAnalyze = useCallback(() => {
+    const script = scriptEditorRef.current?.getText() ?? ''
+    if (!script.trim()) return
+    setIsAnalyzing(true)
+    const prompt = `请对以下剧本进行全面分析，评估其是否已准备好进入下一阶段（角色设计和分镜）。请从以下维度评估：
+1. 故事结构是否完整
+2. 场景描述是否清晰
+3. 对话是否自然
+4. 是否适合进行角色设计和分镜
+
+请明确给出结论：✅ 可以进入下一阶段，或 ⚠️ 需要修改并说明原因。`
+
+    sendMessage(prompt, {
+      scriptContext: script,
+      modificationType: 'analyze',
+    })
+    setAnalysisRan(true)
+    setIsAnalyzing(false)
+  }, [sendMessage])
+
+  const handleMarkComplete = useCallback(async () => {
     try {
-      const result = await studioAgentCreate(id, {
-        skill,
-        stage_key: stageKey,
-        context: scriptText || undefined,
+      const result = await updateStudioStage(id, stageKey, {
+        status: STAGE_STATUS.COMPLETED,
       })
       if (result.success) {
-        const taskId = result.data?.task_id
-        if (taskId) startAgentTask(taskId)
-        toast.success(
-          t('Agent task created: {{title}}', {
-            title: `MagicBrush · ${skill}`,
-          }),
-          {
-            action: taskId ? {
-              label: t('View task'),
-              onClick: () => window.open(`/pg/hermes/execution-tasks/${taskId}`, '_blank'),
-            } : undefined,
-          }
-        )
+        toast.success(t('Stage marked as completed.'))
+        void queryClient.invalidateQueries({
+          queryKey: [...STUDIO_QUERY_KEYS.project(id)],
+        })
+        void queryClient.invalidateQueries({
+          queryKey: [...STUDIO_QUERY_KEYS.stages(id)],
+        })
       } else {
-        toast.error(result.message ?? t('Failed to create agent task.'))
+        toast.error(result.message ?? t('Failed to update stage.'))
       }
     } catch {
-      toast.error(t('Failed to create agent task.'))
-    } finally {
-      setIsAgentCreating(false)
+      toast.error(t('Failed to update stage.'))
     }
-  }, [id, stageKey, scriptText, t])
+  }, [id, stageKey, t, queryClient])
 
   const placeholder =
     STAGE_PLACEHOLDERS[stageKey] ?? 'Ask AI to help with this stage...'
@@ -417,30 +425,44 @@ export function StudioStageDetail() {
         {/* AI action buttons */}
         <div className='flex items-center gap-2'>
           {STAGE_SKILL_MAP[stageKey] ? (
-            <Button
-              size='sm'
-              variant='outline'
-              disabled={isAgentCreating}
-              onClick={() => void handleAgentCreate()}
-              title={t(
-                'Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.'
-              )}
-            >
-              {isAgentCreating ? (
-                <Loader2
-                  className='mr-1.5 size-3.5 animate-spin'
-                  aria-hidden='true'
-                />
-              ) : (
-                <Bot
-                  className='mr-1.5 size-3.5'
-                  aria-hidden='true'
-                />
-              )}
-              {isAgentCreating
-                ? t('Creating...')
-                : t('AI Agent')}
-            </Button>
+            <>
+              <Button
+                size='sm'
+                variant='outline'
+                disabled={isAnalyzing || isStreaming}
+                onClick={() => handleAIAnalyze()}
+                title={t(
+                  'AI analyzes the script and gives a readiness recommendation.'
+                )}
+              >
+                {isAnalyzing ? (
+                  <Loader2
+                    className='mr-1.5 size-3.5 animate-spin'
+                    aria-hidden='true'
+                  />
+                ) : (
+                  <Sparkles
+                    className='mr-1.5 size-3.5'
+                    aria-hidden='true'
+                  />
+                )}
+                {isAnalyzing
+                  ? t('Analyzing...')
+                  : t('AI Analyze')}
+              </Button>
+              {stage && stage.status !== STAGE_STATUS.COMPLETED ? (
+                <Button
+                  size='sm'
+                  variant={analysisRan ? 'default' : 'outline'}
+                  disabled={isStreaming}
+                  onClick={() => void handleMarkComplete()}
+                  title={t('Mark this stage as complete to unlock the next stage.')}
+                >
+                  <Check className='mr-1.5 size-3.5' aria-hidden='true' />
+                  {t('Complete Stage')}
+                </Button>
+              ) : null}
+            </>
           ) : null}
         </div>
       </div>

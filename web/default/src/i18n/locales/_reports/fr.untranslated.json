@@ -374,5 +374,7 @@
   "AI powered by MagicalBrush will modify your script based on the response.": "AI powered by MagicalBrush will modify your script based on the response.",
   "Tip: double-click a paragraph to select it, then use the AI panel to modify.": "Tip: double-click a paragraph to select it, then use the AI panel to modify.",
   "Tip: click a paragraph to select it for AI modification.": "Tip: click a paragraph to select it for AI modification.",
-  "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list.": "Creates an async Hermes Agent task running the MagicalBrush skill. Track progress in the Hermes execution task list."
+  "Failed to update stage.": "Failed to update stage.",
+  "Mark this stage as complete to unlock the next stage.": "Mark this stage as complete to unlock the next stage.",
+  "AI analyzes the script and gives a readiness recommendation.": "AI analyzes the script and gives a readiness recommendation."
 }

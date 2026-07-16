@@ -31,15 +31,10 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 import { getStudioProject } from '../api'
+import type { StudioStage } from '../types'
 import {
   PIPELINE_STAGES,
   STAGE_STATUS,
@@ -47,8 +42,7 @@ import {
   STUDIO_QUERY_KEYS,
   type StageStatusValue,
 } from '../constants'
-import { useUpdateStudioStage } from '../hooks/use-studio-mutations'
-import type { StudioStage } from '../types'
+import { useMemo, useState } from 'react'
 import { StudioProjectMutateDialog } from './studio-project-mutate-drawer'
 
 export function StudioProjectBoard() {
@@ -64,8 +58,6 @@ export function StudioProjectBoard() {
     queryFn: () => getStudioProject(id),
     enabled: id > 0,
   })
-
-  const updateStage = useUpdateStudioStage(id)
 
   const project = data?.data
   const stages = project?.stages ?? []
@@ -146,12 +138,6 @@ export function StudioProjectBoard() {
                 stage={stage}
                 locked={depsUnmet.length > 0}
                 unmetDeps={depsUnmet}
-                onStatusChange={(newStatus) => {
-                  updateStage.mutate({
-                    key: stageConfig.key,
-                    data: { status: newStatus },
-                  })
-                }}
               />
             )
           })}
@@ -174,10 +160,9 @@ function StageCard(props: {
   stage?: StudioStage
   locked: boolean
   unmetDeps: string[]
-  onStatusChange: (status: number) => void
 }) {
   const { t } = useTranslation()
-  const { projectId, stageConfig, stage, locked, unmetDeps, onStatusChange } =
+  const { projectId, stageConfig, stage, locked, unmetDeps } =
     props
   const status = (stage?.status ?? STAGE_STATUS.NOT_STARTED) as StageStatusValue
   const statusConfig = STAGE_STATUS_CONFIG[status]
@@ -214,50 +199,10 @@ function StageCard(props: {
         </p>
       ) : (
         <div className='mt-3 flex items-center gap-1.5 text-xs'>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type='button'
-                className='hover:bg-accent flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors'
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                }}
-              >
-                <StatusIcon className='size-3.5' aria-hidden='true' />
-                <span className='text-muted-foreground'>
-                  {t(statusConfig?.labelKey ?? 'Not Started')}
-                </span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align='start'
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-              }}
-            >
-              {(
-                Object.entries(STAGE_STATUS_CONFIG) as [
-                  string,
-                  (typeof STAGE_STATUS_CONFIG)[StageStatusValue],
-                ][]
-              ).map(([value, config]) => {
-                const numValue = Number(value)
-                const ItemIcon = getStageStatusIcon(numValue as StageStatusValue)
-                return (
-                  <DropdownMenuItem
-                    key={value}
-                    disabled={numValue === status}
-                    onClick={() => onStatusChange(numValue)}
-                  >
-                    <ItemIcon className='mr-2 size-3.5' />
-                    {t(config.labelKey)}
-                  </DropdownMenuItem>
-                )
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <StatusIcon className='size-3.5' aria-hidden='true' />
+          <span className='text-muted-foreground'>
+            {t(statusConfig?.labelKey ?? 'Not Started')}
+          </span>
           {stage && stage.total_items > 0 ? (
             <span className='text-muted-foreground ml-auto'>
               {stage.done_items}/{stage.total_items}

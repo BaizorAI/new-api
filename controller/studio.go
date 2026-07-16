@@ -303,6 +303,11 @@ func UpdateStudioStage(c *gin.Context) {
 	}
 	if body.OutputData != "" {
 		stage.OutputData = body.OutputData
+		// Auto-transition: if the user has started writing content, move from
+		// Not Started → In Progress automatically.
+		if stage.Status == model.StageStatusNotStarted {
+			stage.Status = model.StageStatusInProgress
+		}
 	}
 
 	if err := model.UpdateStudioStage(stage); err != nil {

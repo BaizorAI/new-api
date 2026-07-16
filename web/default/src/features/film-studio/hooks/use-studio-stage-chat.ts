@@ -185,24 +185,40 @@ export function useStudioStageChat({
 
       // Inject script context as a system message if provided
       if (opts?.scriptContext) {
-        let systemContent = `你是影视剧本创作助手，使用 MagicalBrush 技能。以下是当前剧本全文：\n---\n${opts.scriptContext}\n---\n`
-        if (opts.paragraphContext) {
-          systemContent += `\n用户选中了第 ${opts.paragraphContext.index + 1} 段剧本请你修改：\n段落原文：${opts.paragraphContext.text}\n`
-          if (opts.selectionContext) {
-            systemContent += `用户选中的具体片段：${opts.selectionContext}\n`
-          }
-          if (opts.modificationType) {
-            systemContent += `用户希望对选中段落进行【${opts.modificationType}】操作。\n`
-          }
-          systemContent += '\n请只输出修改后的段落文本（不是整个剧本），用 ```revised-paragraph 代码块包裹修改内容。保持原有的格式和风格，只修改选中的段落。'
-        } else if (opts.selectionContext) {
-          systemContent += `用户选中了以下片段请你重点关注：\n${opts.selectionContext}\n\n`
-          if (opts.modificationType) {
-            systemContent += `用户希望对选中内容进行【${opts.modificationType}】操作。\n`
-          }
-          systemContent += '请根据用户的指令修改剧本。回复时直接给出修改后的完整段落（或完整剧本），用 ```script 代码块包裹修改内容。'
+        let systemContent: string
+        if (opts.modificationType === 'analyze') {
+          // AI Analysis mode — evaluate readiness for next stage
+          systemContent = `你是影视剧本创作助手，使用 MagicalBrush 技能。请对以下剧本进行全面分析。\n\n`
+          systemContent += `从以下维度评估剧本是否已准备好进入下一阶段（角色设计和分镜）：\n`
+          systemContent += `1. 故事结构是否完整（起承转合）\n`
+          systemContent += `2. 场景描述是否清晰具体\n`
+          systemContent += `3. 对话是否自然生动\n`
+          systemContent += `4. 角色是否足够鲜明\n`
+          systemContent += `5. 是否已包含足够信息供角色设计和分镜使用\n\n`
+          systemContent += `最后请明确给出结论：\n`
+          systemContent += `- 如果可以通过：✅ **可以进入下一阶段**，简述理由\n`
+          systemContent += `- 如果需要修改：⚠️ **建议修改**，列出需要改进的地方\n\n`
+          systemContent += `以下是剧本全文：\n---\n${opts.scriptContext}\n---`
         } else {
-          systemContent += '请根据用户的指令修改剧本。回复时直接给出修改后的完整段落（或完整剧本），用 ```script 代码块包裹修改内容。'
+          systemContent = `你是影视剧本创作助手，使用 MagicalBrush 技能。以下是当前剧本全文：\n---\n${opts.scriptContext}\n---\n`
+          if (opts.paragraphContext) {
+            systemContent += `\n用户选中了第 ${opts.paragraphContext.index + 1} 段剧本请你修改：\n段落原文：${opts.paragraphContext.text}\n`
+            if (opts.selectionContext) {
+              systemContent += `用户选中的具体片段：${opts.selectionContext}\n`
+            }
+            if (opts.modificationType) {
+              systemContent += `用户希望对选中段落进行【${opts.modificationType}】操作。\n`
+            }
+            systemContent += '\n请只输出修改后的段落文本（不是整个剧本），用 ```revised-paragraph 代码块包裹修改内容。保持原有的格式和风格，只修改选中的段落。'
+          } else if (opts.selectionContext) {
+            systemContent += `用户选中了以下片段请你重点关注：\n${opts.selectionContext}\n\n`
+            if (opts.modificationType) {
+              systemContent += `用户希望对选中内容进行【${opts.modificationType}】操作。\n`
+            }
+            systemContent += '请根据用户的指令修改剧本。回复时直接给出修改后的完整段落（或完整剧本），用 ```script 代码块包裹修改内容。'
+          } else {
+            systemContent += '请根据用户的指令修改剧本。回复时直接给出修改后的完整段落（或完整剧本），用 ```script 代码块包裹修改内容。'
+          }
         }
         chatMessages.push({ role: 'system', content: systemContent })
       }
