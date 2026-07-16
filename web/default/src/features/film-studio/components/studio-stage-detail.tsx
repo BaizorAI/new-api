@@ -186,30 +186,35 @@ export function StudioStageDetail() {
       key: 'polish',
       label: t('Polish'),
       icon: Sparkles,
+      colorClass: 'text-amber-500',
       prompt: '请润色以下段落，使其更加流畅优美：',
     },
     {
       key: 'expand',
       label: t('Expand'),
       icon: Expand,
+      colorClass: 'text-blue-500',
       prompt: '请扩写以下段落，增加更多细节和描写：',
     },
     {
       key: 'shorten',
       label: t('Shorten'),
       icon: Minimize2,
+      colorClass: 'text-blue-500',
       prompt: '请精简以下段落，保留核心内容：',
     },
     {
       key: 'rewrite',
       label: t('Rewrite'),
       icon: RefreshCw,
+      colorClass: 'text-amber-500',
       prompt: '请用不同的方式改写以下段落：',
     },
     {
       key: 'dialogue',
       label: t('Optimize Dialogue'),
       icon: MessageSquare,
+      colorClass: 'text-sky-500',
       prompt: '请优化以下对白，使其更加自然生动：',
     },
   ]
@@ -689,7 +694,7 @@ ${brief}
               {isAnalyzing ? (
                 <Loader2 className='mr-1.5 size-3.5 animate-spin' />
               ) : (
-                <Sparkles className='mr-1.5 size-3.5' />
+                <Sparkles className='mr-1.5 size-3.5 text-amber-500' />
               )}
               {isAnalyzing ? t('Analyzing...') : t('AI Analyze')}
             </Button>
@@ -707,7 +712,7 @@ ${brief}
                 {isExtractingChars ? (
                   <Loader2 className='mr-1.5 size-3.5 animate-spin' />
                 ) : (
-                  <Wand2 className='mr-1.5 size-3.5' />
+                  <Wand2 className='mr-1.5 size-3.5 text-purple-500' />
                 )}
                 {isExtractingChars ? t('Extracting...') : t('AI Extract')}
               </Button>
@@ -745,7 +750,7 @@ ${brief}
                   }}
                   title={t('AI analyze era and style')}
                 >
-                  <Sparkles className='size-3.5' />
+                  <Sparkles className='size-3.5 text-amber-500' />
                 </Button>
               </div>
 
@@ -761,12 +766,12 @@ ${brief}
                   }
                 }}
               >
-                <Images className='mr-1.5 size-3.5' />
+                <Images className='mr-1.5 size-3.5 text-blue-500' />
                 {t('Generate All')}
               </Button>
 
               <Button size='sm' variant='outline' onClick={handleCreateChar}>
-                <Plus className='mr-1.5 size-3.5' />
+                <Plus className='mr-1.5 size-3.5 text-emerald-500' />
                 {t('Add Character')}
               </Button>
             </>
@@ -778,12 +783,12 @@ ${brief}
               {stageKey === 'storyboard' ? (
                 <Button size='sm' variant='outline' disabled={!scriptText.trim() || isExtractingShots}
                   onClick={() => void extractShots(scriptText)}>
-                  {isExtractingShots ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Wand2 className='mr-1.5 size-3.5' />}
+                  {isExtractingShots ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Wand2 className='mr-1.5 size-3.5 text-purple-500' />}
                   {isExtractingShots ? t('Extracting...') : t('AI Extract')}
                 </Button>
               ) : null}
               <Button size='sm' variant='outline' onClick={() => { setCurrentShot(null); setShotDialog('create') }}>
-                <Plus className='mr-1.5 size-3.5' />{t('Add Shot')}
+                <Plus className='mr-1.5 size-3.5 text-emerald-500' />{t('Add Shot')}
               </Button>
             </>
           ) : null}
@@ -819,7 +824,7 @@ ${brief}
                     onClick={() => handleStartGeneration()}
                     disabled={isStreaming}
                   >
-                    <Play className='mr-1.5 size-3.5' aria-hidden='true' />
+                    <Play className='mr-1.5 size-3.5 text-emerald-500' aria-hidden='true' />
                     {t('Start')}
                   </Button>
                 </div>
@@ -853,7 +858,7 @@ ${brief}
               ) : STAGE_SKILL_MAP[stageKey] ? (
                 <div className='border-border flex items-center gap-2 border-b px-4 py-2'>
                   <span className='flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary'>
-                    <Bot className='size-3' aria-hidden='true' />
+                    <Bot className='size-3 text-indigo-500' aria-hidden='true' />
                     {STAGE_SKILL_MAP[stageKey]}
                   </span>
                 </div>
@@ -870,7 +875,7 @@ ${brief}
                     className='text-muted-foreground hover:text-destructive h-6 gap-1 px-1.5 text-[11px]'
                     onClick={() => clearMessages()}
                   >
-                    <Trash2 className='size-3' aria-hidden='true' />
+                    <Trash2 className='size-3 text-red-500' aria-hidden='true' />
                     {t('Clear all')}
                   </Button>
                 ) : null}
@@ -890,7 +895,7 @@ ${brief}
                       description={t(
                         'AI powered by MagicalBrush will modify your script based on the response.'
                       )}
-                      icon={<Wand2 className='size-8' />}
+                      icon={<Wand2 className='size-8 text-purple-500' />}
                     />
                   ) : (
                     messages.map((msg) => (
@@ -934,7 +939,7 @@ ${brief}
               {currentSelection?.text ? (
                 <>
                   <div className='bg-muted/50 flex items-center gap-2 border-t px-3 py-1.5'>
-                    <MessageSquareQuote className='text-muted-foreground size-3.5 shrink-0' />
+                    <MessageSquareQuote className='text-amber-500 size-3.5 shrink-0' />
                     <span className='text-muted-foreground min-w-0 flex-1 truncate text-xs'>
                       {currentSelection.paragraphIndex != null
                         ? t('Selected paragraph {{index}}', {
@@ -953,7 +958,7 @@ ${brief}
                       onClick={() => setCurrentSelection(null)}
                       aria-label={t('Clear selection')}
                     >
-                      <X className='size-3' />
+                      <X className='size-3 text-red-400' />
                     </Button>
                   </div>
                   {/* Modification type quick-actions */}
@@ -979,7 +984,7 @@ ${brief}
                             )
                           }}
                         >
-                          <Icon className='size-3' aria-hidden='true' />
+                          <Icon className={`size-3 ${mt.colorClass}`} aria-hidden='true' />
                           {mt.label}
                         </Button>
                       )
@@ -1008,7 +1013,7 @@ ${brief}
                         onClick={stopGeneration}
                         aria-label={t('Stop')}
                       >
-                        <SquareIcon className='size-4' aria-hidden='true' />
+                        <SquareIcon className='size-4 text-red-500' aria-hidden='true' />
                       </Button>
                     ) : (
                       <PromptInputSubmit className='size-7' />
@@ -1151,7 +1156,7 @@ ${brief}
                           />
                         ) : (
                           <Video
-                            className='mr-1.5 size-3.5'
+                            className='mr-1.5 size-3.5 text-indigo-500'
                             aria-hidden='true'
                           />
                         )}
@@ -1169,7 +1174,7 @@ ${brief}
                       setShotDialog('create')
                     }}
                   >
-                    <Plus className='mr-1.5 size-3.5' aria-hidden='true' />
+                    <Plus className='mr-1.5 size-3.5 text-emerald-500' aria-hidden='true' />
                     {t('Add Shot')}
                   </Button>
                 </div>
@@ -1274,7 +1279,7 @@ ${brief}
                                 {isImgGenerating ? (
                                   <Loader2 className='size-3 animate-spin' />
                                 ) : (
-                                  <RefreshCw className='size-3' />
+                                  <RefreshCw className='size-3 text-amber-500' />
                                 )}
                               </Button>
                             </div>
@@ -1294,7 +1299,7 @@ ${brief}
                                 />
                               ) : (
                                 <ImagePlus
-                                  className='mr-1.5 size-3.5'
+                                  className='mr-1.5 size-3.5 text-blue-500'
                                   aria-hidden='true'
                                 />
                               )}
@@ -1348,7 +1353,7 @@ ${brief}
                                 {isVidGenerating ? (
                                   <Loader2 className='size-3 animate-spin' />
                                 ) : (
-                                  <RefreshCw className='size-3' />
+                                  <RefreshCw className='size-3 text-amber-500' />
                                 )}
                               </Button>
                             </div>
@@ -1397,7 +1402,7 @@ ${brief}
                               setShotDialog('update')
                             }}
                           >
-                            <Pencil className='mr-2 size-4' />
+                            <Pencil className='mr-2 size-4 text-amber-500' />
                             {t('Edit')}
                           </DropdownMenuItem>
                           <DropdownMenuItem
@@ -1407,7 +1412,7 @@ ${brief}
                               setShotDialog('delete')
                             }}
                           >
-                            <Trash2 className='mr-2 size-4' />
+                            <Trash2 className='mr-2 size-4 text-red-500' />
                             {t('Delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -1751,7 +1756,7 @@ function ScriptChatBubble(props: {
             onClick={onDelete}
             aria-label={t('Delete')}
           >
-            <X className='size-3' />
+            <X className='size-3 text-red-400' />
           </button>
         ) : null}
       </div>
@@ -1768,7 +1773,7 @@ function ScriptChatBubble(props: {
               setApplied(true)
             }}
           >
-            <Check className='size-3' aria-hidden='true' />
+            <Check className='size-3 text-emerald-500' aria-hidden='true' />
             {applied ? t('Applied') : t('Apply to Script')}
           </Button>
           {onComplete ? (
@@ -1782,7 +1787,7 @@ function ScriptChatBubble(props: {
                 setCompleted(true)
               }}
             >
-              <Check className='size-3' aria-hidden='true' />
+              <Check className='size-3 text-emerald-500' aria-hidden='true' />
               {completed ? t('Done') : t('Complete Stage')}
             </Button>
           ) : null}
@@ -1801,7 +1806,7 @@ function ScriptChatBubble(props: {
               setApplied(true)
             }}
           >
-            <RefreshCw className='size-3' aria-hidden='true' />
+            <RefreshCw className='size-3 text-amber-500' aria-hidden='true' />
             {applied ? t('Rewriting...') : t('Rewrite with Suggestions')}
           </Button>
           {analysisPassed && onComplete ? (
@@ -1815,7 +1820,7 @@ function ScriptChatBubble(props: {
                 setCompleted(true)
               }}
             >
-              <Check className='size-3' aria-hidden='true' />
+              <Check className='size-3 text-emerald-500' aria-hidden='true' />
               {completed ? t('Done') : t('Complete Stage')}
             </Button>
           ) : null}
