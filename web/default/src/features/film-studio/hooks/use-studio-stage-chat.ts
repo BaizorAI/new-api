@@ -45,6 +45,8 @@ export function useStudioStageChat({
   onMessageComplete,
 }: UseStudioStageChatOptions) {
   const [messages, setMessages] = useState<StageChatMessage[]>([])
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
   const { sendStreamRequest, stopStream } = useStreamRequest()
   const isStreamingRef = useRef(false)
 
@@ -69,7 +71,15 @@ export function useStudioStageChat({
   onMessageCompleteRef.current = onMessageComplete
 
   const sendMessage = useCallback(
-    (text: string, opts?: { scriptContext?: string; selectionContext?: string }) => {
+    (
+      text: string,
+      opts?: {
+        scriptContext?: string
+        selectionContext?: string
+        paragraphContext?: { index: number; text: string }
+        modificationType?: string
+      }
+    ) => {
       if (isStreamingRef.current) return
 
       const userMessage: StageChatMessage = {
@@ -93,16 +103,30 @@ export function useStudioStageChat({
 
       // Inject script context as a system message if provided
       if (opts?.scriptContext) {
-        let systemContent = `你是影视剧本创作助手。以下是当前剧本全文：\n---\n${opts.scriptContext}\n---\n`
-        if (opts.selectionContext) {
-          systemContent += `用户选中了以下段落请你重点关注：\n${opts.selectionContext}\n\n`
+        let systemContent = `你是影视剧本创作助手，使用 MagicalBrush 技能。以下是当前剧本全文：\n---\n${opts.scriptContext}\n---\n`
+        if (opts.paragraphContext) {
+          systemContent += `\n用户选中了第 ${opts.paragraphContext.index + 1} 段剧本请你修改：\n段落原文：${opts.paragraphContext.text}\n`
+          if (opts.selectionContext) {
+            systemContent += `用户选中的具体片段：${opts.selectionContext}\n`
+          }
+          if (opts.modificationType) {
+            systemContent += `用户希望对选中段落进行【${opts.modificationType}】操作。\n`
+          }
+          systemContent += '\n请只输出修改后的段落文本（不是整个剧本），用 ```revised-paragraph 代码块包裹修改内容。保持原有的格式和风格，只修改选中的段落。'
+        } else if (opts.selectionContext) {
+          systemContent += `用户选中了以下片段请你重点关注：\n${opts.selectionContext}\n\n`
+          if (opts.modificationType) {
+            systemContent += `用户希望对选中内容进行【${opts.modificationType}】操作。\n`
+          }
+          systemContent += '请根据用户的指令修改剧本。回复时直接给出修改后的完整段落（或完整剧本），用 ```script 代码块包裹修改内容。'
+        } else {
+          systemContent += '请根据用户的指令修改剧本。回复时直接给出修改后的完整段落（或完整剧本），用 ```script 代码块包裹修改内容。'
         }
-        systemContent += '请根据用户的指令修改剧本。回复时直接给出修改后的完整段落（或完整剧本），用 ```script 代码块包裹修改内容。'
         chatMessages.push({ role: 'system', content: systemContent })
       }
 
-      // Include recent chat history
-      for (const msg of messages.slice(-6)) {
+      // Include recent chat history (use ref to avoid recreating sendMessage on every chunk)
+      for (const msg of messagesRef.current.slice(-6)) {
         chatMessages.push({ role: msg.role, content: msg.content })
       }
 
@@ -158,7 +182,7 @@ export function useStudioStageChat({
         }
       )
     },
-    [messages, model, requestHeaders, sendStreamRequest]
+    [model, requestHeaders, sendStreamRequest]
   )
 
   const stopGeneration = useCallback(() => {

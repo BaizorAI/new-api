@@ -838,5 +838,12 @@
   "Toolset detail": "Toolset detail",
   "Toolset not found": "Toolset not found",
   "Toolsets": "Toolsets",
-  "Tools in this toolset": "Tools in this toolset"
+  "Tools in this toolset": "Tools in this toolset",
+  "Polish": "Polish",
+  "Rewrite": "Rewrite",
+  "Optimize Dialogue": "Optimize Dialogue",
+  "Selected paragraph {{index}}": "Selected paragraph {{index}}",
+  "Modify with AI": "Modify with AI",
+  "Skill active: MagicalBrush": "Skill active: MagicalBrush",
+  "AI powered by MagicalBrush will modify your script based on the response.": "AI powered by MagicalBrush will modify your script based on the response."
 }

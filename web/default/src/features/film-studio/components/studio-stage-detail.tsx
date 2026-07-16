@@ -24,10 +24,13 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Expand,
   ImagePlus,
   Images,
   Loader2,
+  MessageSquare,
   MessageSquareQuote,
+  Minimize2,
   MoreHorizontal,
   Pencil,
   Play,
@@ -102,7 +105,7 @@ import { useSwapShotOrder } from '../hooks/use-studio-mutations'
 import type { StudioCharacter, StudioShot } from '../types'
 import { StudioCharacterDeleteDialog } from './studio-character-delete-dialog'
 import { StudioCharacterMutateDrawer } from './studio-character-mutate-drawer'
-import { StudioScriptEditor, type ScriptEditorHandle } from './studio-script-editor'
+import { StudioScriptEditor, type ScriptEditorHandle, type ScriptEditorSelection } from './studio-script-editor'
 import { StudioShotDeleteDialog } from './studio-shot-delete-dialog'
 import { StudioShotMutateDrawer } from './studio-shot-mutate-drawer'
 
@@ -154,11 +157,45 @@ export function StudioStageDetail() {
 
   // Script editor imperative handle + selection state (script stage only)
   const scriptEditorRef = useRef<ScriptEditorHandle>(null)
-  const [currentSelection, setCurrentSelection] = useState<{
-    start: number
-    end: number
-    text: string
-  } | null>(null)
+  const [currentSelection, setCurrentSelection] =
+    useState<ScriptEditorSelection | null>(null)
+  // Persist selection across the chat round-trip so "Apply to Script"
+  // can still target the correct range after the selection banner is dismissed.
+  const pendingSelectionRef = useRef<ScriptEditorSelection | null>(null)
+
+  // Pre-defined AI modification types for quick-access buttons
+  const MODIFICATION_TYPES = [
+    {
+      key: 'polish',
+      label: t('Polish'),
+      icon: Sparkles,
+      prompt: '请润色以下段落，使其更加流畅优美：',
+    },
+    {
+      key: 'expand',
+      label: t('Expand'),
+      icon: Expand,
+      prompt: '请扩写以下段落，增加更多细节和描写：',
+    },
+    {
+      key: 'shorten',
+      label: t('Shorten'),
+      icon: Minimize2,
+      prompt: '请精简以下段落，保留核心内容：',
+    },
+    {
+      key: 'rewrite',
+      label: t('Rewrite'),
+      icon: RefreshCw,
+      prompt: '请用不同的方式改写以下段落：',
+    },
+    {
+      key: 'dialogue',
+      label: t('Optimize Dialogue'),
+      icon: MessageSquare,
+      prompt: '请优化以下对白，使其更加自然生动：',
+    },
+  ]
 
   const stageConfig = useMemo(
     () => PIPELINE_STAGES.find((s) => s.key === stageKey),
@@ -237,20 +274,30 @@ export function StudioStageDetail() {
     : null
 
   const handleSubmit = useCallback(
-    (message: PromptInputMessage) => {
+    (message: PromptInputMessage, modificationType?: string) => {
       const text = (message.text ?? '').trim()
       if (!text || isStreaming) return
 
       // For script stage, inject script content + selection as context
       if (stageKey === 'script') {
         const fullScript = scriptEditorRef.current?.getText() ?? ''
+        // Save selection in ref before clearing state — the ref is used
+        // by the "Apply to Script" button which fires after the AI responds.
+        pendingSelectionRef.current = currentSelection
         sendMessage(text, {
           scriptContext: fullScript || undefined,
           selectionContext: currentSelection?.text ?? undefined,
+          paragraphContext: currentSelection?.paragraphIndex != null
+            ? {
+                index: currentSelection.paragraphIndex,
+                text: currentSelection.paragraphText ?? '',
+              }
+            : undefined,
+          modificationType,
         })
         setCurrentSelection(null)
       } else {
-        sendMessage(text)
+        sendMessage(text, { modificationType })
       }
     },
     [isStreaming, sendMessage, stageKey, currentSelection]
@@ -268,7 +315,9 @@ export function StudioStageDetail() {
       })
       if (result.success) {
         toast.success(
-          t('Agent task created: {{title}}', { title: result.data?.title ?? skill })
+          t('Agent task created: {{title}}', {
+            title: `MagicBrush · ${skill}`,
+          })
         )
       } else {
         toast.error(result.message ?? t('Failed to create agent task.'))
@@ -459,14 +508,35 @@ export function StudioStageDetail() {
           {/* Right panel: AI Chat */}
           <ResizablePanel defaultSize={45} minSize={25}>
             <div className='flex h-full flex-col'>
+              {/* MagicBrush skill indicator */}
+              {stageKey === 'script' ? (
+                <div className='border-border flex items-center gap-2 border-b px-4 py-2'>
+                  <span className='flex items-center gap-1.5 rounded-md bg-purple-500/10 px-2 py-0.5 text-xs font-medium text-purple-600 dark:text-purple-400'>
+                    <Wand2 className='size-3' aria-hidden='true' />
+                    MagicalBrush
+                  </span>
+                  <span className='text-muted-foreground text-xs'>
+                    {t('Skill active: MagicalBrush')}
+                  </span>
+                </div>
+              ) : STAGE_SKILL_MAP[stageKey] ? (
+                <div className='border-border flex items-center gap-2 border-b px-4 py-2'>
+                  <span className='flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary'>
+                    <Bot className='size-3' aria-hidden='true' />
+                    {STAGE_SKILL_MAP[stageKey]}
+                  </span>
+                </div>
+              ) : null}
               {/* Chat messages with auto-scroll */}
               <Conversation className='min-h-0 flex-1'>
                 <ConversationContent className='space-y-4'>
                   {messages.length === 0 ? (
                     <ConversationEmptyState
                       title={t('Script Assistant')}
-                      description={t('AI will modify your script based on the response.')}
-                      icon={<Bot className='size-8' />}
+                      description={t(
+                        'AI powered by MagicalBrush will modify your script based on the response.'
+                      )}
+                      icon={<Wand2 className='size-8' />}
                     />
                   ) : (
                     messages.map((msg) => (
@@ -474,12 +544,14 @@ export function StudioStageDetail() {
                         key={msg.id}
                         message={msg}
                         onApply={(content) => {
-                          if (currentSelection) {
+                          const sel = pendingSelectionRef.current
+                          if (sel) {
                             scriptEditorRef.current?.replaceRange(
-                              currentSelection.start,
-                              currentSelection.end,
+                              sel.start,
+                              sel.end,
                               content
                             )
+                            pendingSelectionRef.current = null
                           } else {
                             scriptEditorRef.current?.setText(content)
                           }
@@ -493,25 +565,60 @@ export function StudioStageDetail() {
 
               {/* Selection banner */}
               {currentSelection?.text ? (
-                <div className='bg-muted/50 flex items-center gap-2 border-t px-3 py-1.5'>
-                  <MessageSquareQuote className='text-muted-foreground size-3.5 shrink-0' />
-                  <span className='text-muted-foreground min-w-0 flex-1 truncate text-xs'>
-                    {t('Selected: "{{text}}"', {
-                      text: currentSelection.text.length > 60
-                        ? currentSelection.text.slice(0, 60) + '…'
-                        : currentSelection.text,
+                <>
+                  <div className='bg-muted/50 flex items-center gap-2 border-t px-3 py-1.5'>
+                    <MessageSquareQuote className='text-muted-foreground size-3.5 shrink-0' />
+                    <span className='text-muted-foreground min-w-0 flex-1 truncate text-xs'>
+                      {currentSelection.paragraphIndex != null
+                        ? t('Selected paragraph {{index}}', {
+                            index: currentSelection.paragraphIndex + 1,
+                          })
+                        : t('Selected: "{{text}}"', {
+                            text: currentSelection.text.length > 60
+                              ? currentSelection.text.slice(0, 60) + '…'
+                              : currentSelection.text,
+                          })}
+                    </span>
+                    <Button
+                      size='sm'
+                      variant='ghost'
+                      className='size-6 shrink-0 p-0'
+                      onClick={() => setCurrentSelection(null)}
+                      aria-label={t('Clear selection')}
+                    >
+                      <X className='size-3' />
+                    </Button>
+                  </div>
+                  {/* Modification type quick-actions */}
+                  <div className='border-border flex flex-wrap items-center gap-1 border-t px-3 py-2'>
+                    <span className='text-muted-foreground mr-1 text-[10px] uppercase tracking-wider'>
+                      {t('Modify with AI')}
+                    </span>
+                    {MODIFICATION_TYPES.map((mt) => {
+                      const Icon = mt.icon
+                      return (
+                        <Button
+                          key={mt.key}
+                          size='sm'
+                          variant='outline'
+                          className='h-6 gap-1 px-2 text-[11px]'
+                          disabled={isStreaming}
+                          onClick={() => {
+                            const selectionText = currentSelection.text
+                            const promptText = `${mt.prompt}\n\n${selectionText}`
+                            handleSubmit(
+                              { text: promptText } as PromptInputMessage,
+                              mt.key
+                            )
+                          }}
+                        >
+                          <Icon className='size-3' aria-hidden='true' />
+                          {mt.label}
+                        </Button>
+                      )
                     })}
-                  </span>
-                  <Button
-                    size='sm'
-                    variant='ghost'
-                    className='size-6 shrink-0 p-0'
-                    onClick={() => setCurrentSelection(null)}
-                    aria-label={t('Clear selection')}
-                  >
-                    <X className='size-3' />
-                  </Button>
-                </div>
+                  </div>
+                </>
               ) : null}
 
               {/* Chat input */}
@@ -1353,6 +1460,10 @@ function ChatBubble(props: { message: StageChatMessage }) {
 // ============================================================================
 
 function extractScriptBlock(content: string): string | null {
+  // Check for targeted paragraph revision first (more precise)
+  const paraMatch = content.match(/```revised-paragraph\n([\s\S]*?)```/)
+  if (paraMatch?.[1]?.trimEnd()) return paraMatch[1].trimEnd()
+  // Fallback to full script block
   const match = content.match(/```script\n([\s\S]*?)```/)
   return match?.[1]?.trimEnd() ?? null
 }

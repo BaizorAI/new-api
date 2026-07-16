@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQueryClient } from '@tanstack/react-query'
-import { Check, Eye, PenLine } from 'lucide-react'
+import { Check, Eye, MousePointerClick, PenLine } from 'lucide-react'
 import {
   forwardRef,
   useCallback,
@@ -33,27 +33,44 @@ import { useDebounce } from '@/hooks/use-debounce'
 
 import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/ui/markdown'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 
 import { updateStudioStage } from '../api'
 import { STUDIO_QUERY_KEYS } from '../constants'
+import {
+  getParagraphAtCursor,
+  splitScriptIntoParagraphs,
+} from '../lib/script-paragraph-utils'
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'dirty'
+
+export interface ScriptEditorSelection {
+  start: number
+  end: number
+  text: string
+  /** The index of the paragraph containing this selection (0-based) */
+  paragraphIndex?: number
+  /** The full text of the containing paragraph */
+  paragraphText?: string
+  /** Whether the selection spans an entire paragraph */
+  isFullParagraph?: boolean
+}
 
 export interface ScriptEditorHandle {
   getText: () => string
   setText: (text: string) => void
   getSelection: () => { start: number; end: number; text: string } | null
   replaceRange: (start: number, end: number, replacement: string) => void
+  getParagraphAtCursor: () => ScriptEditorSelection | null
+  selectParagraph: (start: number, end: number) => void
 }
 
 interface StudioScriptEditorProps {
   projectId: number
   stageKey: string
   initialContent: string
-  onSelectionChange?: (
-    selection: { start: number; end: number; text: string } | null
-  ) => void
+  onSelectionChange?: (selection: ScriptEditorSelection | null) => void
 }
 
 export const StudioScriptEditor = forwardRef<
@@ -69,7 +86,10 @@ export const StudioScriptEditor = forwardRef<
   const queryClient = useQueryClient()
 
   const [text, setText] = useState(initialContent)
-  const [mode, setMode] = useState<'edit' | 'preview'>('edit')
+  const [mode, setMode] = useState<'edit' | 'select' | 'preview'>('edit')
+  const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<
+    number | null
+  >(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
 
   // Track whether the component has been initialized to avoid
@@ -118,6 +138,31 @@ export const StudioScriptEditor = forwardRef<
         }
       })
     },
+    getParagraphAtCursor: () => {
+      const el = textareaRef.current
+      if (!el) return null
+      const { selectionStart } = el
+      const para = getParagraphAtCursor(text, selectionStart)
+      if (!para) return null
+      const isFull =
+        selectionStart <= para.startOffset ||
+        el.selectionEnd >= para.endOffset
+      return {
+        start: para.startOffset,
+        end: para.endOffset,
+        text: para.text,
+        paragraphIndex: para.index,
+        paragraphText: para.text,
+        isFullParagraph: isFull,
+      }
+    },
+    selectParagraph: (start: number, end: number) => {
+      const el = textareaRef.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(start, end)
+      handleSelectionChange()
+    },
   }), [text])
 
   // Sync initial content when stage data loads/changes
@@ -146,11 +191,21 @@ export const StudioScriptEditor = forwardRef<
     const { selectionStart, selectionEnd } = el
     if (selectionStart === selectionEnd) {
       onSelectionChange(null)
+      setSelectedParagraphIndex(null)
     } else {
+      const selectedText = text.slice(selectionStart, selectionEnd)
+      // Find containing paragraph
+      const para = getParagraphAtCursor(text, selectionStart)
       onSelectionChange({
         start: selectionStart,
         end: selectionEnd,
-        text: text.slice(selectionStart, selectionEnd),
+        text: selectedText,
+        paragraphIndex: para?.index,
+        paragraphText: para?.text,
+        isFullParagraph: para
+          ? selectionStart <= para.startOffset &&
+            selectionEnd >= para.endOffset
+          : undefined,
       })
     }
   }, [onSelectionChange, text])
@@ -224,6 +279,16 @@ export const StudioScriptEditor = forwardRef<
           <Button
             type='button'
             size='sm'
+            variant={mode === 'select' ? 'default' : 'ghost'}
+            className='h-7 gap-1.5 px-2.5 text-xs'
+            onClick={() => setMode('select')}
+          >
+            <MousePointerClick className='size-3.5' aria-hidden='true' />
+            {t('Select')}
+          </Button>
+          <Button
+            type='button'
+            size='sm'
             variant={mode === 'preview' ? 'default' : 'ghost'}
             className='h-7 gap-1.5 px-2.5 text-xs'
             onClick={() => setMode('preview')}
@@ -245,7 +310,7 @@ export const StudioScriptEditor = forwardRef<
         <SaveStatusIndicator status={saveStatus} />
       </div>
 
-      {/* Editor / Preview area */}
+      {/* Editor / Select / Preview area */}
       {mode === 'edit' ? (
         <Textarea
           ref={textareaRef}
@@ -254,9 +319,79 @@ export const StudioScriptEditor = forwardRef<
           onSelect={handleSelectionChange}
           onMouseUp={handleSelectionChange}
           onKeyUp={handleSelectionChange}
+          onDoubleClick={() => {
+            // Double-click selects the entire paragraph containing the cursor
+            const el = textareaRef.current
+            if (!el) return
+            const cursorPos = el.selectionStart
+            const para = getParagraphAtCursor(text, cursorPos)
+            if (para) {
+              el.setSelectionRange(para.startOffset, para.endOffset)
+              handleSelectionChange()
+            }
+          }}
           placeholder={t('Write your screenplay here...')}
           className='min-h-[400px] resize-none font-mono text-sm leading-relaxed'
         />
+      ) : mode === 'select' ? (
+        <div className='border-border min-h-[400px] rounded-lg border p-4'>
+          {text.trim() ? (
+            <ScrollArea className='max-h-[60vh]'>
+              <div className='space-y-2'>
+                {splitScriptIntoParagraphs(text).map((para) => {
+                  const isSelected = selectedParagraphIndex === para.index
+                  return (
+                    <div
+                      key={para.index}
+                      role='button'
+                      tabIndex={0}
+                      className={`rounded-md border px-4 py-3 text-sm leading-relaxed transition-colors cursor-pointer outline-none
+                        ${isSelected
+                          ? 'border-primary/30 bg-primary/5 ring-1 ring-primary/10'
+                          : 'border-transparent hover:border-accent hover:bg-accent/5'
+                        }
+                      `}
+                      onClick={() => {
+                        setSelectedParagraphIndex(para.index)
+                        onSelectionChange?.({
+                          start: para.startOffset,
+                          end: para.endOffset,
+                          text: para.text,
+                          paragraphIndex: para.index,
+                          paragraphText: para.text,
+                          isFullParagraph: true,
+                        })
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          setSelectedParagraphIndex(para.index)
+                          onSelectionChange?.({
+                            start: para.startOffset,
+                            end: para.endOffset,
+                            text: para.text,
+                            paragraphIndex: para.index,
+                            paragraphText: para.text,
+                            isFullParagraph: true,
+                          })
+                        }
+                      }}
+                    >
+                      <span className='text-muted-foreground mr-2 text-xs font-medium select-none'>
+                        {para.index + 1}
+                      </span>
+                      {para.text}
+                    </div>
+                  )
+                })}
+              </div>
+            </ScrollArea>
+          ) : (
+            <p className='text-muted-foreground text-sm'>
+              {t('Nothing to preview yet.')}
+            </p>
+          )}
+        </div>
       ) : (
         <div className='border-border min-h-[400px] rounded-lg border p-4'>
           {text.trim() ? (

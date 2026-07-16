@@ -370,5 +370,7 @@
   "Skills shared with your teams.": "Skills shared with your teams.",
   "The requested toolset \"{{name}}\" was not found.": "The requested toolset \"{{name}}\" was not found.",
   "This toolset is configured and active.": "This toolset is configured and active.",
-  "Toolset configuration is managed through the Hermes API server.": "Toolset configuration is managed through the Hermes API server."
+  "Toolset configuration is managed through the Hermes API server.": "Toolset configuration is managed through the Hermes API server.",
+  "Modify with AI": "Modify with AI",
+  "AI powered by MagicalBrush will modify your script based on the response.": "AI powered by MagicalBrush will modify your script based on the response."
 }

@@ -548,4 +548,16 @@ export const STATIC_I18N_KEYS = [
 
   // Toolset detail page (route-specific namespace)
   'toolsetDetail',
+
+  // Film Studio — script editor smart selection & MagicBrush
+  'Select',
+  'Polish',
+  'Expand',
+  'Shorten',
+  'Rewrite',
+  'Optimize Dialogue',
+  'Selected paragraph {{index}}',
+  'Modify with AI',
+  'Skill active: MagicalBrush',
+  'AI powered by MagicalBrush will modify your script based on the response.',
 ] as const

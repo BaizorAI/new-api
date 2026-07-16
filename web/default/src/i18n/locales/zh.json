@@ -6295,6 +6295,13 @@
     "Toolset detail": "工具集详情",
     "Toolset not found": "未找到工具集",
     "Toolsets": "工具集",
-    "Tools in this toolset": "此工具集中的工具"
+    "Tools in this toolset": "此工具集中的工具",
+    "Polish": "润色",
+    "Rewrite": "改写",
+    "Optimize Dialogue": "优化对白",
+    "Selected paragraph {{index}}": "已选择第 {{index}} 段",
+    "Modify with AI": "AI 修改",
+    "Skill active: MagicalBrush": "技能已激活：MagicalBrush",
+    "AI powered by MagicalBrush will modify your script based on the response.": "由 MagicalBrush 驱动的 AI 将根据回复修改您的剧本。"
   }
 }
