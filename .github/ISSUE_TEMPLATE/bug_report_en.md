@@ -1,12 +1,3 @@
----
-name: Bug Report
-about: Describe the issue you encountered with clear and detailed language
-title: ''
-labels: bug
-assignees: ''
-
----
-
 ## Read This First (Do Not Remove This Section)
 
 - Docs: https://docs.newapi.ai/
@@ -39,3 +30,11 @@ Describe the symptom, impact scope, and why you believe this is an application i
 **Expected Result**
 
 **Related Screenshots**
+
+---
+
+name: Bug Report
+about: Describe the issue you encountered with clear and detailed language
+title: ''
+labels: bug
+assignees: ''

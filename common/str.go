@@ -118,10 +118,14 @@ func GetJsonString(data any) string {
 }
 
 // NormalizeBillingPreference clamps the billing preference to valid values.
+// "subscription_only" and "wallet_only" are legacy values that are mapped to
+// their "_first" counterparts so that there is always a fallback funding source.
 func NormalizeBillingPreference(pref string) string {
 	switch strings.TrimSpace(pref) {
-	case "subscription_first", "wallet_first", "subscription_only", "wallet_only":
-		return strings.TrimSpace(pref)
+	case "subscription_first", "subscription_only":
+		return "subscription_first"
+	case "wallet_first", "wallet_only":
+		return "wallet_first"
 	default:
 		return "subscription_first"
 	}

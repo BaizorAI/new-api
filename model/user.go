@@ -693,7 +693,10 @@ func (user *User) FillUserById() error {
 	if user.Id == 0 {
 		return errors.New("id 为空！")
 	}
-	DB.Where(User{Id: user.Id}).First(user)
+	err := DB.Where(User{Id: user.Id}).First(user).Error
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

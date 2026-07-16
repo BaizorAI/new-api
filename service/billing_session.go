@@ -442,10 +442,6 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 	}
 
 	switch pref {
-	case "subscription_only":
-		return trySubscription()
-	case "wallet_only":
-		return tryWallet()
 	case "wallet_first":
 		session, err := tryWallet()
 		if err != nil {

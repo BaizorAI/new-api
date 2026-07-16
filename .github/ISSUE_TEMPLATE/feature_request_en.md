@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Describe the new feature you would like to add with clear and detailed language
+about: Propose a new feature or enhancement for the project
 title: ''
 labels: enhancement
 assignees: ''
@@ -27,6 +27,28 @@ Please fill this in, for example: `v1.0.0`
 - [ ] **Template intact:** I have not removed any guidance or section headings from this template and will complete it as requested.
 - [ ] **Maintainer time:** I understand that maintainers have limited time and issues that do not follow this template may be ignored or closed directly.
 
-**Feature Description**
+## Description
 
-**Use Case**
+### Problem Statement
+
+- **User Need:** What do you want to solve?
+- **Current State:** How does the current system fall short?
+
+### Proposed Solution
+
+What should the new feature look like?
+
+**Example Usage**
+
+```bash
+# Example command or API call
+
+```
+
+### Alternatives Considered
+
+Briefly describe any alternative approaches you considered.
+
+### Additional Context
+
+Any supporting details, references, or screenshots that may help.
