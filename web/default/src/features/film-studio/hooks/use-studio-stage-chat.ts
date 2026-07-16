@@ -31,6 +31,7 @@ import {
   getStudioChatMessages,
   saveStudioChatMessages,
 } from '../api'
+import { getLanguageInstruction } from '../lib/language-detect'
 
 export interface StageChatMessage {
   id: string
@@ -206,10 +207,12 @@ export function useStudioStageChat({
           systemContent += `以下是剧本全文：\n---\n${opts.scriptContext}\n---`
         } else if (opts.modificationType === 'generate') {
           // Script generation mode — create a script from a project brief
+          const langInstr = getLanguageInstruction(opts.scriptContext || text)
           systemContent = `你是专业影视编剧，使用 MagicalBrush 技能。请根据项目简报生成一份完整的影视剧本。\n`
-          systemContent += `使用标准剧本格式，包括场景标题（INT./EXT. 地点 - 时间）、动作描述和人物对话。\n`
+          systemContent += `使用标准剧本格式，包括场景标题、动作描述和人物对话。\n`
           systemContent += `确保故事有清晰的开头、发展和结尾。\n`
           systemContent += `用 \`\`\`script 代码块包裹完整剧本。`
+          systemContent += langInstr
         } else if (opts.modificationType === 'rewrite_from_analysis') {
           // Rewrite script based on prior analysis suggestions
           systemContent = `你是专业影视编剧，使用 MagicalBrush 技能。\n`

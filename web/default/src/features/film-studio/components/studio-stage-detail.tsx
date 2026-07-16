@@ -110,6 +110,7 @@ import { useSwapShotOrder } from '../hooks/use-studio-mutations'
 import { sendChatCompletion } from '@/features/playground/api'
 import { getImageHistory, submitImageGeneration } from '@/features/image-playground/api'
 import { IMAGE_STATUS } from '@/features/image-playground/types'
+import { getLanguageInstruction } from '../lib/language-detect'
 import type { StudioCharacter, StudioShot } from '../types'
 import { StudioScriptEditor, type ScriptEditorHandle, type ScriptEditorSelection } from './studio-script-editor'
 import { StudioShotDeleteDialog } from './studio-shot-delete-dialog'
@@ -584,6 +585,7 @@ export function StudioStageDetail() {
       }
     }).catch(() => {})
 
+    const langInstruction = getLanguageInstruction(brief)
     const genPrompt = `基于以下项目简报，生成一份完整的影视剧本：
 
 项目名称：${project?.name ?? ''}
@@ -593,7 +595,7 @@ export function StudioStageDetail() {
 项目简报：
 ${brief}
 
-请生成一份结构完整的剧本，包括场景标题、动作描述、人物对话，用标准剧本格式。用 \`\`\`script 代码块包裹完整剧本。`
+请生成一份结构完整的剧本，包括场景标题、动作描述、人物对话，用标准剧本格式。用 \`\`\`script 代码块包裹完整剧本。${langInstruction}`
 
     sendMessage(genPrompt, {
       scriptContext: brief,
