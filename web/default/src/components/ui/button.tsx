@@ -74,13 +74,17 @@ function Button({
   render,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  // Strip Radix-era `asChild` prop — Base UI v1 uses `render` prop instead.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { asChild: _asChild, ...safeProps } = props as Record<string, unknown>
+
   return (
     <ButtonPrimitive
       data-slot='button'
       className={cn(buttonVariants({ variant, size, className }))}
       nativeButton={nativeButton ?? isNativeButtonRender(render)}
       render={render}
-      {...props}
+      {...safeProps}
     />
   )
 }

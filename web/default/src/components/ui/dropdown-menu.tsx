@@ -36,8 +36,23 @@ function DropdownMenuPortal({ ...props }: MenuPrimitive.Portal.Props) {
   return <MenuPrimitive.Portal data-slot='dropdown-menu-portal' {...props} />
 }
 
-function DropdownMenuTrigger({ ...props }: MenuPrimitive.Trigger.Props) {
-  return <MenuPrimitive.Trigger data-slot='dropdown-menu-trigger' {...props} />
+function DropdownMenuTrigger({
+  children,
+  ...props
+}: MenuPrimitive.Trigger.Props) {
+  // Convert Radix-era `asChild` to Base UI v1 `render` prop. This avoids
+  // nested <button> elements and keeps the `asChild` prop off the DOM.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { asChild: _asChild, ...safeProps } = props as Record<string, unknown>
+  const render =
+    _asChild && children ? (children as React.ReactElement) : undefined
+  return (
+    <MenuPrimitive.Trigger
+      data-slot='dropdown-menu-trigger'
+      render={render}
+      {...safeProps}
+    />
+  )
 }
 
 function DropdownMenuContent({
