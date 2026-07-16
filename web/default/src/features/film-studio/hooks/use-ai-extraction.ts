@@ -89,9 +89,11 @@ export function useExtractCharacters(projectId: number) {
   const [isExtracting, setIsExtracting] = useState(false)
 
   const extractCharacters = useCallback(
-    async (scriptText: string) => {
+    async (scriptText: string, existingNames: string[] = []) => {
       if (isExtracting) return
       setIsExtracting(true)
+
+      const existing = new Set(existingNames.map((n) => n.trim().toLowerCase()))
 
       try {
         const response = await sendChatCompletion(
@@ -121,10 +123,15 @@ export function useExtractCharacters(projectId: number) {
           return
         }
 
-        // Create each character sequentially
+        // Deduplicate: skip characters whose name already exists
         let created = 0
+        let skipped = 0
         for (const char of parsed) {
           if (!char.name?.trim()) continue
+          if (existing.has(char.name.trim().toLowerCase())) {
+            skipped++
+            continue
+          }
           const data: StudioCharacterFormData = {
             name: char.name.trim(),
             description: (char.description ?? '').trim(),
@@ -143,11 +150,12 @@ export function useExtractCharacters(projectId: number) {
         })
 
         if (created > 0) {
-          toast.success(
-            t('Extracted {{count}} characters from script.', {
-              count: created,
-            })
-          )
+          const msg = skipped > 0
+            ? t('Extracted {{count}} characters, skipped {{skipped}} duplicates.', { count: created, skipped })
+            : t('Extracted {{count}} characters from script.', { count: created })
+          toast.success(msg)
+        } else if (skipped > 0) {
+          toast.info(t('All {{count}} characters already exist.', { count: skipped }))
         } else {
           toast.info(t('No characters found in the script.'))
         }

@@ -2324,7 +2324,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "Related Projects",
     "footer.defaultCopyright": "All rights reserved.",
-    "footer.new\u0061pi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
+    "footer.newapi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
     "For administrators and builders": "For administrators and builders",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment",
     "For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.": "For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.",
@@ -6347,6 +6347,11 @@
     "Generating image...": "Generating image...",
     "Refining prompt...": "Refining prompt...",
     "Reference image generated.": "Reference image generated.",
-    "Add a visual prompt or description first.": "Add a visual prompt or description first."
+    "Add a visual prompt or description first.": "Add a visual prompt or description first.",
+    "Generate All": "Generate All",
+    "Image style context (shared prefix for all characters)": "Image style context (shared prefix for all characters)",
+    "Extracted {{count}} characters, skipped {{skipped}} duplicates.": "Extracted {{count}} characters, skipped {{skipped}} duplicates.",
+    "All {{count}} characters already exist.": "All {{count}} characters already exist.",
+    "AI analyze era and style": "AI analyze era and style"
   }
 }

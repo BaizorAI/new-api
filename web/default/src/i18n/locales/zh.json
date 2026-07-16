@@ -2324,7 +2324,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "相关项目",
     "footer.defaultCopyright": "版权所有。",
-    "footer.new\u0061pi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
+    "footer.newapi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
     "For administrators and builders": "面向管理员和建设者",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "对于 2025 年 5 月 10 日之后添加的渠道，在部署时无需从模型名称中移除 \".\"",
     "For deployment questions, model adaptation work, enterprise operation needs or community support, use the project repository and organization channels.": "部署咨询、模型适配、企业运营需求或社区支持，可通过项目仓库和组织渠道联系。",
@@ -6347,6 +6347,11 @@
     "Generating image...": "正在生成图片...",
     "Refining prompt...": "正在优化提示词...",
     "Reference image generated.": "参考图片已生成。",
-    "Add a visual prompt or description first.": "请先生成视觉提示词或描述。"
+    "Add a visual prompt or description first.": "请先生成视觉提示词或描述。",
+    "Generate All": "生成全部",
+    "Image style context (shared prefix for all characters)": "图片风格上下文（所有角色共享的前缀）",
+    "Extracted {{count}} characters, skipped {{skipped}} duplicates.": "已提取 {{count}} 个角色，跳过 {{skipped}} 个重复。",
+    "All {{count}} characters already exist.": "{{count}} 个角色均已存在。",
+    "AI analyze era and style": "AI 分析年代和风格"
   }
 }

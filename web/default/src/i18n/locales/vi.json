@@ -6347,6 +6347,7 @@
     "Generating image...": "Generating image...",
     "Refining prompt...": "Refining prompt...",
     "Reference image generated.": "Reference image generated.",
-    "Add a visual prompt or description first.": "Add a visual prompt or description first."
+    "Add a visual prompt or description first.": "Add a visual prompt or description first.",
+    "Generate All": "Generate All"
   }
 }

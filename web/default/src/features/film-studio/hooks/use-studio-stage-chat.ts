@@ -189,15 +189,20 @@ export function useStudioStageChat({
         if (opts.modificationType === 'analyze') {
           // AI Analysis mode — evaluate readiness for next stage
           systemContent = `你是影视剧本创作助手，使用 MagicalBrush 技能。请对以下剧本进行全面分析。\n\n`
-          systemContent += `从以下维度评估剧本是否已准备好进入下一阶段（角色设计和分镜）：\n`
+          systemContent += `**首先，判断剧本的时空背景：**\n`
+          systemContent += `- 年代/朝代（古代/现代/未来/具体朝代）\n`
+          systemContent += `- 地域/国家（中国/西方/架空世界等）\n`
+          systemContent += `- 故事类型和基调\n\n`
+          systemContent += `然后从以下维度评估剧本是否已准备好进入下一阶段（角色设计和分镜）：\n`
           systemContent += `1. 故事结构是否完整（起承转合）\n`
-          systemContent += `2. 场景描述是否清晰具体\n`
+          systemContent += `2. 场景描述是否清晰具体（时间、地点、氛围）\n`
           systemContent += `3. 对话是否自然生动\n`
-          systemContent += `4. 角色是否足够鲜明\n`
+          systemContent += `4. 角色是否足够鲜明（外貌、性格、动机）\n`
           systemContent += `5. 是否已包含足够信息供角色设计和分镜使用\n\n`
           systemContent += `最后请明确给出结论：\n`
           systemContent += `- 如果可以通过：✅ **可以进入下一阶段**，简述理由\n`
           systemContent += `- 如果需要修改：⚠️ **建议修改**，列出需要改进的地方\n\n`
+          systemContent += `**重要：将时空背景结论放在回复最前面，方便后续角色设计阶段参考。**\n\n`
           systemContent += `以下是剧本全文：\n---\n${opts.scriptContext}\n---`
         } else if (opts.modificationType === 'generate') {
           // Script generation mode — create a script from a project brief
