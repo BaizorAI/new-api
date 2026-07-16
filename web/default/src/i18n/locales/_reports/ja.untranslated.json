@@ -865,5 +865,7 @@
   "Rewriting...": "Rewriting...",
   "AI analysis passed. Mark this stage as complete to unlock the next stage.": "AI analysis passed. Mark this stage as complete to unlock the next stage.",
   "AI analysis suggests revisions. Rewrite with suggestions first.": "AI analysis suggests revisions. Rewrite with suggestions first.",
-  "Run AI analysis before marking the stage complete.": "Run AI analysis before marking the stage complete."
+  "Run AI analysis before marking the stage complete.": "Run AI analysis before marking the stage complete.",
+  "Reference": "Reference",
+  "AI generate": "AI generate"
 }

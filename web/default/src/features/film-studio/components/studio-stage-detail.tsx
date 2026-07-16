@@ -43,7 +43,7 @@ import {
   Wand2,
   X,
 } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -78,12 +78,18 @@ import {
   ResizablePanelGroup,
 } from '@/components/ui/resizable'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 import {
+  createStudioCharacter,
+  deleteStudioCharacter,
   getStudioCharacters,
   getStudioProject,
   getStudioShots,
   getStudioStages,
+  updateStudioCharacter,
   updateStudioStage,
 } from '../api'
 import {
@@ -101,9 +107,8 @@ import { useExtractCharacters, useExtractShots } from '../hooks/use-ai-extractio
 import { useShotImageGen } from '../hooks/use-shot-image-gen'
 import { useShotVideoGen } from '../hooks/use-shot-video-gen'
 import { useSwapShotOrder } from '../hooks/use-studio-mutations'
+import { sendChatCompletion } from '@/features/playground/api'
 import type { StudioCharacter, StudioShot } from '../types'
-import { StudioCharacterDeleteDialog } from './studio-character-delete-dialog'
-import { StudioCharacterMutateDrawer } from './studio-character-mutate-drawer'
 import { StudioScriptEditor, type ScriptEditorHandle, type ScriptEditorSelection } from './studio-script-editor'
 import { StudioShotDeleteDialog } from './studio-shot-delete-dialog'
 import { StudioShotMutateDrawer } from './studio-shot-mutate-drawer'
@@ -140,9 +145,16 @@ export function StudioStageDetail() {
   })
   const id = Number(projectId)
 
-  // Dialog state for characters
-  const [charDialog, setCharDialog] = useState<DialogType | null>(null)
-  const [currentChar, setCurrentChar] = useState<StudioCharacter | null>(null)
+  // Dialog state for characters — sidebar + inline edit mode
+  const [selectedCharId, setSelectedCharId] = useState<number | null>(null)
+  const [charForm, setCharForm] = useState({
+    name: '',
+    description: '',
+    visual_prompt: '',
+    reference_url: '',
+    lora_params: '',
+  })
+  const selectedChar = characters.find((c) => c.id === selectedCharId) ?? null
 
   // Dialog state for shots
   const [shotDialog, setShotDialog] = useState<DialogType | null>(null)
@@ -238,6 +250,60 @@ export function StudioStageDetail() {
   const analysisRef = useRef(false)
   analysisRef.current = !!isAnalyzing
 
+  // Track which character fields are being AI-generated
+  const [generatingFields, setGeneratingFields] = useState<Set<string>>(new Set())
+
+  const handleGenerateCharField = useCallback(async (
+    char: StudioCharacter,
+    field: 'visual_prompt' | 'reference_url' | 'lora_params'
+  ) => {
+    const key = `${char.id}_${field}`
+    setGeneratingFields((prev) => new Set(prev).add(key))
+
+    const systemPrompts: Record<string, string> = {
+      visual_prompt:
+        'You are a visual design AI for film production. Based on the character name and description, generate a concise English visual prompt suitable for AI image generation (e.g. Stable Diffusion, Midjourney). Include: appearance, clothing style, expression, lighting mood. Output ONLY the prompt, under 200 characters.',
+      reference_url:
+        'You are a visual design AI for film production. Based on the character name and description, describe a reference keyframe image: composition (close-up / medium / full-body), background setting, color palette, and mood. Output ONLY the visual description, under 200 characters.',
+      lora_params:
+        'You are a visual design AI for film production. Based on the character name and description, suggest LoRA parameters for consistent AI character generation. Output format: lora_name:0.8, lora_name2:0.6 — with a one-line explanation. Keep under 150 characters.',
+    }
+
+    try {
+      const hermesHeaders: Record<string, string> = {
+        'X-Baizor-Playground': 'hermes',
+        'X-Baizor-Hermes-Skill-Activate': '/magicalbrush',
+      }
+      const result = await sendChatCompletion(
+        {
+          model: 'huayu-drama-4',
+          messages: [
+            { role: 'system', content: systemPrompts[field] },
+            {
+              role: 'user',
+              content: `Character name: ${char.name}\nDescription: ${char.description || 'No description provided'}`,
+            },
+          ],
+          stream: false,
+          temperature: 0.4,
+        },
+        hermesHeaders
+      )
+      const content = result?.choices?.[0]?.message?.content?.trim()
+      if (content) {
+        await updateStudioCharacter(id, char.id, { [field]: content } as Record<string, string>)
+        void queryClient.invalidateQueries({ queryKey: [...STUDIO_QUERY_KEYS.characters(id)] })
+      }
+    } catch { /* silently fail */ }
+    finally {
+      setGeneratingFields((prev) => {
+        const next = new Set(prev)
+        next.delete(key)
+        return next
+      })
+    }
+  }, [id, queryClient])
+
   const { messages, sendMessage, stopGeneration, clearMessages, deleteMessage, loadingHistory, isStreaming } =
     useStudioStageChat({
       projectId: id,
@@ -312,6 +378,64 @@ export function StudioStageDetail() {
     },
     [isStreaming, sendMessage, stageKey, currentSelection]
   )
+
+  // Sync selected character into the inline edit form
+  useEffect(() => {
+    if (selectedChar) {
+      setCharForm({
+        name: selectedChar.name || '',
+        description: selectedChar.description || '',
+        visual_prompt: selectedChar.visual_prompt || '',
+        reference_url: selectedChar.reference_url || '',
+        lora_params: selectedChar.lora_params || '',
+      })
+    }
+  }, [selectedCharId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSaveChar = useCallback(async () => {
+    if (!selectedCharId || !charForm.name.trim()) return
+    try {
+      await updateStudioCharacter(id, selectedCharId, charForm)
+      void queryClient.invalidateQueries({
+        queryKey: [...STUDIO_QUERY_KEYS.characters(id)],
+      })
+      toast.success(t('Character saved.'))
+    } catch {
+      toast.error(t('Failed to save character.'))
+    }
+  }, [id, selectedCharId, charForm, queryClient, t])
+
+  const handleDeleteChar = useCallback(async () => {
+    if (!selectedCharId) return
+    try {
+      await deleteStudioCharacter(id, selectedCharId)
+      setSelectedCharId(null)
+      void queryClient.invalidateQueries({
+        queryKey: [...STUDIO_QUERY_KEYS.characters(id)],
+      })
+      toast.success(t('Character deleted.'))
+    } catch {
+      toast.error(t('Failed to delete character.'))
+    }
+  }, [id, selectedCharId, queryClient, t])
+
+  const handleCreateChar = useCallback(async () => {
+    try {
+      await createStudioCharacter(id, {
+        name: t('New Character'),
+        description: '',
+        visual_prompt: '',
+        reference_url: '',
+        lora_params: '',
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [...STUDIO_QUERY_KEYS.characters(id)],
+      })
+      toast.success(t('Character created.'))
+    } catch {
+      toast.error(t('Failed to create character.'))
+    }
+  }, [id, queryClient, t])
 
   const handleAIAnalyze = useCallback(() => {
     const script = scriptEditorRef.current?.getText() ?? ''
@@ -738,14 +862,17 @@ ${brief}
                 </p>
               ) : null}
 
-          {/* Characters section */}
+          {/* Characters section — sidebar + detail split layout */}
           {stageKey === 'characters' ? (
-            <div className='space-y-3'>
-              <div className='flex items-center justify-between'>
-                <h2 className='text-sm font-medium'>
-                  {t('Characters')} ({characters.length})
-                </h2>
-                <div className='flex items-center gap-2'>
+            <div className='grid h-full min-h-0 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]'>
+              {/* Left sidebar — character list */}
+              <div className='min-h-0 space-y-2 overflow-auto'>
+                <div className='flex items-center justify-between'>
+                  <h2 className='text-sm font-medium'>
+                    {t('Characters')} ({characters.length})
+                  </h2>
+                </div>
+                <div className='flex flex-wrap items-center gap-2'>
                   <Button
                     size='sm'
                     variant='outline'
@@ -753,87 +880,214 @@ ${brief}
                     onClick={() => void extractCharacters(scriptText)}
                   >
                     {isExtractingChars ? (
-                      <Loader2
-                        className='mr-1.5 size-3.5 animate-spin'
-                        aria-hidden='true'
-                      />
+                      <Loader2 className='mr-1.5 size-3.5 animate-spin' />
                     ) : (
-                      <Wand2 className='mr-1.5 size-3.5' aria-hidden='true' />
+                      <Wand2 className='mr-1.5 size-3.5' />
                     )}
-                    {isExtractingChars
-                      ? t('Extracting...')
-                      : t('AI Extract')}
+                    {isExtractingChars ? t('Extracting...') : t('AI Extract')}
                   </Button>
-                  <Button
-                    size='sm'
-                    variant='outline'
-                    onClick={() => {
-                      setCurrentChar(null)
-                      setCharDialog('create')
-                    }}
-                  >
-                    <Plus className='mr-1.5 size-3.5' aria-hidden='true' />
+                  <Button size='sm' variant='outline' onClick={handleCreateChar}>
+                    <Plus className='mr-1.5 size-3.5' />
                     {t('Add Character')}
                   </Button>
                 </div>
-              </div>
-              {characters.length > 0 ? (
-                <div className='grid gap-3 sm:grid-cols-2'>
-                  {characters.map((char) => (
-                    <div
+                {characters.length > 0 ? (
+                  characters.map((char) => (
+                    <button
                       key={char.id}
-                      className='border-border group relative rounded-lg border p-3'
+                      type='button'
+                      onClick={() => setSelectedCharId(char.id)}
+                      className={`border-border bg-card text-card-foreground hover:bg-muted/60 flex w-full items-center gap-3 rounded-lg border p-3 text-left text-sm transition-colors ${
+                        selectedCharId === char.id ? 'ring-ring ring-2' : ''
+                      }`}
                     >
-                      <div className='flex items-start justify-between gap-2'>
-                        <h3 className='text-sm font-medium'>{char.name}</h3>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='size-7 shrink-0 opacity-0 group-hover:opacity-100'
-                              aria-label={t('More actions')}
-                            >
-                              <MoreHorizontal className='size-4' />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align='end'>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setCurrentChar(char)
-                                setCharDialog('update')
-                              }}
-                            >
-                              <Pencil className='mr-2 size-4' />
-                              {t('Edit')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className='text-destructive'
-                              onClick={() => {
-                                setCurrentChar(char)
-                                setCharDialog('delete')
-                              }}
-                            >
-                              <Trash2 className='mr-2 size-4' />
-                              {t('Delete')}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      {char.description ? (
-                        <p className='text-muted-foreground mt-1 text-xs'>
-                          {char.description}
-                        </p>
-                      ) : null}
-                      {char.visual_prompt ? (
-                        <p className='text-muted-foreground mt-1 truncate text-xs italic'>
-                          {char.visual_prompt}
-                        </p>
-                      ) : null}
+                      {/* Small avatar */}
+                      {char.reference_url ? (
+                        <img
+                          src={char.reference_url}
+                          alt={char.name}
+                          className='bg-muted size-10 shrink-0 rounded-md object-cover'
+                          loading='lazy'
+                        />
+                      ) : (
+                        <span className='bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-md text-lg font-medium'>
+                          {char.name.charAt(0)}
+                        </span>
+                      )}
+                      <span className='min-w-0'>
+                        <span className='block truncate font-medium'>
+                          {char.name}
+                        </span>
+                        {char.description ? (
+                          <span className='text-muted-foreground block truncate text-[11px]'>
+                            {char.description}
+                          </span>
+                        ) : null}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <p className='text-muted-foreground px-1 text-xs'>
+                    {t('No characters found in the script.')}
+                  </p>
+                )}
+              </div>
+
+              {/* Right detail — inline edit selected character */}
+              <div className='min-h-0 overflow-auto'>
+                {selectedChar ? (
+                  <div className='space-y-4'>
+                    {/* Reference image preview */}
+                    <div className='bg-muted flex aspect-video items-center justify-center overflow-hidden rounded-lg'>
+                      {selectedChar.reference_url || charForm.reference_url ? (
+                        <img
+                          src={charForm.reference_url || selectedChar.reference_url}
+                          alt={selectedChar.name}
+                          className='size-full object-cover'
+                        />
+                      ) : (
+                        <span className='text-muted-foreground/30 text-6xl'>
+                          {selectedChar.name.charAt(0)}
+                        </span>
+                      )}
                     </div>
-                  ))}
-                </div>
-              ) : null}
+
+                    {/* Name */}
+                    <div>
+                      <Label htmlFor='char-name' className='text-xs'>
+                        {t('Character Name')}
+                      </Label>
+                      <Input
+                        id='char-name'
+                        value={charForm.name}
+                        onChange={(e) =>
+                          setCharForm((f) => ({ ...f, name: e.target.value }))
+                        }
+                        className='mt-1'
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <Label htmlFor='char-desc' className='text-xs'>
+                        {t('Description')}
+                      </Label>
+                      <Textarea
+                        id='char-desc'
+                        value={charForm.description}
+                        onChange={(e) =>
+                          setCharForm((f) => ({ ...f, description: e.target.value }))
+                        }
+                        placeholder={t('Describe the character...')}
+                        className='mt-1 h-20 resize-y text-sm'
+                      />
+                    </div>
+
+                    {/* Visual Prompt */}
+                    <div>
+                      <div className='flex items-center justify-between'>
+                        <Label className='text-xs'>{t('Visual Prompt')}</Label>
+                        <Button
+                          size='sm'
+                          variant='ghost'
+                          className='h-6 gap-1 text-[11px]'
+                          disabled={generatingFields.has(`${selectedChar.id}_visual_prompt`)}
+                          onClick={() =>
+                            handleGenerateCharField(selectedChar, 'visual_prompt')
+                          }
+                        >
+                          {generatingFields.has(`${selectedChar.id}_visual_prompt`) ? (
+                            <Loader2 className='size-3 animate-spin' />
+                          ) : (
+                            <Sparkles className='size-3' />
+                          )}
+                          {generatingFields.has(`${selectedChar.id}_visual_prompt`)
+                            ? t('Generating...')
+                            : t('AI generate')}
+                        </Button>
+                      </div>
+                      <Textarea
+                        value={charForm.visual_prompt}
+                        onChange={(e) =>
+                          setCharForm((f) => ({ ...f, visual_prompt: e.target.value }))
+                        }
+                        className='mt-1 h-16 resize-y text-xs'
+                      />
+                    </div>
+
+                    {/* Reference URL */}
+                    <div>
+                      <Label className='text-xs'>{t('Reference Image URL')}</Label>
+                      <Input
+                        value={charForm.reference_url}
+                        onChange={(e) =>
+                          setCharForm((f) => ({ ...f, reference_url: e.target.value }))
+                        }
+                        placeholder='https://...'
+                        className='mt-1 text-xs'
+                      />
+                    </div>
+
+                    {/* LoRA */}
+                    <div>
+                      <div className='flex items-center justify-between'>
+                        <Label className='text-xs'>{t('LoRA Parameters')}</Label>
+                        <Button
+                          size='sm'
+                          variant='ghost'
+                          className='h-6 gap-1 text-[11px]'
+                          disabled={generatingFields.has(`${selectedChar.id}_lora_params`)}
+                          onClick={() =>
+                            handleGenerateCharField(selectedChar, 'lora_params')
+                          }
+                        >
+                          {generatingFields.has(`${selectedChar.id}_lora_params`) ? (
+                            <Loader2 className='size-3 animate-spin' />
+                          ) : (
+                            <Sparkles className='size-3' />
+                          )}
+                          {generatingFields.has(`${selectedChar.id}_lora_params`)
+                            ? t('Generating...')
+                            : t('AI generate')}
+                        </Button>
+                      </div>
+                      <Input
+                        value={charForm.lora_params}
+                        onChange={(e) =>
+                          setCharForm((f) => ({ ...f, lora_params: e.target.value }))
+                        }
+                        placeholder={t('e.g. lora_name:0.8, trigger_word...')}
+                        className='mt-1 text-xs'
+                      />
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className='flex items-center gap-2 border-t pt-4'>
+                      <Button size='sm' onClick={handleSaveChar}>
+                        <Check className='mr-1.5 size-3.5' />
+                        {t('Save')}
+                      </Button>
+                      <Button
+                        size='sm'
+                        variant='outline'
+                        className='text-destructive'
+                        onClick={handleDeleteChar}
+                      >
+                        <Trash2 className='mr-1.5 size-3.5' />
+                        {t('Delete')}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className='flex h-full items-center justify-center'>
+                    <p className='text-muted-foreground text-sm'>
+                      {characters.length > 0
+                        ? t('Select a character to view details.')
+                        : t('No characters yet. Use AI Extract or Add Character to get started.')}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           ) : null}
 
@@ -1273,30 +1527,6 @@ ${brief}
         </>
       )}
 
-      {/* Character dialogs */}
-      <StudioCharacterMutateDrawer
-        open={charDialog === 'create' || charDialog === 'update'}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setCharDialog(null)
-            setCurrentChar(null)
-          }
-        }}
-        projectId={id}
-        currentRow={charDialog === 'update' ? (currentChar ?? undefined) : undefined}
-      />
-      <StudioCharacterDeleteDialog
-        open={charDialog === 'delete'}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setCharDialog(null)
-            setCurrentChar(null)
-          }
-        }}
-        projectId={id}
-        character={currentChar}
-      />
-
       {/* Shot dialogs */}
       <StudioShotMutateDrawer
         open={shotDialog === 'create' || shotDialog === 'update'}
@@ -1525,6 +1755,55 @@ function ChatBubble(props: { message: StageChatMessage }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ============================================================================
+// Inline AI field generator for character cards
+// ============================================================================
+
+function CharFieldWithAI(props: {
+  field: string
+  value?: string
+  charId: number
+  generating: boolean
+  onGenerate: () => void
+  t: (key: string) => string
+}) {
+  const { value, generating, onGenerate, t } = props
+  return (
+    <div className='min-w-0 flex-1'>
+      {value ? (
+        <div className='flex items-start gap-1'>
+          <p className='text-muted-foreground min-w-0 flex-1 truncate text-[11px] italic'>
+            {value}
+          </p>
+          <button
+            type='button'
+            className='text-muted-foreground hover:text-primary shrink-0 rounded p-0.5 transition-colors'
+            disabled={generating}
+            onClick={onGenerate}
+            title={t('Regenerate')}
+          >
+            <Sparkles className='size-3' aria-hidden='true' />
+          </button>
+        </div>
+      ) : (
+        <button
+          type='button'
+          className='text-primary flex items-center gap-1 text-[11px] transition-colors hover:underline'
+          disabled={generating}
+          onClick={onGenerate}
+        >
+          {generating ? (
+            <Loader2 className='size-3 animate-spin' aria-hidden='true' />
+          ) : (
+            <Sparkles className='size-3' aria-hidden='true' />
+          )}
+          {generating ? t('Generating...') : t('AI generate')}
+        </button>
+      )}
     </div>
   )
 }

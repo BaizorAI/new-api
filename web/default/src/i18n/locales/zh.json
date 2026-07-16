@@ -6328,6 +6328,9 @@
     "Rewriting...": "重写中...",
     "AI analysis passed. Mark this stage as complete to unlock the next stage.": "AI 分析已通过。标记此阶段为完成以解锁下一阶段。",
     "AI analysis suggests revisions. Rewrite with suggestions first.": "AI 分析建议修改。请先按建议重写。",
-    "Run AI analysis before marking the stage complete.": "请先运行 AI 分析再完成阶段。"
+    "Run AI analysis before marking the stage complete.": "请先运行 AI 分析再完成阶段。",
+    "Reference": "参考",
+    "LoRA": "LoRA",
+    "AI generate": "AI 生成"
   }
 }
