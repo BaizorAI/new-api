@@ -10,7 +10,7 @@ import {
   PanelRightOpen,
   PanelRightClose,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -23,6 +23,7 @@ import {
 import { Loader } from '@/components/ai-elements/loader'
 import { Message, MessageContent } from '@/components/ai-elements/message'
 import { Button } from '@/components/ui/button'
+import { SoftConversionBanner } from '@/components/soft-conversion-banner'
 import { cn } from '@/lib/utils'
 
 import {
@@ -31,6 +32,7 @@ import {
   getImageHistory,
   clearImageHistory,
 } from './api'
+import { createAsset } from '../asset-center/api'
 import { CharacterLockPanel } from './components/character-lock-panel'
 import { ComplianceCheckDialog } from './components/compliance-check-dialog'
 import {
@@ -90,6 +92,8 @@ export function ImagePlayground({
   )
   const [showTemplates, setShowTemplates] = useState(false)
   const [characters, setCharacters] = useState<LockedCharacter[]>([])
+  const [quotaRemaining, setQuotaRemaining] = useState(50)
+  const [quotaTotal, setQuotaTotal] = useState(100)
   const [consistencyEnabled, setConsistencyEnabled] = useState(false)
 
   // ── Prompt state ──────────────────────────────────────────────
@@ -118,6 +122,42 @@ export function ImagePlayground({
   const invalidateHistory = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: [...HISTORY_QUERY_KEY] })
   }, [queryClient])
+
+  // ── Auto-sync completed images to asset center ──────────────
+  const syncedAssetIds = useRef(new Set<number>())
+
+  useEffect(() => {
+    const completed = images.filter(
+      (img) => img.status === IMAGE_STATUS.COMPLETED
+        && img.image_url
+        && !syncedAssetIds.current.has(img.id)
+    )
+    if (completed.length === 0) return
+
+    Promise.allSettled(
+      completed.map((img) => {
+        syncedAssetIds.current.add(img.id)
+        return createAsset({
+          name: img.prompt.slice(0, 80),
+          asset_type: 'storyboard',
+          url: img.image_url || img.b64_json
+            ? `data:image/png;base64,${img.b64_json}`
+            : undefined,
+          source_app: 'image-playground',
+          source_id: img.id,
+          metadata: JSON.stringify({
+            model: img.model,
+            size: img.size,
+            quality: img.quality,
+            revised_prompt: img.revised_prompt,
+          }),
+        }).catch(() => {
+          // Remove from synced so it can retry next poll
+          syncedAssetIds.current.delete(img.id)
+        })
+      })
+    )
+  }, [images])
 
   // ── Handler (submits async, triggers refetch) ─────────────────
   const { generate, isSubmitting, error } = useImageHandler({
@@ -404,7 +444,7 @@ export function ImagePlayground({
             {/* Spacer */}
             <div className='ml-auto flex items-center gap-2'>
               {/* Quota badge */}
-              <QuotaBadge remaining={50} total={100} />
+              <QuotaBadge remaining={quotaRemaining} total={quotaTotal} />
 
               {/* Template toggle */}
               <Button
@@ -441,6 +481,14 @@ export function ImagePlayground({
             </div>
           </div>
         </div>
+
+        {/* Compute upsell when quota is low */}
+        {quotaRemaining <= quotaTotal * 0.2 ? (
+          <SoftConversionBanner
+            type='compute'
+            className='mx-4 mb-0 mt-0'
+          />
+        ) : null}
 
         <div className='flex min-h-0 flex-1'>
           {/* Main conversation area */}

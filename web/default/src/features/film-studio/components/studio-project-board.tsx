@@ -32,11 +32,13 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { SoftConversionBanner } from '@/components/soft-conversion-banner'
 
 import { getStudioProject } from '../api'
 import type { StudioStage } from '../types'
 import {
   PIPELINE_STAGES,
+  PROJECT_STATUS,
   STAGE_STATUS,
   STAGE_STATUS_CONFIG,
   STUDIO_QUERY_KEYS,
@@ -167,6 +169,13 @@ export function StudioProjectBoard() {
         <div className='flex gap-0 border-t'>
           <LoraTrainingPanel className='flex-1 border-r' />
           <ComputeDashboard className='flex-1' />
+        </div>
+      ) : null}
+
+      {/* Copyright upsell when project is completed */}
+      {project.status === PROJECT_STATUS.COMPLETED ? (
+        <div className='border-t'>
+          <SoftConversionBanner type='copyright' />
         </div>
       ) : null}
 
