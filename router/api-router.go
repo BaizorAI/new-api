@@ -369,6 +369,16 @@ func SetApiRouter(router *gin.Engine) {
 			studioRoute.DELETE("/projects/:id/stages/:key/messages/:msgId", controller.DeleteStudioChatMessage)
 			studioRoute.DELETE("/projects/:id/stages/:key/messages", controller.ClearStudioChatMessages)
 		}
+		assetRoute := apiRouter.Group("/asset-center")
+		assetRoute.Use(middleware.UserAuth())
+		{
+			assetRoute.GET("", controller.ListAssetCenter)
+			assetRoute.POST("", controller.CreateAssetCenter)
+			assetRoute.GET("/types", controller.ListAssetCenterTypes)
+			assetRoute.GET("/:id", controller.GetAssetCenter)
+			assetRoute.PUT("/:id", controller.UpdateAssetCenter)
+			assetRoute.DELETE("/:id", controller.DeleteAssetCenter)
+		}
 		logRoute := apiRouter.Group("/log")
 		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)
 		// Legacy synchronous direct-delete route used only by the classic frontend.

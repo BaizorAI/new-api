@@ -335,6 +335,7 @@
   "Workspace tasks stay first; model access, quota, audit and private deployment support the work when stronger boundaries are needed.": "Workspace tasks stay first; model access, quota, audit and private deployment support the work when stronger boundaries are needed.",
   "Workspaces, skills, shared sessions and results are first. Technical controls are still available, but they live where operators expect them.": "Workspaces, skills, shared sessions and results are first. Technical controls are still available, but they live where operators expect them.",
   "Write, edit and publish articles to Blog Hall.": "Write, edit and publish articles to Blog Hall.",
+  "Your asset library is empty. Assets from Image Lab, Video Lab, and Film Studio will appear here automatically.": "Your asset library is empty. Assets from Image Lab, Video Lab, and Film Studio will appear here automatically.",
   "Add a new shot to the storyboard.": "Add a new shot to the storyboard.",
   "AI will modify your script based on the response.": "AI will modify your script based on the response.",
   "Ask AI to help with this stage...": "Ask AI to help with this stage...",
@@ -392,5 +393,8 @@
   "Failed to create character.": "Failed to create character.",
   "Upload a reference image or generate one": "Upload a reference image or generate one",
   "Failed to update script.": "Failed to update script.",
-  "Add a visual prompt or description first.": "Add a visual prompt or description first."
+  "Add a visual prompt or description first.": "Add a visual prompt or description first.",
+  "AI analyze era and style": "AI analyze era and style",
+  "AI analyzes shot list quality and readiness for image generation.": "AI analyzes shot list quality and readiness for image generation.",
+  "Select a shot to edit.": "Select a shot to edit."
 }

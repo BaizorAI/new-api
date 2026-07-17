@@ -1,6 +1,4 @@
 {
-  "Administration": "Administration",
-  "AI Workspaces": "AI Workspaces",
   "Asset files are stored in the skill directory. To add or remove assets, upload them through the Hermes agent.": "资产文件存储于技能目录中。如需添加或删除，请通过 Hermes Agent 上传。",
   "Claude Model": "Claude 模型",
   "Claude Parameters": "Claude 参数",
@@ -17,17 +15,10 @@
   "Full SKILL.md body": "完整 SKILL.md 正文",
   "Maps to -c reasoning_effort=... in codex": "对应 codex 的 -c reasoning_effort=... 参数",
   "Maximum agentic turns (--max-turns). 0 = unlimited.": "最大 agent 轮次 (--max-turns)，0 = 不限制。",
-  "New Hermes Session": "New Hermes Session",
-  "New Playground Session": "New Playground Session",
   "No assets. Upload PPTX templates, images, or reference files to the skill directory.": "无资产文件。请上传 PPTX 模板、图片或参考文件到技能目录中。",
   "Overrides Default Model for claude. Leave empty to use Default Model.": "覆盖 claude 专用模型，留空则使用默认模型。",
   "Overrides Default Model for codex. Leave empty to use Default Model.": "覆盖 codex 专用模型，留空则使用默认模型。",
   "Pass --dangerously-bypass-approvals-and-sandbox to codex": "向 codex 传入 --dangerously-bypass-approvals-and-sandbox",
-  "Realtime": "Realtime",
-  "Rerank": "Rerank",
-  "Responses": "Responses",
-  "Sidecar": "Sidecar",
   "Write the complete skill instructions in markdown. Sections like Overview, When to Use, Procedure, Hard Rules, Verification are recommended.": "以 Markdown 格式编写完整的技能指令。建议包含概览、使用场景、流程、硬性规则、验证等章节。",
-  "Write the skill instructions in markdown...": "以 Markdown 格式编写技能指令...",
-  "S{{scene}}-{{shot}}": "S{{scene}}-{{shot}}"
+  "Write the skill instructions in markdown...": "以 Markdown 格式编写技能指令..."
 }

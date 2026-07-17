@@ -70,6 +70,7 @@ import { Route as AuthenticatedHermesPlaygroundIndexRouteImport } from './routes
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedBlogHallIndexRouteImport } from './routes/_authenticated/blog-hall/index'
+import { Route as AuthenticatedAssetCenterIndexRouteImport } from './routes/_authenticated/asset-center/index'
 import { Route as AuthenticatedUsageLogsSectionRouteImport } from './routes/_authenticated/usage-logs/$section'
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
@@ -433,6 +434,12 @@ const AuthenticatedBlogHallIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedBlogHallRouteRoute,
   } as any)
+const AuthenticatedAssetCenterIndexRoute =
+  AuthenticatedAssetCenterIndexRouteImport.update({
+    id: '/asset-center/',
+    path: '/asset-center/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedUsageLogsSectionRoute =
   AuthenticatedUsageLogsSectionRouteImport.update({
     id: '/usage-logs/$section',
@@ -642,6 +649,7 @@ export interface FileRoutesByFullPath {
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/asset-center/': typeof AuthenticatedAssetCenterIndexRoute
   '/blog-hall/': typeof AuthenticatedBlogHallIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -728,6 +736,7 @@ export interface FileRoutesByTo {
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/asset-center': typeof AuthenticatedAssetCenterIndexRoute
   '/blog-hall': typeof AuthenticatedBlogHallIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -821,6 +830,7 @@ export interface FileRoutesById {
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/_authenticated/asset-center/': typeof AuthenticatedAssetCenterIndexRoute
   '/_authenticated/blog-hall/': typeof AuthenticatedBlogHallIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -913,6 +923,7 @@ export interface FileRouteTypes {
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
+    | '/asset-center/'
     | '/blog-hall/'
     | '/channels/'
     | '/dashboard/'
@@ -999,6 +1010,7 @@ export interface FileRouteTypes {
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
+    | '/asset-center'
     | '/blog-hall'
     | '/channels'
     | '/dashboard'
@@ -1091,6 +1103,7 @@ export interface FileRouteTypes {
     | '/_authenticated/errors/$error'
     | '/_authenticated/models/$section'
     | '/_authenticated/usage-logs/$section'
+    | '/_authenticated/asset-center/'
     | '/_authenticated/blog-hall/'
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
@@ -1598,6 +1611,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBlogHallIndexRouteImport
       parentRoute: typeof AuthenticatedBlogHallRouteRoute
     }
+    '/_authenticated/asset-center/': {
+      id: '/_authenticated/asset-center/'
+      path: '/asset-center'
+      fullPath: '/asset-center/'
+      preLoaderRoute: typeof AuthenticatedAssetCenterIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/usage-logs/$section': {
       id: '/_authenticated/usage-logs/$section'
       path: '/usage-logs/$section'
@@ -1952,6 +1972,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
+  AuthenticatedAssetCenterIndexRoute: typeof AuthenticatedAssetCenterIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedHermesPlaygroundIndexRoute: typeof AuthenticatedHermesPlaygroundIndexRoute
@@ -1996,6 +2017,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
+  AuthenticatedAssetCenterIndexRoute: AuthenticatedAssetCenterIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedHermesPlaygroundIndexRoute:

@@ -438,7 +438,7 @@ func executeHermesCompletionTask(task *model.HermesExecutionTask) ([]byte, int, 
 		return nil, http.StatusInternalServerError, err
 	}
 
-	request := httptest.NewRequest(http.MethodPost, "/pg/chat/completions", bytes.NewReader(payloadBytes))
+	request := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(payloadBytes))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("New-Api-User", strconv.Itoa(task.UserId))
 	request.Header.Set("X-Baizor-Playground", "hermes")

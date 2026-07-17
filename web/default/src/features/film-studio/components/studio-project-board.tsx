@@ -42,8 +42,13 @@ import {
   STUDIO_QUERY_KEYS,
   type StageStatusValue,
 } from '../constants'
-import { useMemo, useState } from 'react'
 import { StudioProjectMutateDialog } from './studio-project-mutate-drawer'
+import {
+  StudioVersionGuard,
+  resolveStudioEdition,
+} from './studio-version-guard'
+import { LoraTrainingPanel } from './lora-training-panel'
+import { ComputeDashboard } from './compute-dashboard'
 
 export function StudioProjectBoard() {
   const { t } = useTranslation()
@@ -52,6 +57,8 @@ export function StudioProjectBoard() {
   })
   const id = Number(projectId)
   const [editOpen, setEditOpen] = useState(false)
+  const [showEnterprise, setShowEnterprise] = useState(false)
+  const edition = resolveStudioEdition(0) // TODO: wire to user role from auth context
 
   const { data, isLoading } = useQuery({
     queryKey: [...STUDIO_QUERY_KEYS.project(id)],
@@ -120,6 +127,17 @@ export function StudioProjectBoard() {
         >
           <Pencil className='size-4' />
         </Button>
+        {edition === 'enterprise-pro' ? (
+          <Button
+            variant='ghost'
+            size='sm'
+            className='h-8 text-xs'
+            onClick={() => setShowEnterprise((v) => !v)}
+          >
+            <Server className='mr-1 size-3.5' />
+            {showEnterprise ? t('Hide panels') : t('Enterprise')}
+          </Button>
+        ) : null}
       </div>
 
       {/* Pipeline board */}
@@ -143,6 +161,14 @@ export function StudioProjectBoard() {
           })}
         </div>
       </ScrollArea>
+
+      {/* Enterprise panels */}
+      {edition === 'enterprise-pro' && showEnterprise ? (
+        <div className='flex gap-0 border-t'>
+          <LoraTrainingPanel className='flex-1 border-r' />
+          <ComputeDashboard className='flex-1' />
+        </div>
+      ) : null}
 
       {/* Edit project dialog */}
       <StudioProjectMutateDialog
