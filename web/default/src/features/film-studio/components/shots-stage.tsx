@@ -107,7 +107,7 @@ export function ShotsStage({
   return (
     <div className='flex min-h-0 flex-1'>
       {/* Left sidebar — shot list */}
-      <div className='border-border w-[280px] shrink-0 space-y-1 overflow-auto border-r p-3'>
+      <div className='border-border w-[280px] shrink-0 space-y-1 overflow-auto border-r p-3 min-h-0'>
         <div className='flex items-center justify-between pb-1'>
           <h2 className='text-sm font-medium'>{t('Shots')} ({shots.length})</h2>
         </div>
@@ -162,7 +162,7 @@ export function ShotsStage({
       </div>
 
       {/* Center: detail editing */}
-      <div className='min-w-0 flex-1 overflow-auto p-4'>
+      <div className='min-w-0 flex-1 overflow-auto p-4 min-h-0'>
         {selectedShot ? (
           <div className='mx-auto max-w-2xl space-y-3'>
             {selectedShot.image_url ? (

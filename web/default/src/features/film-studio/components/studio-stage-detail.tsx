@@ -533,22 +533,37 @@ export function StudioStageDetail() {
   }, [id, queryClient, t])
 
   const handleAIAnalyze = useCallback(() => {
-    const script = scriptEditorRef.current?.getText() ?? ''
-    if (!script.trim()) return
     setIsAnalyzing(true)
-    const prompt = `请对以下剧本进行全面分析，评估其是否已准备好进入下一阶段（角色设计和分镜）。请从以下维度评估：
-1. 故事结构是否完整
-2. 场景描述是否清晰
-3. 对话是否自然
-4. 是否适合进行角色设计和分镜
 
-请明确给出结论：✅ 可以进入下一阶段，或 ⚠️ 需要修改并说明原因。`
+    const stagePrompts: Record<string, { prompt: string; context: string }> = {
+      script: {
+        prompt: '请对以下剧本进行全面分析，评估是否准备好进入角色设计和分镜阶段。从故事结构、场景描述、对话质量、角色鲜明度评估。请明确结论：✅ 可以进入下一阶段，或 ⚠️ 需要修改并说明原因。',
+        context: scriptEditorRef.current?.getText() ?? '',
+      },
+      characters: {
+        prompt: '请分析角色清单是否准备好进入分镜。检查每个角色的视觉提示词、描述、参考图是否完整。请明确结论：✅ 可以进入下一阶段，或 ⚠️ 需要修改并说明原因。',
+        context: characters.map(c => `[${c.name}] ${c.description} visual:${c.visual_prompt} ref:${c.reference_url ? 'yes' : 'no'}`).join('\n'),
+      },
+      storyboard: {
+        prompt: '请分析分镜列表是否准备好进入图片生成。检查镜头描述、角度、运动、时长是否合理。请明确结论：✅ 可以进入下一阶段，或 ⚠️ 需要修改并说明原因。',
+        context: shots.map(s => `S${s.scene_number}-${s.shot_number}: ${s.description} [${s.camera_angle}] ${s.duration}s`).join('\n'),
+      },
+      image_gen: {
+        prompt: '请评估图片质量和风格一致性，是否可进入视频生成。请明确结论：✅ 可以进入下一阶段，或 ⚠️ 需要修改并说明原因。',
+        context: shots.map(s => `S${s.scene_number}-${s.shot_number}: img=${s.image_url ? 'done' : 'pending'}`).join('\n'),
+      },
+      video_gen: {
+        prompt: '请评估视频质量，是否可进入后期制作。请明确结论：✅ 可以进入下一阶段，或 ⚠️ 需要修改并说明原因。',
+        context: shots.map(s => `S${s.scene_number}-${s.shot_number}: vid=${s.video_url ? 'done' : 'pending'}`).join('\n'),
+      },
+      post: { prompt: '请检查后期清单完成度。请明确结论：✅ 可以进入下一阶段，或 ⚠️ 需要修改并说明原因。', context: stage?.output_data ?? '' },
+      review: { prompt: '请做最终质量检查。请明确结论：✅ 项目可以完成，或 ⚠️ 需要修改并说明原因。', context: `${project?.name}: ${stages.filter(s => s.status === STAGE_STATUS.COMPLETED).length}/7 stages done` },
+    }
 
-    sendMessage(prompt, {
-      scriptContext: script,
-      modificationType: 'analyze',
-    })
-  }, [sendMessage])
+    const config = stagePrompts[stageKey] ?? stagePrompts.script
+    if (!config.context.trim()) { setIsAnalyzing(false); return }
+    sendMessage(config.prompt, { scriptContext: config.context, modificationType: 'analyze' })
+  }, [stageKey, sendMessage, scriptEditorRef, characters, shots, stages, stage, project])
 
   const handleMarkComplete = useCallback(async () => {
     try {
@@ -693,7 +708,15 @@ ${brief}
               variant='outline'
               disabled={isAnalyzing || isStreaming}
               onClick={() => handleAIAnalyze()}
-              title={t('AI analyzes the script and gives a readiness recommendation.')}
+              title={t(
+                stageKey === 'script' ? 'AI analyzes the script structure and readiness for next stage.'
+                : stageKey === 'characters' ? 'AI analyzes character completeness and readiness for storyboarding.'
+                : stageKey === 'storyboard' ? 'AI analyzes shot list quality and readiness for image generation.'
+                : stageKey === 'image_gen' ? 'AI assesses image quality and style consistency.'
+                : stageKey === 'video_gen' ? 'AI assesses video quality and readiness for post-production.'
+                : stageKey === 'post' ? 'AI checks post-production checklist completeness.'
+                : 'AI performs final quality review and export readiness.'
+              )}
             >
               {isAnalyzing ? (
                 <Loader2 className='mr-1.5 size-3.5 animate-spin' />
@@ -781,16 +804,47 @@ ${brief}
             </>
           ) : null}
 
-          {/* Shots: AI Extract + Add */}
-          {showShotsCrud ? (
+          {/* Storyboard: AI Extract → Add */}
+          {stageKey === 'storyboard' ? (
             <>
-              {stageKey === 'storyboard' ? (
-                <Button size='sm' variant='outline' disabled={!scriptText.trim() || isExtractingShots}
-                  onClick={() => void extractShots(scriptText)}>
-                  {isExtractingShots ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Wand2 className='mr-1.5 size-3.5 text-purple-500' />}
-                  {isExtractingShots ? t('Extracting...') : t('AI Extract')}
-                </Button>
-              ) : null}
+              <Button size='sm' variant='outline' disabled={!scriptText.trim() || isExtractingShots}
+                onClick={() => void extractShots(scriptText)}>
+                {isExtractingShots ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Wand2 className='mr-1.5 size-3.5 text-purple-500' />}
+                {isExtractingShots ? t('Extracting...') : t('AI Extract')}
+              </Button>
+              <Button size='sm' variant='outline' onClick={() => { setCurrentShot(null); setShotDialog('create') }}>
+                <Plus className='mr-1.5 size-3.5 text-emerald-500' />{t('Add Shot')}
+              </Button>
+            </>
+          ) : null}
+
+          {/* Image Gen: Generate All Images → Add */}
+          {stageKey === 'image_gen' && shots.length > 0 ? (
+            <>
+              <Button size='sm' variant='outline' disabled={isBatchImgGenerating || shotsWithoutImage.length === 0}
+                onClick={() => { for (const s of shotsWithoutImage) void generateImage(s) }}>
+                {isBatchImgGenerating ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Images className='mr-1.5 size-3.5 text-blue-500' />}
+                {isBatchImgGenerating ? t('Generating...') : t('Generate All Images')}
+              </Button>
+              <Button size='sm' variant='outline' onClick={() => { setCurrentShot(null); setShotDialog('create') }}>
+                <Plus className='mr-1.5 size-3.5 text-emerald-500' />{t('Add Shot')}
+              </Button>
+            </>
+          ) : null}
+
+          {/* Video Gen: Generate Images → Generate Videos → Add */}
+          {stageKey === 'video_gen' && shots.length > 0 ? (
+            <>
+              <Button size='sm' variant='outline' disabled={isBatchImgGenerating || shotsWithoutImage.length === 0}
+                onClick={() => { for (const s of shotsWithoutImage) void generateImage(s) }}>
+                {isBatchImgGenerating ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Images className='mr-1.5 size-3.5 text-blue-500' />}
+                {isBatchImgGenerating ? t('Generating...') : t('Generate All Images')}
+              </Button>
+              <Button size='sm' variant='outline' disabled={isBatchVidGenerating || shotsWithoutVideo.length === 0}
+                onClick={() => { for (const s of shotsWithoutVideo) void generateVideo(s) }}>
+                {isBatchVidGenerating ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Video className='mr-1.5 size-3.5 text-indigo-500' />}
+                {isBatchVidGenerating ? t('Generating...') : t('Generate All Videos')}
+              </Button>
               <Button size='sm' variant='outline' onClick={() => { setCurrentShot(null); setShotDialog('create') }}>
                 <Plus className='mr-1.5 size-3.5 text-emerald-500' />{t('Add Shot')}
               </Button>
