@@ -364,27 +364,22 @@ func NewBillingSession(c *gin.Context, relayInfo *relaycommon.RelayInfo, preCons
 		if err != nil {
 			return nil, types.NewError(err, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
 		}
-		if teamQuota <= 0 {
-			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("团队额度不足, 剩余额度: %s", logger.FormatQuota(teamQuota)),
-				types.ErrorCodeInsufficientUserQuota, http.StatusForbidden,
-				types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())
-		}
-		if teamQuota-preConsumedQuota < 0 {
-			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("预扣费额度失败，团队剩余额度: %s, 需要预扣费额度: %s", logger.FormatQuota(teamQuota), logger.FormatQuota(preConsumedQuota)),
-				types.ErrorCodeInsufficientUserQuota, http.StatusForbidden,
-				types.ErrOptionWithSkipRetry(), types.ErrOptionWithNoRecordErrorLog())
-		}
 		relayInfo.TeamQuota = teamQuota
-		session := &BillingSession{
-			relayInfo: relayInfo,
-			funding:   &TeamFunding{teamId: relayInfo.TeamId},
+
+		if teamQuota > 0 && teamQuota >= preConsumedQuota {
+			// 团队额度充足，使用团队计费
+			session := &BillingSession{
+				relayInfo: relayInfo,
+				funding:   &TeamFunding{teamId: relayInfo.TeamId},
+			}
+			if apiErr := session.preConsume(c, preConsumedQuota); apiErr != nil {
+				return nil, apiErr
+			}
+			return session, nil
 		}
-		if apiErr := session.preConsume(c, preConsumedQuota); apiErr != nil {
-			return nil, apiErr
-		}
-		return session, nil
+		// 团队额度不足，回退到个人计费
+		logger.LogInfo(c, fmt.Sprintf("用户 %d 所在团队 %d 额度不足 (团队额度: %s, 需要预扣费: %s)，回退到个人计费",
+			relayInfo.UserId, relayInfo.TeamId, logger.FormatQuota(teamQuota), logger.FormatQuota(preConsumedQuota)))
 	}
 
 	pref := common.NormalizeBillingPreference(relayInfo.UserSetting.BillingPreference)

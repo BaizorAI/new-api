@@ -1048,6 +1048,10 @@ ${brief}
             </ScrollArea>
           )}
 
+
+          {stageKey !== "characters" ? (
+            <div className="flex min-h-0 flex-1">
+              <div className="min-w-0 flex-1">
           {showShotsCrud ? (
             <div className='space-y-3'>
               <div className='flex items-center justify-between'>
@@ -1441,24 +1445,23 @@ ${brief}
             <ReviewGallerySection shots={shots} />
           ) : null}
 
-          {stageKey !== 'characters' ? (
-            <div className='w-[340px]'>
-              <CharacterChatPanel
-                messages={messages}
-                loadingHistory={loadingHistory}
-                isStreaming={isStreaming}
-                placeholder={placeholder}
-                onClearMessages={clearMessages}
-                onDeleteMessage={deleteMessage}
-                onSubmit={handleSubmit}
-                onStopGeneration={stopGeneration}
-              />
+              </div>
+              <div className="w-[340px] shrink-0">
+                <CharacterChatPanel
+                  messages={messages}
+                  loadingHistory={loadingHistory}
+                  isStreaming={isStreaming}
+                  placeholder={placeholder}
+                  onClearMessages={clearMessages}
+                  onDeleteMessage={deleteMessage}
+                  onSubmit={handleSubmit}
+                  onStopGeneration={stopGeneration}
+                />
+              </div>
             </div>
           ) : null}
         </>
       )}
-
-      {/* Shot dialogs */}
       <StudioShotMutateDrawer
         open={shotDialog === 'create' || shotDialog === 'update'}
         onOpenChange={(isOpen) => {
