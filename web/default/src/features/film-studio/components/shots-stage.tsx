@@ -25,6 +25,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 
 import { updateStudioShot, deleteStudioShot } from '../api'
@@ -93,12 +94,14 @@ export function ShotsStage({
   const showVid = stageKey === 'video_gen'
 
   return (
-    <div className='flex min-h-0 flex-1'>
+    <div className='flex min-h-0 flex-1 overflow-hidden'>
       {/* Left sidebar — shot list */}
-      <div className='border-border w-[280px] shrink-0 space-y-1 overflow-auto border-r p-3 min-h-0'>
-        <div className='flex items-center justify-between pb-1'>
+      <div className='border-border flex w-[280px] shrink-0 flex-col border-r'>
+        <div className='border-b p-3'>
           <h2 className='text-sm font-medium'>{t('Shots')} ({shots.length})</h2>
         </div>
+        <ScrollArea className='min-h-0 flex-1 h-full'>
+          <div className='space-y-1 p-3 pt-0'>
         {shots.length > 0 ? shots.map((shot, shotIndex) => {
           const isGen = generatingIds.has(shot.id)
           const isVidGen = videoGeneratingIds.has(shot.id)
@@ -142,10 +145,13 @@ export function ShotsStage({
             </div>
           )
         }) : <p className='text-muted-foreground px-1 text-xs'>{t('No shots found.')}</p>}
+          </div>
+        </ScrollArea>
       </div>
 
       {/* Center: detail editing */}
-      <div className='min-w-0 flex-1 overflow-auto p-4 min-h-0'>
+      <ScrollArea className='min-w-0 flex-1 h-full'>
+        <div className='p-4'>
         {selectedShot ? (
           <div className='mx-auto max-w-2xl space-y-3'>
             {selectedShot.image_url ? (
@@ -177,7 +183,8 @@ export function ShotsStage({
             <p className='text-muted-foreground text-xs'>{t('Select a shot to edit.')}</p>
           </div>
         )}
-      </div>
+        </div>
+      </ScrollArea>
 
       {/* Fullscreen video */}
       {fullscreenVideo ? (

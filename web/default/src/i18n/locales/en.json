@@ -6352,6 +6352,10 @@
     "Image style context (shared prefix for all characters)": "Image style context (shared prefix for all characters)",
     "Extracted {{count}} characters, skipped {{skipped}} duplicates.": "Extracted {{count}} characters, skipped {{skipped}} duplicates.",
     "All {{count}} characters already exist.": "All {{count}} characters already exist.",
-    "AI analyze era and style": "AI analyze era and style"
+    "AI analyze era and style": "AI analyze era and style",
+    "AI analyzes shot list quality and readiness for image generation.": "AI analyzes shot list quality and readiness for image generation.",
+    "Select a shot to edit.": "Select a shot to edit.",
+    "No new shots found — all shots already exist.": "No new shots found — all shots already exist.",
+    "Extracted {{count}} shots, skipped {{skipped}} duplicates.": "Extracted {{count}} shots, skipped {{skipped}} duplicates."
   }
 }

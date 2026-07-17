@@ -6352,6 +6352,10 @@
     "Image style context (shared prefix for all characters)": "图片风格上下文（所有角色共享的前缀）",
     "Extracted {{count}} characters, skipped {{skipped}} duplicates.": "已提取 {{count}} 个角色，跳过 {{skipped}} 个重复。",
     "All {{count}} characters already exist.": "{{count}} 个角色均已存在。",
-    "AI analyze era and style": "AI 分析年代和风格"
+    "AI analyze era and style": "AI 分析年代和风格",
+    "AI analyzes shot list quality and readiness for image generation.": "AI 分析分镜列表质量和是否准备好进行图片生成。",
+    "Select a shot to edit.": "选择镜头以编辑。",
+    "No new shots found — all shots already exist.": "未发现新镜头——所有镜头已存在。",
+    "Extracted {{count}} shots, skipped {{skipped}} duplicates.": "已提取 {{count}} 个镜头，跳过 {{skipped}} 个重复。"
   }
 }

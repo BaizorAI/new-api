@@ -89,7 +89,7 @@ export function useExtractCharacters(projectId: number) {
   const [isExtracting, setIsExtracting] = useState(false)
 
   const extractCharacters = useCallback(
-    async (scriptText: string, existingNames: string[] = []) => {
+    async (scriptText: string, existingNames: string[] = [], onComplete?: (msg: string) => void) => {
       if (isExtracting) return
       setIsExtracting(true)
 
@@ -153,10 +153,14 @@ export function useExtractCharacters(projectId: number) {
           const msg = skipped > 0
             ? t('Extracted {{count}} characters, skipped {{skipped}} duplicates.', { count: created, skipped })
             : t('Extracted {{count}} characters from script.', { count: created })
+          onComplete?.(msg)
           toast.success(msg)
         } else if (skipped > 0) {
-          toast.info(t('All {{count}} characters already exist.', { count: skipped }))
+          const msg = t('All {{count}} characters already exist.', { count: skipped })
+          onComplete?.(msg)
+          toast.info(msg)
         } else {
+          onComplete?.(t('No characters found in the script.'))
           toast.info(t('No characters found in the script.'))
         }
       } catch (err) {
@@ -198,9 +202,11 @@ export function useExtractShots(projectId: number) {
   const [isExtracting, setIsExtracting] = useState(false)
 
   const extractShots = useCallback(
-    async (scriptText: string) => {
+    async (scriptText: string, existingDescs: string[] = [], onComplete?: (msg: string) => void) => {
       if (isExtracting) return
       setIsExtracting(true)
+
+      const existing = new Set(existingDescs.map((d) => d.trim().toLowerCase()))
 
       try {
         const response = await sendChatCompletion(
@@ -252,18 +258,35 @@ export function useExtractShots(projectId: number) {
           return
         }
 
-        // Bulk-create shots
-        await createStudioShots(projectId, shotDataList)
+        // Deduplicate: skip shots with duplicate descriptions
+        const uniqueShots: StudioShotFormData[] = []
+        for (const s of shotDataList) {
+          const desc = s.description?.trim().toLowerCase()
+          if (!desc || existing.has(desc)) continue
+          existing.add(desc)
+          uniqueShots.push(s)
+        }
+
+        if (uniqueShots.length === 0) {
+          const msg = t('No new shots found — all shots already exist.')
+          onComplete?.(msg)
+          toast.info(msg)
+          return
+        }
+
+        // Bulk-create unique shots
+        await createStudioShots(projectId, uniqueShots)
 
         void queryClient.invalidateQueries({
           queryKey: [...STUDIO_QUERY_KEYS.shots(projectId)],
         })
 
-        toast.success(
-          t('Extracted {{count}} shots from script.', {
-            count: shotDataList.length,
-          })
-        )
+        const skipped = shotDataList.length - uniqueShots.length
+        const msg = skipped > 0
+          ? t('Extracted {{count}} shots, skipped {{skipped}} duplicates.', { count: uniqueShots.length, skipped })
+          : t('Extracted {{count}} shots from script.', { count: uniqueShots.length })
+        onComplete?.(msg)
+        toast.success(msg)
       } catch (err) {
         toast.error(
           t('Failed to extract shots.') +

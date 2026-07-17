@@ -392,7 +392,7 @@ export function StudioStageDetail() {
     }
   }, [id, queryClient, charForm.visual_prompt, t])
 
-  const { messages, sendMessage, stopGeneration, clearMessages, deleteMessage, loadingHistory, isStreaming } =
+  const { messages, sendMessage, stopGeneration, clearMessages, deleteMessage, addAssistantMessage, loadingHistory, isStreaming } =
     useStudioStageChat({
       projectId: id,
       stageKey,
@@ -734,7 +734,12 @@ ${brief}
                 size='sm'
                 variant='outline'
                 disabled={!scriptText.trim() || isExtractingChars}
-                onClick={() => void extractCharacters(scriptText, characters.map(c => c.name))}
+                onClick={() => {
+                  addAssistantMessage(`🔍 正在从剧本中提取角色...`)
+                  void extractCharacters(scriptText, characters.map(c => c.name), (msg) => {
+                    addAssistantMessage(`✅ ${msg}`)
+                  })
+                }}
               >
                 {isExtractingChars ? (
                   <Loader2 className='mr-1.5 size-3.5 animate-spin' />
@@ -743,64 +748,6 @@ ${brief}
                 )}
                 {isExtractingChars ? t('Extracting...') : t('AI Extract')}
               </Button>
-
-              <div className='flex items-center gap-1'>
-                <Input
-                  value={styleContext}
-                  onChange={(e) => setStyleContext(e.target.value)}
-                  placeholder={t('Image style context (shared prefix for all characters)')}
-                  className='h-7 w-48 text-[11px]'
-                />
-                <Button
-                  size='sm'
-                  variant='ghost'
-                  className='h-7 w-7 p-0'
-                  disabled={!scriptText.trim()}
-                  onClick={async () => {
-                    const hermesHeaders: Record<string, string> = {
-                      'X-Baizor-Playground': 'hermes',
-                      'X-Baizor-Hermes-Skill-Activate': '/magicalbrush',
-                    }
-                    try {
-                      const result = await sendChatCompletion({
-                        model: 'huayu-v2',
-                        messages: [
-                          { role: 'system', content: 'Extract the era, region, and visual style of this screenplay. Output ONLY a short comma-separated style context for AI image generation. Example: "Ancient China, Tang Dynasty, ink painting style, flowing silk robes". Keep under 120 characters.' },
-                          { role: 'user', content: scriptText.slice(0, 3000) },
-                        ],
-                        stream: false,
-                        temperature: 0.3,
-                      }, hermesHeaders)
-                      const content = result?.choices?.[0]?.message?.content?.trim()
-                      if (content) setStyleContext(content)
-                    } catch { /* ignore */ }
-                  }}
-                  title={t('AI analyze era and style')}
-                >
-                  <Sparkles className='size-3.5 text-amber-500' />
-                </Button>
-              </div>
-
-              <Button
-                size='sm'
-                variant='outline'
-                disabled={characters.length === 0}
-                onClick={() => {
-                  for (const c of characters) {
-                    if (c.visual_prompt?.trim() && !charImageGenIds.has(c.id)) {
-                      void handleGenerateCharImage(c)
-                    }
-                  }
-                }}
-              >
-                <Images className='mr-1.5 size-3.5 text-blue-500' />
-                {t('Generate All')}
-              </Button>
-
-              <Button size='sm' variant='outline' onClick={handleCreateChar}>
-                <Plus className='mr-1.5 size-3.5 text-emerald-500' />
-                {t('Add Character')}
-              </Button>
             </>
           ) : null}
 
@@ -808,7 +755,12 @@ ${brief}
           {stageKey === 'storyboard' ? (
             <>
               <Button size='sm' variant='outline' disabled={!scriptText.trim() || isExtractingShots}
-                onClick={() => void extractShots(scriptText)}>
+                onClick={() => {
+                  addAssistantMessage(`🔍 正在从剧本中提取分镜...`)
+                  void extractShots(scriptText, shots.map(s => s.description), (msg) => {
+                    addAssistantMessage(`✅ ${msg}`)
+                  })
+                }}>
                 {isExtractingShots ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Wand2 className='mr-1.5 size-3.5 text-purple-500' />}
                 {isExtractingShots ? t('Extracting...') : t('AI Extract')}
               </Button>
@@ -822,7 +774,10 @@ ${brief}
           {stageKey === 'image_gen' && shots.length > 0 ? (
             <>
               <Button size='sm' variant='outline' disabled={isBatchImgGenerating || shotsWithoutImage.length === 0}
-                onClick={() => { for (const s of shotsWithoutImage) void generateImage(s) }}>
+                onClick={() => {
+                  addAssistantMessage(`🖼️ 正在为 ${shotsWithoutImage.length} 个镜头生成图片...`)
+                  for (const s of shotsWithoutImage) void generateImage(s)
+                }}>
                 {isBatchImgGenerating ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Images className='mr-1.5 size-3.5 text-blue-500' />}
                 {isBatchImgGenerating ? t('Generating...') : t('Generate All Images')}
               </Button>
@@ -836,12 +791,18 @@ ${brief}
           {stageKey === 'video_gen' && shots.length > 0 ? (
             <>
               <Button size='sm' variant='outline' disabled={isBatchImgGenerating || shotsWithoutImage.length === 0}
-                onClick={() => { for (const s of shotsWithoutImage) void generateImage(s) }}>
+                onClick={() => {
+                  addAssistantMessage(`🖼️ 正在为 ${shotsWithoutImage.length} 个镜头生成图片...`)
+                  for (const s of shotsWithoutImage) void generateImage(s)
+                }}>
                 {isBatchImgGenerating ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Images className='mr-1.5 size-3.5 text-blue-500' />}
                 {isBatchImgGenerating ? t('Generating...') : t('Generate All Images')}
               </Button>
               <Button size='sm' variant='outline' disabled={isBatchVidGenerating || shotsWithoutVideo.length === 0}
-                onClick={() => { for (const s of shotsWithoutVideo) void generateVideo(s) }}>
+                onClick={() => {
+                  addAssistantMessage(`🎬 正在为 ${shotsWithoutVideo.length} 个镜头生成视频...`)
+                  for (const s of shotsWithoutVideo) void generateVideo(s)
+                }}>
                 {isBatchVidGenerating ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Video className='mr-1.5 size-3.5 text-indigo-500' />}
                 {isBatchVidGenerating ? t('Generating...') : t('Generate All Videos')}
               </Button>
@@ -1106,7 +1067,7 @@ ${brief}
 
 
           {stageKey !== "characters" ? (
-            <div className="flex min-h-0 flex-1">
+            <div className="flex min-h-0 flex-1 overflow-hidden">
               <div className="min-w-0 flex-1 min-h-0">
 {showShotsCrud ? (
   <ShotsStage projectId={id} stageKey={stageKey} shots={shots}
