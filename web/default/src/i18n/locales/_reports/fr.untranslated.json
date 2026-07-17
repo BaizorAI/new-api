@@ -395,5 +395,19 @@
   "Add a visual prompt or description first.": "Add a visual prompt or description first.",
   "AI analyze era and style": "AI analyze era and style",
   "AI analyzes shot list quality and readiness for image generation.": "AI analyzes shot list quality and readiness for image generation.",
-  "Select a shot to edit.": "Select a shot to edit."
+  "Select a shot to edit.": "Select a shot to edit.",
+  "AI-powered film production: image, video, and full pipeline.": "AI-powered film production: image, video, and full pipeline.",
+  "Generate key frames, storyboard shots, and character designs.": "Generate key frames, storyboard shots, and character designs.",
+  "Generate video clips with camera control and timeline editing.": "Generate video clips with camera control and timeline editing.",
+  "Profile, wallet, playground, and personal navigation settings.": "Profile, wallet, playground, and personal navigation settings.",
+  "Toggle on to lock character appearance": "Toggle on to lock character appearance",
+  "Submit a video generation to see tasks here.": "Submit a video generation to see tasks here.",
+  "Your content is safe to generate.": "Your content is safe to generate.",
+  "Tell us what kind of content you create so we can tailor the experience.": "Tell us what kind of content you create so we can tailor the experience.",
+  "Describe the video you want to generate...": "Describe the video you want to generate...",
+  "Upgrade to Enterprise for local deployment, team collaboration, LoRA fine-tuning, and priority compute.": "Upgrade to Enterprise for local deployment, team collaboration, LoRA fine-tuning, and priority compute.",
+  "Elastic compute boost reduces render time by up to 5×. Compare tiers and buy a compute pack without leaving your workflow.": "Elastic compute boost reduces render time by up to 5×. Compare tiers and buy a compute pack without leaving your workflow.",
+  "Join our director masterclass — hands-on training with real productions. Includes bonus compute credits.": "Join our director masterclass — hands-on training with real productions. Includes bonus compute credits.",
+  "You are working with sensitive content. Private deployment ensures data never leaves your infrastructure.": "You are working with sensitive content. Private deployment ensures data never leaves your infrastructure.",
+  "Register copyright and monitor for infringement. Upgrade to the full copyright package for official registration + automated takedowns.": "Register copyright and monitor for infringement. Upgrade to the full copyright package for official registration + automated takedowns."
 }

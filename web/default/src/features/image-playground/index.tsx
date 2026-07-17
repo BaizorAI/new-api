@@ -140,9 +140,8 @@ export function ImagePlayground({
         return createAsset({
           name: img.prompt.slice(0, 80),
           asset_type: 'storyboard',
-          url: img.image_url || img.b64_json
-            ? `data:image/png;base64,${img.b64_json}`
-            : undefined,
+          url: img.image_url
+            || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : undefined),
           source_app: 'image-playground',
           source_id: img.id,
           metadata: JSON.stringify({
