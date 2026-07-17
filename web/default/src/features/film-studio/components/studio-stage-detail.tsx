@@ -36,6 +36,7 @@ import {
   Play,
   Plus,
   RefreshCw,
+  Shield,
   Sparkles,
   SquareIcon,
   Trash2,
@@ -104,6 +105,7 @@ import {
   type StageChatMessage,
 } from '../hooks/use-studio-stage-chat'
 import { useExtractCharacters, useExtractShots } from '../hooks/use-ai-extraction'
+import { useSubtitleGen } from '../hooks/use-subtitle-gen'
 import { useShotImageGen } from '../hooks/use-shot-image-gen'
 import { useShotVideoGen } from '../hooks/use-shot-video-gen'
 import { useSwapShotOrder } from '../hooks/use-studio-mutations'
@@ -119,6 +121,7 @@ import { CharacterChatPanel } from './character-chat-panel'
 import { CharactersStage } from './characters-stage'
 import { ScriptChatBubble, extractScriptBlock, isAnalysisMessage } from './chat-bubble'
 import { ShotsStage } from './shots-stage'
+import { TimelineStage } from './timeline-stage'
 
 // Stage-specific placeholder text for the chat input
 const STAGE_PLACEHOLDERS: Record<string, string> = {
@@ -253,7 +256,12 @@ export function StudioStageDetail() {
   const { data: charsData } = useQuery({
     queryKey: [...STUDIO_QUERY_KEYS.characters(id)],
     queryFn: () => getStudioCharacters(id),
-    enabled: id > 0 && stageKey === 'characters',
+    enabled: id > 0 && (
+      stageKey === 'characters' ||
+      stageKey === 'storyboard' ||
+      stageKey === 'image_gen' ||
+      stageKey === 'video_gen'
+    ),
   })
 
   const isPageLoading = isLoadingProject || isLoadingStages
@@ -262,6 +270,11 @@ export function StudioStageDetail() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const analysisRef = useRef(false)
   analysisRef.current = !!isAnalyzing
+
+  // Consistency check state
+  const [isChecking, setIsChecking] = useState(false)
+  const checkingRef = useRef(false)
+  checkingRef.current = !!isChecking
 
   // Track which character fields are being AI-generated
   const [generatingFields, setGeneratingFields] = useState<Set<string>>(new Set())
@@ -400,6 +413,9 @@ export function StudioStageDetail() {
         // Stop the analyzing spinner when the AI response completes
         if (analysisRef.current) {
           setIsAnalyzing(false)
+        }
+        if (checkingRef.current) {
+          setIsChecking(false)
         }
       },
     })
@@ -565,6 +581,29 @@ export function StudioStageDetail() {
     sendMessage(config.prompt, { scriptContext: config.context, modificationType: 'analyze' })
   }, [stageKey, sendMessage, scriptEditorRef, characters, shots, stages, stage, project])
 
+  const handleConsistencyCheck = useCallback(() => {
+    setIsChecking(true)
+
+    const stageContexts: Record<string, { prompt: string; context: string }> = {
+      characters: {
+        prompt: '请检查所有角色设计的视觉一致性。检查项目：1.角色身份保持 — 面部结构、发型、服装是否一致 2.风格一致性 — 视觉提示词是否与项目风格DNA匹配 3.色彩调色板 — 角色调色板是否互补且不冲突 4.LoRA参数一致性。对每个问题提供严重程度（高/中/低）、描述和建议修复。给出总体一致性得分（0-1）。',
+        context: characters.map(c =>
+          `[${c.name}] 描述: ${c.description} 视觉提示词: ${c.visual_prompt} LoRA: ${c.lora_params} 参考图: ${c.reference_url ? '已提供' : '无'}`
+        ).join('\n'),
+      },
+      image_gen: {
+        prompt: '请检查所有生成镜头图像的视觉一致性。检查项目：1.跨镜头风格漂移 2.角色外观在不同镜头中是否保持不变 3.场景连续性（光照、天气、道具） 4.色彩调色板执行 5.比例与比例关系。对每个问题提供严重程度（高/中/低）、描述和建议修复。给出总体一致性得分（0-1）。',
+        context: shots.map(s =>
+          `S${s.scene_number}-${s.shot_number}: ${s.description} 图片=${s.image_url ? '已生成' : '待处理'} 角色=${s.character_ids || '无'}`
+        ).join('\n'),
+      },
+    }
+
+    const config = stageContexts[stageKey]
+    if (!config || !config.context.trim()) { setIsChecking(false); return }
+    sendMessage(config.prompt, { scriptContext: config.context, modificationType: 'consistency_check' })
+  }, [stageKey, sendMessage, characters, shots])
+
   const handleMarkComplete = useCallback(async () => {
     try {
       const result = await updateStudioStage(id, stageKey, {
@@ -627,6 +666,8 @@ ${brief}
     stageKey === 'storyboard' ||
     stageKey === 'image_gen' ||
     stageKey === 'video_gen'
+
+  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list')
 
   const shotsWithoutImage = shots.filter((s) => !s.image_url)
   const shotsWithoutVideo = shots.filter((s) => !s.video_url)
@@ -724,6 +765,28 @@ ${brief}
                 <Sparkles className='mr-1.5 size-3.5 text-amber-500' />
               )}
               {isAnalyzing ? t('Analyzing...') : t('AI Analyze')}
+            </Button>
+          ) : null}
+
+          {/* Consistency check — characters and image_gen stages */}
+          {(stageKey === 'characters' || stageKey === 'image_gen') ? (
+            <Button
+              size='sm'
+              variant='outline'
+              disabled={isChecking || isStreaming}
+              onClick={() => handleConsistencyCheck()}
+              title={t(
+                stageKey === 'characters'
+                  ? 'Check visual consistency across all characters.'
+                  : 'Check visual consistency across all generated images.'
+              )}
+            >
+              {isChecking ? (
+                <Loader2 className='mr-1.5 size-3.5 animate-spin' />
+              ) : (
+                <Shield className='mr-1.5 size-3.5 text-violet-500' />
+              )}
+              {isChecking ? t('Checking...') : t('Consistency')}
             </Button>
           ) : null}
 
@@ -1070,11 +1133,40 @@ ${brief}
             <div className="flex min-h-0 flex-1 overflow-hidden">
               <div className="min-w-0 flex-1 min-h-0">
 {showShotsCrud ? (
-  <ShotsStage projectId={id} stageKey={stageKey} shots={shots}
-    generatingIds={generatingIds} videoGeneratingIds={videoGeneratingIds}
-    onGenerateImage={generateImage} onGenerateVideo={generateVideo}
-    onSwapOrder={(a,b) => swapShotOrder.mutate({shotA:a,shotB:b})}
-  />
+  <div className='flex min-h-0 flex-1 flex-col overflow-hidden'>
+    {/* View toggle */}
+    <div className='border-border flex items-center gap-1 border-b px-3 py-1.5'>
+      <span className='text-muted-foreground mr-2 text-[10px]'>{t('View')}:</span>
+      <Button
+        size='sm'
+        variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+        className='h-6 px-2 text-[11px]'
+        onClick={() => setViewMode('list')}
+      >
+        {t('List')}
+      </Button>
+      <Button
+        size='sm'
+        variant={viewMode === 'timeline' ? 'secondary' : 'ghost'}
+        className='h-6 px-2 text-[11px]'
+        onClick={() => setViewMode('timeline')}
+      >
+        {t('Timeline')}
+      </Button>
+    </div>
+    {viewMode === 'list' ? (
+      <ShotsStage projectId={id} stageKey={stageKey} shots={shots} characters={characters}
+        generatingIds={generatingIds} videoGeneratingIds={videoGeneratingIds}
+        onGenerateImage={generateImage} onGenerateVideo={generateVideo}
+        onSwapOrder={(a,b) => swapShotOrder.mutate({shotA:a,shotB:b})}
+      />
+    ) : (
+      <TimelineStage projectId={id} stageKey={stageKey} shots={shots} characters={characters}
+        generatingIds={generatingIds} videoGeneratingIds={videoGeneratingIds}
+        onGenerateImage={generateImage} onGenerateVideo={generateVideo}
+      />
+    )}
+  </div>
           ) : null}
           {/* Post-production checklist */}
           {stageKey === 'post' ? (
@@ -1082,6 +1174,7 @@ ${brief}
               outputData={stage?.output_data ?? ''}
               projectId={id}
               stageKey={stageKey}
+              shots={shots}
             />
           ) : null}
 
@@ -1174,10 +1267,14 @@ function PostProductionSection(props: {
   outputData: string
   projectId: number
   stageKey: string
+  shots: StudioShot[]
 }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const { outputData, projectId, stageKey } = props
+  const { outputData, projectId, stageKey, shots } = props
+
+  const { isGenerating, progress, resultSrt, generateSubtitles, downloadSrt } =
+    useSubtitleGen()
 
   const [checked, setChecked] = useState<Record<string, boolean>>(() => {
     try {
@@ -1211,6 +1308,77 @@ function PostProductionSection(props: {
 
   return (
     <div className='space-y-3'>
+      {/* Subtitle generation */}
+      {shots.filter(s => s.description?.trim()).length > 0 ? (
+        <div className='border-border space-y-2 rounded-lg border p-3'>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <span className='text-sm font-medium'>{t('Subtitles')}</span>
+              {isGenerating ? (
+                <span className='text-muted-foreground text-[10px]'>
+                  {t('Generating... {{progress}}%', { progress })}
+                </span>
+              ) : resultSrt ? (
+                <span className='text-emerald-500 text-[10px]'>
+                  {t('Ready')}
+                </span>
+              ) : null}
+            </div>
+            <div className='flex items-center gap-2'>
+              {isGenerating ? (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='h-6 px-2 text-[11px]'
+                  onClick={() => cancel()}
+                >
+                  {t('Cancel')}
+                </Button>
+              ) : (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='h-6 px-2 text-[11px]'
+                  onClick={() => void generateSubtitles(shots)}
+                >
+                  {t('Generate Subtitles')}
+                </Button>
+              )}
+              {resultSrt ? (
+                <Button
+                  size='sm'
+                  variant='ghost'
+                  className='h-6 px-2 text-[11px]'
+                  onClick={() => downloadSrt(resultSrt)}
+                >
+                  {t('Download SRT')}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+          {/* Progress bar */}
+          {isGenerating ? (
+            <div className='bg-muted h-1 w-full overflow-hidden rounded-full'>
+              <div
+                className='bg-primary h-full rounded-full transition-all'
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          ) : null}
+          {/* SRT preview */}
+          {resultSrt ? (
+            <details className='text-muted-foreground text-xs'>
+              <summary className='cursor-pointer hover:text-foreground'>
+                {t('Preview')}
+              </summary>
+              <pre className='bg-muted mt-1 max-h-40 overflow-auto rounded p-2 text-[10px]'>
+                {resultSrt}
+              </pre>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className='flex items-center justify-between'>
         <h2 className='text-sm font-medium'>
           {t('Post-Production Checklist')} ({doneCount}/{POST_CHECKLIST_ITEMS.length})

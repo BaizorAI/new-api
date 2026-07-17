@@ -16,26 +16,28 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, ChevronDown, ChevronUp, ImagePlus, Loader2, Pencil, Play, RefreshCw, Trash2, Video, X } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 
-import { updateStudioShot, deleteStudioShot } from '../api'
+import { getStudioCharacters, updateStudioShot, deleteStudioShot } from '../api'
 import { STUDIO_QUERY_KEYS } from '../constants'
-import type { StudioShot } from '../types'
+import type { StudioCharacter, StudioShot } from '../types'
 
 interface ShotsStageProps {
   projectId: number
   stageKey: string
   shots: StudioShot[]
+  characters: StudioCharacter[]
   generatingIds: Set<number>
   videoGeneratingIds: Set<number>
   onGenerateImage: (shot: StudioShot) => void
@@ -44,7 +46,7 @@ interface ShotsStageProps {
 }
 
 export function ShotsStage({
-  projectId, stageKey, shots,
+  projectId, stageKey, shots, characters,
   generatingIds, videoGeneratingIds,
   onGenerateImage, onGenerateVideo, onSwapOrder,
 }: ShotsStageProps) {
@@ -55,7 +57,7 @@ export function ShotsStage({
   const [shotForm, setShotForm] = useState({
     scene_number: 1, shot_number: 1, description: '',
     camera_angle: '', camera_move: '', duration: 5,
-    image_prompt: '', video_prompt: '',
+    image_prompt: '', video_prompt: '', character_ids: '',
   })
   const [fullscreenVideo, setFullscreenVideo] = useState<{ url: string; poster?: string; label: string } | null>(null)
 
@@ -68,6 +70,7 @@ export function ShotsStage({
       description: s.description ?? '', camera_angle: s.camera_angle ?? '',
       camera_move: s.camera_move ?? '', duration: s.duration ?? 5,
       image_prompt: s.image_prompt ?? '', video_prompt: s.video_prompt ?? '',
+      character_ids: s.character_ids ?? '',
     })
   }, [])
 
@@ -173,6 +176,39 @@ export function ShotsStage({
               <div><Label className='text-[11px] font-medium'>{t('Image Prompt')}</Label><Textarea value={shotForm.image_prompt} onChange={e => setShotForm(f => ({ ...f, image_prompt: e.target.value }))} className='mt-0.5 h-12 resize-y text-xs' /></div>
               <div><Label className='text-[11px] font-medium'>{t('Video Prompt')}</Label><Textarea value={shotForm.video_prompt} onChange={e => setShotForm(f => ({ ...f, video_prompt: e.target.value }))} className='mt-0.5 h-12 resize-y text-xs' /></div>
             </div>
+            {characters.length > 0 ? (
+              <div>
+                <Label className='text-[11px] font-medium'>{t('Characters')}</Label>
+                <div className='border-input max-h-36 space-y-2 overflow-y-auto rounded-md border p-3 mt-0.5'>
+                  {characters.map((char) => {
+                    const idStr = String(char.id)
+                    const selectedIds = new Set(
+                      (shotForm.character_ids ?? '').split(',').filter(Boolean)
+                    )
+                    return (
+                      <Label
+                        key={char.id}
+                        className='flex cursor-pointer items-center gap-2 text-xs font-normal'
+                      >
+                        <Checkbox
+                          checked={selectedIds.has(idStr)}
+                          onCheckedChange={(checked) => {
+                            const next = new Set(selectedIds)
+                            if (checked) next.add(idStr)
+                            else next.delete(idStr)
+                            setShotForm((f) => ({
+                              ...f,
+                              character_ids: [...next].join(','),
+                            }))
+                          }}
+                        />
+                        {char.name}
+                      </Label>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
             <div className='flex items-center gap-2 border-t pt-3'>
               <Button size='sm' onClick={handleSave}><Check className='mr-1.5 size-3.5' />{t('Save')}</Button>
               <Button size='sm' variant='outline' className='text-destructive' onClick={() => { if (confirm(t('Delete this shot?'))) handleDelete() }}><Trash2 className='mr-1.5 size-3.5' />{t('Delete')}</Button>

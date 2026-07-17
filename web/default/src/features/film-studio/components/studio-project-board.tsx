@@ -26,9 +26,12 @@ import {
   Clock,
   Lock,
   Pencil,
+  Server,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
+import { useAuthStore } from '@/stores/auth-store'
 
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -60,7 +63,7 @@ export function StudioProjectBoard() {
   const id = Number(projectId)
   const [editOpen, setEditOpen] = useState(false)
   const [showEnterprise, setShowEnterprise] = useState(false)
-  const edition = resolveStudioEdition(0) // TODO: wire to user role from auth context
+  const edition = resolveStudioEdition(useAuthStore.getState().auth.user?.role ?? 0)
 
   const { data, isLoading } = useQuery({
     queryKey: [...STUDIO_QUERY_KEYS.project(id)],
