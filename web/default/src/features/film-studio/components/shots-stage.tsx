@@ -27,7 +27,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
-import { updateStudioShot, deleteStudioShot, createStudioShots } from '../api'
+import { updateStudioShot, deleteStudioShot } from '../api'
 import { STUDIO_QUERY_KEYS } from '../constants'
 import type { StudioShot } from '../types'
 
@@ -89,18 +89,6 @@ export function ShotsStage({
     } catch { toast.error(t('Failed to delete shot.')) }
   }, [projectId, selectedShotId, queryClient, t])
 
-  const handleCreate = useCallback(async () => {
-    try {
-      await createStudioShots(projectId, [{
-        scene_number: 1, shot_number: shots.length + 1,
-        description: t('New shot'), camera_angle: '', camera_move: '',
-        duration: 5, image_prompt: '',
-      }])
-      void queryClient.invalidateQueries({ queryKey: [...STUDIO_QUERY_KEYS.shots(projectId)] })
-      toast.success(t('Shot created.'))
-    } catch { toast.error(t('Failed to create shot.')) }
-  }, [projectId, shots.length, queryClient, t])
-
   const showImg = stageKey === 'image_gen' || stageKey === 'video_gen'
   const showVid = stageKey === 'video_gen'
 
@@ -110,11 +98,6 @@ export function ShotsStage({
       <div className='border-border w-[280px] shrink-0 space-y-1 overflow-auto border-r p-3 min-h-0'>
         <div className='flex items-center justify-between pb-1'>
           <h2 className='text-sm font-medium'>{t('Shots')} ({shots.length})</h2>
-        </div>
-        <div className='pb-2'>
-          <Button size='sm' variant='outline' onClick={handleCreate}>
-            <ImagePlus className='mr-1.5 size-3.5' />{t('Add Shot')}
-          </Button>
         </div>
         {shots.length > 0 ? shots.map((shot, shotIndex) => {
           const isGen = generatingIds.has(shot.id)
