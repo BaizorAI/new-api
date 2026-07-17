@@ -300,6 +300,7 @@ function resolveActiveRootGroup(
   }
 
   if (
+    pathname === '/online-status' ||
     pathname === '/channels' ||
     pathname === '/users' ||
     pathname === '/redemption-codes' ||

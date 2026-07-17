@@ -20,6 +20,7 @@ import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef } from 'react'
 
 import { getSelf } from '@/lib/api'
+import { sendHeartbeat } from '@/features/online-status/api'
 import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 
 const AUTH_REFRESH_INTERVAL_MS = 30 * 1000
@@ -62,6 +63,7 @@ export function useAuthSessionRefresh() {
         nextUser
       )
       auth.setUser(nextUser)
+      sendHeartbeat()
       if (shouldInvalidate) {
         await router.invalidate()
       }

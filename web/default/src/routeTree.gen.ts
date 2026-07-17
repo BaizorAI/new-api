@@ -59,6 +59,7 @@ import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/
 import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authenticated/profile/index'
 import { Route as AuthenticatedPricingIndexRouteImport } from './routes/_authenticated/pricing/index'
 import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_authenticated/playground/index'
+import { Route as AuthenticatedOnlineStatusIndexRouteImport } from './routes/_authenticated/online-status/index'
 import { Route as AuthenticatedOnePersonCompanyIndexRouteImport } from './routes/_authenticated/one-person-company/index'
 import { Route as AuthenticatedMyUsageLogsIndexRouteImport } from './routes/_authenticated/my-usage-logs/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
@@ -367,6 +368,12 @@ const AuthenticatedPlaygroundIndexRoute =
     path: '/playground/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOnlineStatusIndexRoute =
+  AuthenticatedOnlineStatusIndexRouteImport.update({
+    id: '/online-status/',
+    path: '/online-status/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOnePersonCompanyIndexRoute =
   AuthenticatedOnePersonCompanyIndexRouteImport.update({
     id: '/one-person-company/',
@@ -645,6 +652,7 @@ export interface FileRoutesByFullPath {
   '/models/': typeof AuthenticatedModelsIndexRoute
   '/my-usage-logs/': typeof AuthenticatedMyUsageLogsIndexRoute
   '/one-person-company/': typeof AuthenticatedOnePersonCompanyIndexRoute
+  '/online-status/': typeof AuthenticatedOnlineStatusIndexRoute
   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/pricing/': typeof AuthenticatedPricingIndexRoute
   '/profile/': typeof AuthenticatedProfileIndexRoute
@@ -730,6 +738,7 @@ export interface FileRoutesByTo {
   '/models': typeof AuthenticatedModelsIndexRoute
   '/my-usage-logs': typeof AuthenticatedMyUsageLogsIndexRoute
   '/one-person-company': typeof AuthenticatedOnePersonCompanyIndexRoute
+  '/online-status': typeof AuthenticatedOnlineStatusIndexRoute
   '/playground': typeof AuthenticatedPlaygroundIndexRoute
   '/pricing': typeof AuthenticatedPricingIndexRoute
   '/profile': typeof AuthenticatedProfileIndexRoute
@@ -822,6 +831,7 @@ export interface FileRoutesById {
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
   '/_authenticated/my-usage-logs/': typeof AuthenticatedMyUsageLogsIndexRoute
   '/_authenticated/one-person-company/': typeof AuthenticatedOnePersonCompanyIndexRoute
+  '/_authenticated/online-status/': typeof AuthenticatedOnlineStatusIndexRoute
   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/_authenticated/pricing/': typeof AuthenticatedPricingIndexRoute
   '/_authenticated/profile/': typeof AuthenticatedProfileIndexRoute
@@ -913,6 +923,7 @@ export interface FileRouteTypes {
     | '/models/'
     | '/my-usage-logs/'
     | '/one-person-company/'
+    | '/online-status/'
     | '/playground/'
     | '/pricing/'
     | '/profile/'
@@ -998,6 +1009,7 @@ export interface FileRouteTypes {
     | '/models'
     | '/my-usage-logs'
     | '/one-person-company'
+    | '/online-status'
     | '/playground'
     | '/pricing'
     | '/profile'
@@ -1089,6 +1101,7 @@ export interface FileRouteTypes {
     | '/_authenticated/models/'
     | '/_authenticated/my-usage-logs/'
     | '/_authenticated/one-person-company/'
+    | '/_authenticated/online-status/'
     | '/_authenticated/playground/'
     | '/_authenticated/pricing/'
     | '/_authenticated/profile/'
@@ -1506,6 +1519,13 @@ declare module '@tanstack/react-router' {
       path: '/playground'
       fullPath: '/playground/'
       preLoaderRoute: typeof AuthenticatedPlaygroundIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/online-status/': {
+      id: '/_authenticated/online-status/'
+      path: '/online-status'
+      fullPath: '/online-status/'
+      preLoaderRoute: typeof AuthenticatedOnlineStatusIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/one-person-company/': {
@@ -1941,6 +1961,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
   AuthenticatedMyUsageLogsIndexRoute: typeof AuthenticatedMyUsageLogsIndexRoute
   AuthenticatedOnePersonCompanyIndexRoute: typeof AuthenticatedOnePersonCompanyIndexRoute
+  AuthenticatedOnlineStatusIndexRoute: typeof AuthenticatedOnlineStatusIndexRoute
   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
   AuthenticatedProfileIndexRoute: typeof AuthenticatedProfileIndexRoute
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
@@ -1987,6 +2008,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMyUsageLogsIndexRoute: AuthenticatedMyUsageLogsIndexRoute,
   AuthenticatedOnePersonCompanyIndexRoute:
     AuthenticatedOnePersonCompanyIndexRoute,
+  AuthenticatedOnlineStatusIndexRoute: AuthenticatedOnlineStatusIndexRoute,
   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,
   AuthenticatedProfileIndexRoute: AuthenticatedProfileIndexRoute,
   AuthenticatedRedemptionCodesIndexRoute:

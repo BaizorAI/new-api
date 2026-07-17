@@ -53,6 +53,7 @@ import {
   Video,
   Wallet,
   Wrench,
+  Activity,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -254,6 +255,12 @@ export function useSidebarData(): SidebarData {
         position: 'bottom',
         requiredRole: ROLE.ADMIN,
         items: [
+          {
+            title: t('Online Status'),
+            url: '/online-status',
+            icon: Activity,
+            requiredRole: ROLE.ADMIN,
+          },
           {
             title: t('User Management'),
             url: '/users',

@@ -169,6 +169,11 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		return
 	}
 
+	// Track relay activity for online status (fire-and-forget).
+	if relayInfo.UserId > 0 {
+		go RecordRelayActivity(relayInfo.UserId)
+	}
+
 	needSensitiveCheck := setting.ShouldCheckPromptSensitive()
 	needCountToken := constant.CountToken
 	// Avoid building huge CombineText (strings.Join) when token counting and sensitive check are both disabled.

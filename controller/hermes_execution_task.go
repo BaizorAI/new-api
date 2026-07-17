@@ -461,6 +461,7 @@ func executeHermesCompletionTask(task *model.HermesExecutionTask) ([]byte, int, 
 	c.Set(common.RequestIdKey, task.TaskId)
 	c.Set("id", task.UserId)
 	c.Set("use_access_token", false)
+	c.Set("is_playground", true)
 
 	userCache, err := model.GetUserCache(task.UserId)
 	if err != nil {
