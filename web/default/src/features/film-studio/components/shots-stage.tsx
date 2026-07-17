@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, ChevronDown, ChevronUp, ImagePlus, Loader2, Pencil, Play, RefreshCw, Trash2, Video, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, ImagePlus, Loader2, Pencil, Play, RefreshCw, Trash2, Video, X, AlertTriangle } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -30,7 +30,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 
 import { getStudioCharacters, updateStudioShot, deleteStudioShot } from '../api'
-import { STUDIO_QUERY_KEYS } from '../constants'
+import { STUDIO_QUERY_KEYS, SHOT_STATUS } from '../constants'
 import type { StudioCharacter, StudioShot } from '../types'
 
 interface ShotsStageProps {
@@ -108,14 +108,15 @@ export function ShotsStage({
         {shots.length > 0 ? shots.map((shot, shotIndex) => {
           const isGen = generatingIds.has(shot.id)
           const isVidGen = videoGeneratingIds.has(shot.id)
+          const isFailed = shot.status === SHOT_STATUS.FAILED
           return (
-            <div key={shot.id} className={`border-border bg-card text-card-foreground rounded-lg border p-2 ${selectedShotId === shot.id ? 'ring-ring ring-2' : ''}`}>
+            <div key={shot.id} className={`border-border bg-card text-card-foreground rounded-lg border p-2 ${isFailed ? 'border-destructive/30 bg-destructive/5' : ''} ${selectedShotId === shot.id ? 'ring-ring ring-2' : ''}`}>
               <button type='button' onClick={() => selectShot(shot)} className='hover:bg-muted/60 flex w-full items-center gap-2 text-left text-xs transition-colors rounded p-1'>
                 {shot.image_url
                   ? <img src={shot.image_url} alt='' className='bg-muted size-8 shrink-0 rounded object-cover' />
-                  : <span className='bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded text-[10px] font-mono'>S{shot.scene_number}-{shot.shot_number}</span>}
+                  : <span className={`flex size-8 shrink-0 items-center justify-center rounded text-[10px] font-mono ${isFailed ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>S{shot.scene_number}-{shot.shot_number}</span>}
                 <span className='min-w-0'>
-                  <span className='block truncate text-xs font-medium'>S{shot.scene_number}-{shot.shot_number}</span>
+                  <span className='block truncate text-xs font-medium'>S{shot.scene_number}-{shot.shot_number}{isFailed ? <AlertTriangle className='ml-1 inline size-3 text-destructive' /> : null}</span>
                   <span className='text-muted-foreground block truncate text-[10px]'>{shot.description}</span>
                 </span>
               </button>
@@ -131,14 +132,26 @@ export function ShotsStage({
                   </>
                 ) : null}
                 {showImg ? (
-                  shot.image_url
-                    ? <Button type='button' variant='ghost' size='icon' className='size-5' disabled={isGen} onClick={() => onGenerateImage(shot)} title={t('Regenerate')}>{isGen ? <Loader2 className='size-3 animate-spin' /> : <RefreshCw className='size-3' />}</Button>
-                    : <Button size='sm' variant='outline' className='h-5 flex-1 text-[10px]' disabled={isGen} onClick={() => onGenerateImage(shot)}>{isGen ? <Loader2 className='size-3 animate-spin' /> : <ImagePlus className='size-3' />}{t('Generate')}</Button>
+                  isFailed ? (
+                    <Button size='sm' variant='outline' className='h-5 flex-1 text-[10px] border-destructive/40 text-destructive hover:bg-destructive/10' disabled={isGen} onClick={() => { selectShot(shot); onGenerateImage(shot) }}>
+                      {isGen ? <Loader2 className='size-3 animate-spin' /> : <RefreshCw className='size-3' />}{t('Retry')}
+                    </Button>
+                  ) : (
+                    shot.image_url
+                      ? <Button type='button' variant='ghost' size='icon' className='size-5' disabled={isGen} onClick={() => onGenerateImage(shot)} title={t('Regenerate')}>{isGen ? <Loader2 className='size-3 animate-spin' /> : <RefreshCw className='size-3' />}</Button>
+                      : <Button size='sm' variant='outline' className='h-5 flex-1 text-[10px]' disabled={isGen} onClick={() => onGenerateImage(shot)}>{isGen ? <Loader2 className='size-3 animate-spin' /> : <ImagePlus className='size-3' />}{t('Generate')}</Button>
+                  )
                 ) : null}
                 {showVid ? (
-                  shot.video_url
-                    ? <button type='button' className='relative size-5 cursor-pointer rounded' onClick={() => setFullscreenVideo({ url: shot.video_url!, poster: shot.image_url || undefined, label: `S${shot.scene_number}-${shot.shot_number}` })}><video src={shot.video_url} poster={shot.image_url || undefined} className='size-5 rounded object-cover' muted preload='metadata' /><Play className='pointer-events-none absolute inset-0 m-auto size-3 text-white drop-shadow-md' /></button>
-                    : <Button size='sm' variant='outline' className='h-5 flex-1 text-[10px]' disabled={isVidGen} onClick={() => onGenerateVideo(shot)}>{isVidGen ? <Loader2 className='size-3 animate-spin' /> : <Video className='size-3' />}{t('Generate')}</Button>
+                  isFailed ? (
+                    <Button size='sm' variant='outline' className='h-5 flex-1 text-[10px] border-destructive/40 text-destructive hover:bg-destructive/10' disabled={isVidGen} onClick={() => { selectShot(shot); onGenerateVideo(shot) }}>
+                      {isVidGen ? <Loader2 className='size-3 animate-spin' /> : <RefreshCw className='size-3' />}{t('Retry')}
+                    </Button>
+                  ) : (
+                    shot.video_url
+                      ? <button type='button' className='relative size-5 cursor-pointer rounded' onClick={() => setFullscreenVideo({ url: shot.video_url!, poster: shot.image_url || undefined, label: `S${shot.scene_number}-${shot.shot_number}` })}><video src={shot.video_url} poster={shot.image_url || undefined} className='size-5 rounded object-cover' muted preload='metadata' /><Play className='pointer-events-none absolute inset-0 m-auto size-3 text-white drop-shadow-md' /></button>
+                      : <Button size='sm' variant='outline' className='h-5 flex-1 text-[10px]' disabled={isVidGen} onClick={() => onGenerateVideo(shot)}>{isVidGen ? <Loader2 className='size-3 animate-spin' /> : <Video className='size-3' />}{t('Generate')}</Button>
+                  )
                 ) : null}
                 <div className='ml-auto flex gap-0.5'>
                   <Button variant='ghost' size='icon' className='size-5' onClick={() => selectShot(shot)} aria-label={t('Edit')}><Pencil className='size-3' /></Button>
@@ -160,6 +173,22 @@ export function ShotsStage({
             {selectedShot.image_url ? (
               <div className='bg-muted border-border flex aspect-video items-center justify-center overflow-hidden rounded-lg border'>
                 <img src={selectedShot.image_url} alt='' className='size-full object-contain' />
+              </div>
+            ) : null}
+            {/* Failure notice */}
+            {selectedShot.status === SHOT_STATUS.FAILED ? (
+              <div className='border-destructive/30 bg-destructive/5 flex items-start gap-2 rounded-lg border p-3'>
+                <AlertTriangle className='text-destructive mt-0.5 size-4 shrink-0' />
+                <div className='min-w-0 flex-1'>
+                  <p className='text-destructive text-xs font-medium'>{t('Generation failed')}</p>
+                  <p className='text-muted-foreground mt-0.5 text-[11px]'>
+                    {t('Edit your prompt and try again. Common fixes: simplify the description, use fewer characters, or adjust the style keywords.')}
+                  </p>
+                </div>
+                <Button size='sm' variant='outline' className='border-destructive/40 text-destructive hover:bg-destructive/10 h-6 shrink-0 text-[10px]'
+                  onClick={() => { showImg ? onGenerateImage(selectedShot) : showVid ? onGenerateVideo(selectedShot) : null }}>
+                  <RefreshCw className='mr-1 size-3' />{t('Retry')}
+                </Button>
               </div>
             ) : null}
             <div className='grid grid-cols-3 gap-2'>

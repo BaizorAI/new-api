@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Check, ImagePlus, Loader2, Pencil, Play, RefreshCw, Trash2, Video, X } from 'lucide-react'
+import { Check, ImagePlus, Loader2, Pencil, Play, RefreshCw, Trash2, Video, X, AlertTriangle } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -29,6 +29,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 
 import { updateStudioShot, deleteStudioShot } from '../api'
+import { SHOT_STATUS } from '../constants'
 import type { StudioCharacter, StudioShot } from '../types'
 
 interface TimelineStageProps {
@@ -126,6 +127,7 @@ export function TimelineStage({
           {sortedShots.length > 0 ? sortedShots.map((shot) => {
             const isGen = generatingIds.has(shot.id)
             const isVidGen = videoGeneratingIds.has(shot.id)
+            const isFailed = shot.status === SHOT_STATUS.FAILED
             const duration = shot.duration || 5
             const width = Math.max((duration / maxDuration) * 120, 80)
 
@@ -140,6 +142,8 @@ export function TimelineStage({
                   type='button'
                   onClick={() => selectShot(shot)}
                   className={`border-border bg-card text-card-foreground flex w-full flex-col rounded-lg border p-2 transition-colors hover:bg-accent/50 ${
+                    isFailed ? 'border-destructive/30 bg-destructive/5' : ''
+                  } ${
                     selectedShotId === shot.id ? 'ring-ring ring-2' : ''
                   }`}
                 >
@@ -147,16 +151,16 @@ export function TimelineStage({
                   {shot.image_url ? (
                     <img src={shot.image_url} alt='' className='bg-muted mb-1.5 aspect-video w-full rounded object-cover' />
                   ) : (
-                    <div className='bg-muted mb-1.5 flex aspect-video w-full items-center justify-center rounded'>
-                      <span className='text-muted-foreground text-[10px] font-mono'>
-                        S{shot.scene_number}-{shot.shot_number}
+                    <div className={`mb-1.5 flex aspect-video w-full items-center justify-center rounded ${isFailed ? 'bg-destructive/10' : 'bg-muted'}`}>
+                      <span className={`text-[10px] font-mono ${isFailed ? 'text-destructive' : 'text-muted-foreground'}`}>
+                        S{shot.scene_number}-{shot.shot_number}{isFailed ? ' ⚠' : ''}
                       </span>
                     </div>
                   )}
 
                   {/* Label */}
                   <span className='block truncate text-center text-[10px] font-medium'>
-                    S{shot.scene_number}-{shot.shot_number}
+                    S{shot.scene_number}-{shot.shot_number}{isFailed ? <AlertTriangle className='ml-0.5 inline size-2.5 text-destructive' /> : null}
                   </span>
                   <span className='text-muted-foreground block truncate text-center text-[9px]'>
                     {shot.camera_angle || shot.description?.slice(0, 20)}
@@ -174,26 +178,38 @@ export function TimelineStage({
                 {/* Action buttons */}
                 <div className='mt-1 flex items-center gap-0.5'>
                   {showImg ? (
-                    shot.image_url ? (
-                      <Button type='button' variant='ghost' size='icon' className='size-5' disabled={isGen} onClick={() => onGenerateImage(shot)} title={t('Regenerate')}>
-                        {isGen ? <Loader2 className='size-3 animate-spin' /> : <RefreshCw className='size-3' />}
+                    isFailed ? (
+                      <Button size='sm' variant='outline' className='h-5 px-1.5 text-[9px] border-destructive/40 text-destructive hover:bg-destructive/10' disabled={isGen} onClick={() => onGenerateImage(shot)}>
+                        {isGen ? <Loader2 className='size-3 animate-spin' /> : <RefreshCw className='size-3' />}{t('Retry')}
                       </Button>
                     ) : (
-                      <Button size='sm' variant='outline' className='h-5 px-1.5 text-[9px]' disabled={isGen} onClick={() => onGenerateImage(shot)}>
-                        {isGen ? <Loader2 className='size-3 animate-spin' /> : <ImagePlus className='size-3' />}
-                      </Button>
+                      shot.image_url ? (
+                        <Button type='button' variant='ghost' size='icon' className='size-5' disabled={isGen} onClick={() => onGenerateImage(shot)} title={t('Regenerate')}>
+                          {isGen ? <Loader2 className='size-3 animate-spin' /> : <RefreshCw className='size-3' />}
+                        </Button>
+                      ) : (
+                        <Button size='sm' variant='outline' className='h-5 px-1.5 text-[9px]' disabled={isGen} onClick={() => onGenerateImage(shot)}>
+                          {isGen ? <Loader2 className='size-3 animate-spin' /> : <ImagePlus className='size-3' />}
+                        </Button>
+                      )
                     )
                   ) : null}
                   {showVid ? (
-                    shot.video_url ? (
-                      <button type='button' className='relative size-5 cursor-pointer rounded' onClick={() => setFullscreenVideo({ url: shot.video_url!, poster: shot.image_url || undefined, label: `S${shot.scene_number}-${shot.shot_number}` })}>
-                        <video src={shot.video_url} poster={shot.image_url || undefined} className='size-5 rounded object-cover' muted preload='metadata' />
-                        <Play className='pointer-events-none absolute inset-0 m-auto size-3 text-white drop-shadow-md' />
-                      </button>
-                    ) : (
-                      <Button size='sm' variant='outline' className='h-5 px-1.5 text-[9px]' disabled={isVidGen} onClick={() => onGenerateVideo(shot)}>
-                        {isVidGen ? <Loader2 className='size-3 animate-spin' /> : <Video className='size-3' />}
+                    isFailed ? (
+                      <Button size='sm' variant='outline' className='h-5 px-1.5 text-[9px] border-destructive/40 text-destructive hover:bg-destructive/10' disabled={isVidGen} onClick={() => onGenerateVideo(shot)}>
+                        {isVidGen ? <Loader2 className='size-3 animate-spin' /> : <RefreshCw className='size-3' />}{t('Retry')}
                       </Button>
+                    ) : (
+                      shot.video_url ? (
+                        <button type='button' className='relative size-5 cursor-pointer rounded' onClick={() => setFullscreenVideo({ url: shot.video_url!, poster: shot.image_url || undefined, label: `S${shot.scene_number}-${shot.shot_number}` })}>
+                          <video src={shot.video_url} poster={shot.image_url || undefined} className='size-5 rounded object-cover' muted preload='metadata' />
+                          <Play className='pointer-events-none absolute inset-0 m-auto size-3 text-white drop-shadow-md' />
+                        </button>
+                      ) : (
+                        <Button size='sm' variant='outline' className='h-5 px-1.5 text-[9px]' disabled={isVidGen} onClick={() => onGenerateVideo(shot)}>
+                          {isVidGen ? <Loader2 className='size-3 animate-spin' /> : <Video className='size-3' />}
+                        </Button>
+                      )
                     )
                   ) : null}
                   <Button variant='ghost' size='icon' className='size-5' onClick={() => selectShot(shot)} aria-label={t('Edit')}>
@@ -219,6 +235,22 @@ export function TimelineStage({
                 {selectedShot.image_url ? (
                   <div className='bg-muted border-border flex aspect-video items-center justify-center overflow-hidden rounded-lg border'>
                     <img src={selectedShot.image_url} alt='' className='size-full object-contain' />
+                  </div>
+                ) : null}
+                {/* Failure notice */}
+                {selectedShot.status === SHOT_STATUS.FAILED ? (
+                  <div className='border-destructive/30 bg-destructive/5 flex items-start gap-2 rounded-lg border p-3'>
+                    <AlertTriangle className='text-destructive mt-0.5 size-4 shrink-0' />
+                    <div className='min-w-0 flex-1'>
+                      <p className='text-destructive text-xs font-medium'>{t('Generation failed')}</p>
+                      <p className='text-muted-foreground mt-0.5 text-[11px]'>
+                        {t('Edit your prompt and try again.')}
+                      </p>
+                    </div>
+                    <Button size='sm' variant='outline' className='border-destructive/40 text-destructive hover:bg-destructive/10 h-6 shrink-0 text-[10px]'
+                      onClick={() => { showImg ? onGenerateImage(selectedShot) : showVid ? onGenerateVideo(selectedShot) : null }}>
+                      <RefreshCw className='mr-1 size-3' />{t('Retry')}
+                    </Button>
                   </div>
                 ) : null}
                 <div className='grid grid-cols-3 gap-2'>

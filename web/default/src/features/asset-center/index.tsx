@@ -138,7 +138,7 @@ export function AssetCenter() {
       </div>
 
       {/* Content */}
-      <ScrollArea className='flex-1'>
+      <ScrollArea className='min-h-0 flex-1'>
         {isLoading ? (
           <div className='flex h-64 items-center justify-center'>
             <p className='text-muted-foreground text-sm'>{t('Loading...')}</p>

@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from '@tanstack/react-router'
+import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import {
   ArrowLeft,
   Bot,
@@ -150,6 +150,7 @@ type DialogType = 'create' | 'update' | 'delete'
 export function StudioStageDetail() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { projectId, stageKey } = useParams({
     from: '/_authenticated/studio/$projectId/$stageKey/',
   })
@@ -610,20 +611,40 @@ export function StudioStageDetail() {
         status: STAGE_STATUS.COMPLETED,
       })
       if (result.success) {
-        toast.success(t('Stage marked as completed.'))
+        // Find the next stage in the pipeline
+        const currentIdx = PIPELINE_STAGES.findIndex(s => s.key === stageKey)
+        const nextStage = currentIdx >= 0 && currentIdx < PIPELINE_STAGES.length - 1
+          ? PIPELINE_STAGES[currentIdx + 1]
+          : null
+
         void queryClient.invalidateQueries({
           queryKey: [...STUDIO_QUERY_KEYS.project(id)],
         })
         void queryClient.invalidateQueries({
           queryKey: [...STUDIO_QUERY_KEYS.stages(id)],
         })
+
+        if (nextStage) {
+          toast.success(t('Stage marked as completed.'), {
+            action: {
+              label: t('Next: {{stage}}', { stage: t(nextStage.labelKey) }),
+              onClick: () => navigate({
+                to: '/studio/$projectId/$stageKey',
+                params: { projectId: String(id), stageKey: nextStage.key },
+              }),
+            },
+            duration: 8000,
+          })
+        } else {
+          toast.success(t('All stages completed! Project is ready for export.'))
+        }
       } else {
         toast.error(result.message ?? t('Failed to update stage.'))
       }
     } catch {
       toast.error(t('Failed to update stage.'))
     }
-  }, [id, stageKey, t, queryClient])
+  }, [id, stageKey, t, queryClient, navigate])
 
   // "Start" button — kick off AI script generation and move to In Progress
   const handleStartGeneration = useCallback(() => {
@@ -1424,8 +1445,15 @@ function PostProductionSection(props: {
 function ReviewGallerySection(props: { shots: StudioShot[] }) {
   const { t } = useTranslation()
   const { shots } = props
+  const [fullscreenVideo, setFullscreenVideo] = useState<{
+    url: string
+    poster?: string
+    label: string
+  } | null>(null)
 
   const shotsWithMedia = shots.filter((s) => s.image_url || s.video_url)
+  const shotsWithVideo = shotsWithMedia.filter((s) => s.video_url)
+  const shotsWithImageOnly = shotsWithMedia.filter((s) => !s.video_url && s.image_url)
 
   if (shotsWithMedia.length === 0) {
     return (
@@ -1438,39 +1466,164 @@ function ReviewGallerySection(props: { shots: StudioShot[] }) {
   }
 
   return (
-    <div className='space-y-3'>
-      <h2 className='text-sm font-medium'>
-        {t('Generated Media')} ({shotsWithMedia.length})
-      </h2>
-      <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
-        {shotsWithMedia.map((shot) => (
-          <div
-            key={shot.id}
-            className='border-border overflow-hidden rounded-lg border'
-          >
-            {shot.video_url ? (
-              <video
-                src={shot.video_url}
-                poster={shot.image_url || undefined}
-                controls
-                className='h-40 w-full bg-black object-cover'
-                preload='metadata'
-              />
-            ) : shot.image_url ? (
-              <img
-                src={shot.image_url}
-                alt={shot.description}
-                className='h-40 w-full object-cover'
-              />
-            ) : null}
-            <div className='p-2'>
-              <p className='text-muted-foreground truncate text-xs'>
-                {t('S{{scene}}-{{shot}}: {{desc}}', { scene: shot.scene_number, shot: shot.shot_number, desc: shot.description })}
+    <div className='space-y-4'>
+      <div className='flex items-center justify-between'>
+        <h2 className='text-sm font-medium'>
+          {t('Generated Media')} ({shotsWithMedia.length})
+        </h2>
+        <span className='text-muted-foreground text-[10px]'>
+          {shotsWithVideo.length > 0
+            ? t('{{videos}} videos, {{images}} images', { videos: shotsWithVideo.length, images: shotsWithImageOnly.length })
+            : t('{{count}} images', { count: shotsWithImageOnly.length })}
+        </span>
+      </div>
+
+      {/* Video player for first video shot */}
+      {shotsWithVideo.length > 0 ? (
+        <div className='space-y-2'>
+          <h3 className='text-muted-foreground text-[11px] font-medium'>
+            {t('Video Preview')}
+          </h3>
+          <div className='border-border bg-muted overflow-hidden rounded-lg border'>
+            <video
+              src={shotsWithVideo[0].video_url!}
+              poster={shotsWithVideo[0].image_url || undefined}
+              controls
+              className='max-h-[400px] w-full bg-black object-contain'
+              preload='metadata'
+            />
+            <div className='flex items-center justify-between px-3 py-2'>
+              <p className='text-xs font-medium'>
+                {t('S{{scene}}-{{shot}}: {{desc}}', {
+                  scene: shotsWithVideo[0].scene_number,
+                  shot: shotsWithVideo[0].shot_number,
+                  desc: shotsWithVideo[0].description,
+                })}
               </p>
+              <Button
+                size='sm'
+                variant='ghost'
+                className='h-6 gap-1 text-[10px]'
+                onClick={() =>
+                  setFullscreenVideo({
+                    url: shotsWithVideo[0].video_url!,
+                    poster: shotsWithVideo[0].image_url || undefined,
+                    label: t('S{{scene}}-{{shot}}', {
+                      scene: shotsWithVideo[0].scene_number,
+                      shot: shotsWithVideo[0].shot_number,
+                    }),
+                  })
+                }
+              >
+                <Expand className='size-3' />
+                {t('Fullscreen')}
+              </Button>
             </div>
           </div>
-        ))}
+        </div>
+      ) : null}
+
+      {/* Media grid */}
+      <div>
+        <h3 className='text-muted-foreground mb-2 text-[11px] font-medium'>
+          {t('All Shots')}
+        </h3>
+        <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
+          {shotsWithMedia.map((shot) => (
+            <div
+              key={shot.id}
+              className='border-border group relative overflow-hidden rounded-lg border'
+            >
+              {shot.video_url ? (
+                <div className='relative'>
+                  <video
+                    src={shot.video_url}
+                    poster={shot.image_url || undefined}
+                    className='h-40 w-full bg-black object-cover'
+                    preload='metadata'
+                  />
+                  <button
+                    type='button'
+                    className='absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100'
+                    onClick={() =>
+                      setFullscreenVideo({
+                        url: shot.video_url!,
+                        poster: shot.image_url || undefined,
+                        label: t('S{{scene}}-{{shot}}', {
+                          scene: shot.scene_number,
+                          shot: shot.shot_number,
+                        }),
+                      })
+                    }
+                  >
+                    <Play className='size-8 text-white drop-shadow-lg' />
+                  </button>
+                </div>
+              ) : shot.image_url ? (
+                <img
+                  src={shot.image_url}
+                  alt={shot.description}
+                  className='h-40 w-full object-cover'
+                />
+              ) : null}
+              <div className='flex items-center justify-between p-2'>
+                <p className='text-muted-foreground truncate text-xs'>
+                  {t('S{{scene}}-{{shot}}: {{desc}}', {
+                    scene: shot.scene_number,
+                    shot: shot.shot_number,
+                    desc: shot.description,
+                  })}
+                </p>
+                {shot.video_url ? (
+                  <span className='bg-primary/10 text-primary ml-1 shrink-0 rounded px-1 py-0.5 text-[9px] font-medium'>
+                    {t('Video')}
+                  </span>
+                ) : (
+                  <span className='bg-muted text-muted-foreground ml-1 shrink-0 rounded px-1 py-0.5 text-[9px]'>
+                    {t('Image')}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* Fullscreen video dialog */}
+      <Dialog
+        open={fullscreenVideo !== null}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setFullscreenVideo(null)
+        }}
+      >
+        <DialogContent className='max-w-4xl p-0'>
+          {fullscreenVideo ? (
+            <div className='flex flex-col'>
+              <video
+                src={fullscreenVideo.url}
+                poster={fullscreenVideo.poster}
+                controls
+                autoPlay
+                className='max-h-[80vh] w-full rounded-t-lg bg-black'
+              />
+              <div className='flex items-center justify-between px-4 py-3'>
+                <span className='text-sm'>{fullscreenVideo.label}</span>
+                <div className='flex items-center gap-2'>
+                  <a
+                    href={fullscreenVideo.url}
+                    download
+                    target='_blank'
+                    rel='noreferrer'
+                    className='text-muted-foreground hover:text-foreground text-xs transition-colors'
+                  >
+                    {t('Download')}
+                  </a>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
