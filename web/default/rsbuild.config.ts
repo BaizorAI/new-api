@@ -22,7 +22,7 @@ export default defineConfig(({ envMode }) => {
   const isProd = envMode === 'production'
   const assetPrefix = isProd ? `/assets/${buildVersion}/` : '/'
   const devProxy = Object.fromEntries(
-    (['/api', '/mj', '/pg', '/v1', '/image-playground', '/video-playground'] as const).map((key) => [
+    (['/api', '/mj', '/pg', '/v1'] as const).map((key) => [
       key,
       { target: serverUrl, changeOrigin: true },
     ])
@@ -30,7 +30,6 @@ export default defineConfig(({ envMode }) => {
 
   return {
     plugins: [pluginReact(), pluginTailwindcss({ optimize: false })],
-    // Rsbuild 2: replaces deprecated `performance.chunkSplit` (RSPack 2 aligned)
     splitChunks: {
       preset: 'default',
       cacheGroups: {
@@ -83,19 +82,14 @@ export default defineConfig(({ envMode }) => {
       proxy: devProxy,
     },
     output: {
-      // Production optimizations
       minify: isProd,
       target: 'web',
       assetPrefix,
       distPath: {
         root: 'dist',
       },
-      // Rely on Rsbuild default legalComments ("linked" -> per-chunk *.LICENSE.txt) in all modes.
-      // Do not set "none" in production: that strips minifier-preserved third-party notices and
-      // extracted license files, which some distributions require for open-source compliance.
     },
     performance: {
-      // Remove console in production
       removeConsole: isProd ? ['log'] : false,
       buildCache: false,
     },
@@ -104,9 +98,6 @@ export default defineConfig(({ envMode }) => {
         plugins: [
           tanstackRouter({
             target: 'react',
-            // All modes: avoid per-route async chunks.
-            // SWC produces TDZ errors with circular/hoisted variables inside lazy
-            // route chunks (e.g. Cannot access 'td' before initialization).
             autoCodeSplitting: isProd,
           }),
         ],
