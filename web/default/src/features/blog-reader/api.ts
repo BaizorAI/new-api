@@ -40,8 +40,8 @@ export async function getPublishedArticles(
 }
 
 export async function getPublishedArticle(
-  id: number
+  identifier: string | number
 ): Promise<ApiResponse<BlogArticle>> {
-  const res = await api.get(`/api/blog/public/${id}`)
+  const res = await api.get(`/api/blog/public/${encodeURIComponent(String(identifier))}`)
   return res.data
 }

@@ -34,6 +34,7 @@ export type BlogAuthor = z.infer<typeof blogAuthorSchema>
 
 export const blogArticleSchema = z.object({
   id: z.number(),
+  guid: z.string(),
   author_id: z.number(),
   title: z.string(),
   summary: z.string(),

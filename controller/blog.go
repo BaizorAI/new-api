@@ -29,6 +29,7 @@ type blogArticleBody struct {
 // blogArticleView is the API response shape (tags as []string).
 type blogArticleView struct {
 	Id          int                `json:"id"`
+	Guid        string             `json:"guid"`
 	AuthorId    int                `json:"author_id"`
 	Title       string             `json:"title"`
 	Summary     string             `json:"summary"`
@@ -44,6 +45,7 @@ type blogArticleView struct {
 func articleToView(a *model.BlogArticle) blogArticleView {
 	return blogArticleView{
 		Id:          a.Id,
+		Guid:        a.Guid,
 		AuthorId:    a.AuthorId,
 		Title:       a.Title,
 		Summary:     a.Summary,
@@ -120,15 +122,22 @@ func GetAllBlogArticles(c *gin.Context) {
 	common.ApiSuccess(c, pageInfo)
 }
 
-// GetBlogArticle GET /api/blog/:id
+// GetBlogArticle GET /api/blog/:identifier
+// Accepts either numeric id or GUID.
 func GetBlogArticle(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		common.ApiErrorMsg(c, "无效的 id")
+	identifier := strings.TrimSpace(c.Param("id"))
+	if identifier == "" {
+		common.ApiErrorMsg(c, "无效的 identifier")
 		return
 	}
 
-	article, err := model.GetBlogArticleById(id)
+	var article *model.BlogArticle
+	var err error
+	if id, parseErr := strconv.Atoi(identifier); parseErr == nil && id > 0 {
+		article, err = model.GetBlogArticleById(id)
+	} else {
+		article, err = model.GetBlogArticleByGuid(identifier)
+	}
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -321,16 +330,22 @@ func GetPublishedBlogArticles(c *gin.Context) {
 	common.ApiSuccess(c, pageInfo)
 }
 
-// GetPublishedBlogArticle GET /api/blog/public/:id
-// No auth required. Returns the article only if it is published.
+// GetPublishedBlogArticle GET /api/blog/public/:identifier
+// No auth required. Accepts either numeric id or GUID. Returns only published articles.
 func GetPublishedBlogArticle(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		common.ApiErrorMsg(c, "无效的 id")
+	identifier := strings.TrimSpace(c.Param("id"))
+	if identifier == "" {
+		common.ApiErrorMsg(c, "无效的 identifier")
 		return
 	}
 
-	article, err := model.GetBlogArticleById(id)
+	var article *model.BlogArticle
+	var err error
+	if id, parseErr := strconv.Atoi(identifier); parseErr == nil && id > 0 {
+		article, err = model.GetBlogArticleById(id)
+	} else {
+		article, err = model.GetBlogArticleByGuid(identifier)
+	}
 	if err != nil {
 		common.ApiError(c, err)
 		return

@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next'
 import { StatusBadge } from '@/components/status-badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { formatTimestampToDate } from '@/lib/format'
+import { usePageMeta } from '@/lib/page-meta'
 
 import { getPublishedArticles } from '../api'
 
@@ -35,6 +36,12 @@ const PAGE_SIZE = 12
 export function BlogReaderPage() {
   const { t } = useTranslation()
   const [page, setPage] = useState(1)
+
+  usePageMeta({
+    title: `${t('Blog Hall')} | ${t('Published articles')}`,
+    description: t('Published articles'),
+    type: 'website',
+  })
 
   const { data, isLoading } = useQuery({
     queryKey: ['blog-public', page],
@@ -128,8 +135,8 @@ function ArticleCard({ article }: { article: BlogArticle }) {
   const { t } = useTranslation()
   return (
     <Link
-      to='/blog/$articleId'
-      params={{ articleId: String(article.id) }}
+      to='/blog/$guid'
+      params={{ guid: article.guid }}
       className='block'
     >
       <article className='group border-border bg-card hover:border-primary/50 rounded-lg border overflow-hidden transition-colors'>

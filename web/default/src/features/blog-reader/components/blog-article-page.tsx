@@ -18,30 +18,41 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, BookOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { StatusBadge } from '@/components/status-badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Markdown } from '@/components/ui/markdown'
 import { formatTimestampToDate } from '@/lib/format'
+import { usePageMeta } from '@/lib/page-meta'
 
-import { getPublishedArticle } from '../api'
+import { getPublishedArticle, getPublishedArticles } from '../api'
 
-import type { BlogAuthor } from '@/features/blog-hall/types'
+import type { BlogArticle, BlogAuthor } from '@/features/blog-hall/types'
 
 export function BlogArticlePage() {
   const { t } = useTranslation()
-  const { articleId } = useParams({ from: '/blog/$articleId/' })
-  const id = Number(articleId)
+  const { guid } = useParams({ from: '/blog/$guid/' })
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['blog-public-article', id],
-    queryFn: () => getPublishedArticle(id),
-    enabled: !!id,
+    queryKey: ['blog-public-article', guid],
+    queryFn: () => getPublishedArticle(guid),
+    enabled: !!guid,
   })
 
   const article = data?.data
+
+  const pageTitle = article
+    ? `${article.title} | ${article.author?.display_name || t('Blog')}`
+    : t('Blog')
+  const pageDescription = article?.summary || article?.content.slice(0, 160)
+  usePageMeta({
+    title: pageTitle,
+    description: pageDescription,
+    image: article?.cover_image,
+    type: 'article',
+  })
 
   return (
     <div className='min-h-screen bg-background'>
@@ -137,6 +148,14 @@ export function BlogArticlePage() {
                 <AuthorCard author={article.author} />
               </div>
             )}
+
+            {/* More articles by this author */}
+            {article && (
+              <MoreArticlesByAuthor
+                authorId={article.author_id}
+                currentGuid={article.guid}
+              />
+            )}
           </article>
         )}
       </div>
@@ -222,5 +241,60 @@ function AuthorAvatar({
     >
       {initial}
     </span>
+  )
+}
+
+function MoreArticlesByAuthor({
+  authorId,
+  currentGuid,
+}: {
+  authorId: number
+  currentGuid: string
+}) {
+  const { t } = useTranslation()
+  const { data } = useQuery({
+    queryKey: ['blog-public', 'author', authorId],
+    queryFn: () =>
+      getPublishedArticles({ author_id: authorId, p: 1, page_size: 4 }),
+    enabled: authorId > 0,
+  })
+
+  const articles =
+    data?.data?.items?.filter((a: BlogArticle) => a.guid !== currentGuid) ?? []
+  if (articles.length === 0) return null
+
+  return (
+    <div className='mt-16'>
+      <h2 className='mb-4 flex items-center gap-2 text-xl font-semibold'>
+        <BookOpen className='h-5 w-5' />
+        {t('More from this author')}
+      </h2>
+      <div className='space-y-4'>
+        {articles.slice(0, 3).map((article: BlogArticle) => (
+          <MoreArticleCard key={article.guid} article={article} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function MoreArticleCard({ article }: { article: BlogArticle }) {
+  return (
+    <Link
+      to='/blog/$guid'
+      params={{ guid: article.guid }}
+      className='block'
+    >
+      <article className='group border-border bg-card hover:border-primary/50 rounded-lg border p-4 transition-colors'>
+        <h3 className='text-card-foreground group-hover:text-primary text-lg font-semibold leading-snug transition-colors'>
+          {article.title}
+        </h3>
+        {article.summary && (
+          <p className='text-muted-foreground mt-1 line-clamp-2 text-sm'>
+            {article.summary}
+          </p>
+        )}
+      </article>
+    </Link>
   )
 }

@@ -41,7 +41,7 @@ import { Route as AuthenticatedStudioRouteRouteImport } from './routes/_authenti
 import { Route as AuthenticatedPricingRouteRouteImport } from './routes/_authenticated/pricing/route'
 import { Route as AuthenticatedBlogHallRouteRouteImport } from './routes/_authenticated/blog-hall/route'
 import { Route as BlogAuthorsIndexRouteImport } from './routes/blog/authors/index'
-import { Route as BlogArticleIdIndexRouteImport } from './routes/blog/$articleId/index'
+import { Route as BlogGuidIndexRouteImport } from './routes/blog/$guid/index'
 import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenticated/wallet/index'
 import { Route as AuthenticatedVideoPlaygroundIndexRouteImport } from './routes/_authenticated/video-playground/index'
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
@@ -270,9 +270,9 @@ const BlogAuthorsIndexRoute = BlogAuthorsIndexRouteImport.update({
   path: '/blog/authors/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BlogArticleIdIndexRoute = BlogArticleIdIndexRouteImport.update({
-  id: '/blog/$articleId/',
-  path: '/blog/$articleId/',
+const BlogGuidIndexRoute = BlogGuidIndexRouteImport.update({
+  id: '/blog/$guid/',
+  path: '/blog/$guid/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWalletIndexRoute =
@@ -728,7 +728,7 @@ export interface FileRoutesByFullPath {
   '/users/': typeof AuthenticatedUsersIndexRoute
   '/video-playground/': typeof AuthenticatedVideoPlaygroundIndexRoute
   '/wallet/': typeof AuthenticatedWalletIndexRoute
-  '/blog/$articleId/': typeof BlogArticleIdIndexRoute
+  '/blog/$guid/': typeof BlogGuidIndexRoute
   '/blog/authors/': typeof BlogAuthorsIndexRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
@@ -822,7 +822,7 @@ export interface FileRoutesByTo {
   '/users': typeof AuthenticatedUsersIndexRoute
   '/video-playground': typeof AuthenticatedVideoPlaygroundIndexRoute
   '/wallet': typeof AuthenticatedWalletIndexRoute
-  '/blog/$articleId': typeof BlogArticleIdIndexRoute
+  '/blog/$guid': typeof BlogGuidIndexRoute
   '/blog/authors': typeof BlogAuthorsIndexRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
@@ -923,7 +923,7 @@ export interface FileRoutesById {
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
   '/_authenticated/video-playground/': typeof AuthenticatedVideoPlaygroundIndexRoute
   '/_authenticated/wallet/': typeof AuthenticatedWalletIndexRoute
-  '/blog/$articleId/': typeof BlogArticleIdIndexRoute
+  '/blog/$guid/': typeof BlogGuidIndexRoute
   '/blog/authors/': typeof BlogAuthorsIndexRoute
   '/_authenticated/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/_authenticated/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
@@ -1023,7 +1023,7 @@ export interface FileRouteTypes {
     | '/users/'
     | '/video-playground/'
     | '/wallet/'
-    | '/blog/$articleId/'
+    | '/blog/$guid/'
     | '/blog/authors/'
     | '/system-settings/auth/$section'
     | '/system-settings/billing/$section'
@@ -1117,7 +1117,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/video-playground'
     | '/wallet'
-    | '/blog/$articleId'
+    | '/blog/$guid'
     | '/blog/authors'
     | '/system-settings/auth/$section'
     | '/system-settings/billing/$section'
@@ -1217,7 +1217,7 @@ export interface FileRouteTypes {
     | '/_authenticated/users/'
     | '/_authenticated/video-playground/'
     | '/_authenticated/wallet/'
-    | '/blog/$articleId/'
+    | '/blog/$guid/'
     | '/blog/authors/'
     | '/_authenticated/system-settings/auth/$section'
     | '/_authenticated/system-settings/billing/$section'
@@ -1268,7 +1268,7 @@ export interface RootRouteChildren {
   HuayuIndexRoute: typeof HuayuIndexRoute
   RankingsIndexRoute: typeof RankingsIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
-  BlogArticleIdIndexRoute: typeof BlogArticleIdIndexRoute
+  BlogGuidIndexRoute: typeof BlogGuidIndexRoute
   BlogAuthorsIndexRoute: typeof BlogAuthorsIndexRoute
   BlogAuthorsAuthorSlugIndexRoute: typeof BlogAuthorsAuthorSlugIndexRoute
 }
@@ -1499,11 +1499,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogAuthorsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog/$articleId/': {
-      id: '/blog/$articleId/'
-      path: '/blog/$articleId'
-      fullPath: '/blog/$articleId/'
-      preLoaderRoute: typeof BlogArticleIdIndexRouteImport
+    '/blog/$guid/': {
+      id: '/blog/$guid/'
+      path: '/blog/$guid'
+      fullPath: '/blog/$guid/'
+      preLoaderRoute: typeof BlogGuidIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/wallet/': {
@@ -2231,7 +2231,7 @@ const rootRouteChildren: RootRouteChildren = {
   HuayuIndexRoute: HuayuIndexRoute,
   RankingsIndexRoute: RankingsIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
-  BlogArticleIdIndexRoute: BlogArticleIdIndexRoute,
+  BlogGuidIndexRoute: BlogGuidIndexRoute,
   BlogAuthorsIndexRoute: BlogAuthorsIndexRoute,
   BlogAuthorsAuthorSlugIndexRoute: BlogAuthorsAuthorSlugIndexRoute,
 }

@@ -16,17 +16,24 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Users } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { StatusBadge } from '@/components/status-badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { formatTimestampToDate } from '@/lib/format'
+import { usePageMeta } from '@/lib/page-meta'
 
-import { getBlogAuthor, getBlogAuthorArticles } from '../author-api'
+import {
+  followBlogAuthor,
+  getBlogAuthor,
+  getBlogAuthorArticles,
+  unfollowBlogAuthor,
+} from '../author-api'
 
 import type { BlogArticle } from '@/features/blog-hall/types'
 
@@ -37,6 +44,7 @@ export function AuthorPage() {
   const { authorSlug } = useParams({ from: '/blog/authors/$authorSlug/' })
   const slug = decodeURIComponent(authorSlug)
   const [page, setPage] = useState(1)
+  const queryClient = useQueryClient()
 
   const authorQuery = useQuery({
     queryKey: ['blog-author', slug],
@@ -55,6 +63,49 @@ export function AuthorPage() {
   const total = articlesQuery.data?.data?.total ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
   const initial = author?.display_name.charAt(0).toUpperCase() ?? '?'
+
+  usePageMeta({
+    title: author ? `${author.display_name} | ${t('Authors')}` : t('Authors'),
+    description: author?.bio,
+    image: author?.avatar,
+    type: 'profile',
+  })
+
+  const followMutation = useMutation({
+    mutationFn: () => followBlogAuthor(slug),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['blog-author', slug] })
+      toast.success(t('Followed'))
+    },
+    onError: () => toast.error(t('Failed to follow author.')),
+  })
+
+  const unfollowMutation = useMutation({
+    mutationFn: () => unfollowBlogAuthor(slug),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['blog-author', slug] })
+      toast.success(t('Unfollowed'))
+    },
+    onError: () => toast.error(t('Failed to unfollow author.')),
+  })
+
+  const latestPublishedAt = useMemo(() => {
+    if (articles.length === 0) return null
+    return articles.reduce((latest, a) => {
+      const time = a.published_at || a.created_time
+      return time > latest ? time : latest
+    }, 0)
+  }, [articles])
+
+  const tagCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const article of articles) {
+      for (const tag of article.tags) {
+        counts.set(tag, (counts.get(tag) || 0) + 1)
+      }
+    }
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10)
+  }, [articles])
 
   return (
     <div className='min-h-screen bg-background'>
@@ -98,11 +149,61 @@ export function AuthorPage() {
                     {author.bio}
                   </p>
                 )}
-                <p className='text-muted-foreground mt-2 text-sm'>
-                  {t('{count} articles', { count: author.article_count })}
-                </p>
+                <div className='text-muted-foreground mt-3 flex flex-wrap items-center gap-4 text-sm'>
+                  <span className='flex items-center gap-1'>
+                    <BookOpen className='h-4 w-4' />
+                    {t('{count} articles', { count: author.article_count })}
+                  </span>
+                  <span className='flex items-center gap-1'>
+                    <Users className='h-4 w-4' />
+                    {t('{count} followers', { count: author.follower_count })}
+                  </span>
+                  {latestPublishedAt !== null && latestPublishedAt > 0 && (
+                    <span>
+                      {t('Latest')}: {formatTimestampToDate(latestPublishedAt)}
+                    </span>
+                  )}
+                </div>
+                <div className='mt-4'>
+                  {author.is_followed ? (
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      disabled={unfollowMutation.isPending}
+                      onClick={() => void unfollowMutation.mutate()}
+                    >
+                      {unfollowMutation.isPending ? t('Unfollowing...') : t('Unfollow')}
+                    </Button>
+                  ) : (
+                    <Button
+                      size='sm'
+                      disabled={followMutation.isPending}
+                      onClick={() => void followMutation.mutate()}
+                    >
+                      {followMutation.isPending ? t('Following...') : t('Follow')}
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Tag cloud */}
+            {tagCounts.length > 0 && (
+              <div className='mb-8'>
+                <h2 className='mb-3 text-sm font-semibold'>{t('Topics')}</h2>
+                <div className='flex flex-wrap gap-2'>
+                  {tagCounts.map(([tag, count]) => (
+                    <span
+                      key={tag}
+                      className='bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs'
+                    >
+                      {tag}
+                      <span className='text-muted-foreground/60'>×{count}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Articles */}
             <h2 className='mb-4 flex items-center gap-2 text-xl font-semibold'>
@@ -124,7 +225,7 @@ export function AuthorPage() {
               <>
                 <div className='space-y-4'>
                   {articles.map((article: BlogArticle) => (
-                    <ArticleCard key={article.id} article={article} />
+                    <ArticleCard key={article.guid} article={article} />
                   ))}
                 </div>
 
@@ -165,8 +266,8 @@ export function AuthorPage() {
 function ArticleCard({ article }: { article: BlogArticle }) {
   return (
     <Link
-      to='/blog/$articleId'
-      params={{ articleId: String(article.id) }}
+      to='/blog/$guid'
+      params={{ guid: article.guid }}
       className='block'
     >
       <article className='group border-border bg-card hover:border-primary/50 rounded-lg border overflow-hidden transition-colors'>
