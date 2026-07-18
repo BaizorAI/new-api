@@ -1,8 +1,13 @@
 package controller
 
 import (
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/BaizorAI/new-api/common"
 	"github.com/BaizorAI/new-api/model"
@@ -487,4 +492,78 @@ func ClearBlogChatMessages(c *gin.Context) {
 		return
 	}
 	common.ApiSuccess(c, nil)
+}
+
+// ============================================================================
+// Blog Image Upload API
+// ============================================================================
+
+const blogUploadDir = "blog-images"
+
+type blogFileUploadResponse struct {
+	Url      string `json:"url"`
+	Filename string `json:"filename"`
+	Bytes    int64  `json:"bytes"`
+}
+
+// UploadBlogImage POST /api/blog/files/upload
+func UploadBlogImage(c *gin.Context) {
+	userId := c.GetInt("id")
+
+	os.MkdirAll(blogUploadDir, 0o755)
+
+	file, header, err := c.Request.FormFile("image")
+	if err != nil {
+		common.ApiErrorMsg(c, "请上传图片文件（字段名: image）")
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	allowed := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true, ".svg": true}
+	if !allowed[ext] {
+		common.ApiErrorMsg(c, "不支持的图片格式，只支持 jpg/png/gif/webp/svg")
+		return
+	}
+
+	diskFilename := fmt.Sprintf("%d_%d%s", userId, time.Now().UnixNano(), ext)
+	diskPath := filepath.Join(blogUploadDir, diskFilename)
+
+	dst, err := os.Create(diskPath)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	written, err := io.Copy(dst, file)
+	dst.Close()
+	if err != nil {
+		os.Remove(diskPath)
+		common.ApiError(c, err)
+		return
+	}
+
+	publicUrl := "/api/blog/files/" + diskFilename
+	common.ApiSuccess(c, blogFileUploadResponse{
+		Url:      publicUrl,
+		Filename: header.Filename,
+		Bytes:    written,
+	})
+}
+
+// ServeBlogImage GET /api/blog/files/:filename
+// Public — serves uploaded blog images without auth.
+func ServeBlogImage(c *gin.Context) {
+	filename := c.Param("filename")
+	cleanName := filepath.Clean(filename)
+	if strings.Contains(cleanName, "..") || strings.Contains(cleanName, string(filepath.Separator)) {
+		common.ApiErrorMsg(c, "invalid filename")
+		return
+	}
+	diskPath := filepath.Join(blogUploadDir, cleanName)
+	if _, err := os.Stat(diskPath); os.IsNotExist(err) {
+		common.ApiErrorMsg(c, "file not found")
+		return
+	}
+	c.File(diskPath)
 }

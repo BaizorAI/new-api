@@ -9,7 +9,6 @@
   "Codex Parameters": "Codex 参数",
   "Controls tool permission prompting in claude": "控制 claude 工具权限的提示方式",
   "Default models and parameters returned to huayu on login. Settings take effect on the next login.": "登录时返回给 huayu 的默认模型和参数，下次登录后生效。",
-  "your-name": "your-name",
   "e.g. Hermes Agent": "例如：Hermes Agent",
   "e.g. lora_name:0.8": "例如：lora_name:0.8",
   "e.g. MIT": "例如：MIT",
@@ -36,5 +35,6 @@
   "Total: {{duration}}s": "总计：{{duration}}秒",
   "Voiceover generated for {{count}} shots.": "已为 {{count}} 个镜头生成配音。",
   "Write the complete skill instructions in markdown. Sections like Overview, When to Use, Procedure, Hard Rules, Verification are recommended.": "以 Markdown 格式编写完整的技能指令。建议包含概览、使用场景、流程、硬性规则、验证等章节。",
-  "Write the skill instructions in markdown...": "以 Markdown 格式编写技能指令..."
+  "Write the skill instructions in markdown...": "以 Markdown 格式编写技能指令...",
+  "your-name": "your-name"
 }

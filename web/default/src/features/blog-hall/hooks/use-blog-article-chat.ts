@@ -48,6 +48,7 @@ export type BlogModificationType =
   | 'expand'
   | 'shorten'
   | 'rewrite'
+  | 'format'
   | 'image_prompt'
 
 interface UseBlogArticleChatOptions {
@@ -270,6 +271,30 @@ export function useBlogArticleChat({
         if (content) {
           const truncated = content.length > 4000 ? content.slice(0, 4000) + '\n\n[...truncated]' : content
           parts.push('', '## 文章内容：', '', truncated)
+        }
+        chatMessages.push({ role: 'system', content: parts.join('\n') })
+      } else if (modType === 'format') {
+        // Smart formatting — improve article structure, heading hierarchy, image placement
+        const parts: string[] = []
+        parts.push(
+          '你是一个专业的博客排版助手，使用 blog-v1 技能。请对以下文章进行智能排版优化。',
+          '',
+          '优化项目包括：',
+          '1. **标题层级**：确保 # ## ### 层次合理，不跳级',
+          '2. **段落长度**：过长段落建议拆分，过短段落建议合并',
+          '3. **配图建议**：在合适的位置添加 `<!-- 建议配图：描述 -->` 占位标记',
+          '4. **列表格式**：适合用列表的内容改为列表',
+          '5. **代码块**：技术内容用 ``` 包裹并标注语言',
+          '6. **引用块**：重点内容用 > 突出',
+          '7. **空行间距**：章节之间、段落之间保持合理间距',
+          '',
+          '请输出优化后的完整文章（Markdown 格式），用 ```markdown 代码块包裹。',
+          '在修改过的位置后添加 `<!-- 优化说明 -->` 注释（可选）。'
+        )
+        if (title) parts.push('', `标题：${title}`)
+        if (content) {
+          const truncated = content.length > 6000 ? content.slice(0, 6000) + '\n\n[...truncated]' : content
+          parts.push('', '## 当前文章：', '', truncated)
         }
         chatMessages.push({ role: 'system', content: parts.join('\n') })
       } else if (modType === 'image_prompt') {

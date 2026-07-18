@@ -28,6 +28,7 @@ import { formatTimestampToDate } from '@/lib/format'
 import { usePageMeta } from '@/lib/page-meta'
 
 import { getPublishedArticle, getPublishedArticles } from '../api'
+import { BlogReaderPanel } from './blog-reader-panel'
 
 import type { BlogArticle, BlogAuthor } from '@/features/blog-hall/types'
 
@@ -56,108 +57,120 @@ export function BlogArticlePage() {
 
   return (
     <div className='min-h-screen bg-background'>
-      <div className='mx-auto max-w-3xl px-4 py-12'>
-        {/* Back button */}
-        <div className='mb-8'>
-          <Link
-            to='/blog'
-            className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-          >
-            <ArrowLeft className='h-4 w-4' />
-            {t('All Articles')}
-          </Link>
-        </div>
-
-        {isLoading && (
-          <div className='space-y-4'>
-            <div className='bg-muted animate-pulse h-10 w-3/4 rounded' />
-            <div className='bg-muted animate-pulse h-4 w-1/3 rounded' />
-            <div className='bg-muted animate-pulse mt-8 h-64 rounded' />
-          </div>
-        )}
-
-        {isError && (
-          <p className='text-destructive text-center'>
-            {t('Article not found or not yet published.')}
-          </p>
-        )}
-
-        {article && (
-          <article>
-            {/* Cover image */}
-            {article.cover_image && (
-              <img
-                src={article.cover_image}
-                alt={article.title}
-                className='mb-6 w-full rounded-lg object-cover'
-                style={{ maxHeight: '400px' }}
-              />
-            )}
-
-            {/* Title */}
-            <h1 className='mb-4 text-3xl font-bold leading-tight'>
-              {article.title}
-            </h1>
-
-            {/* Author byline */}
-            {article.author && (
-              <div className='mb-6'>
-                <AuthorByline author={article.author} />
-              </div>
-            )}
-
-            {/* Metadata */}
-            <div className='text-muted-foreground mb-2 flex flex-wrap items-center gap-3 text-sm'>
-              <time className='font-mono'>
-                {formatTimestampToDate(
-                  article.published_at || article.created_time
-                )}
-              </time>
+      <div className='mx-auto max-w-7xl px-4 py-12'>
+        <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
+          <div className='lg:col-span-2'>
+            {/* Back button */}
+            <div className='mb-8'>
+              <Link
+                to='/blog'
+                className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+              >
+                <ArrowLeft className='h-4 w-4' />
+                {t('All Articles')}
+              </Link>
             </div>
 
-            {/* Tags */}
-            {article.tags.length > 0 && (
-              <div className='mb-6 flex flex-wrap gap-1.5'>
-                {article.tags.map((tag) => (
-                  <StatusBadge
-                    key={tag}
-                    label={tag}
-                    variant='neutral'
-                    copyable={false}
-                    className='text-xs'
-                  />
-                ))}
+            {isLoading && (
+              <div className='space-y-4'>
+                <div className='bg-muted animate-pulse h-10 w-3/4 rounded' />
+                <div className='bg-muted animate-pulse h-4 w-1/3 rounded' />
+                <div className='bg-muted animate-pulse mt-8 h-64 rounded' />
               </div>
             )}
 
-            {/* Summary */}
-            {article.summary && (
-              <p className='text-muted-foreground border-l-primary/40 mb-6 border-l-2 pl-4 text-base italic'>
-                {article.summary}
+            {isError && (
+              <p className='text-destructive text-center'>
+                {t('Article not found or not yet published.')}
               </p>
             )}
 
-            {/* Content */}
-            <Markdown className='prose-base prose-neutral'>
-              {article.content || ''}
-            </Markdown>
+            {article && (
+              <article>
+                {/* Cover image */}
+                {article.cover_image && (
+                  <img
+                    src={article.cover_image}
+                    alt={article.title}
+                    className='mb-6 w-full rounded-lg object-cover'
+                    style={{ maxHeight: '400px' }}
+                  />
+                )}
 
-            {/* Author card */}
-            {article.author && (
-              <div className='mt-12'>
-                <AuthorCard author={article.author} />
+                {/* Title */}
+                <h1 className='mb-4 text-3xl font-bold leading-tight'>
+                  {article.title}
+                </h1>
+
+                {/* Author byline */}
+                {article.author && (
+                  <div className='mb-6'>
+                    <AuthorByline author={article.author} />
+                  </div>
+                )}
+
+                {/* Metadata */}
+                <div className='text-muted-foreground mb-2 flex flex-wrap items-center gap-3 text-sm'>
+                  <time className='font-mono'>
+                    {formatTimestampToDate(
+                      article.published_at || article.created_time
+                    )}
+                  </time>
+                </div>
+
+                {/* Tags */}
+                {article.tags.length > 0 && (
+                  <div className='mb-6 flex flex-wrap gap-1.5'>
+                    {article.tags.map((tag) => (
+                      <StatusBadge
+                        key={tag}
+                        label={tag}
+                        variant='neutral'
+                        copyable={false}
+                        className='text-xs'
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Summary */}
+                {article.summary && (
+                  <p className='text-muted-foreground border-l-primary/40 mb-6 border-l-2 pl-4 text-base italic'>
+                    {article.summary}
+                  </p>
+                )}
+
+                {/* Content */}
+                <Markdown className='prose-base prose-neutral'>
+                  {article.content || ''}
+                </Markdown>
+
+                {/* Author card */}
+                {article.author && (
+                  <div className='mt-12'>
+                    <AuthorCard author={article.author} />
+                  </div>
+                )}
+
+                {/* More articles by this author */}
+                {article && (
+                  <MoreArticlesByAuthor
+                    authorId={article.author_id}
+                    currentGuid={article.guid}
+                  />
+                )}
+              </article>
+            )}
+          </div>
+
+          <aside className='lg:col-span-1'>
+            {article && (
+              <div className='lg:sticky lg:top-24'>
+                <BlogReaderPanel article={article} />
               </div>
             )}
-
-            {/* More articles by this author */}
-            {article && (
-              <MoreArticlesByAuthor
-                authorId={article.author_id}
-                currentGuid={article.guid}
-              />
-            )}
-          </article>
-        )}
+          </aside>
+        </div>
       </div>
     </div>
   )

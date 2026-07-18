@@ -522,6 +522,21 @@ export function BlogWorkspaceChatPanel() {
               <ImagePlus className='size-3 text-pink-500' />
               {t('Generate image prompt')}
             </Button>
+            <Button
+              size='sm'
+              variant='outline'
+              className='h-6 gap-1 px-2 text-[11px]'
+              disabled={isStreaming}
+              onClick={() => {
+                handleSubmit(
+                  { text: '请为此文章进行智能排版优化。' } as PromptInputMessage,
+                  'format'
+                )
+              }}
+            >
+              <Wand2 className='size-3 text-emerald-500' />
+              {t('Smart Format')}
+            </Button>
           </div>
         ) : null
       )}

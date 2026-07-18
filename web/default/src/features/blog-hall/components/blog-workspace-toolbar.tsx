@@ -16,9 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { ImageIcon, Loader2, PanelLeftClose, PanelLeftOpen, Send, Sparkles } from 'lucide-react'
+import { ImageIcon, ImageUp, Loader2, PanelLeftClose, PanelLeftOpen, Send, Sparkles } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -40,7 +40,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-import { updateBlogArticle } from '../api'
+import { updateBlogArticle, uploadBlogImage } from '../api'
 import { useBlogWorkspace } from './blog-workspace-provider'
 
 import type { BlogArticleStatus } from '../types'
@@ -63,6 +63,7 @@ export function BlogWorkspaceToolbar({
     title,
     summary,
     content,
+    setContent,
     tags,
     save,
     isSaving,
@@ -72,8 +73,38 @@ export function BlogWorkspaceToolbar({
   } = useBlogWorkspace()
 
   const [isPublishing, setIsPublishing] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const isPublished = status === 'published'
+
+  // Image upload — open file dialog, upload, insert into content
+  const handleUploadImage = useCallback(() => {
+    fileInputRef.current?.click()
+  }, [])
+
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+      setIsUploading(true)
+      try {
+        const result = await uploadBlogImage(file)
+        if (result.url) {
+          const imgMd = `\n\n![${result.filename}](${result.url})\n\n`
+          setContent(content + imgMd)
+          toast.success(t('Image uploaded and inserted.'))
+        }
+      } catch {
+        toast.error(t('Image upload failed.'))
+      } finally {
+        setIsUploading(false)
+        // Reset so the same file can be re-selected
+        if (fileInputRef.current) fileInputRef.current.value = ''
+      }
+    },
+    [content, setContent, t]
+  )
 
   // Publish/unpublish — must bypass the save() closure because React state
   // updates are async and save() would capture the old status value.
@@ -183,6 +214,30 @@ export function BlogWorkspaceToolbar({
           )}
         </PopoverContent>
       </Popover>
+
+      {/* Upload image */}
+      <input
+        ref={fileInputRef}
+        type='file'
+        accept='image/*'
+        className='hidden'
+        onChange={(e) => { void handleFileChange(e) }}
+      />
+      <Button
+        size='sm'
+        variant='ghost'
+        disabled={isUploading}
+        onClick={handleUploadImage}
+        className='h-8 w-8 p-0'
+        title={t('Upload image')}
+        aria-label={t('Upload image')}
+      >
+        {isUploading ? (
+          <Loader2 className='size-4 animate-spin' />
+        ) : (
+          <ImageUp className='size-4' />
+        )}
+      </Button>
 
       {/* AI Analyze */}
       <Button

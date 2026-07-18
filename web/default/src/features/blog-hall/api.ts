@@ -101,3 +101,24 @@ export async function clearBlogChatMessages(
   const res = await api.delete(`/api/blog/${articleId}/messages`)
   return res.data
 }
+
+// ============================================================================
+// Blog Image Upload API
+// ============================================================================
+
+export interface BlogImageUploadResponse {
+  url: string
+  filename: string
+  bytes: number
+}
+
+export async function uploadBlogImage(
+  file: File
+): Promise<BlogImageUploadResponse> {
+  const formData = new FormData()
+  formData.append('image', file)
+  const res = await api.post('/api/blog/files/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data.data
+}
