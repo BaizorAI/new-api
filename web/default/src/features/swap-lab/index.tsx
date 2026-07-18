@@ -203,7 +203,7 @@ export function SwapLab() {
       <div className='flex min-h-0 flex-1 overflow-hidden'>
         {/* Left: controls */}
         <div className='border-border flex w-[340px] shrink-0 flex-col border-r'>
-          <ScrollArea className='flex-1'>
+          <ScrollArea className='min-h-0 flex-1'>
             <div className='space-y-5 p-4'>
               {/* Source character */}
               <div>
@@ -289,7 +289,7 @@ export function SwapLab() {
           <div className='border-border flex items-center border-b px-4 py-2.5'>
             <h3 className='text-xs font-semibold'>{t('Results')}</h3>
           </div>
-          <ScrollArea className='flex-1'>
+          <ScrollArea className='min-h-0 flex-1'>
             {history.length === 0 ? (
               <div className='flex flex-col items-center justify-center py-16 gap-3'>
                 <ArrowLeftRight className='text-muted-foreground/30 size-12' />
