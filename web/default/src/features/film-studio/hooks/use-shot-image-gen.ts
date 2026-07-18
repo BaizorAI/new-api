@@ -38,12 +38,15 @@ interface UseShotImageGenOptions {
   projectId: number
   styleDna?: string
   model?: string
+  /** Characters for injecting visual consistency into prompts. */
+  characters?: { id: number; visual_prompt?: string }[]
 }
 
 export function useShotImageGen({
   projectId,
   styleDna = '',
   model = 'huayu-drama-4',
+  characters = [],
 }: UseShotImageGenOptions) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -96,9 +99,15 @@ export function useShotImageGen({
         return
       }
 
-      const fullPrompt = styleDna
+      // Build character consistency suffix from associated characters
+      const characterConstraints = buildCharacterConstraint(shot.character_ids, characters)
+
+      let fullPrompt = styleDna
         ? `${prompt}. Style: ${styleDna}`
         : prompt
+      if (characterConstraints) {
+        fullPrompt += characterConstraints
+      }
 
       addGenerating(shot.id)
 
@@ -180,4 +189,21 @@ export function useShotImageGen({
   )
 
   return { generateImage, generatingIds }
+}
+
+/**
+ * Build a character consistency constraint string from the shot's
+ * associated character IDs. Appends key visual traits to the prompt
+ * so generated images maintain cross-shot character identity.
+ */
+function buildCharacterConstraint(
+  characterIds: string | undefined,
+  characters: { id: number; visual_prompt?: string }[],
+): string {
+  if (!characterIds || characters.length === 0) return ''
+  const ids = new Set(characterIds.split(',').filter(Boolean).map(Number))
+  const linked = characters.filter((c) => ids.has(c.id) && c.visual_prompt?.trim())
+  if (linked.length === 0) return ''
+  const traits = linked.map((c) => c.visual_prompt!.trim()).join('; ')
+  return `. Character consistency requirement: ${traits}`
 }

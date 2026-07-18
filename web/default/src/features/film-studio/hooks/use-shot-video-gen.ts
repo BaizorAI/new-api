@@ -38,12 +38,15 @@ interface UseShotVideoGenOptions {
   projectId: number
   styleDna?: string
   model?: string
+  /** Characters for injecting visual consistency into prompts. */
+  characters?: { id: number; visual_prompt?: string }[]
 }
 
 export function useShotVideoGen({
   projectId,
   styleDna = '',
   model = 'huayu-drama-4',
+  characters = [],
 }: UseShotVideoGenOptions) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -99,13 +102,15 @@ export function useShotVideoGen({
       }
 
       const fullPrompt = styleDna ? `${prompt}. Style: ${styleDna}` : prompt
+      const characterConstraints = buildCharacterConstraint(shot.character_ids, characters)
+      const finalPrompt = characterConstraints ? `${fullPrompt}.${characterConstraints}` : fullPrompt
 
       addGenerating(shot.id)
 
       try {
         // I2V if shot has an image, otherwise T2V
         const pending = await submitVideoGeneration({
-          prompt: fullPrompt,
+          prompt: finalPrompt,
           model,
           size: '512x768',
           negative_prompt: '',
@@ -205,4 +210,16 @@ export function useShotVideoGen({
   )
 
   return { generateVideo, generatingIds }
+}
+
+function buildCharacterConstraint(
+  characterIds: string | undefined,
+  characters: { id: number; visual_prompt?: string }[],
+): string {
+  if (!characterIds || characters.length === 0) return ''
+  const ids = new Set(characterIds.split(',').filter(Boolean).map(Number))
+  const linked = characters.filter((c) => ids.has(c.id) && c.visual_prompt?.trim())
+  if (linked.length === 0) return ''
+  const traits = linked.map((c) => c.visual_prompt!.trim()).join('; ')
+  return `. Character consistency requirement: ${traits}`
 }

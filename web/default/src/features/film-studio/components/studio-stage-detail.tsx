@@ -429,9 +429,16 @@ export function StudioStageDetail() {
       },
     })
 
+  // Build a character map for prompt consistency injection
+  const characterMap = useMemo(
+    () => characters.map((c) => ({ id: c.id, visual_prompt: c.visual_prompt })),
+    [characters],
+  )
+
   const { generateImage, generatingIds } = useShotImageGen({
     projectId: id,
     styleDna: projectData?.data?.style_dna,
+    characters: characterMap,
   })
   const {
     generateVideo,
@@ -439,6 +446,7 @@ export function StudioStageDetail() {
   } = useShotVideoGen({
     projectId: id,
     styleDna: projectData?.data?.style_dna,
+    characters: characterMap,
   })
   const { extractCharacters, isExtracting: isExtractingChars } =
     useExtractCharacters(id)

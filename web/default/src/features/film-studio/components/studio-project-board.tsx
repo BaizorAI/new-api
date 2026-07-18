@@ -27,6 +27,7 @@ import {
   Lock,
   Pencil,
   Server,
+  Sparkles,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -54,6 +55,8 @@ import {
 } from './studio-version-guard'
 import { LoraTrainingPanel } from './lora-training-panel'
 import { ComputeDashboard } from './compute-dashboard'
+import { PipelineProgressPanel } from './pipeline-progress-panel'
+import { usePipelineOrchestrator } from '../hooks/use-pipeline-orchestrator'
 
 export function StudioProjectBoard() {
   const { t } = useTranslation()
@@ -63,7 +66,9 @@ export function StudioProjectBoard() {
   const id = Number(projectId)
   const [editOpen, setEditOpen] = useState(false)
   const [showEnterprise, setShowEnterprise] = useState(false)
+  const [showPipeline, setShowPipeline] = useState(false)
   const edition = resolveStudioEdition(useAuthStore.getState().auth.user?.role ?? 0)
+  const pipeline = usePipelineOrchestrator()
 
   const { data, isLoading } = useQuery({
     queryKey: [...STUDIO_QUERY_KEYS.project(id)],
@@ -132,6 +137,16 @@ export function StudioProjectBoard() {
         >
           <Pencil className='size-4' />
         </Button>
+        {/* AI Auto-Pipeline toggle */}
+        <Button
+          variant='ghost'
+          size='sm'
+          className='h-8 text-xs'
+          onClick={() => setShowPipeline((v) => !v)}
+        >
+          <Sparkles className='mr-1 size-3.5 text-purple-500' />
+          {showPipeline ? t('Hide Pipeline') : t('AI Pipeline')}
+        </Button>
         {edition === 'enterprise-pro' ? (
           <Button
             variant='ghost'
@@ -172,6 +187,30 @@ export function StudioProjectBoard() {
         <div className='flex gap-0 border-t'>
           <LoraTrainingPanel className='flex-1 border-r' />
           <ComputeDashboard className='flex-1' />
+        </div>
+      ) : null}
+
+      {/* AI Auto-Pipeline panel */}
+      {showPipeline ? (
+        <div className='border-t'>
+          <PipelineProgressPanel
+            pipeline={pipeline}
+            projectName={project?.name ?? ''}
+            onStart={() => {
+              void pipeline.startPipeline(
+                project?.brief ?? '',
+                project?.name ?? '',
+                project?.genre ?? '',
+                project?.style_dna ?? '',
+              )
+            }}
+            onConfirmCheckpoint={pipeline.confirmCheckpoint}
+            onSkipCheckpoint={pipeline.skipCheckpoint}
+            onCancel={() => {
+              pipeline.cancel()
+              setShowPipeline(false)
+            }}
+          />
         </div>
       ) : null}
 
