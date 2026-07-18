@@ -24,6 +24,8 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Bold,
+  Download,
   Expand,
   ImagePlus,
   Images,
@@ -41,6 +43,7 @@ import {
   SquareIcon,
   Trash2,
   Video,
+  Volume2,
   Wand2,
   X,
 } from 'lucide-react'
@@ -108,6 +111,9 @@ import {
 } from '../hooks/use-studio-stage-chat'
 import { useExtractCharacters, useExtractShots } from '../hooks/use-ai-extraction'
 import { useSubtitleGen } from '../hooks/use-subtitle-gen'
+import { useDubbingGen } from '../hooks/use-dubbing-gen'
+import { useAiAssembly } from '../hooks/use-ai-assembly'
+import { usePrExport } from '../hooks/use-pr-export'
 import { useShotImageGen } from '../hooks/use-shot-image-gen'
 import { useShotVideoGen } from '../hooks/use-shot-video-gen'
 import { useSwapShotOrder } from '../hooks/use-studio-mutations'
@@ -1304,6 +1310,18 @@ function PostProductionSection(props: {
 
   const { isGenerating, progress, resultSrt, generateSubtitles, downloadSrt } =
     useSubtitleGen()
+  const {
+    isGenerating: isDubbing,
+    progress: dubbingProgress,
+    audioUrls,
+    generateDubbing,
+  } = useDubbingGen()
+  const {
+    isGenerating: isAssembling,
+    plan: assemblyPlan,
+    generateAssemblyPlan,
+  } = useAiAssembly()
+  const { exportXml } = usePrExport()
 
   const [checked, setChecked] = useState<Record<string, boolean>>(() => {
     try {
@@ -1337,6 +1355,139 @@ function PostProductionSection(props: {
 
   return (
     <div className='space-y-3'>
+      {/* AI Assembly — generate full post-production plan */}
+      {shots.filter(s => s.description?.trim()).length > 0 ? (
+        <div className='border-border space-y-2 rounded-lg border p-3'>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <span className='text-sm font-medium'>{t('AI Assembly')}</span>
+              {isAssembling ? (
+                <Loader2 className='size-3.5 animate-spin text-muted-foreground' />
+              ) : assemblyPlan ? (
+                <span className='text-emerald-500 text-[10px]'>{t('Ready')}</span>
+              ) : null}
+            </div>
+            <Button
+              size='sm'
+              variant='outline'
+              className='h-6 px-2 text-[11px]'
+              disabled={isAssembling}
+              onClick={() => void generateAssemblyPlan(shots)}
+            >
+              <Sparkles className='mr-1 size-3 text-purple-500' />
+              {isAssembling ? t('Planning...') : t('Plan Assembly')}
+            </Button>
+          </div>
+          {assemblyPlan ? (
+            <details className='text-muted-foreground text-xs'>
+              <summary className='cursor-pointer hover:text-foreground'>
+                {t('Timeline')} ({assemblyPlan.timeline?.length ?? 0} {t('clips')})
+              </summary>
+              <div className='bg-muted mt-1 max-h-40 space-y-1 overflow-auto rounded p-2 text-[10px]'>
+                {assemblyPlan.timeline?.map((entry, i) => (
+                  <div key={i} className='flex items-center gap-2'>
+                    <span className='shrink-0 font-mono text-primary'>{entry.clip_ref}</span>
+                    <span className='text-muted-foreground'>
+                      {entry.start_time.toFixed(1)}s–{entry.end_time.toFixed(1)}s
+                    </span>
+                    <span className='text-muted-foreground'>|</span>
+                    <span>{entry.transition_in} → {entry.transition_out}</span>
+                    <span className='text-muted-foreground'>|</span>
+                    <span>{entry.color_grade}</span>
+                  </div>
+                ))}
+                {assemblyPlan.music_cues?.length ? (
+                  <div className='border-t pt-1 mt-1'>
+                    <span className='font-medium'>{t('Sound Design & Music')}:</span>{' '}
+                    {assemblyPlan.music_cues.map((cue, i) => (
+                      <span key={i}>
+                        {cue.name} ({cue.mood}, {cue.instruments})
+                        {i < assemblyPlan.music_cues!.length - 1 ? ', ' : ''}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* AI Dubbing — TTS voiceover generation */}
+      {shots.filter(s => s.description?.trim()).length > 0 ? (
+        <div className='border-border space-y-2 rounded-lg border p-3'>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <span className='text-sm font-medium'>{t('AI Dubbing')}</span>
+              {isDubbing ? (
+                <span className='text-muted-foreground text-[10px]'>
+                  {t('Generating... {{progress}}%', { progress: dubbingProgress })}
+                </span>
+              ) : Object.keys(audioUrls).length > 0 ? (
+                <span className='text-emerald-500 text-[10px]'>
+                  {t('{{count}} ready', { count: Object.keys(audioUrls).length })}
+                </span>
+              ) : null}
+            </div>
+            <Button
+              size='sm'
+              variant='outline'
+              className='h-6 px-2 text-[11px]'
+              disabled={isDubbing}
+              onClick={() => void generateDubbing(shots)}
+            >
+              <Volume2 className='mr-1 size-3 text-amber-500' />
+              {isDubbing ? t('Dubbing...') : t('Generate Dubbing')}
+            </Button>
+          </div>
+          {Object.keys(audioUrls).length > 0 ? (
+            <details className='text-muted-foreground text-xs'>
+              <summary className='cursor-pointer hover:text-foreground'>
+                {t('Voiceover audio')} ({Object.keys(audioUrls).length})
+              </summary>
+              <div className='bg-muted mt-1 max-h-40 space-y-1 overflow-auto rounded p-2'>
+                {shots
+                  .filter((s) => audioUrls[s.id])
+                  .map((s) => (
+                    <div key={s.id} className='flex items-center gap-2'>
+                      <span className='shrink-0 font-mono text-[10px]'>
+                        S{s.scene_number}-{s.shot_number}
+                      </span>
+                      <audio
+                        src={audioUrls[s.id]}
+                        controls
+                        className='h-6 flex-1'
+                        preload='metadata'
+                      />
+                    </div>
+                  ))}
+              </div>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Export PR Project */}
+      {shots.filter(s => s.video_url || s.image_url).length > 0 ? (
+        <div className='border-border space-y-2 rounded-lg border p-3'>
+          <div className='flex items-center justify-between'>
+            <span className='text-sm font-medium'>{t('Export')}</span>
+            <Button
+              size='sm'
+              variant='outline'
+              className='h-6 px-2 text-[11px]'
+              onClick={() => exportXml('Timeline', shots, assemblyPlan)}
+            >
+              <Download className='mr-1 size-3' />
+              {t('Download PR Project')}
+            </Button>
+          </div>
+          <p className='text-muted-foreground text-[10px]'>
+            {t('Adobe Premiere Pro XML — import into Premiere, DaVinci Resolve, or Final Cut Pro.')}
+          </p>
+        </div>
+      ) : null}
+
       {/* Subtitle generation */}
       {shots.filter(s => s.description?.trim()).length > 0 ? (
         <div className='border-border space-y-2 rounded-lg border p-3'>
