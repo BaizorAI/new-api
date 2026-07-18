@@ -182,6 +182,20 @@ export function StudioProjectBoard() {
         </div>
       ) : null}
 
+      {/* License upsell for SaaS Light users */}
+      {edition === 'saas-light' && stages.length > 0 ? (
+        <div className='border-t'>
+          <SoftConversionBanner type='license' />
+        </div>
+      ) : null}
+
+      {/* Training upsell — shown when project has progress */}
+      {project.status === PROJECT_STATUS.IN_PROGRESS ? (
+        <div className='border-t'>
+          <SoftConversionBanner type='training' />
+        </div>
+      ) : null}
+
       {/* Edit project dialog */}
       <StudioProjectMutateDialog
         open={editOpen}

@@ -48,6 +48,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { SoftConversionBanner } from '@/components/soft-conversion-banner'
+
 import {
   Conversation,
   ConversationContent,
@@ -1188,6 +1190,12 @@ ${brief}
       />
     )}
   </div>
+          ) : null}
+          {/* Compute upsell — visible during image/video generation stages */}
+          {(stageKey === 'image_gen' || stageKey === 'video_gen') && shots.length > 0 ? (
+            <div className='mx-auto max-w-4xl px-6 pb-4'>
+              <SoftConversionBanner type='compute' className='shadow-sm' />
+            </div>
           ) : null}
           {/* Post-production checklist */}
           {stageKey === 'post' ? (

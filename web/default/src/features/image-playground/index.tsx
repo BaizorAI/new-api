@@ -501,6 +501,14 @@ export function ImagePlayground({
           />
         ) : null}
 
+        {/* Training upsell — shown after user has generated some images */}
+        {images.length >= 3 ? (
+          <SoftConversionBanner
+            type='training'
+            className='mx-4 mb-0 mt-0'
+          />
+        ) : null}
+
         <div className='flex min-h-0 flex-1'>
           {/* Main conversation area */}
           <Conversation className='flex-1'>
