@@ -238,92 +238,6 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        id: 'capability-skills',
-        title: t('Skills'),
-        description: t('Manage skills and tools'),
-        icon: Sparkles,
-        iconColor: 'text-amber-500',
-        url: '/skill-editor',
-        position: 'bottom',
-        defaultOpen: true,
-        items: [
-          {
-            title: t('My skills'),
-            url: '/skill-editor?section=mine',
-            icon: User,
-          },
-          {
-            title: t('Team skills'),
-            url: '/skill-editor?section=team',
-            icon: Users,
-          },
-          {
-            title: t('Platform skills'),
-            url: '/skill-editor?section=platform',
-            icon: Sparkles,
-          },
-          {
-            title: t('Built-in skills'),
-            url: '/skill-editor?section=builtin',
-            icon: Archive,
-          },
-        ],
-      },
-      {
-        id: 'capability-tools',
-        title: t('Tools'),
-        description: t('Browse and configure Hermes toolsets.'),
-        icon: Wrench,
-        iconColor: 'text-slate-500',
-        url: '/tools-editor',
-        position: 'bottom',
-        defaultOpen: true,
-        items: [
-          {
-            title: t('All tools'),
-            url: '/tools-editor',
-            icon: Wrench,
-          },
-          {
-            title: t('Enabled'),
-            url: '/tools-editor?filter=enabled',
-            icon: Wrench,
-          },
-          {
-            title: t('Disabled'),
-            url: '/tools-editor?filter=disabled',
-            icon: Wrench,
-          },
-          {
-            title: t('Configured'),
-            url: '/tools-editor?filter=configured',
-            icon: Wrench,
-          },
-          {
-            title: t('Needs configuration'),
-            url: '/tools-editor?filter=unconfigured',
-            icon: Wrench,
-          },
-        ],
-      },
-      {
-        id: 'blog-hall',
-        title: t('Blog Hall'),
-        description: t('Write, edit and publish articles to Blog Hall.'),
-        icon: BookOpen,
-        iconColor: 'text-pink-500',
-        url: '/blog-hall',
-        position: 'bottom',
-        items: [
-          {
-            title: t('Blog Hall'),
-            url: '/blog-hall',
-            icon: BookOpen,
-            activeUrls: ['/blog-hall'],
-          },
-        ],
-      },
-      {
         id: 'personal-center',
         title: t('Personal Center'),
         description: t('Profile, wallet, playground, and personal navigation settings.'),
@@ -393,6 +307,47 @@ export function useSidebarData(): SidebarData {
           },
         ],
       },
+      {
+        id: 'capabilities',
+        title: t('Capabilities'),
+        description: t('Manage skills and tools'),
+        icon: Sparkles,
+        iconColor: 'text-amber-500',
+        url: '/skill-editor',
+        position: 'bottom',
+        items: [
+          {
+            title: t('Skills'),
+            url: '/skill-editor',
+            activeUrls: ['/skill-editor'],
+            icon: Sparkles,
+          },
+          {
+            title: t('Tools'),
+            url: '/tools-editor',
+            activeUrls: ['/tools-editor', '/toolset-detail'],
+            icon: Wrench,
+          },
+        ],
+      },
+      {
+        id: 'blog-hall',
+        title: t('Blog Hall'),
+        description: t('Write, edit and publish articles to Blog Hall.'),
+        icon: BookOpen,
+        iconColor: 'text-pink-500',
+        url: '/blog-hall',
+        position: 'bottom',
+        items: [
+          {
+            title: t('Blog Hall'),
+            url: '/blog-hall',
+            icon: BookOpen,
+            activeUrls: ['/blog-hall'],
+          },
+        ],
+      },
+
       {
         id: 'management',
         title: t('Management'),

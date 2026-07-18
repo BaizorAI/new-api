@@ -16,18 +16,21 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import {
   ArrowRight,
-  BriefcaseBusiness,
+  BookOpen,
+  CheckCircle2,
   Clapperboard,
   FileCheck2,
   FileText,
+  ListChecks,
+  Loader2,
   MessageSquare,
   Sparkles,
-  Users,
   Wallet,
+  XCircle,
 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -36,10 +39,11 @@ import { SectionPageLayout } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  listHermesExecutionTasks,
   listHermesSkills,
-  listTeamHermesConversations,
+  type HermesExecutionTask,
+  type HermesExecutionTaskStatus,
   type HermesSkill,
-  type HermesTeamConversationRecord,
 } from '@/features/hermes-playground/api'
 import {
   formatSessionTime,
@@ -58,8 +62,6 @@ import {
 } from '@/features/playground/lib/hermes-file-links'
 import { parseThinkTags } from '@/features/playground/lib/message-utils'
 import type { Message } from '@/features/playground/types'
-import { listTeams } from '@/features/teams/api'
-import type { Team } from '@/features/teams/types'
 import { getSelf } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -94,11 +96,6 @@ export function WorkspaceHome() {
   const user = useAuthStore((state) => state.auth.user)
   const userId = user?.id
 
-  const teamsQuery = useQuery({
-    queryKey: ['workspace-home', 'teams'],
-    queryFn: listTeams,
-    staleTime: 30_000,
-  })
   const selfQuery = useQuery({
     queryKey: ['workspace-home', 'self'],
     queryFn: () => getSelf({ silent: true }).catch(() => null),
@@ -109,45 +106,11 @@ export function WorkspaceHome() {
     queryFn: () => listHermesSkills().catch(() => []),
     staleTime: 30_000,
   })
-
-  const teams = useMemo<Team[]>(() => {
-    if (!teamsQuery.data?.success) return []
-    return teamsQuery.data.data ?? []
-  }, [teamsQuery.data])
-
-  const teamConversationQueries = useQueries({
-    queries: teams.slice(0, 5).map((team) => ({
-      queryKey: ['workspace-home', 'team-sessions', team.id],
-      queryFn: () => listTeamHermesConversations(team.id).catch(() => []),
-      staleTime: 30_000,
-    })),
+  const tasksQuery = useQuery({
+    queryKey: ['workspace-home', 'tasks'],
+    queryFn: () => listHermesExecutionTasks({ limit: 5 }).catch(() => []),
+    staleTime: 10_000,
   })
-  const teamSkillQueries = useQueries({
-    queries: teams.slice(0, 3).map((team) => ({
-      queryKey: ['workspace-home', 'team-skills', team.id],
-      queryFn: () => listHermesSkills({ teamId: team.id }).catch(() => []),
-      staleTime: 30_000,
-    })),
-  })
-
-  const teamSessions = useMemo<SessionItem[]>(() => {
-    return teamConversationQueries
-      .flatMap((query, index) =>
-        ((query.data ?? []) as HermesTeamConversationRecord[]).map(
-          (session) => ({
-            id: `team-${session.id}`,
-            title: session.title,
-            href: '/team-workspace' as const,
-            search: { team_id: teams[index]?.id, panel: 'sessions' as const },
-            teamName: teams[index]?.name,
-            updatedAt: session.updatedAt,
-          })
-        )
-      )
-      .filter((session) => Boolean(session.search?.team_id))
-      .sort((a, b) => b.updatedAt - a.updatedAt)
-      .slice(0, 4)
-  }, [teamConversationQueries, teams])
 
   const personalSessions = useMemo<SessionItem[]>(() => {
     if (!userId || typeof window === 'undefined') return []
@@ -164,8 +127,10 @@ export function WorkspaceHome() {
       ),
     ]
       .sort((a, b) => b.updatedAt - a.updatedAt)
-      .slice(0, 4)
+      .slice(0, 6)
   }, [userId])
+
+  const tasks = tasksQuery.data ?? []
 
   const skills = personalSkillsQuery.data ?? []
   const recentSkills = skills
@@ -176,98 +141,53 @@ export function WorkspaceHome() {
       (skill) => skill.ownerScope === 'baizor' || skill.source === 'baizor'
     )
     .slice(0, 4)
-  const jilaiSkills = skills
-    .filter(
-      (skill) =>
-        skill.ownerScope === 'external' || skill.source === 'external'
-    )
-    .slice(0, 4)
-  const teamSkills = useMemo(() => {
-    return dedupeSkills(teamSkillQueries.flatMap((query) => query.data ?? []))
-      .filter((skill) => skill.ownerScope === 'team' || skill.source === 'team')
-      .slice(0, 4)
-  }, [teamSkillQueries])
 
   const latestResults = useMemo<ResultItem[]>(() => {
-    const teamResults = teamConversationQueries.flatMap((query, index) =>
-      ((query.data ?? []) as HermesTeamConversationRecord[]).flatMap(
-        (session) =>
-          toResultItems(session, session.messages, {
-            href: '/team-workspace',
-            search: {
-              team_id: teams[index]?.id,
-              panel: 'results',
-            },
-            teamName: teams[index]?.name,
-          })
-      )
-    )
-    const personalResults =
-      typeof window === 'undefined' || !userId
-        ? []
-        : [
-            ...toPersonalResults(
-              loadHermesConversations(getHermesBaseScope(userId, 'hermes')),
-              '/hermes-playground'
-            ),
-            ...toPersonalResults(
-              loadHermesConversations(
-                getHermesBaseScope(userId, 'one_person_company')
-              ),
-              '/one-person-company'
-            ),
-          ]
-    return [...teamResults, ...personalResults]
-      .filter((item) => item.search?.team_id !== undefined || !item.search)
+    if (typeof window === 'undefined' || !userId) return []
+    return [
+      ...toPersonalResults(
+        loadHermesConversations(getHermesBaseScope(userId, 'hermes')),
+        '/hermes-playground'
+      ),
+      ...toPersonalResults(
+        loadHermesConversations(
+          getHermesBaseScope(userId, 'one_person_company')
+        ),
+        '/one-person-company'
+      ),
+    ]
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .slice(0, 6)
-  }, [teamConversationQueries, teams, userId])
+  }, [userId])
 
   const quota = Number(selfQuery.data?.data?.quota ?? user?.quota ?? 0)
   const quotaState = getQuotaState(quota)
-  const firstTeam = teams[0]
 
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>{t('Home')}</SectionPageLayout.Title>
-      <SectionPageLayout.Actions>
-        <Button size='sm' render={<Link to='/one-person-company' />}>
-          <BriefcaseBusiness data-icon='inline-start' />
-          {t('Start personal work')}
-        </Button>
-      </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
         <div className='mx-auto max-w-7xl space-y-4'>
-          <section className='bg-muted/20 rounded-xl border p-4 sm:p-5'>
-            <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+          <section className='bg-primary/5 border-primary/10 rounded-xl border p-5 sm:p-6'>
+            <div className='flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
               <div>
                 <h1 className='text-xl font-semibold tracking-tight'>
-                  {t('Start from the work you care about')}
+                  {t('Let AI handle your tasks')}
                 </h1>
-                <p className='text-muted-foreground mt-1 text-sm'>
+                <p className='text-muted-foreground mt-1 max-w-xl text-sm'>
                   {t(
-                    'Continue conversations, enter a team workspace, reuse skills, find results, and keep enough balance for today.'
+                    'Describe what you need, and AI will plan, execute, and deliver results.'
                   )}
                 </p>
               </div>
-              {firstTeam ? (
-                <Button
-                  variant='outline'
-                  render={
-                    <Link
-                      to='/team-workspace'
-                      search={{ team_id: firstTeam.id }}
-                    />
-                  }
-                >
-                  <Users data-icon='inline-start' />
-                  {t('Enter team workspace')}
-                </Button>
-              ) : null}
+              <Button render={<Link to='/hermes-playground' />}>
+                <Sparkles data-icon='inline-start' />
+                {t('Start a new task')}
+              </Button>
             </div>
           </section>
 
-          <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-5'>
+          <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-4'>
             <QuickActionCard
               icon={<MessageSquare className='size-4' />}
               title={t('Ask AI to do a task')}
@@ -276,66 +196,6 @@ export function WorkspaceHome() {
               )}
               action={t('Start task')}
               to='/hermes-playground'
-            />
-            {firstTeam ? (
-              <QuickActionCard
-                icon={<Users className='size-4' />}
-                title={t('Work with a team')}
-                description={t(
-                  'Share sessions, skills and results with teammates in one workspace.'
-                )}
-                action={t('Enter team')}
-                to='/team-workspace'
-                search={{ team_id: firstTeam.id }}
-              />
-            ) : (
-              <QuickActionCard
-                icon={<Users className='size-4' />}
-                title={t('Work with a team')}
-                description={t(
-                  'Share sessions, skills and results with teammates in one workspace.'
-                )}
-                action={t('Enter team')}
-                to='/team-workspace'
-              />
-            )}
-            <QuickActionCard
-              icon={<Sparkles className='size-4' />}
-              title={t('Skill Store')}
-              description={t(
-                'Pick a reusable skill for reports, slides, documents, data work or team operations.'
-              )}
-              action={t('Browse skills')}
-              to={firstTeam ? '/team-workspace' : '/hermes-playground'}
-              search={
-                firstTeam
-                  ? { team_id: firstTeam.id, panel: 'skills' }
-                  : { panel: 'skills' }
-              }
-            />
-            <QuickActionCard
-              icon={<MessageSquare className='size-4' />}
-              title={t('Message platforms')}
-              description={t(
-                'Connect WeChat so messages can enter your AI workspace.'
-              )}
-              action={t('Connect channel')}
-              to='/hermes-playground'
-              search={{ panel: 'messages' }}
-            />
-            <QuickActionCard
-              icon={<FileCheck2 className='size-4' />}
-              title={t('Find results')}
-              description={t(
-                'Open recent reports, slides, documents and attached file results.'
-              )}
-              action={t('View results')}
-              to={firstTeam ? '/team-workspace' : '/hermes-playground'}
-              search={
-                firstTeam
-                  ? { team_id: firstTeam.id, panel: 'results' }
-                  : undefined
-              }
             />
             <QuickActionCard
               icon={<Clapperboard className='size-4' />}
@@ -346,61 +206,70 @@ export function WorkspaceHome() {
               action={t('Enter Film Studio')}
               to='/image-playground'
             />
+            <QuickActionCard
+              icon={<FileCheck2 className='size-4' />}
+              title={t('Find results')}
+              description={t(
+                'Open recent reports, slides, documents and attached file results.'
+              )}
+              action={t('View results')}
+              to='/hermes-playground'
+              search={{ panel: 'results' }}
+            />
+            <QuickActionCard
+              icon={<BookOpen className='size-4' />}
+              title={t('Blog Hall')}
+              description={t(
+                'Write, edit and publish articles to Blog Hall.'
+              )}
+              action={t('Write a blog')}
+              to='/blog-hall'
+            />
           </div>
 
           <div className='grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.65fr)]'>
             <div className='space-y-4'>
               <Panel
-                icon={<MessageSquare className='size-4' />}
-                title={t('Continue work')}
+                icon={<ListChecks className='size-4' />}
+                title={t('My tasks')}
                 description={t(
-                  'Pick up recent team or personal conversations.'
+                  'View your running, completed and failed tasks.'
                 )}
               >
-                <div className='grid gap-3 md:grid-cols-2'>
-                  <SessionList
-                    emptyText={t('No recent team sessions yet')}
-                    items={teamSessions}
-                    title={t('Recent team sessions')}
-                  />
-                  <SessionList
-                    emptyText={t('No recent personal sessions yet')}
-                    items={personalSessions}
-                    title={t('Personal sessions')}
-                  />
+                {tasks.length > 0 ? (
+                  <TaskList items={tasks} />
+                ) : (
+                  <EmptyLine text={t('No running tasks yet')} />
+                )}
+                <div className='mt-3'>
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    render={
+                      <Link
+                        to='/hermes-playground'
+                        search={{ panel: 'tasks' }}
+                      />
+                    }
+                  >
+                    {t('View all tasks')}
+                    <ArrowRight data-icon='inline-end' />
+                  </Button>
                 </div>
               </Panel>
 
               <Panel
-                icon={<Sparkles className='size-4' />}
-                title={t('Skill Store')}
+                icon={<MessageSquare className='size-4' />}
+                title={t('Continue work')}
                 description={t(
-                  'Choose proven skills by scenario and reuse them in personal or team work.'
+                  'Pick up recent personal conversations.'
                 )}
               >
-                <SkillScenarioGrid />
-                <div className='mt-3 grid gap-3 md:grid-cols-4'>
-                  <SkillList
-                    emptyText={t('Used skills will appear here')}
-                    skills={recentSkills}
-                    title={t('Recently used')}
-                  />
-                  <SkillList
-                    emptyText={t('No team recommended skills yet')}
-                    skills={teamSkills}
-                    title={t('Team recommended')}
-                  />
-                  <SkillList
-                    emptyText={t('No Baizor shared skills yet')}
-                    skills={baizorSkills}
-                    title={t('Baizor shared skills')}
-                  />
-                  <SkillList
-                    emptyText={t('No Jilai Law Firm skills yet')}
-                    skills={jilaiSkills}
-                    title={t('Jilai Law Firm skills')}
-                  />
-                </div>
+                <SessionList
+                  emptyText={t('No recent personal sessions yet')}
+                  items={personalSessions}
+                  title={t('Personal sessions')}
+                />
               </Panel>
 
               <Panel
@@ -418,27 +287,31 @@ export function WorkspaceHome() {
                   <EmptyLine text={t('No result files yet')} />
                 )}
               </Panel>
+
+              <Panel
+                icon={<Sparkles className='size-4' />}
+                title={t('Skill Store')}
+                description={t(
+                  'Choose proven skills by scenario and reuse them in your work.'
+                )}
+              >
+                <TaskScenarioGrid />
+                <div className='mt-3 grid gap-3 md:grid-cols-2'>
+                  <SkillList
+                    emptyText={t('Used skills will appear here')}
+                    skills={recentSkills}
+                    title={t('Recently used')}
+                  />
+                  <SkillList
+                    emptyText={t('No Baizor shared skills yet')}
+                    skills={baizorSkills}
+                    title={t('Baizor shared skills')}
+                  />
+                </div>
+              </Panel>
             </div>
 
             <aside className='space-y-4'>
-              <Panel
-                icon={<Users className='size-4' />}
-                title={t('Team collaboration')}
-                description={t('Enter a team workspace to work together.')}
-              >
-                <div className='space-y-2'>
-                  {teams.length > 0 ? (
-                    teams
-                      .slice(0, 6)
-                      .map((team) => <TeamCard key={team.id} team={team} />)
-                  ) : (
-                    <EmptyLine
-                      text={t('Create or join a team to collaborate')}
-                    />
-                  )}
-                </div>
-              </Panel>
-
               <Panel
                 icon={<Wallet className='size-4' />}
                 title={t('Balance status')}
@@ -462,9 +335,6 @@ export function WorkspaceHome() {
                   </div>
                   <div className='text-muted-foreground bg-muted/20 rounded-lg border p-3 text-sm leading-relaxed'>
                     <p>{t('Current work is paid by your personal wallet.')}</p>
-                    <p className='mt-1'>
-                      {t('Team work is paid by the selected team.')}
-                    </p>
                   </div>
                   <Button className='w-full' render={<Link to='/wallet/topup' />}>
                     {t('Top up')}
@@ -485,7 +355,7 @@ function QuickActionCard(props: {
   title: string
   description: string
   action: string
-  to: '/team-workspace' | '/hermes-playground' | '/image-playground'
+  to: '/team-workspace' | '/hermes-playground' | '/image-playground' | '/blog-hall'
   search?: {
     team_id?: number
     panel?: 'sessions' | 'results' | 'skills' | 'messages' | 'tasks'
@@ -612,25 +482,109 @@ function SessionCard(props: { item: SessionItem }) {
   )
 }
 
-function SkillScenarioGrid() {
+function TaskList(props: { items: HermesExecutionTask[] }) {
+  return (
+    <div className='space-y-2'>
+      {props.items.map((item) => (
+        <TaskCard key={item.taskId} item={item} />
+      ))}
+    </div>
+  )
+}
+
+function TaskCard(props: { item: HermesExecutionTask }) {
+  const { t } = useTranslation()
+  const { item } = props
+  const title = item.title || t('Untitled task')
+  const statusMeta = getTaskStatusMeta(item.status, t)
+  const StatusIcon = statusMeta.icon
+
+  return (
+    <Link
+      to='/hermes-playground'
+      search={{ panel: 'tasks' }}
+      className='bg-background hover:bg-muted/30 flex items-center justify-between rounded-lg border p-3 transition-colors'
+    >
+      <div className='flex items-center gap-3 min-w-0'>
+        <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${statusMeta.bgColor}`}>
+          <StatusIcon className={`size-4 ${statusMeta.color}`} />
+        </div>
+        <div className='min-w-0'>
+          <div className='truncate text-sm font-medium'>{title}</div>
+          <div className='text-muted-foreground mt-1 text-xs'>
+            {formatSessionTime(item.updatedAt, t('Just now'))} · {t(statusMeta.label)}
+          </div>
+        </div>
+      </div>
+      <ArrowRight className='text-muted-foreground mt-0.5 size-4 shrink-0' />
+    </Link>
+  )
+}
+
+function getTaskStatusMeta(
+  status: HermesExecutionTaskStatus,
+  t: (key: string) => string
+) {
+  switch (status) {
+    case 'running':
+      return {
+        icon: Loader2,
+        label: t('Running'),
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-50',
+      }
+    case 'succeeded':
+      return {
+        icon: CheckCircle2,
+        label: t('Completed'),
+        color: 'text-emerald-600',
+        bgColor: 'bg-emerald-50',
+      }
+    case 'failed':
+      return {
+        icon: XCircle,
+        label: t('Failed'),
+        color: 'text-red-600',
+        bgColor: 'bg-red-50',
+      }
+    case 'canceled':
+      return {
+        icon: XCircle,
+        label: t('Canceled'),
+        color: 'text-slate-600',
+        bgColor: 'bg-slate-100',
+      }
+    case 'queued':
+    default:
+      return {
+        icon: CheckCircle2,
+        label: t('Queued'),
+        color: 'text-amber-600',
+        bgColor: 'bg-amber-50',
+      }
+  }
+}
+
+function TaskScenarioGrid() {
   const { t } = useTranslation()
   const scenarios = [
     'PPT and presentations',
     'Research reports',
     'Data analysis',
     'Document writing',
-    'Team operations',
+    'Image and video generation',
   ]
 
   return (
     <div className='flex flex-wrap gap-2'>
       {scenarios.map((scenario) => (
-        <span
+        <Link
           key={scenario}
-          className='bg-muted/30 text-muted-foreground rounded-full border px-3 py-1 text-xs font-medium'
+          to='/hermes-playground'
+          className='bg-muted/30 text-muted-foreground hover:bg-muted/50 rounded-full border px-3 py-1 text-xs font-medium transition-colors'
         >
           {t(scenario)}
-        </span>
+        </Link>
       ))}
     </div>
   )
@@ -664,28 +618,6 @@ function SkillList(props: {
         )}
       </div>
     </div>
-  )
-}
-
-function TeamCard(props: { team: Team }) {
-  const { t } = useTranslation()
-  const state = getQuotaState(Number(props.team.quota ?? 0))
-  return (
-    <Link
-      to='/team-workspace'
-      search={{ team_id: props.team.id }}
-      className='bg-background hover:bg-muted/30 block rounded-lg border p-3 transition-colors'
-    >
-      <div className='flex items-center justify-between gap-3'>
-        <div className='min-w-0'>
-          <div className='truncate text-sm font-medium'>{props.team.name}</div>
-          <div className='text-muted-foreground mt-1 text-xs'>
-            {t('Team workspace')}
-          </div>
-        </div>
-        <Badge variant={state.variant}>{t(state.badge)}</Badge>
-      </div>
-    </Link>
   )
 }
 
@@ -896,11 +828,3 @@ function getQuotaState(quota: number): {
   }
 }
 
-function dedupeSkills(skills: HermesSkill[]): HermesSkill[] {
-  const map = new Map<string, HermesSkill>()
-  for (const skill of skills) {
-    const key = `${skill.ownerScope}-${skill.name}`
-    if (!map.has(key)) map.set(key, skill)
-  }
-  return [...map.values()]
-}

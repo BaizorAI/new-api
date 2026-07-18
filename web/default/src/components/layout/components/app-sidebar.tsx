@@ -265,11 +265,11 @@ function resolveActiveRootGroup(
   }
 
   if (pathname === '/jilai-workspace' || pathname === '/skill-workspace' || pathname === '/skill-editor') {
-    return findGroup(navGroups, 'capability-skills')
+    return findGroup(navGroups, 'capabilities')
   }
 
   if (pathname === '/toolset-detail' || pathname === '/tools-editor') {
-    return findGroup(navGroups, 'capability-tools')
+    return findGroup(navGroups, 'capabilities')
   }
 
   if (pathname === '/playground' || pathname.startsWith('/chat/')) {
