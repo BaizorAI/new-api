@@ -327,9 +327,12 @@ func SetApiRouter(router *gin.Engine) {
 		blogPublicRoute := apiRouter.Group("/blog/public")
 		{
 			blogPublicRoute.GET("/", controller.GetPublishedBlogArticles)
+			blogPublicRoute.GET("/search", middleware.CriticalRateLimit(), controller.SearchPublishedBlogArticles)
+			blogPublicRoute.GET("/tags", middleware.CriticalRateLimit(), controller.GetPublishedBlogTags)
 			blogPublicRoute.GET("/authors", controller.GetPublishedBlogAuthors)
 			blogPublicRoute.GET("/authors/:slug", controller.GetPublishedBlogAuthor)
 			blogPublicRoute.GET("/authors/:slug/articles", controller.GetPublishedBlogAuthorArticles)
+			blogPublicRoute.GET("/articles/:id/related", middleware.CriticalRateLimit(), controller.GetRelatedPublishedBlogArticles)
 			blogPublicRoute.POST("/articles/:guid/assistant", controller.BlogPublicAssistant)
 			blogPublicRoute.GET("/:id", controller.GetPublishedBlogArticle)
 		}

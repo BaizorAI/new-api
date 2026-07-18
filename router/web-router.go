@@ -162,6 +162,10 @@ func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
 		}
 		c.Data(http.StatusOK, "application/json; charset=utf-8", body)
 	})
+	router.GET("/sitemap.xml", middleware.CriticalRateLimit(), controller.GetBlogSitemapXML)
+	router.GET("/rss.xml", middleware.CriticalRateLimit(), controller.GetBlogRSSXML)
+	router.GET("/robots.txt", controller.GetRobotsTXT)
+
 	router.Use(serveVersionedAssets(preservedStaticRoot, fs))
 	router.Use(servePreservedStaticAssets(preservedStaticRoot))
 	router.Use(static.Serve("/", fs))

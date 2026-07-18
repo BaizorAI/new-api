@@ -24,11 +24,12 @@ const blogAuthorTeamName = "Author"
 
 // blogArticleBody is the shape accepted by create and update endpoints.
 type blogArticleBody struct {
-	Title   string   `json:"title"`
-	Summary string   `json:"summary"`
-	Content string   `json:"content"`
-	Tags    []string `json:"tags"`
-	Status  string   `json:"status"`
+	Title      string   `json:"title"`
+	Summary    string   `json:"summary"`
+	CoverImage string   `json:"cover_image"`
+	Content    string   `json:"content"`
+	Tags       []string `json:"tags"`
+	Status     string   `json:"status"`
 }
 
 // blogArticleView is the API response shape (tags as []string).
@@ -38,6 +39,7 @@ type blogArticleView struct {
 	AuthorId    int                `json:"author_id"`
 	Title       string             `json:"title"`
 	Summary     string             `json:"summary"`
+	CoverImage  string             `json:"cover_image"`
 	Content     string             `json:"content"`
 	Tags        []string           `json:"tags"`
 	Status      string             `json:"status"`
@@ -54,6 +56,7 @@ func articleToView(a *model.BlogArticle) blogArticleView {
 		AuthorId:    a.AuthorId,
 		Title:       a.Title,
 		Summary:     a.Summary,
+		CoverImage:  a.CoverImage,
 		Content:     a.Content,
 		Tags:        a.TagsToSlice(),
 		Status:      a.Status,
@@ -188,6 +191,7 @@ func CreateBlogArticle(c *gin.Context) {
 		AuthorId:    c.GetInt("id"),
 		Title:       body.Title,
 		Summary:     body.Summary,
+		CoverImage:  body.CoverImage,
 		Content:     body.Content,
 		Tags:        model.TagsFromSlice(body.Tags),
 		Status:      status,
@@ -250,6 +254,9 @@ func UpdateBlogArticle(c *gin.Context) {
 	}
 	if body.Summary != "" {
 		article.Summary = body.Summary
+	}
+	if body.CoverImage != "" {
+		article.CoverImage = body.CoverImage
 	}
 	if body.Content != "" {
 		article.Content = body.Content
@@ -369,6 +376,91 @@ func GetPublishedBlogArticle(c *gin.Context) {
 	}
 	view.Author = author
 	common.ApiSuccess(c, view)
+}
+
+// SearchPublishedBlogArticles GET /api/blog/public/search
+// Query: ?q=<keyword>&tag=go&tag=ai&p=&page_size=
+func SearchPublishedBlogArticles(c *gin.Context) {
+	keyword := strings.TrimSpace(c.Query("q"))
+	tags := c.QueryArray("tag")
+
+	pageInfo := common.GetPageQuery(c)
+	articles, total, err := model.SearchPublishedBlogArticles(
+		keyword, tags, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	views := make([]blogArticleView, len(articles))
+	for i, a := range articles {
+		views[i] = articleToView(a)
+	}
+	views, err = attachAuthorsToViews(views)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(views)
+	common.ApiSuccess(c, pageInfo)
+}
+
+// GetRelatedPublishedBlogArticles GET /api/blog/public/articles/:id/related
+// Returns published articles that share at least one tag.
+func GetRelatedPublishedBlogArticles(c *gin.Context) {
+	identifier := strings.TrimSpace(c.Param("id"))
+	var article *model.BlogArticle
+	var err error
+	if id, parseErr := strconv.Atoi(identifier); parseErr == nil && id > 0 {
+		article, err = model.GetBlogArticleById(id)
+	} else {
+		article, err = model.GetBlogArticleByGuid(identifier)
+	}
+	if err != nil || article == nil || article.Status != model.BlogArticleStatusPublished {
+		common.ApiErrorMsg(c, "文章不存在或尚未发布")
+		return
+	}
+
+	pageInfo := common.GetPageQuery(c)
+	articles, total, err := model.GetRelatedPublishedArticles(
+		article.Id, article.TagsToSlice(), pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	views := make([]blogArticleView, len(articles))
+	for i, a := range articles {
+		views[i] = articleToView(a)
+	}
+	views, err = attachAuthorsToViews(views)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(views)
+	common.ApiSuccess(c, pageInfo)
+}
+
+// GetPublishedBlogTags GET /api/blog/public/tags
+// Returns the most frequently used tags among published articles.
+func GetPublishedBlogTags(c *gin.Context) {
+	limit := 50
+	if raw := c.Query("limit"); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	tags, err := model.GetPublishedBlogTags(limit)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, tags)
 }
 
 // ============================================================================
