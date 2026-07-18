@@ -23,7 +23,6 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { StatusBadge } from '@/components/status-badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { formatTimestampToDate } from '@/lib/format'
 import { usePageMeta } from '@/lib/page-meta'
@@ -34,6 +33,7 @@ import {
   getBlogAuthorArticles,
   unfollowBlogAuthor,
 } from '../author-api'
+import { ArticleCard } from './article-card'
 import { BlogTag } from './blog-tag'
 
 import type { BlogArticle } from '@/features/blog-hall/types'
@@ -278,52 +278,4 @@ export function AuthorPage() {
   )
 }
 
-function ArticleCard({ article }: { article: BlogArticle }) {
-  return (
-    <Link
-      to='/blog/$guid'
-      params={{ guid: article.guid }}
-      className='block'
-    >
-      <article className='group border-border bg-card hover:border-primary/50 rounded-lg border overflow-hidden transition-colors'>
-        {article.cover_image && (
-          <img
-            src={article.cover_image}
-            alt={article.title}
-            className='h-48 w-full object-cover'
-          />
-        )}
-        <div className='p-6'>
-          <div className='mb-2 flex items-start justify-between gap-4'>
-            <h3 className='text-card-foreground group-hover:text-primary text-xl font-semibold leading-snug transition-colors'>
-              {article.title}
-            </h3>
-            <time className='text-muted-foreground shrink-0 font-mono text-xs'>
-              {formatTimestampToDate(article.published_at || article.created_time)}
-            </time>
-          </div>
 
-          {article.summary && (
-            <p className='text-muted-foreground mb-3 line-clamp-2 text-sm'>
-              {article.summary}
-            </p>
-          )}
-
-          {article.tags.length > 0 && (
-            <div className='flex flex-wrap gap-1'>
-              {article.tags.slice(0, 5).map((tag) => (
-                <StatusBadge
-                  key={tag}
-                  label={tag}
-                  variant='neutral'
-                  copyable={false}
-                  className='text-xs'
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </article>
-    </Link>
-  )
-}
