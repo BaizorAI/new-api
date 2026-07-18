@@ -6630,6 +6630,10 @@
     "Add shot": "添加镜头",
     "Generate all": "全部生成",
     "Stitch": "拼接",
-    "Scenes": "场景"
+    "Scenes": "场景",
+    "+1s": "+1秒",
+    "-1s": "-1秒",
+    "{{count}} scenes": "{{count}} 个场景",
+    "Failed to update duration.": "更新时长失败。"
   }
 }
