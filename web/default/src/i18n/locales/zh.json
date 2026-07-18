@@ -6462,6 +6462,8 @@
     "Waiting for training to start...": "等待训练启动...",
     "LoRA training timed out.": "LoRA 训练超时。",
     "LoRA training completed.": "LoRA 训练完成。",
-    "Failed to start LoRA training.": "启动 LoRA 训练失败。"
+    "Failed to start LoRA training.": "启动 LoRA 训练失败。",
+    "Quick Start": "新手引导",
+    "Choose your focus and create your first scene.": "选择你的方向，创建第一个场景。"
   }
 }

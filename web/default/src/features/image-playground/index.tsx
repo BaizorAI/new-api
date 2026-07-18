@@ -39,6 +39,7 @@ import {
   OnboardingWizard,
   hasCompletedOnboarding,
   markOnboardingDone,
+  clearOnboarding,
 } from './components/onboarding-wizard'
 import { QuotaBadge } from './components/quota-badge'
 import {
@@ -66,10 +67,13 @@ const HISTORY_QUERY_KEY = ['image-playground', 'history'] as const
 
 interface ImagePlaygroundProps {
   defaultModel?: string
+  /** Force-show onboarding (e.g. from sidebar "Quick Start" link). */
+  action?: 'onboarding'
 }
 
 export function ImagePlayground({
   defaultModel = 'huayu-drama-4',
+  action,
 }: ImagePlaygroundProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -88,8 +92,16 @@ export function ImagePlayground({
 
   // ── New UX state ──────────────────────────────────────────────
   const [showOnboarding, setShowOnboarding] = useState(
-    () => !hasCompletedOnboarding()
+    () => action === 'onboarding' || !hasCompletedOnboarding()
   )
+
+  // When triggered from sidebar, clear the stored flag so onboarding shows.
+  useEffect(() => {
+    if (action === 'onboarding') {
+      clearOnboarding()
+      setShowOnboarding(true)
+    }
+  }, [action])
   const [showTemplates, setShowTemplates] = useState(false)
   const [characters, setCharacters] = useState<LockedCharacter[]>([])
   const [quotaRemaining, setQuotaRemaining] = useState(50)

@@ -190,6 +190,13 @@ export function useSidebarData(): SidebarData {
         position: 'top',
         items: [
           {
+            title: t('Quick Start'),
+            description: t('Choose your focus and create your first scene.'),
+            url: '/image-playground?action=onboarding',
+            activeUrls: ['/image-playground'],
+            icon: Sparkles,
+          },
+          {
             title: t('Image Lab'),
             description: t('Generate key frames, storyboard shots, and character designs.'),
             url: '/image-playground',
