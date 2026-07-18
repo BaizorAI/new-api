@@ -30,9 +30,10 @@ import {
   type PromptInputMessage,
 } from '@/components/ai-elements/prompt-input'
 import { Button } from '@/components/ui/button'
-import { Markdown } from '@/components/ui/markdown'
-import { Loader2, SquareIcon, Trash2, Wand2, X } from 'lucide-react'
+import { Loader2, SquareIcon, Trash2, Wand2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+
+import { CharacterChatBubble, type ExtractedCharacter } from '../components/chat-bubble'
 
 export interface StageChatMessage {
   id: string
@@ -50,6 +51,8 @@ interface CharacterChatPanelProps {
   onDeleteMessage: (id: string) => void
   onSubmit: (message: PromptInputMessage) => void
   onStopGeneration: () => void
+  onApplyCharacters?: (characters: ExtractedCharacter[]) => void
+  onCompleteStage?: () => void
 }
 
 function SimpleChatBubble({ message, onDelete }: { message: StageChatMessage; onDelete?: () => void }) {
