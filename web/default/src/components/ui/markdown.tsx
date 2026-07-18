@@ -21,13 +21,30 @@ import * as katex from 'katex'
 
 import 'katex/dist/katex.min.css'
 import { Marked, Renderer, type MarkedExtension, type Tokens } from 'marked'
-import { useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
+import { slugify } from '@/lib/reading-utils'
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { ImageLightbox } from '@/features/blog-reader/components/image-lightbox'
+
+type ProseSize = 'sm' | 'base' | 'lg' | 'xl'
+
+const proseSizeClasses: Record<ProseSize, string> = {
+  sm: 'prose-sm',
+  base: 'prose-base',
+  lg: 'prose-lg',
+  xl: 'prose-xl',
+}
 
 interface MarkdownProps {
   children: string
   className?: string
+  codeCopy?: boolean
+  imageZoom?: boolean
+  headingIds?: boolean
+  proseSize?: ProseSize
 }
 
 const markdownOptions = {
@@ -88,6 +105,10 @@ const allowedAttributes = [
   'y',
   'y1',
   'y2',
+  'loading',
+  'data-zoom-src',
+  'data-language',
+  'data-code',
 ]
 
 const allowedTags = [
@@ -603,36 +624,111 @@ function renderSequenceDiagram(source: string): string {
   `
 }
 
-const markdownRenderer = new Renderer()
-const renderDefaultCode = markdownRenderer.code.bind(markdownRenderer)
-
-markdownRenderer.code = (token: Tokens.Code): string => {
-  const language = token.lang?.toLowerCase()
-
-  if (language === 'math' || language === 'katex' || language === 'latex') {
-    return renderMath(token.text, true)
-  }
-
-  if (language === 'flow') {
-    return renderFlowDiagram(token.text)
-  }
-
-  if (language === 'seq') {
-    return renderSequenceDiagram(token.text)
-  }
-
-  return renderDefaultCode(token)
+function encodeCodeForCopy(code: string): string {
+  return btoa(encodeURIComponent(code))
 }
 
-markdownRenderer.image = (token: Tokens.Image): string => {
-  const src = token.href ?? ''
-  const alt = escapeHtml(token.text ?? '')
-  const caption = token.title ? escapeHtml(token.title) : ''
-  const imgTag = `<img src="${src}" alt="${alt}">`
-  if (caption) {
-    return `<figure class="markdown-figure">${imgTag}<figcaption>${caption}</figcaption></figure>`
+function decodeCodeForCopy(encoded: string): string {
+  return decodeURIComponent(atob(encoded))
+}
+
+function stripHtmlTags(html: string): string {
+  return html.replace(/<[^>]*>/g, '')
+}
+
+function slugifyHeading(raw: string): string {
+  const text = raw.replace(/^#+\s*/, '').trim()
+  return slugify(stripHtmlTags(text))
+}
+
+interface MarkdownRenderOptions {
+  codeCopy?: boolean
+  imageZoom?: boolean
+  headingIds?: boolean
+  copyLabel: string
+  copiedLabel: string
+}
+
+function createMarkdownRenderer(options: MarkdownRenderOptions): Renderer {
+  const renderer = new Renderer()
+  const renderDefaultCode = renderer.code.bind(renderer)
+  const renderDefaultHeading = renderer.heading.bind(renderer)
+
+  renderer.code = (token: Tokens.Code): string => {
+    const language = token.lang?.toLowerCase()
+
+    if (language === 'math' || language === 'katex' || language === 'latex') {
+      return renderMath(token.text, true)
+    }
+
+    if (language === 'flow') {
+      return renderFlowDiagram(token.text)
+    }
+
+    if (language === 'seq') {
+      return renderSequenceDiagram(token.text)
+    }
+
+    const defaultCode = renderDefaultCode(token)
+
+    if (!options.codeCopy) {
+      return defaultCode
+    }
+
+    const encodedCode = encodeCodeForCopy(token.text)
+    const langAttr = token.lang ? ` data-language="${token.lang}"` : ''
+
+    return `
+      <div class="markdown-code-block group relative">
+        <button
+          type="button"
+          class="markdown-copy-button absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md border bg-background/90 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+          data-code="${encodedCode}"
+          aria-label="${options.copyLabel}"
+          aria-live="polite"
+          ${langAttr}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="markdown-copy-icon"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="markdown-copy-check hidden"><path d="M20 6 9 17l-5-5"/></svg>
+        </button>
+        ${defaultCode}
+      </div>
+    `
   }
-  return imgTag
+
+  renderer.image = (token: Tokens.Image): string => {
+    const src = token.href ?? ''
+    const alt = escapeHtml(token.text ?? '')
+    const caption = token.title ? escapeHtml(token.title) : ''
+    const zoomAttrs = options.imageZoom
+      ? ` class="zoomable-image cursor-zoom-in transition-opacity hover:opacity-90" data-zoom-src="${src}" loading="lazy"`
+      : ' loading="lazy"'
+    const imgTag = `<img src="${src}" alt="${alt}"${zoomAttrs}>`
+    if (caption) {
+      return `<figure class="markdown-figure">${imgTag}<figcaption>${caption}</figcaption></figure>`
+    }
+    return imgTag
+  }
+
+  renderer.heading = (token: Tokens.Heading): string => {
+    const html = renderDefaultHeading(token)
+    if (!options.headingIds) {
+      return html
+    }
+    const id = slugifyHeading(token.raw)
+    return html.replace(/^<h(\d)/, `<h$1 id="${id}"`)
+  }
+
+  return renderer
+}
+
+function createMarkdownParser(options: MarkdownRenderOptions): Marked {
+  const parser = new Marked({
+    ...markdownOptions,
+    renderer: createMarkdownRenderer(options),
+  })
+  parser.use(...markdownExtensions)
+  return parser
 }
 
 const markdownExtensions: MarkedExtension[] = [
@@ -723,13 +819,6 @@ const markdownExtensions: MarkedExtension[] = [
   },
 ]
 
-const markdownParser = new Marked({
-  ...markdownOptions,
-  renderer: markdownRenderer,
-})
-
-markdownParser.use(...markdownExtensions)
-
 function addExternalLinkAttributes(html: string): string {
   if (typeof window === 'undefined') {
     return html
@@ -746,53 +835,133 @@ function addExternalLinkAttributes(html: string): string {
   return template.innerHTML
 }
 
-function renderMarkdown(markdown: string): string {
-  const parsedHtml = markdownParser.parse(markdown, markdownOptions)
+function renderMarkdown(
+  markdown: string,
+  options: MarkdownRenderOptions
+): string {
+  const parser = createMarkdownParser(options)
+  const parsedHtml = parser.parse(markdown, markdownOptions)
   const html = DOMPurify.sanitize(parsedHtml, sanitizeOptions)
 
   return addExternalLinkAttributes(html)
 }
 
 export function Markdown(props: MarkdownProps) {
+  const { t } = useTranslation()
+  const { copyToClipboard } = useCopyToClipboard()
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+
+  const labels = useMemo(
+    () => ({
+      copyLabel: t('Copy code'),
+      copiedLabel: t('Copied'),
+    }),
+    [t]
+  )
+
   const html = useMemo(
-    () => (props.children ? renderMarkdown(props.children) : ''),
-    [props.children]
+    () =>
+      props.children
+        ? renderMarkdown(props.children, {
+            codeCopy: props.codeCopy,
+            imageZoom: props.imageZoom,
+            headingIds: props.headingIds,
+            ...labels,
+          })
+        : '',
+    [props.children, props.codeCopy, props.imageZoom, props.headingIds, labels]
+  )
+
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement
+
+      const copyButton = target.closest('.markdown-copy-button')
+      if (copyButton instanceof HTMLElement && props.codeCopy) {
+        event.stopPropagation()
+        const encoded = copyButton.getAttribute('data-code')
+        if (!encoded) {
+          return
+        }
+        const code = decodeCodeForCopy(encoded)
+        copyToClipboard(code).then((success) => {
+          if (!success) {
+            return
+          }
+          const icon = copyButton.querySelector('.markdown-copy-icon')
+          const check = copyButton.querySelector('.markdown-copy-check')
+          icon?.classList.add('hidden')
+          check?.classList.remove('hidden')
+          copyButton.setAttribute('aria-label', labels.copiedLabel)
+          window.setTimeout(() => {
+            icon?.classList.remove('hidden')
+            check?.classList.add('hidden')
+            copyButton.setAttribute('aria-label', labels.copyLabel)
+          }, 2000)
+        })
+        return
+      }
+
+      const zoomImage = target.closest('.zoomable-image')
+      if (zoomImage instanceof HTMLElement && props.imageZoom) {
+        event.stopPropagation()
+        const src =
+          zoomImage.getAttribute('data-zoom-src') ??
+          zoomImage.getAttribute('src')
+        if (src) {
+          setLightboxSrc(src)
+        }
+      }
+    },
+    [props.codeCopy, props.imageZoom, labels, copyToClipboard]
   )
 
   return (
-    <div
-      className={cn(
-        'prose prose-sm dark:prose-invert max-w-none',
-        'prose-headings:font-semibold prose-headings:tracking-tight',
-        'prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg',
-        'prose-p:leading-relaxed prose-p:my-2',
-        'prose-a:text-primary prose-a:no-underline hover:prose-a:underline',
-        'prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none',
-        'prose-pre:bg-muted prose-pre:border',
-        'prose-blockquote:border-l-primary prose-blockquote:bg-muted/50 prose-blockquote:py-1',
-        'prose-ul:my-2 prose-ol:my-2 prose-li:my-1',
-        'prose-table:border prose-thead:bg-muted',
-        'prose-td:border prose-th:border prose-td:px-3 prose-th:px-3',
-        'prose-img:rounded-lg prose-img:shadow-sm',
-        '[&_.markdown-figure]:my-6 [&_.markdown-figure]:text-center [&_.markdown-figure_img]:mx-auto',
-        '[&_.markdown-figure_figcaption]:mt-2 [&_.markdown-figure_figcaption]:text-sm [&_.markdown-figure_figcaption]:italic [&_.markdown-figure_figcaption]:text-muted-foreground',
-        '[&_.katex-display]:my-4 [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden',
-        '[&_.markdown-page-break]:my-6 [&_.markdown-page-break]:border-dashed',
-        '[&_.markdown-diagram]:my-4 [&_.markdown-diagram]:overflow-x-auto [&_.markdown-diagram]:rounded-md [&_.markdown-diagram]:border [&_.markdown-diagram]:bg-background [&_.markdown-diagram]:p-4',
-        '[&_.markdown-diagram_svg]:mx-auto [&_.markdown-diagram_svg]:max-w-full',
-        '[&_.markdown-diagram-node]:fill-[color-mix(in_oklch,var(--primary)_8%,var(--background))] [&_.markdown-diagram-node]:stroke-primary [&_.markdown-diagram-node]:stroke-[1.5]',
-        '[&_.markdown-diagram-text]:fill-foreground [&_.markdown-diagram-text]:text-sm [&_.markdown-diagram-text]:font-medium',
-        '[&_.markdown-diagram-edge]:stroke-muted-foreground [&_.markdown-diagram-edge]:stroke-[1.5] [&_.markdown-diagram-edge]:fill-none',
-        '[&_.markdown-diagram-arrow]:fill-muted-foreground',
-        '[&_.markdown-diagram-edge-label]:fill-muted-foreground [&_.markdown-diagram-edge-label]:text-xs',
-        '[&_.markdown-sequence-lifeline]:stroke-primary [&_.markdown-sequence-lifeline]:stroke-[1.5]',
-        '[&_.markdown-sequence-note]:fill-warning/20 [&_.markdown-sequence-note]:stroke-warning',
-        '[&_.markdown-sequence-note-text]:fill-foreground [&_.markdown-sequence-note-text]:text-xs',
-        '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
-        '[overflow-wrap:anywhere] break-words',
-        props.className
-      )}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <>
+      <div
+        className={cn(
+          `prose ${proseSizeClasses[props.proseSize ?? 'sm']} dark:prose-invert max-w-none`,
+          'prose-headings:font-semibold prose-headings:tracking-tight',
+          'prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg',
+          'prose-p:leading-relaxed prose-p:my-2',
+          'prose-a:text-primary prose-a:no-underline hover:prose-a:underline',
+          'prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none',
+          'prose-pre:bg-muted prose-pre:border',
+          'prose-blockquote:border-l-primary prose-blockquote:bg-muted/50 prose-blockquote:py-1',
+          'prose-ul:my-2 prose-ol:my-2 prose-li:my-1',
+          'prose-table:border prose-thead:bg-muted',
+          'prose-td:border prose-th:border prose-td:px-3 prose-th:px-3',
+          'prose-img:rounded-lg prose-img:shadow-sm',
+          '[&_.markdown-figure]:my-6 [&_.markdown-figure]:text-center [&_.markdown-figure_img]:mx-auto',
+          '[&_.markdown-figure_figcaption]:mt-2 [&_.markdown-figure_figcaption]:text-sm [&_.markdown-figure_figcaption]:italic [&_.markdown-figure_figcaption]:text-muted-foreground',
+          '[&_.katex-display]:my-4 [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden',
+          '[&_.markdown-page-break]:my-6 [&_.markdown-page-break]:border-dashed',
+          '[&_.markdown-diagram]:my-4 [&_.markdown-diagram]:overflow-x-auto [&_.markdown-diagram]:rounded-md [&_.markdown-diagram]:border [&_.markdown-diagram]:bg-background [&_.markdown-diagram]:p-4',
+          '[&_.markdown-diagram_svg]:mx-auto [&_.markdown-diagram_svg]:max-w-full',
+          '[&_.markdown-diagram-node]:fill-[color-mix(in_oklch,var(--primary)_8%,var(--background))] [&_.markdown-diagram-node]:stroke-primary [&_.markdown-diagram-node]:stroke-[1.5]',
+          '[&_.markdown-diagram-text]:fill-foreground [&_.markdown-diagram-text]:text-sm [&_.markdown-diagram-text]:font-medium',
+          '[&_.markdown-diagram-edge]:stroke-muted-foreground [&_.markdown-diagram-edge]:stroke-[1.5] [&_.markdown-diagram-edge]:fill-none',
+          '[&_.markdown-diagram-arrow]:fill-muted-foreground',
+          '[&_.markdown-diagram-edge-label]:fill-muted-foreground [&_.markdown-diagram-edge-label]:text-xs',
+          '[&_.markdown-sequence-lifeline]:stroke-primary [&_.markdown-sequence-lifeline]:stroke-[1.5]',
+          '[&_.markdown-sequence-note]:fill-warning/20 [&_.markdown-sequence-note]:stroke-warning',
+          '[&_.markdown-sequence-note-text]:fill-foreground [&_.markdown-sequence-note-text]:text-xs',
+          '[&_.markdown-code-block]:relative',
+          '[&_.markdown-copy-button]:opacity-0 [&_.markdown-copy-button]:transition-opacity',
+          '[&_.markdown-code-block:hover_.markdown-copy-button]:opacity-100',
+          '[&_.zoomable-image]:cursor-zoom-in',
+          '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
+          '[overflow-wrap:anywhere] break-words',
+          props.className
+        )}
+        dangerouslySetInnerHTML={{ __html: html }}
+        onClick={handleClick}
+      />
+      <ImageLightbox
+        src={lightboxSrc ?? ''}
+        open={!!lightboxSrc}
+        onClose={() => setLightboxSrc(null)}
+      />
+    </>
   )
 }

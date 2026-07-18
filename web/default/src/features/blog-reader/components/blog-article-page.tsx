@@ -19,17 +19,30 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
 import { ArrowLeft, BookOpen } from 'lucide-react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { buttonVariants } from '@/components/ui/button'
 import { Markdown } from '@/components/ui/markdown'
 import { formatTimestampToDate } from '@/lib/format'
 import { usePageMeta } from '@/lib/page-meta'
-
-import { getPublishedArticle, getPublishedArticles } from '../api'
+import {
+  countWordsAndChars,
+  estimateReadingTime,
+  extractMarkdownHeadings,
+} from '@/lib/reading-utils'
+import { ArticleToc } from './article-toc'
 import { BlogReaderPanel } from './blog-reader-panel'
 import { BlogTag } from './blog-tag'
+import { ReadingPreferencesPanel } from './reading-preferences'
+import { ReadingProgressBar } from './reading-progress-bar'
 import { RelatedArticles } from './related-articles'
+import { useActiveHeading } from '../hooks/use-active-heading'
+import {
+  type ReadingPreferences,
+  useReadingPreferences,
+} from '../hooks/use-reading-preferences'
+import { getPublishedArticle, getPublishedArticles } from '../api'
 
 import type { BlogArticle, BlogAuthor } from '@/features/blog-hall/types'
 
@@ -44,6 +57,31 @@ export function BlogArticlePage() {
   })
 
   const article = data?.data
+
+  const { preferences, setPreferences } = useReadingPreferences()
+
+  const headings = useMemo(
+    () => extractMarkdownHeadings(article?.content || ''),
+    [article?.content]
+  )
+  const activeId = useActiveHeading(headings.map((heading) => heading.id))
+  const readingTime = useMemo(
+    () => estimateReadingTime(article?.content || ''),
+    [article?.content]
+  )
+  const wordCount = useMemo(
+    () => countWordsAndChars(article?.content || '').words,
+    [article?.content]
+  )
+
+  const lineHeightClasses: Record<
+    ReadingPreferences['lineHeight'],
+    string
+  > = {
+    snug: 'prose-p:leading-snug prose-headings:leading-tight',
+    relaxed: 'prose-p:leading-relaxed prose-headings:leading-snug',
+    loose: 'prose-p:leading-loose prose-headings:leading-relaxed',
+  }
 
   const pageTitle = article
     ? `${article.title} | ${article.author?.display_name || t('Blog')}`
@@ -92,6 +130,7 @@ export function BlogArticlePage() {
 
   return (
     <div className='min-h-screen bg-background'>
+      <ReadingProgressBar />
       <div className='mx-auto max-w-7xl px-4 py-12'>
         <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
           <div className='lg:col-span-2'>
@@ -151,6 +190,18 @@ export function BlogArticlePage() {
                       article.published_at || article.created_time
                     )}
                   </time>
+                  {article.content && (
+                    <>
+                      <span aria-hidden='true'>•</span>
+                      <span>
+                        {t('{{count}} min read', { count: readingTime })}
+                      </span>
+                      <span aria-hidden='true'>•</span>
+                      <span>
+                        {t('{{count}} words', { count: wordCount })}
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 {/* Tags */}
@@ -170,7 +221,13 @@ export function BlogArticlePage() {
                 )}
 
                 {/* Content */}
-                <Markdown className='prose-base prose-neutral'>
+                <Markdown
+                  className={`prose-neutral ${lineHeightClasses[preferences.lineHeight]}`}
+                  headingIds
+                  imageZoom
+                  codeCopy
+                  proseSize={preferences.fontSize}
+                >
                   {article.content || ''}
                 </Markdown>
 
@@ -202,7 +259,12 @@ export function BlogArticlePage() {
 
           <aside className='lg:col-span-1'>
             {article && (
-              <div className='lg:sticky lg:top-24'>
+              <div className='space-y-6 lg:sticky lg:top-24'>
+                <ReadingPreferencesPanel
+                  preferences={preferences}
+                  onChange={setPreferences}
+                />
+                <ArticleToc headings={headings} activeId={activeId} />
                 <BlogReaderPanel article={article} />
               </div>
             )}
