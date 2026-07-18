@@ -62,6 +62,16 @@ interface BlogWorkspaceContextType {
   isAnalyzing: boolean
   requestAnalyze: () => void
   setAnalyzing: (v: boolean) => void
+  genTitleRequested: number
+  genSummaryRequested: number
+  requestGenTitle: () => void
+  requestGenSummary: () => void
+  generatingField: 'title' | 'summary' | null
+  setGeneratingField: (f: 'title' | 'summary' | null) => void
+
+  // Edit mode toggle
+  editMode: 'preview' | 'edit'
+  setEditMode: (mode: 'preview' | 'edit') => void
 }
 
 const BlogWorkspaceContext = createContext<BlogWorkspaceContextType | null>(null)
@@ -105,9 +115,21 @@ export function BlogWorkspaceProvider({
   const [initialized, setInitialized] = useState(false)
   const [analyzeRequested, setAnalyzeRequested] = useState(0)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [editMode, setEditMode] = useState<'preview' | 'edit'>('preview')
+  const [genTitleRequested, setGenTitleRequested] = useState(0)
+  const [genSummaryRequested, setGenSummaryRequested] = useState(0)
+  const [generatingField, setGeneratingField] = useState<'title' | 'summary' | null>(null)
 
   const requestAnalyze = useCallback(() => {
     setAnalyzeRequested((prev) => prev + 1)
+  }, [])
+
+  const requestGenTitle = useCallback(() => {
+    setGenTitleRequested((prev) => prev + 1)
+  }, [])
+
+  const requestGenSummary = useCallback(() => {
+    setGenSummaryRequested((prev) => prev + 1)
   }, [])
 
   // Sync from fetched article to local state
@@ -200,6 +222,14 @@ export function BlogWorkspaceProvider({
         isAnalyzing,
         requestAnalyze,
         setAnalyzing: setIsAnalyzing,
+        editMode,
+        setEditMode,
+        genTitleRequested,
+        genSummaryRequested,
+        requestGenTitle,
+        requestGenSummary,
+        generatingField,
+        setGeneratingField,
       }}
     >
       {children}

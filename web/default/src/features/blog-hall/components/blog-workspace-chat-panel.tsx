@@ -18,10 +18,13 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQueryClient } from '@tanstack/react-query'
 import {
+  Check,
   Expand,
+  ImagePlus,
   Loader2,
   MessageSquareQuote,
   Minimize2,
+  Pencil,
   RefreshCw,
   Sparkles,
   SquareIcon,
@@ -47,9 +50,26 @@ import {
 } from '@/components/ai-elements/prompt-input'
 import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/ui/markdown'
+import { toast } from 'sonner'
+
+import {
+  getImageHistory,
+  submitImageGeneration,
+} from '@/features/image-playground/api'
+import { IMAGE_STATUS } from '@/features/image-playground/types'
 
 import { useBlogArticleChat, type BlogModificationType } from '../hooks/use-blog-article-chat'
-import { extractRevisedParagraph, replaceParagraph } from '../lib/paragraph-utils'
+import {
+  extractFullArticle,
+  extractImagePrompt,
+  extractRevisedParagraph,
+  extractSummary,
+  extractTags,
+  extractTitle,
+  getChatActions,
+  insertImageIntoContent,
+  replaceParagraph,
+} from '../lib/paragraph-utils'
 import { useBlogWorkspace } from './blog-workspace-provider'
 
 // Pre-defined AI modification types with labels and icons
@@ -99,11 +119,17 @@ export function BlogWorkspaceChatPanel() {
     setContent,
     title,
     summary,
+    setTitle,
+    setSummary,
+    setTags,
     selectedParagraphIndex,
     selectedParagraphText,
     selectParagraph,
     analyzeRequested,
     setAnalyzing,
+    genTitleRequested,
+    genSummaryRequested,
+    setGeneratingField,
   } = useBlogWorkspace()
 
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -158,6 +184,110 @@ export function BlogWorkspaceChatPanel() {
     [content, setContent]
   )
 
+  // Apply full article content (from AI generation/rewrite)
+  const handleApplyFullArticle = useCallback(
+    (articleContent: string) => {
+      setContent(articleContent)
+    },
+    [setContent]
+  )
+
+  // Use AI-suggested title
+  const handleUseTitle = useCallback(
+    (newTitle: string) => {
+      setTitle(newTitle)
+      setGeneratingField(null)
+      toast.success(t('Title updated.'))
+    },
+    [setTitle, setGeneratingField, t]
+  )
+
+  // Use AI-suggested summary
+  const handleUseSummary = useCallback(
+    (newSummary: string) => {
+      setSummary(newSummary)
+      setGeneratingField(null)
+      toast.success(t('Summary updated.'))
+    },
+    [setSummary, setGeneratingField, t]
+  )
+
+  // Set tags from AI suggestion
+  const handleSetTags = useCallback(
+    (newTags: string) => {
+      setTags(newTags)
+      toast.success(t('Tags updated.'))
+    },
+    [setTags, t]
+  )
+
+  // Rewrite from analysis — ask AI to improve based on suggestions
+  const handleRewriteFromAnalysis = useCallback(() => {
+    if (isStreaming) return
+    sendMessage('请根据以上分析建议，重写完整文章。保留所有改进点。', {
+      modificationType: 'rewrite',
+    })
+  }, [isStreaming, sendMessage])
+
+  // Image generation — submit prompt and poll for result, then insert into content
+  const [generatingImage, setGeneratingImage] = useState(false)
+  const handleGenerateImage = useCallback(
+    async (prompt: string, paragraphIndex: number | null) => {
+      if (generatingImage) return
+      setGeneratingImage(true)
+      try {
+        const pending = await submitImageGeneration({
+          prompt,
+          model: 'huayu-drama-4',
+          size: '1024x1024',
+          quality: 'standard',
+          group: 'default',
+        })
+        // Poll for result
+        let polls = 0
+        const MAX_POLLS = 40
+        const poll = async (): Promise<void> => {
+          polls++
+          if (polls > MAX_POLLS) {
+            setGeneratingImage(false)
+            toast.error(t('Image generation timed out.'))
+            return
+          }
+          try {
+            const history = await getImageHistory(1, 10)
+            const record = history.items.find((h) => h.id === pending.id)
+            if (!record || record.status === IMAGE_STATUS.PENDING) {
+              setTimeout(() => { void poll() }, 3000)
+              return
+            }
+            setGeneratingImage(false)
+            if (record.status === IMAGE_STATUS.COMPLETED && record.image_url) {
+              const altText = prompt.slice(0, 60)
+              const newContent = insertImageIntoContent(
+                content,
+                record.image_url,
+                altText,
+                paragraphIndex
+              )
+              setContent(newContent)
+              toast.success(t('Image generated and inserted.'))
+            } else {
+              toast.error(record.error_message || t('Image generation failed.'))
+            }
+          } catch {
+            setGeneratingImage(false)
+            toast.error(t('Image generation failed.'))
+          }
+        }
+        setTimeout(() => { void poll() }, 3000)
+      } catch {
+        setGeneratingImage(false)
+        toast.error(t('Image generation failed.'))
+      }
+    },
+    [generatingImage, content, setContent, t]
+  )
+
   // AI Analyze handler triggered from toolbar via workspace context
   const handleAnalyze = useCallback(() => {
     if (isStreaming || isAnalyzing) return
@@ -178,16 +308,59 @@ export function BlogWorkspaceChatPanel() {
     }
   }, [analyzeRequested, handleAnalyze])
 
+  // AI Generate Title handler
+  const handleGenTitle = useCallback(() => {
+    if (isStreaming) return
+    setGeneratingField('title')
+    sendMessage('请为文章生成 3 个候选标题。', {
+      modificationType: 'generate_title',
+    })
+  }, [isStreaming, sendMessage, setGeneratingField])
+
+  const genTitleRef = useRef(genTitleRequested)
+  useEffect(() => {
+    if (genTitleRequested !== genTitleRef.current) {
+      genTitleRef.current = genTitleRequested
+      handleGenTitle()
+    }
+  }, [genTitleRequested, handleGenTitle])
+
+  // AI Generate Summary handler
+  const handleGenSummary = useCallback(() => {
+    if (isStreaming) return
+    setGeneratingField('summary')
+    sendMessage('请为文章生成一段简洁的摘要。', {
+      modificationType: 'generate_summary',
+    })
+  }, [isStreaming, sendMessage, setGeneratingField])
+
+  const genSummaryRef = useRef(genSummaryRequested)
+  useEffect(() => {
+    if (genSummaryRequested !== genSummaryRef.current) {
+      genSummaryRef.current = genSummaryRequested
+      handleGenSummary()
+    }
+  }, [genSummaryRequested, handleGenSummary])
+
+  // Clear generating field when streaming completes
+  useEffect(() => {
+    if (!isStreaming) {
+      // Small delay to let the "Use as title/summary" button appear
+      const timer = setTimeout(() => setGeneratingField(null), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [isStreaming, setGeneratingField])
+
   return (
     <div className='flex h-full flex-col'>
       {/* Skill indicator */}
       <div className='border-border flex items-center gap-2 border-b border-l px-4 py-2'>
         <span className='flex items-center gap-1.5 rounded-md bg-purple-500/10 px-2 py-0.5 text-xs font-medium text-purple-600 dark:text-purple-400'>
           <Wand2 className='size-3' aria-hidden='true' />
-          MagicalBrush
+          {t('blog-v1')}
         </span>
         <span className='text-muted-foreground text-xs'>
-          {t('Skill active: MagicalBrush')}
+          {t('Skill active: blog-v1')}
         </span>
       </div>
 
@@ -223,7 +396,7 @@ export function BlogWorkspaceChatPanel() {
             <ConversationEmptyState
               title={t('Blog Assistant')}
               description={t(
-                'AI powered by MagicalBrush will help you write and edit your article.'
+                'AI powered by blog-v1 will help you write and edit your article.'
               )}
               icon={<Wand2 className='size-8 text-purple-500' />}
             />
@@ -233,6 +406,12 @@ export function BlogWorkspaceChatPanel() {
                 key={msg.id}
                 message={msg}
                 onApplyRevision={handleApplyRevision}
+                onApplyFullArticle={handleApplyFullArticle}
+                onUseTitle={handleUseTitle}
+                onUseSummary={handleUseSummary}
+                onSetTags={handleSetTags}
+                onGenerateImage={handleGenerateImage}
+                onRewriteFromAnalysis={handleRewriteFromAnalysis}
               />
             ))
           )}
@@ -285,7 +464,51 @@ export function BlogWorkspaceChatPanel() {
             })}
           </div>
         </>
-      ) : null}
+      ) : (
+        /* Quick actions for whole-article operations (no paragraph selected) */
+        content.trim() ? (
+          <div className='border-border flex flex-wrap items-center gap-1 border-t px-3 py-2'>
+            <span className='text-muted-foreground mr-1 text-[10px] uppercase tracking-wider'>
+              {t('Generate title')}
+            </span>
+            <Button
+              size='sm'
+              variant='outline'
+              className='h-6 gap-1 px-2 text-[11px]'
+              disabled={isStreaming}
+              onClick={handleGenTitle}
+            >
+              <Sparkles className='size-3 text-amber-500' />
+              {t('Generate title')}
+            </Button>
+            <Button
+              size='sm'
+              variant='outline'
+              className='h-6 gap-1 px-2 text-[11px]'
+              disabled={isStreaming}
+              onClick={handleGenSummary}
+            >
+              <Sparkles className='size-3 text-sky-500' />
+              {t('Generate summary')}
+            </Button>
+            <Button
+              size='sm'
+              variant='outline'
+              className='h-6 gap-1 px-2 text-[11px]'
+              disabled={isStreaming}
+              onClick={() => {
+                handleSubmit(
+                  { text: '请为此文章生成一张配图的 prompt。' } as PromptInputMessage,
+                  'image_prompt'
+                )
+              }}
+            >
+              <ImagePlus className='size-3 text-pink-500' />
+              {t('Generate image prompt')}
+            </Button>
+          </div>
+        ) : null
+      )}
 
       {/* Chat input */}
       <div className='border-border shrink-0 border-t p-3'>
@@ -338,10 +561,27 @@ interface BlogChatBubbleProps {
     paragraphIndex: number | null
   }
   onApplyRevision?: (paragraphIndex: number, revisedText: string) => void
+  onApplyFullArticle?: (content: string) => void
+  onUseTitle?: (title: string) => void
+  onUseSummary?: (summary: string) => void
+  onSetTags?: (tags: string) => void
+  onGenerateImage?: (prompt: string, paragraphIndex: number | null) => void
+  onRewriteFromAnalysis?: () => void
+  paragraphText?: string | null
 }
 
-function BlogChatBubble({ message, onApplyRevision }: BlogChatBubbleProps) {
+function BlogChatBubble({
+  message,
+  onApplyRevision,
+  onApplyFullArticle,
+  onUseTitle,
+  onUseSummary,
+  onSetTags,
+  onGenerateImage,
+  onRewriteFromAnalysis,
+}: BlogChatBubbleProps) {
   const { t } = useTranslation()
+  const [applied, setApplied] = useState(false)
 
   if (message.role === 'user') {
     return (
@@ -358,7 +598,6 @@ function BlogChatBubble({ message, onApplyRevision }: BlogChatBubbleProps) {
     )
   }
 
-  // Assistant message
   if (message.status === 'loading') {
     return (
       <div className='flex justify-start'>
@@ -381,48 +620,127 @@ function BlogChatBubble({ message, onApplyRevision }: BlogChatBubbleProps) {
 
   if (!message.content) return null
 
+  const isComplete = message.status === 'complete'
+  const actions = isComplete ? getChatActions(message.content) : []
+  const revisedPara = extractRevisedParagraph(message.content)
+  const fullArticle = extractFullArticle(message.content)
+  const title = extractTitle(message.content)
+  const summary = extractSummary(message.content)
+  const tags = extractTags(message.content)
+  const imagePrompt = extractImagePrompt(message.content)
+
   return (
     <div className='flex justify-start'>
       <div className='bg-muted max-w-[85%] rounded-lg px-3 py-2 text-sm'>
         <div className='prose prose-sm dark:prose-invert max-w-none'>
           <Markdown>{message.content}</Markdown>
         </div>
-        {message.status === 'complete' &&
-          message.paragraphIndex !== null &&
-          onApplyRevision && (
-            <ApplyRevisionButton
-              content={message.content}
-              paragraphIndex={message.paragraphIndex}
-              onApply={onApplyRevision}
-            />
-          )}
+
+        {/* ── Action buttons ─────────────────────────────────────── */}
+        {isComplete && actions.length > 0 && (
+          <div className='mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2'>
+            {actions.includes('revised-paragraph') && onApplyRevision && (
+              <Button
+                size='sm'
+                variant={applied ? 'ghost' : 'outline'}
+                className='h-7 gap-1 px-2 text-xs'
+                disabled={applied}
+                onClick={() => {
+                  if (revisedPara) {
+                    onApplyRevision(message.paragraphIndex ?? 0, revisedPara)
+                    setApplied(true)
+                  }
+                }}
+              >
+                <Check className='size-3 text-emerald-500' />
+                {applied
+                  ? t('Applied')
+                  : message.paragraphIndex != null
+                    ? t('Apply to paragraph {{n}}', { n: message.paragraphIndex + 1 })
+                    : t('Apply to article')}
+              </Button>
+            )}
+
+            {actions.includes('full-article') && onApplyFullArticle && (
+              <Button
+                size='sm'
+                variant={applied ? 'ghost' : 'outline'}
+                className='h-7 gap-1 px-2 text-xs'
+                disabled={applied}
+                onClick={() => {
+                  onApplyFullArticle(fullArticle ?? message.content)
+                  setApplied(true)
+                }}
+              >
+                <Check className='size-3 text-emerald-500' />
+                {applied ? t('Applied') : t('Apply full article')}
+              </Button>
+            )}
+
+            {actions.includes('title') && onUseTitle && title && (
+              <Button
+                size='sm'
+                variant='outline'
+                className='h-7 gap-1 px-2 text-xs'
+                onClick={() => onUseTitle(title)}
+              >
+                <Pencil className='size-3 text-amber-500' />
+                {t('Use as title')}
+              </Button>
+            )}
+
+            {actions.includes('summary') && onUseSummary && summary && (
+              <Button
+                size='sm'
+                variant='outline'
+                className='h-7 gap-1 px-2 text-xs'
+                onClick={() => onUseSummary(summary)}
+              >
+                <Pencil className='size-3 text-sky-500' />
+                {t('Use as summary')}
+              </Button>
+            )}
+
+            {actions.includes('tags') && onSetTags && tags && (
+              <Button
+                size='sm'
+                variant='outline'
+                className='h-7 gap-1 px-2 text-xs'
+                onClick={() => onSetTags(tags)}
+              >
+                <Check className='size-3 text-violet-500' />
+                {t('Set tags')}
+              </Button>
+            )}
+
+            {actions.includes('image-prompt') && onGenerateImage && imagePrompt && (
+              <Button
+                size='sm'
+                variant='outline'
+                className='h-7 gap-1 px-2 text-xs'
+                onClick={() =>
+                  onGenerateImage(imagePrompt, message.paragraphIndex)
+                }
+              >
+                <ImagePlus className='size-3 text-pink-500' />
+                {t('Generate image')}
+              </Button>
+            )}
+
+            {actions.includes('analysis-suggest') && onRewriteFromAnalysis && (
+              <Button
+                size='sm'
+                variant='outline'
+                className='h-7 gap-1 px-2 text-xs'
+                onClick={onRewriteFromAnalysis}
+              >
+                <RefreshCw className='size-3 text-amber-500' />
+                {t('Rewrite with suggestions')}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
-  )
-}
-
-function ApplyRevisionButton({
-  content,
-  paragraphIndex,
-  onApply,
-}: {
-  content: string
-  paragraphIndex: number
-  onApply: (index: number, text: string) => void
-}) {
-  const { t } = useTranslation()
-  const revised = extractRevisedParagraph(content)
-  if (!revised) return null
-
-  return (
-    <Button
-      size='sm'
-      variant='outline'
-      className='mt-2 h-7 gap-1 text-xs'
-      onClick={() => onApply(paragraphIndex, revised)}
-    >
-      <Sparkles className='size-3' aria-hidden='true' />
-      {t('Apply to paragraph {{n}}', { n: paragraphIndex + 1 })}
-    </Button>
   )
 }

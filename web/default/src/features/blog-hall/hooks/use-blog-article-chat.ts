@@ -42,10 +42,13 @@ export interface BlogChatMessage {
 export type BlogModificationType =
   | 'analyze'
   | 'generate'
+  | 'generate_title'
+  | 'generate_summary'
   | 'polish'
   | 'expand'
   | 'shorten'
   | 'rewrite'
+  | 'image_prompt'
 
 interface UseBlogArticleChatOptions {
   articleId: number
@@ -86,7 +89,7 @@ export function useBlogArticleChat({
       'X-Baizor-Playground': 'hermes',
       'X-Baizor-Hermes-Session': hermesSessionId,
       'X-Baizor-Hermes-Workspace': 'skill_blog',
-      'X-Baizor-Hermes-Skill-Activate': '/magicalbrush',
+      'X-Baizor-Hermes-Skill-Activate': '/blog-v1',
     }),
     [hermesSessionId]
   )
@@ -165,7 +168,7 @@ export function useBlogArticleChat({
         // AI Analysis mode — evaluate article quality and publishing readiness
         const parts: string[] = []
         parts.push(
-          '你是一个专业的写作分析助手，使用 MagicalBrush 技能。请对以下文章进行全面分析。',
+          '你是一个专业的写作分析助手，使用 blog-v1 技能。请对以下文章进行全面分析。',
           '',
           '从以下维度评估文章质量：',
           '1. 结构是否清晰（开头、主体、结尾）',
@@ -233,6 +236,60 @@ export function useBlogArticleChat({
             '',
             '请只输出修改后的段落文本，用 ```revised-paragraph 代码块包裹修改内容。保持原有的格式和风格，只输出修改后的段落。'
           )
+        }
+        chatMessages.push({ role: 'system', content: parts.join('\n') })
+      } else if (modType === 'generate_title') {
+        // Title generation — based on current article content or user prompt
+        const parts: string[] = []
+        parts.push(
+          '你是一个专业的博客写作助手，使用 blog-v1 技能。请根据以下内容，生成 3 个引人注目的文章标题。',
+          '',
+          '要求：',
+          '- 每个标题不超过 20 字',
+          '- 直接点明收益或问题',
+          '- 有吸引力但不过度夸张',
+          '- 用 ```titles 代码块包裹，每行一个标题'
+        )
+        if (content) {
+          const truncated = content.length > 4000 ? content.slice(0, 4000) + '\n\n[...truncated]' : content
+          parts.push('', '## 文章内容：', '', truncated)
+        }
+        chatMessages.push({ role: 'system', content: parts.join('\n') })
+      } else if (modType === 'generate_summary') {
+        // Summary generation — based on current article content
+        const parts: string[] = []
+        parts.push(
+          '你是一个专业的博客写作助手，使用 blog-v1 技能。请根据以下文章内容，生成一段简洁的摘要。',
+          '',
+          '要求：',
+          '- 一句话说清「谁 / 做什么 / 有什么好处」',
+          '- 不超过 80 字',
+          '- 用 ```summary 代码块包裹摘要'
+        )
+        if (title) parts.push('', `标题：${title}`)
+        if (content) {
+          const truncated = content.length > 4000 ? content.slice(0, 4000) + '\n\n[...truncated]' : content
+          parts.push('', '## 文章内容：', '', truncated)
+        }
+        chatMessages.push({ role: 'system', content: parts.join('\n') })
+      } else if (modType === 'image_prompt') {
+        // Image prompt generation — based on selected paragraph or full article context
+        const parts: string[] = []
+        parts.push(
+          '你是一个专业的 AI 图像生成提示词专家，使用 blog-v1 技能。',
+          '请根据上下文生成一段高质量的英文图像生成 prompt（用于 Stable Diffusion / DALL-E）。',
+          '',
+          '要求：',
+          '- 描述具体的视觉场景、风格、色彩、构图',
+          '- 适合博客配图，风格简洁专业',
+          '- 不超过 250 字符',
+          '- 用 ```image-prompt 代码块包裹 prompt'
+        )
+        if (selectedParagraphIndex !== null && selectedParagraphText) {
+          parts.push('', `## 选定段落（第 ${selectedParagraphIndex + 1} 段）：`, '', selectedParagraphText)
+        } else if (content) {
+          const truncated = content.length > 4000 ? content.slice(0, 4000) + '\n\n[...truncated]' : content
+          parts.push('', '## 文章内容（以此为上下文）：', '', truncated)
         }
         chatMessages.push({ role: 'system', content: parts.join('\n') })
       } else {

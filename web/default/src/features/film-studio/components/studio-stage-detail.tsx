@@ -429,6 +429,18 @@ export function StudioStageDetail() {
       },
     })
 
+  const { extractCharacters, isExtracting: isExtractingChars } =
+    useExtractCharacters(id)
+  const { extractShots, isExtracting: isExtractingShots } =
+    useExtractShots(id)
+  const swapShotOrder = useSwapShotOrder(id)
+
+  const project = projectData?.data
+  const stages = stagesData?.data ?? []
+  const stage = stages.find((s) => s.key === stageKey)
+  const shots = shotsData?.data ?? []
+  const characters = charsData?.data ?? []
+
   // Build a character map for prompt consistency injection
   const characterMap = useMemo(
     () => characters.map((c) => ({ id: c.id, visual_prompt: c.visual_prompt })),
@@ -448,17 +460,7 @@ export function StudioStageDetail() {
     styleDna: projectData?.data?.style_dna,
     characters: characterMap,
   })
-  const { extractCharacters, isExtracting: isExtractingChars } =
-    useExtractCharacters(id)
-  const { extractShots, isExtracting: isExtractingShots } =
-    useExtractShots(id)
-  const swapShotOrder = useSwapShotOrder(id)
 
-  const project = projectData?.data
-  const stages = stagesData?.data ?? []
-  const stage = stages.find((s) => s.key === stageKey)
-  const shots = shotsData?.data ?? []
-  const characters = charsData?.data ?? []
   const selectedChar = characters.find((c) => c.id === selectedCharId) ?? null
 
   // ── Apply AI-extracted characters ──────────────────────────────
@@ -974,7 +976,7 @@ ${brief}
                 <div className='border-border flex items-center gap-2 border-b px-4 py-2'>
                   <span className='flex items-center gap-1.5 rounded-md bg-purple-500/10 px-2 py-0.5 text-xs font-medium text-purple-600 dark:text-purple-400'>
                     <Wand2 className='size-3' aria-hidden='true' />
-                    MagicalBrush
+                    {t('MagicalBrush')}
                   </span>
                   <span className='text-muted-foreground text-xs'>
                     {t('Skill active: MagicalBrush')}
