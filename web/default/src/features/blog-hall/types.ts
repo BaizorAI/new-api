@@ -69,6 +69,11 @@ export interface GetBlogArticlesParams {
   author_id?: number
 }
 
+export interface SearchBlogArticlesParams extends GetBlogArticlesParams {
+  q?: string
+  tag?: string | string[]
+}
+
 export interface GetBlogArticlesResponse {
   success: boolean
   message?: string
@@ -94,3 +99,8 @@ export interface BlogArticleFormData {
 // ============================================================================
 
 export type BlogHallDialogType = 'create' | 'update' | 'delete'
+
+export interface BlogTag {
+  tag: string
+  count: number
+}

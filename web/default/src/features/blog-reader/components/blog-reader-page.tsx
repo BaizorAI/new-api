@@ -22,12 +22,13 @@ import { BookOpen, ChevronLeft, ChevronRight, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { StatusBadge } from '@/components/status-badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { formatTimestampToDate } from '@/lib/format'
 import { usePageMeta } from '@/lib/page-meta'
 
-import { getPublishedArticles } from '../api'
+import { getPublishedArticles, getPublishedBlogTags } from '../api'
+import { BlogSearchForm } from './blog-search-form'
+import { BlogTag } from './blog-tag'
 
 import type { BlogArticle, BlogAuthor } from '@/features/blog-hall/types'
 
@@ -37,16 +38,40 @@ export function BlogReaderPage() {
   const { t } = useTranslation()
   const [page, setPage] = useState(1)
 
+  const canonicalUrl = `${window.location.origin}/blog`
   usePageMeta({
     title: `${t('Blog Hall')} | ${t('Published articles')}`,
     description: t('Published articles'),
     type: 'website',
+    canonicalUrl,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'WebSite',
+          url: window.location.origin,
+          name: t('Blog Hall'),
+        },
+        {
+          '@type': 'Blog',
+          url: canonicalUrl,
+          name: t('Blog Hall'),
+          description: t('Published articles'),
+        },
+      ],
+    },
   })
 
   const { data, isLoading } = useQuery({
     queryKey: ['blog-public', page],
     queryFn: () => getPublishedArticles({ p: page, page_size: PAGE_SIZE }),
   })
+
+  const tagsQuery = useQuery({
+    queryKey: ['blog-tags'],
+    queryFn: () => getPublishedBlogTags(),
+  })
+  const tags = tagsQuery.data?.data ?? []
 
   const articles = data?.data?.items ?? []
   const total = data?.data?.total ?? 0
@@ -56,7 +81,7 @@ export function BlogReaderPage() {
     <div className='min-h-screen bg-background'>
       <div className='mx-auto max-w-4xl px-4 py-12'>
         {/* Header */}
-        <div className='mb-10 flex items-center justify-between gap-3'>
+        <div className='mb-6 flex items-center justify-between gap-3'>
           <div className='flex items-center gap-3'>
             <BookOpen className='text-primary h-8 w-8' />
             <div>
@@ -74,6 +99,23 @@ export function BlogReaderPage() {
             {t('Authors')}
           </Link>
         </div>
+
+        {/* Search */}
+        <div className='mb-6'>
+          <BlogSearchForm />
+        </div>
+
+        {/* Tag cloud */}
+        {tags.length > 0 && (
+          <div className='mb-8'>
+            <h2 className='mb-2 text-sm font-semibold'>{t('Topics')}</h2>
+            <div className='flex flex-wrap gap-2'>
+              {tags.map(({ tag }) => (
+                <BlogTag key={tag} tag={tag} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Article list */}
         {isLoading ? (
@@ -166,13 +208,7 @@ function ArticleCard({ article }: { article: BlogArticle }) {
           {article.tags.length > 0 && (
             <div className='flex flex-wrap gap-1'>
               {article.tags.slice(0, 5).map((tag) => (
-                <StatusBadge
-                  key={tag}
-                  label={tag}
-                  variant='neutral'
-                  copyable={false}
-                  className='text-xs'
-                />
+                <BlogTag key={tag} tag={tag} />
               ))}
             </div>
           )}

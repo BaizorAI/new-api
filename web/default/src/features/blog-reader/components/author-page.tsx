@@ -34,6 +34,7 @@ import {
   getBlogAuthorArticles,
   unfollowBlogAuthor,
 } from '../author-api'
+import { BlogTag } from './blog-tag'
 
 import type { BlogArticle } from '@/features/blog-hall/types'
 
@@ -64,11 +65,25 @@ export function AuthorPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE)
   const initial = author?.display_name.charAt(0).toUpperCase() ?? '?'
 
+  const canonicalUrl = author
+    ? `${window.location.origin}/blog/authors/${author.slug}`
+    : undefined
   usePageMeta({
     title: author ? `${author.display_name} | ${t('Authors')}` : t('Authors'),
     description: author?.bio,
     image: author?.avatar,
     type: 'profile',
+    canonicalUrl,
+    jsonLd: author
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'Person',
+          name: author.display_name,
+          description: author.bio || undefined,
+          image: author.avatar || undefined,
+          url: canonicalUrl,
+        }
+      : undefined,
   })
 
   const followMutation = useMutation({
@@ -195,10 +210,10 @@ export function AuthorPage() {
                   {tagCounts.map(([tag, count]) => (
                     <span
                       key={tag}
-                      className='bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs'
+                      className='inline-flex items-center gap-1'
                     >
-                      {tag}
-                      <span className='text-muted-foreground/60'>×{count}</span>
+                      <BlogTag tag={tag} />
+                      <span className='text-muted-foreground/60 text-xs'>×{count}</span>
                     </span>
                   ))}
                 </div>

@@ -21,7 +21,6 @@ import { Link, useParams } from '@tanstack/react-router'
 import { ArrowLeft, BookOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { StatusBadge } from '@/components/status-badge'
 import { buttonVariants } from '@/components/ui/button'
 import { Markdown } from '@/components/ui/markdown'
 import { formatTimestampToDate } from '@/lib/format'
@@ -29,6 +28,8 @@ import { usePageMeta } from '@/lib/page-meta'
 
 import { getPublishedArticle, getPublishedArticles } from '../api'
 import { BlogReaderPanel } from './blog-reader-panel'
+import { BlogTag } from './blog-tag'
+import { RelatedArticles } from './related-articles'
 
 import type { BlogArticle, BlogAuthor } from '@/features/blog-hall/types'
 
@@ -48,11 +49,45 @@ export function BlogArticlePage() {
     ? `${article.title} | ${article.author?.display_name || t('Blog')}`
     : t('Blog')
   const pageDescription = article?.summary || article?.content.slice(0, 160)
+  const canonicalUrl = article
+    ? `${window.location.origin}/blog/${article.guid}`
+    : undefined
+  const jsonLd = article
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: article.title,
+        description: pageDescription,
+        author: article.author
+          ? {
+              '@type': 'Person',
+              name: article.author.display_name,
+              url: article.author.slug
+                ? `${window.location.origin}/blog/authors/${article.author.slug}`
+                : undefined,
+            }
+          : undefined,
+        datePublished: article.published_at
+          ? new Date(article.published_at * 1000).toISOString()
+          : undefined,
+        dateModified: article.updated_time
+          ? new Date(article.updated_time * 1000).toISOString()
+          : undefined,
+        image: article.cover_image || undefined,
+        keywords: article.tags.join(', ') || undefined,
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id': canonicalUrl,
+        },
+      }
+    : undefined
   usePageMeta({
     title: pageTitle,
     description: pageDescription,
     image: article?.cover_image,
     type: 'article',
+    canonicalUrl,
+    jsonLd,
   })
 
   return (
@@ -122,13 +157,7 @@ export function BlogArticlePage() {
                 {article.tags.length > 0 && (
                   <div className='mb-6 flex flex-wrap gap-1.5'>
                     {article.tags.map((tag) => (
-                      <StatusBadge
-                        key={tag}
-                        label={tag}
-                        variant='neutral'
-                        copyable={false}
-                        className='text-xs'
-                      />
+                      <BlogTag key={tag} tag={tag} />
                     ))}
                   </div>
                 )}
@@ -150,6 +179,14 @@ export function BlogArticlePage() {
                   <div className='mt-12'>
                     <AuthorCard author={article.author} />
                   </div>
+                )}
+
+                {/* Related reading */}
+                {article && (
+                  <RelatedArticles
+                    articleId={article.id}
+                    currentGuid={article.guid}
+                  />
                 )}
 
                 {/* More articles by this author */}

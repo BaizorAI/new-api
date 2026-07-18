@@ -21,8 +21,10 @@ import { api } from '@/lib/api'
 import type {
   ApiResponse,
   BlogArticle,
+  BlogTag,
   GetBlogArticlesParams,
   GetBlogArticlesResponse,
+  SearchBlogArticlesParams,
 } from '@/features/blog-hall/types'
 
 // Public endpoints – no auth required.
@@ -43,5 +45,41 @@ export async function getPublishedArticle(
   identifier: string | number
 ): Promise<ApiResponse<BlogArticle>> {
   const res = await api.get(`/api/blog/public/${encodeURIComponent(String(identifier))}`)
+  return res.data
+}
+
+export async function searchPublishedArticles(
+  params: SearchBlogArticlesParams = {}
+): Promise<GetBlogArticlesResponse> {
+  const { q, tag, p = 1, page_size = 20 } = params
+  const query = new URLSearchParams()
+  query.set('p', String(p))
+  query.set('page_size', String(page_size))
+  if (q && q.trim()) {
+    query.set('q', q.trim())
+  }
+  if (tag) {
+    const tags = Array.isArray(tag) ? tag : [tag]
+    for (const t of tags) {
+      if (t && t.trim()) {
+        query.append('tag', t.trim())
+      }
+    }
+  }
+  const res = await api.get(`/api/blog/public/search?${query.toString()}`)
+  return res.data
+}
+
+export async function getRelatedArticles(
+  identifier: string | number
+): Promise<GetBlogArticlesResponse> {
+  const res = await api.get(
+    `/api/blog/public/articles/${encodeURIComponent(String(identifier))}/related?page_size=6`
+  )
+  return res.data
+}
+
+export async function getPublishedBlogTags(): Promise<ApiResponse<BlogTag[]>> {
+  const res = await api.get('/api/blog/public/tags?limit=50')
   return res.data
 }

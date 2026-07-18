@@ -23,6 +23,8 @@ interface PageMetaOptions {
   description?: string
   image?: string
   type?: string
+  canonicalUrl?: string
+  jsonLd?: object | object[]
 }
 
 function setMetaTag(propertyOrName: string, content: string | undefined, attr = 'name') {
@@ -43,7 +45,51 @@ function removeMetaTag(propertyOrName: string, attr = 'name') {
   }
 }
 
-export function usePageMeta({ title, description, image, type = 'website' }: PageMetaOptions) {
+function setCanonicalLink(url: string) {
+  let element = document.querySelector('link[rel="canonical"]')
+  if (!element) {
+    element = document.createElement('link')
+    element.setAttribute('rel', 'canonical')
+    document.head.appendChild(element)
+  }
+  element.setAttribute('href', url)
+}
+
+function removeCanonicalLink() {
+  const element = document.querySelector('link[rel="canonical"]')
+  if (element) {
+    element.remove()
+  }
+}
+
+const jsonLdScriptId = 'page-json-ld'
+
+function setJsonLdScript(data: object | object[]) {
+  let element = document.getElementById(jsonLdScriptId)
+  if (!element) {
+    element = document.createElement('script')
+    element.setAttribute('type', 'application/ld+json')
+    element.id = jsonLdScriptId
+    document.head.appendChild(element)
+  }
+  element.textContent = JSON.stringify(data)
+}
+
+function removeJsonLdScript() {
+  const element = document.getElementById(jsonLdScriptId)
+  if (element) {
+    element.remove()
+  }
+}
+
+export function usePageMeta({
+  title,
+  description,
+  image,
+  type = 'website',
+  canonicalUrl,
+  jsonLd,
+}: PageMetaOptions) {
   useEffect(() => {
     const previousTitle = document.title
     if (title) {
@@ -63,6 +109,13 @@ export function usePageMeta({ title, description, image, type = 'website' }: Pag
     setMetaTag('og:type', type, 'property')
     setMetaTag('twitter:card', 'summary_large_image')
 
+    if (canonicalUrl) {
+      setCanonicalLink(canonicalUrl)
+    }
+    if (jsonLd) {
+      setJsonLdScript(jsonLd)
+    }
+
     return () => {
       document.title = previousTitle
       removeMetaTag('description')
@@ -71,6 +124,8 @@ export function usePageMeta({ title, description, image, type = 'website' }: Pag
       removeMetaTag('og:image', 'property')
       removeMetaTag('og:type', 'property')
       removeMetaTag('twitter:card')
+      removeCanonicalLink()
+      removeJsonLdScript()
     }
-  }, [title, description, image, type])
+  }, [title, description, image, type, canonicalUrl, jsonLd])
 }
