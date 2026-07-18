@@ -16,19 +16,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useNavigate } from '@tanstack/react-router'
 import { PenLine } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 
-import { useBlogHall } from './blog-hall-provider'
-
 export function BlogHallPrimaryButtons() {
   const { t } = useTranslation()
-  const { setOpen } = useBlogHall()
+  const navigate = useNavigate()
   return (
     <div className='flex gap-2'>
-      <Button size='sm' onClick={() => setOpen('create')}>
+      <Button size='sm' onClick={() => void navigate({ to: '/blog-hall/new' })}>
         <PenLine className='h-4 w-4' />
         {t('New Article')}
       </Button>

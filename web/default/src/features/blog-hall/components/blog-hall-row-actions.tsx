@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { type Row } from '@tanstack/react-table'
+import { useNavigate } from '@tanstack/react-router'
 import { Edit, MoreHorizontal as DotsHorizontalIcon, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -41,6 +42,7 @@ export function BlogHallRowActions<TData>({
   row,
 }: BlogHallRowActionsProps<TData>) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const article = blogArticleSchema.parse(row.original)
   const { setOpen, setCurrentRow } = useBlogHall()
 
@@ -60,10 +62,12 @@ export function BlogHallRowActions<TData>({
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end' className='w-[160px]'>
           <DropdownMenuItem
-            onClick={() => {
-              setCurrentRow(article)
-              setOpen('update')
-            }}
+            onClick={() =>
+              void navigate({
+                to: '/blog-hall/$articleId',
+                params: { articleId: String(article.id) },
+              })
+            }
           >
             {t('Edit')}
             <DropdownMenuShortcut>

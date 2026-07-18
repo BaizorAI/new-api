@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
 
-import { BlogHallDialogs } from './components/blog-hall-dialogs'
+import { BlogArticleDeleteDialog } from './components/blog-article-delete-dialog'
 import { BlogHallPrimaryButtons } from './components/blog-hall-primary-buttons'
 import { BlogHallProvider } from './components/blog-hall-provider'
 import { BlogHallTable } from './components/blog-hall-table'
@@ -39,7 +39,7 @@ export function BlogHall() {
         </SectionPageLayout.Content>
       </SectionPageLayout>
 
-      <BlogHallDialogs />
+      <BlogArticleDeleteDialog />
     </BlogHallProvider>
   )
 }
