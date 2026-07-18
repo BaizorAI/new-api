@@ -330,6 +330,7 @@ func SetApiRouter(router *gin.Engine) {
 			blogPublicRoute.GET("/authors", controller.GetPublishedBlogAuthors)
 			blogPublicRoute.GET("/authors/:slug", controller.GetPublishedBlogAuthor)
 			blogPublicRoute.GET("/authors/:slug/articles", controller.GetPublishedBlogAuthorArticles)
+			blogPublicRoute.POST("/articles/:guid/assistant", controller.BlogPublicAssistant)
 			blogPublicRoute.GET("/:id", controller.GetPublishedBlogArticle)
 		}
 		blogRoute := apiRouter.Group("/blog")

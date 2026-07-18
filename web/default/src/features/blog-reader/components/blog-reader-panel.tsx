@@ -16,15 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Link } from '@tanstack/react-router'
 import { RotateCcw, Send, Sparkles, Square } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/ui/markdown'
 import { Textarea } from '@/components/ui/textarea'
-import { useAuthStore } from '@/stores/auth-store'
 
 import type { BlogArticle } from '@/features/blog-hall/types'
 
@@ -37,9 +35,9 @@ interface BlogReaderPanelProps {
 export function BlogReaderPanel({ article }: BlogReaderPanelProps) {
   const { t } = useTranslation()
   const [input, setInput] = useState('')
-  const user = useAuthStore((state) => state.auth.user)
   const { messages, sendMessage, runPreset, clearChat, stopStream } = useBlogReaderChat({
     articleId: article.id,
+    articleGuid: article.guid,
     title: article.title,
     summary: article.summary,
     content: article.content,
@@ -84,96 +82,82 @@ export function BlogReaderPanel({ article }: BlogReaderPanelProps) {
         )}
       </div>
 
-      {!user ? (
-        <div className='space-y-3'>
-          <p className='text-muted-foreground text-sm'>
-            {t('Sign in to use the AI reading assistant')}
-          </p>
-          <Link
-            to='/sign-in'
-            className={buttonVariants({ variant: 'default', size: 'sm' })}
-          >
-            {t('Sign in')}
-          </Link>
-        </div>
-      ) : (
-        <div className='flex flex-col gap-3'>
-          {messages.length === 0 && (
-            <div className='space-y-3'>
-              <p className='text-muted-foreground text-sm'>
-                {t('The AI assistant can summarize, explain, and answer questions about this article.')}
-              </p>
-              <div className='flex flex-wrap gap-2'>
-                <Button
-                  variant='outline'
-                  size='xs'
-                  onClick={() => runPreset('summarize')}
-                >
-                  {t('Summarize')}
-                </Button>
-                <Button
-                  variant='outline'
-                  size='xs'
-                  onClick={() => runPreset('simplify')}
-                >
-                  {t('Simplify')}
-                </Button>
-                <Button
-                  variant='outline'
-                  size='xs'
-                  onClick={() => runPreset('takeaways')}
-                >
-                  {t('Key takeaways')}
-                </Button>
-                <Button
-                  variant='outline'
-                  size='xs'
-                  onClick={() => runPreset('related')}
-                >
-                  {t('Related reading')}
-                </Button>
-              </div>
+      <div className='flex flex-col gap-3'>
+        {messages.length === 0 && (
+          <div className='space-y-3'>
+            <p className='text-muted-foreground text-sm'>
+              {t('The AI assistant can summarize, explain, and answer questions about this article.')}
+            </p>
+            <div className='flex flex-wrap gap-2'>
+              <Button
+                variant='outline'
+                size='xs'
+                onClick={() => runPreset('summarize')}
+              >
+                {t('Summarize')}
+              </Button>
+              <Button
+                variant='outline'
+                size='xs'
+                onClick={() => runPreset('simplify')}
+              >
+                {t('Simplify')}
+              </Button>
+              <Button
+                variant='outline'
+                size='xs'
+                onClick={() => runPreset('takeaways')}
+              >
+                {t('Key takeaways')}
+              </Button>
+              <Button
+                variant='outline'
+                size='xs'
+                onClick={() => runPreset('related')}
+              >
+                {t('Related reading')}
+              </Button>
             </div>
-          )}
-
-          <div className='max-h-96 min-h-[120px] overflow-y-auto space-y-3 pr-1'>
-            {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))}
           </div>
+        )}
 
-          <div className='flex items-end gap-2 pt-2'>
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t('Ask anything about this article...')}
-              className='min-h-10 resize-none py-2 text-sm'
-              rows={1}
-              disabled={isStreaming}
-            />
-            {isStreaming ? (
-              <Button
-                variant='secondary'
-                size='icon'
-                onClick={stopStream}
-                title={t('Stop')}
-              >
-                <Square className='h-4 w-4 fill-current' />
-              </Button>
-            ) : (
-              <Button
-                size='icon'
-                onClick={handleSend}
-                disabled={!input.trim()}
-                title={t('Send')}
-              >
-                <Send className='h-4 w-4' />
-              </Button>
-            )}
-          </div>
+        <div className='max-h-96 min-h-[120px] overflow-y-auto space-y-3 pr-1'>
+          {messages.map((message) => (
+            <MessageBubble key={message.id} message={message} />
+          ))}
         </div>
-      )}
+
+        <div className='flex items-end gap-2 pt-2'>
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={t('Ask anything about this article...')}
+            className='min-h-10 resize-none py-2 text-sm'
+            rows={1}
+            disabled={isStreaming}
+          />
+          {isStreaming ? (
+            <Button
+              variant='secondary'
+              size='icon'
+              onClick={stopStream}
+              title={t('Stop')}
+            >
+              <Square className='h-4 w-4 fill-current' />
+            </Button>
+          ) : (
+            <Button
+              size='icon'
+              onClick={handleSend}
+              disabled={!input.trim()}
+              title={t('Send')}
+            >
+              <Send className='h-4 w-4' />
+            </Button>
+          )}
+        </div>
+      </div>
     </section>
   )
 }

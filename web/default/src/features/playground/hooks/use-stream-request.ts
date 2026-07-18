@@ -63,15 +63,16 @@ export function useStreamRequest() {
   const sseSourceRef = useRef<SSE | null>(null)
   const isStreamCompleteRef = useRef(false)
 
-  const sendStreamRequest = useCallback(
+  const sendStreamRequestTo = useCallback(
     (
+      url: string,
       payload: ChatCompletionRequest,
       requestHeaders: Record<string, string> | undefined,
       onUpdate: (type: 'reasoning' | 'content', chunk: string) => void,
       onComplete: () => void,
       onError: (error: string, errorCode?: string) => void
     ) => {
-      const source = new SSE(API_ENDPOINTS.CHAT_COMPLETIONS, {
+      const source = new SSE(url, {
         headers: {
           ...getCommonHeaders(),
           ...requestHeaders,
@@ -159,6 +160,26 @@ export function useStreamRequest() {
     []
   )
 
+  const sendStreamRequest = useCallback(
+    (
+      payload: ChatCompletionRequest,
+      requestHeaders: Record<string, string> | undefined,
+      onUpdate: (type: 'reasoning' | 'content', chunk: string) => void,
+      onComplete: () => void,
+      onError: (error: string, errorCode?: string) => void
+    ) => {
+      sendStreamRequestTo(
+        API_ENDPOINTS.CHAT_COMPLETIONS,
+        payload,
+        requestHeaders,
+        onUpdate,
+        onComplete,
+        onError
+      )
+    },
+    [sendStreamRequestTo]
+  )
+
   const stopStream = useCallback(() => {
     if (sseSourceRef.current) {
       sseSourceRef.current.close()
@@ -171,6 +192,7 @@ export function useStreamRequest() {
 
   return {
     sendStreamRequest,
+    sendStreamRequestTo,
     stopStream,
     // eslint-disable-next-line react-hooks/refs
     isStreaming,

@@ -21,6 +21,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 
 import { useStreamRequest } from '@/features/playground/hooks/use-stream-request'
 import { getOrCreatePlaygroundSessionId } from '@/features/playground/lib/storage'
+import { API_ENDPOINTS } from '@/features/playground/constants'
 import type { ChatCompletionRequest } from '@/features/playground/types'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -35,6 +36,7 @@ export type ReaderPromptType = 'summarize' | 'simplify' | 'takeaways' | 'related
 
 interface UseBlogReaderChatOptions {
   articleId: number
+  articleGuid: string
   title: string
   summary: string
   content: string
@@ -45,26 +47,27 @@ const MAX_CONTEXT_CHARS = 8000
 
 export function useBlogReaderChat({
   articleId,
+  articleGuid,
   title,
   summary,
   content,
   model = 'huayu-v2',
 }: UseBlogReaderChatOptions) {
   const [messages, setMessages] = useState<ReaderChatMessage[]>([])
-  const { sendStreamRequest, stopStream } = useStreamRequest()
+  const { sendStreamRequest, sendStreamRequestTo, stopStream } = useStreamRequest()
   const isStreamingRef = useRef(false)
   const streamedContentRef = useRef('')
   const messagesRef = useRef(messages)
   messagesRef.current = messages
 
   const user = useAuthStore((state) => state.auth.user)
+  const isAnonymous = !user
 
   const hermesSessionId = useMemo(() => {
-    const userId = user?.id ?? 'anon'
-    return getOrCreatePlaygroundSessionId(`skill_blog_reader_a${articleId}_u${userId}`)
+    return getOrCreatePlaygroundSessionId(`skill_blog_reader_a${articleId}_u${user?.id ?? 'anon'}`)
   }, [articleId, user?.id])
 
-  const requestHeaders = useMemo<Record<string, string>>(
+  const privateHeaders = useMemo<Record<string, string>>(
     () => ({
       'X-Baizor-Playground': 'hermes',
       'X-Baizor-Hermes-Session': hermesSessionId,
@@ -72,6 +75,11 @@ export function useBlogReaderChat({
       'X-Baizor-Hermes-Skill-Activate': '/blog-reader-v1',
     }),
     [hermesSessionId]
+  )
+
+  const publicEndpointUrl = useMemo(
+    () => `/api/blog/public/articles/${encodeURIComponent(articleGuid)}/assistant`,
+    [articleGuid]
   )
 
   const buildArticleContext = useCallback(() => {
@@ -134,72 +142,83 @@ export function useBlogReaderChat({
       isStreamingRef.current = true
       streamedContentRef.current = ''
 
-      const chatMessages: ChatCompletionRequest['messages'] = [
-        {
-          role: 'system',
-          content: buildArticleContext(),
-        },
-      ]
-
-      // Include recent history for continuity
+      const history: ChatCompletionRequest['messages'] = []
       for (const msg of messagesRef.current.slice(-6)) {
-        chatMessages.push({
+        history.push({
           role: msg.role,
           content: msg.content,
         })
       }
+      history.push({ role: 'user', content: text.trim() })
 
-      chatMessages.push({ role: 'user', content: text.trim() })
+      let payload: ChatCompletionRequest
+      let url: string = API_ENDPOINTS.CHAT_COMPLETIONS
+      let headers: Record<string, string> | undefined = privateHeaders
 
-      const payload: ChatCompletionRequest = {
-        model,
-        messages: chatMessages,
-        stream: true,
+      if (isAnonymous) {
+        url = publicEndpointUrl
+        headers = undefined
+        payload = {
+          model,
+          messages: history,
+          stream: true,
+        }
+      } else {
+        payload = {
+          model,
+          messages: [
+            { role: 'system', content: buildArticleContext() },
+            ...history,
+          ],
+          stream: true,
+        }
       }
 
-      sendStreamRequest(
-        payload,
-        requestHeaders,
-        (_type, chunk) => {
-          streamedContentRef.current += chunk
-          setMessages((prev) => {
-            const last = prev.at(-1)
-            if (!last || last.role !== 'assistant') return prev
-            return [
-              ...prev.slice(0, -1),
-              { ...last, content: last.content + chunk, status: 'streaming' },
-            ]
-          })
-        },
-        () => {
-          isStreamingRef.current = false
-          setMessages((prev) => {
-            const last = prev.at(-1)
-            if (!last || last.role !== 'assistant') return prev
-            return [
-              ...prev.slice(0, -1),
-              { ...last, status: 'complete' },
-            ]
-          })
-        },
-        (error) => {
-          isStreamingRef.current = false
-          setMessages((prev) => {
-            const last = prev.at(-1)
-            if (!last || last.role !== 'assistant') return prev
-            return [
-              ...prev.slice(0, -1),
-              {
-                ...last,
-                content: error || 'An error occurred',
-                status: 'error',
-              },
-            ]
-          })
-        }
-      )
+      const handleUpdate = (_type: 'reasoning' | 'content', chunk: string) => {
+        streamedContentRef.current += chunk
+        setMessages((prev) => {
+          const last = prev.at(-1)
+          if (!last || last.role !== 'assistant') return prev
+          return [
+            ...prev.slice(0, -1),
+            { ...last, content: last.content + chunk, status: 'streaming' },
+          ]
+        })
+      }
+      const handleComplete = () => {
+        isStreamingRef.current = false
+        setMessages((prev) => {
+          const last = prev.at(-1)
+          if (!last || last.role !== 'assistant') return prev
+          return [
+            ...prev.slice(0, -1),
+            { ...last, status: 'complete' },
+          ]
+        })
+      }
+      const handleError = (error: string) => {
+        isStreamingRef.current = false
+        setMessages((prev) => {
+          const last = prev.at(-1)
+          if (!last || last.role !== 'assistant') return prev
+          return [
+            ...prev.slice(0, -1),
+            {
+              ...last,
+              content: error || 'An error occurred',
+              status: 'error',
+            },
+          ]
+        })
+      }
+
+      if (isAnonymous) {
+        sendStreamRequestTo(url, payload, headers, handleUpdate, handleComplete, handleError)
+      } else {
+        sendStreamRequest(payload, headers, handleUpdate, handleComplete, handleError)
+      }
     },
-    [buildArticleContext, model, requestHeaders, sendStreamRequest]
+    [buildArticleContext, isAnonymous, model, privateHeaders, publicEndpointUrl, sendStreamRequest, sendStreamRequestTo]
   )
 
   const runPreset = useCallback(

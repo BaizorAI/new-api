@@ -16,7 +16,7 @@ const (
 
 type BlogArticle struct {
 	Id          int            `json:"id" gorm:"primaryKey;autoIncrement"`
-	Guid        string         `json:"guid" gorm:"type:varchar(36);uniqueIndex"`
+	Guid        string         `json:"guid" gorm:"type:varchar(36);index"`
 	AuthorId    int            `json:"author_id" gorm:"index;not null"`
 	Title       string         `json:"title" gorm:"type:varchar(200);not null"`
 	Summary     string         `json:"summary" gorm:"type:varchar(500)"`
