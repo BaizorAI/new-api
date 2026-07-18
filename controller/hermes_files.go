@@ -103,11 +103,50 @@ func HermesPlaygroundFile(c *gin.Context) {
 
 	info, err := os.Stat(filePath)
 	if err != nil || info.IsDir() {
+		// Defense-in-depth: try stripping metadata suffixes from the
+		// filename (e.g. "`（465KB，26页）") that LLMs sometimes append.
+		if cleanPath, ok := tryCleanHermesFilename(root, filePath); ok {
+			c.File(cleanPath)
+			return
+		}
 		c.JSON(http.StatusNotFound, gin.H{"message": "file not found"})
 		return
 	}
 
 	c.File(filePath)
+}
+
+// tryCleanHermesFilename attempts to find a file by stripping metadata
+// suffixes that LLMs sometimes append to filenames (e.g. backtick-prefixed
+// size/page annotations like "`（465KB，26页）"). Returns the cleaned path
+// and true if a matching file exists.
+func tryCleanHermesFilename(root string, filePath string) (string, bool) {
+	dir := filepath.Dir(filePath)
+	base := filepath.Base(filePath)
+
+	// Strip trailing backtick-prefixed metadata: "`（...）" or "`(...)"
+	if idx := strings.Index(base, "`"); idx > 0 {
+		candidate := filepath.Join(dir, base[:idx])
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			prefix := root + string(os.PathSeparator)
+			if strings.HasPrefix(candidate, prefix) || candidate == root {
+				return candidate, true
+			}
+		}
+	}
+
+	// Strip full-width parenthesized suffix: "（...）"
+	if idx := strings.Index(base, "\xef\xbc\x88"); idx > 0 {
+		candidate := filepath.Join(dir, base[:idx])
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			prefix := root + string(os.PathSeparator)
+			if strings.HasPrefix(candidate, prefix) || candidate == root {
+				return candidate, true
+			}
+		}
+	}
+
+	return "", false
 }
 
 func normalizeHermesDataPath(value string) (string, bool) {

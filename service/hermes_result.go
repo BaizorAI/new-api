@@ -22,8 +22,8 @@ type HermesResultConversationInput struct {
 }
 
 var hermesMarkdownFilePattern = regexp.MustCompile(`\[([^\]]*)\]\((/pg/hermes/files/[^\s)]+)\)`)
-var hermesRawDataPathPattern = regexp.MustCompile(`(?:MEDIA:)?(/(?:opt/data|hermes-data)/[^\s<>)\]}"']+)`)
-var hermesTrailingPunctuationPattern = regexp.MustCompile(`[.,;:!?\x{ff0c}\x{3002}\x{ff1b}\x{ff1a}\x{ff01}\x{ff1f}]+$`)
+var hermesRawDataPathPattern = regexp.MustCompile(`(?:MEDIA:)?(/(?:opt/data|hermes-data)/[^\s<>)\]}"'\x{ff08}\x{ff09}\x{60}]+)`)
+var hermesTrailingPunctuationPattern = regexp.MustCompile(`[.,;:!?\x{ff0c}\x{3002}\x{ff1b}\x{ff1a}\x{ff01}\x{ff1f}\x{ff08}\x{ff09}]+$`)
 
 func SyncHermesResultsFromConversation(input HermesResultConversationInput) error {
 	conversationID := strings.TrimSpace(input.ConversationId)

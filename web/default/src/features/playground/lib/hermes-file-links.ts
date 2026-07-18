@@ -1,11 +1,11 @@
 const HERMES_DATA_PATH_PATTERN =
-  /(MEDIA:)?(\/(?:opt\/data|hermes-data)\/[^\s<>)\]}"]+)/g
+  /(MEDIA:)?(\/(?:opt\/data|hermes-data)\/[^\s<>)\]}()（）"'`]+)/g
 
 const HERMES_FILE_MARKDOWN_LINK_PATTERN =
   /\[([^\]]+)\]\((\/pg\/hermes\/files\/[^\s)]+)\)/g
 
 const TRAILING_PUNCTUATION_PATTERN =
-  /[.,;:!?\uFF0C\u3002\uFF1B\uFF1A\uFF01\uFF1F`]+$/
+  /[.,;:!?\uFF0C\u3002\uFF1B\uFF1A\uFF01\uFF1F\uFF08\uFF09`]+$/
 
 export interface HermesFileArtifact {
   href: string
