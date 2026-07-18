@@ -60,6 +60,23 @@ export function ShotsStage({
     image_prompt: '', video_prompt: '', character_ids: '',
   })
   const [fullscreenVideo, setFullscreenVideo] = useState<{ url: string; poster?: string; label: string } | null>(null)
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+
+  const handleDragStart = useCallback((idx: number) => { setDragIdx(idx) }, [])
+  const handleDragEnd = useCallback(() => { setDragIdx(null) }, [])
+  const handleDragOver = useCallback((e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragIdx !== null && dragIdx !== idx) {
+      const from = shots[dragIdx]
+      const to = shots[idx]
+      onSwapOrder(
+        { id: from.id, sort_order: from.sort_order },
+        { id: to.id, sort_order: to.sort_order },
+      )
+      setDragIdx(idx)
+    }
+  }, [dragIdx, shots, onSwapOrder])
 
   const selectedShot = shots.find(s => s.id === selectedShotId) ?? null
 
@@ -110,7 +127,13 @@ export function ShotsStage({
           const isVidGen = videoGeneratingIds.has(shot.id)
           const isFailed = shot.status === SHOT_STATUS.FAILED
           return (
-            <div key={shot.id} className={`border-border bg-card text-card-foreground rounded-lg border p-2 ${isFailed ? 'border-destructive/30 bg-destructive/5' : ''} ${selectedShotId === shot.id ? 'ring-ring ring-2' : ''}`}>
+            <div key={shot.id}
+              className={`border-border bg-card text-card-foreground rounded-lg border p-2 cursor-grab active:cursor-grabbing transition-shadow ${isFailed ? 'border-destructive/30 bg-destructive/5' : ''} ${dragIdx === shotIndex ? 'opacity-40 ring-2 ring-primary/30' : ''} ${selectedShotId === shot.id ? 'ring-ring ring-2' : ''}`}
+              draggable
+              onDragStart={() => handleDragStart(shotIndex)}
+              onDragEnd={handleDragEnd}
+              onDragOver={(e) => handleDragOver(e, shotIndex)}
+            >
               <button type='button' onClick={() => selectShot(shot)} className='hover:bg-muted/60 flex w-full items-center gap-2 text-left text-xs transition-colors rounded p-1'>
                 {shot.image_url
                   ? <img src={shot.image_url} alt='' className='bg-muted size-8 shrink-0 rounded object-cover' />

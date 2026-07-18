@@ -1208,6 +1208,7 @@ ${brief}
       <TimelineStage projectId={id} stageKey={stageKey} shots={shots} characters={characters}
         generatingIds={generatingIds} videoGeneratingIds={videoGeneratingIds}
         onGenerateImage={generateImage} onGenerateVideo={generateVideo}
+        onSwapOrder={(a,b) => swapShotOrder.mutate({shotA:a,shotB:b})}
       />
     )}
   </div>

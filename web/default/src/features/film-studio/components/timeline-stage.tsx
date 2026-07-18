@@ -41,6 +41,7 @@ interface TimelineStageProps {
   videoGeneratingIds: Set<number>
   onGenerateImage: (shot: StudioShot) => void
   onGenerateVideo: (shot: StudioShot) => void
+  onSwapOrder: (a: { id: number; sort_order: number }, b: { id: number; sort_order: number }) => void
 }
 
 /**
@@ -53,7 +54,7 @@ interface TimelineStageProps {
 export function TimelineStage({
   projectId, stageKey, shots, characters,
   generatingIds, videoGeneratingIds,
-  onGenerateImage, onGenerateVideo,
+  onGenerateImage, onGenerateVideo, onSwapOrder,
 }: TimelineStageProps) {
   const { t } = useTranslation()
 
@@ -64,6 +65,23 @@ export function TimelineStage({
     image_prompt: '', video_prompt: '', character_ids: '',
   })
   const [fullscreenVideo, setFullscreenVideo] = useState<{ url: string; poster?: string; label: string } | null>(null)
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+
+  const handleDragStart = useCallback((idx: number) => { setDragIdx(idx) }, [])
+  const handleDragEnd = useCallback(() => { setDragIdx(null) }, [])
+  const handleDragOver = useCallback((e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragIdx !== null && dragIdx !== idx) {
+      const from = sortedShots[dragIdx]
+      const to = sortedShots[idx]
+      onSwapOrder(
+        { id: from.id, sort_order: from.sort_order },
+        { id: to.id, sort_order: to.sort_order },
+      )
+      setDragIdx(idx)
+    }
+  }, [dragIdx, sortedShots, onSwapOrder])
 
   const selectedShot = shots.find(s => s.id === selectedShotId) ?? null
   const showImg = stageKey === 'image_gen' || stageKey === 'video_gen'
@@ -134,7 +152,11 @@ export function TimelineStage({
             return (
               <div
                 key={shot.id}
-                className='flex shrink-0 flex-col items-center'
+                className='flex shrink-0 flex-col items-center cursor-grab active:cursor-grabbing'
+                draggable
+                onDragStart={() => handleDragStart(i)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleDragOver(e, i)}
                 style={{ width }}
               >
                 {/* Shot card */}
