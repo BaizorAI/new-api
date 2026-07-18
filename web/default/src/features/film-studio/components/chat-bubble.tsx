@@ -36,42 +36,13 @@ export function extractScriptBlock(content: string): string | null {
   return scriptMatch?.[1]?.trimEnd() ?? null
 }
 
-// ============================================================================
-// Character block extraction
-// ============================================================================
-
-export interface ExtractedCharacter {
-  name: string
-  description?: string
-  visual_prompt?: string
-}
-
-/** Extract character JSON from AI analysis response. */
-export function extractCharacterJson(content: string): ExtractedCharacter[] | null {
-  const jsonMatch = content.match(/\[[\s\S]*?\{[\s\S]*?"name"[\s\S]*?\}[\s\S]*?\]/)
-  if (!jsonMatch) return null
-  try {
-    const parsed = JSON.parse(jsonMatch[0])
-    if (!Array.isArray(parsed) || parsed.length === 0) return null
-    return parsed
-      .filter((c: Record<string, unknown>) => typeof c.name === 'string' && c.name.trim())
-      .map((c: Record<string, unknown>) => ({
-        name: String(c.name).trim(),
-        description: typeof c.description === 'string' ? c.description.trim() : '',
-        visual_prompt: typeof c.visual_prompt === 'string' ? c.visual_prompt.trim() : '',
-      }))
-  } catch {
-    return null
-  }
-}
-
 export function isAnalysisMessage(content: string): boolean {
   if (extractScriptBlock(content)) return false
   return /✅|⚠️/.test(content)
 }
 
 // ============================================================================
-// ScriptChatBubble — shared chat bubble with Apply/Rewrite/Complete actions
+// ScriptChatBubble
 // ============================================================================
 
 export function ScriptChatBubble(props: {

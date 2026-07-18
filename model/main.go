@@ -305,6 +305,7 @@ func migrateDB() error {
 		&SystemTaskLock{},
 		&File{},
 		&BlogArticle{},
+		&BlogChatMessage{},
 		&ImagePlaygroundHistory{},
 		&VideoPlaygroundHistory{},
 		&StudioProject{},
@@ -379,6 +380,7 @@ func migrateDBFast() error {
 		{&StudioShot{}, "StudioShot"},
 		{&StudioCharacter{}, "StudioCharacter"},
 		{&StudioChatMessage{}, "StudioChatMessage"},
+		{&BlogChatMessage{}, "BlogChatMessage"},
 		{&AssetCenter{}, "AssetCenter"},
 	}
 	// 动态计算migration数量，确保errChan缓冲区足够大

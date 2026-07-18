@@ -17,9 +17,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useParams } from '@tanstack/react-router'
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/components/ui/resizable'
 
 import { BlogArticleContent } from './blog-article-content'
-import { BlogWorkspaceChatBar } from './blog-workspace-chat-bar'
+import { BlogWorkspaceChatPanel } from './blog-workspace-chat-panel'
 import { BlogWorkspaceProvider } from './blog-workspace-provider'
 import { BlogWorkspaceToolbar } from './blog-workspace-toolbar'
 
@@ -34,13 +39,20 @@ export function BlogArticleWorkspace() {
       <div className='flex h-full flex-col overflow-hidden'>
         <BlogWorkspaceToolbar />
 
-        {/* Scrollable article content */}
-        <div className='flex-1 overflow-y-auto'>
-          <BlogArticleContent />
-        </div>
+        {/* Two-column layout: article content (left) + AI chat (right) */}
+        <ResizablePanelGroup orientation='horizontal' className='min-h-0 flex-1'>
+          {/* Left panel: Article content with paragraph selection */}
+          <ResizablePanel defaultSize={55} minSize={30} className='flex flex-col'>
+            <BlogArticleContent />
+          </ResizablePanel>
 
-        {/* Chat section at bottom */}
-        <BlogWorkspaceChatBar />
+          <ResizableHandle withHandle />
+
+          {/* Right panel: AI Chat */}
+          <ResizablePanel defaultSize={45} minSize={25} className='flex flex-col'>
+            <BlogWorkspaceChatPanel />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </BlogWorkspaceProvider>
   )

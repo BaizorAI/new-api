@@ -43,7 +43,7 @@ import { STUDIO_QUERY_KEYS } from '../constants'
 import type { StudioCharacter, StudioProject } from '../types'
 import { CharacterChatPanel } from './character-chat-panel'
 import type { StageChatMessage } from '../hooks/use-studio-stage-chat'
-import type { ExtractedCharacter } from './chat-bubble'
+import type { ExtractedCharacter } from './character-chat-panel'
 import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
 
 interface CharactersStageProps {

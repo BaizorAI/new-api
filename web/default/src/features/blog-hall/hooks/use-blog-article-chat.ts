@@ -78,8 +78,8 @@ export function useBlogArticleChat({
 
   const hermesSessionId = useMemo(() => {
     const userId = useAuthStore.getState().auth.user?.id ?? 'anon'
-    return getOrCreatePlaygroundSessionId(`skill_blog_user_${userId}`)
-  }, [])
+    return getOrCreatePlaygroundSessionId(`skill_blog_a${articleId}_u${userId}`)
+  }, [articleId])
 
   const requestHeaders = useMemo<Record<string, string>>(
     () => ({
@@ -94,9 +94,12 @@ export function useBlogArticleChat({
   const onCompleteRef = useRef(onComplete)
   onCompleteRef.current = onComplete
 
-  // Load persisted chat history on mount
+  // Load persisted chat history — resets when switching articles
   useEffect(() => {
     if (!articleId) { setLoadingHistory(false); return }
+    // Clear immediately when switching articles to avoid flash of old messages
+    setMessages([])
+    setLoadingHistory(true)
     let cancelled = false
     getBlogChatMessages(articleId)
       .then((res) => {

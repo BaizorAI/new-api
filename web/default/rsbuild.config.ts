@@ -55,6 +55,13 @@ export default defineConfig(({ envMode }) => {
           priority: 0,
           enforce: true,
         },
+        'film-studio': {
+          test: /features[\\/]film-studio[\\/]/,
+          name: 'film-studio',
+          chunks: 'all',
+          priority: 5,
+          enforce: true,
+        },
       },
     },
     source: {
@@ -97,8 +104,9 @@ export default defineConfig(({ envMode }) => {
         plugins: [
           tanstackRouter({
             target: 'react',
-            // Dev: avoid per-route async chunks (reduces white flash on navigation + faster HMR feedback).
-            // Prod: keep route-based code splitting.
+            // All modes: avoid per-route async chunks.
+            // SWC produces TDZ errors with circular/hoisted variables inside lazy
+            // route chunks (e.g. Cannot access 'td' before initialization).
             autoCodeSplitting: isProd,
           }),
         ],

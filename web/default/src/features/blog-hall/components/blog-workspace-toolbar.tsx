@@ -45,8 +45,6 @@ import type { BlogArticleStatus } from '../types'
 export function BlogWorkspaceToolbar() {
   const { t } = useTranslation()
   const {
-    title,
-    setTitle,
     coverImage,
     setCoverImage,
     status,
@@ -64,19 +62,19 @@ export function BlogWorkspaceToolbar() {
   const handlePublishToggle = useCallback(() => {
     const nextStatus: BlogArticleStatus = isPublished ? 'draft' : 'published'
     setStatus(nextStatus)
-    // Save immediately with the new status
     setTimeout(() => void save(), 0)
   }, [isPublished, setStatus, save])
 
   return (
     <div className='border-border flex shrink-0 items-center gap-3 border-b px-4 py-2'>
+      {/* Status selector */}
       <Select
         onValueChange={(value) => {
           if (value) setStatus(value as BlogArticleStatus)
         }}
         value={status}
       >
-        <SelectTrigger className='w-32' aria-label={t('Status')}>
+        <SelectTrigger className='w-28' aria-label={t('Status')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent alignItemWithTrigger={false}>
@@ -88,13 +86,10 @@ export function BlogWorkspaceToolbar() {
         </SelectContent>
       </Select>
 
-      <Input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className='flex-1 border-none px-0 font-semibold shadow-none focus-visible:ring-0'
-        placeholder={t('Article title...')}
-      />
+      {/* Spacer — push following items to the right */}
+      <div className='flex-1' />
 
+      {/* Cover image */}
       <Popover>
         <PopoverTrigger
           className={`inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
@@ -145,6 +140,7 @@ export function BlogWorkspaceToolbar() {
         {isAnalyzing ? t('Analyzing...') : t('AI Analyze')}
       </Button>
 
+      {/* Save */}
       <Button
         size='sm'
         variant='outline'
@@ -154,6 +150,7 @@ export function BlogWorkspaceToolbar() {
         {isSaving ? t('Saving...') : t('Save')}
       </Button>
 
+      {/* Publish */}
       <Button
         size='sm'
         variant={isPublished ? 'outline' : 'default'}

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/BaizorAI/new-api/common"
 	"github.com/BaizorAI/new-api/model"
@@ -329,4 +330,127 @@ func GetPublishedBlogArticle(c *gin.Context) {
 	}
 
 	common.ApiSuccess(c, articleToView(article))
+}
+
+// ============================================================================
+// Blog Chat Message API
+// ============================================================================
+
+type blogSaveChatMessagesRequest struct {
+	Messages []blogChatMessageBody `json:"messages"`
+}
+
+type blogChatMessageBody struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+// ListBlogChatMessages GET /api/blog/:id/messages
+func ListBlogChatMessages(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiErrorMsg(c, "无效的 id")
+		return
+	}
+
+	// Verify the article exists and belongs to the user
+	article, err := model.GetBlogArticleById(id)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	userId := c.GetInt("id")
+	userRole := c.GetInt("role")
+	if userRole < common.RoleAdminUser && article.AuthorId != userId {
+		common.ApiErrorMsg(c, "无权访问该文章")
+		return
+	}
+
+	messages, err := model.GetBlogChatMessages(id, userId)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if messages == nil {
+		messages = []model.BlogChatMessage{}
+	}
+	common.ApiSuccess(c, messages)
+}
+
+// SaveBlogChatMessages POST /api/blog/:id/messages
+func SaveBlogChatMessages(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiErrorMsg(c, "无效的 id")
+		return
+	}
+
+	// Verify the article exists and belongs to the user
+	article, err := model.GetBlogArticleById(id)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	userId := c.GetInt("id")
+	userRole := c.GetInt("role")
+	if userRole < common.RoleAdminUser && article.AuthorId != userId {
+		common.ApiErrorMsg(c, "无权修改该文章")
+		return
+	}
+
+	var req blogSaveChatMessagesRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiErrorMsg(c, "invalid request body")
+		return
+	}
+
+	var saved []model.BlogChatMessage
+	for _, m := range req.Messages {
+		if m.Role != "user" && m.Role != "assistant" {
+			continue
+		}
+		if strings.TrimSpace(m.Content) == "" {
+			continue
+		}
+		msg := model.BlogChatMessage{
+			ArticleId: id,
+			UserId:    userId,
+			Role:      m.Role,
+			Content:   m.Content,
+		}
+		if err := msg.Insert(); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		saved = append(saved, msg)
+	}
+	common.ApiSuccess(c, saved)
+}
+
+// ClearBlogChatMessages DELETE /api/blog/:id/messages
+func ClearBlogChatMessages(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiErrorMsg(c, "无效的 id")
+		return
+	}
+
+	// Verify the article exists and belongs to the user
+	article, err := model.GetBlogArticleById(id)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	userId := c.GetInt("id")
+	userRole := c.GetInt("role")
+	if userRole < common.RoleAdminUser && article.AuthorId != userId {
+		common.ApiErrorMsg(c, "无权修改该文章")
+		return
+	}
+
+	if err := model.ClearBlogChatMessages(id, userId); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, nil)
 }
