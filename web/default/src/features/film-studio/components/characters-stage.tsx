@@ -43,6 +43,7 @@ import { STUDIO_QUERY_KEYS } from '../constants'
 import type { StudioCharacter, StudioProject } from '../types'
 import { CharacterChatPanel } from './character-chat-panel'
 import type { StageChatMessage } from '../hooks/use-studio-stage-chat'
+import type { ExtractedCharacter } from './chat-bubble'
 import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
 
 interface CharactersStageProps {
@@ -60,13 +61,15 @@ interface CharactersStageProps {
   onSubmit: (message: PromptInputMessage) => void
   onStopGeneration: () => void
   onExtractCharacters: () => void
+  onApplyCharacters?: (characters: ExtractedCharacter[]) => void
+  onCompleteStage?: () => void
 }
 
 export function CharactersStage({
   projectId, stageKey, scriptText, project,
   messages, loadingHistory, isStreaming, isExtractingChars, placeholder,
   onClearMessages, onDeleteMessage, onSubmit, onStopGeneration,
-  onExtractCharacters,
+  onExtractCharacters, onApplyCharacters, onCompleteStage,
 }: CharactersStageProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -275,7 +278,7 @@ export function CharactersStage({
 
       {/* Right: chat panel */}
       <div className='w-[340px] shrink-0'>
-        <CharacterChatPanel messages={messages} loadingHistory={loadingHistory} isStreaming={isStreaming} placeholder={placeholder} onClearMessages={onClearMessages} onDeleteMessage={onDeleteMessage} onSubmit={onSubmit} onStopGeneration={onStopGeneration} />
+        <CharacterChatPanel messages={messages} loadingHistory={loadingHistory} isStreaming={isStreaming} placeholder={placeholder} onClearMessages={onClearMessages} onDeleteMessage={onDeleteMessage} onSubmit={onSubmit} onStopGeneration={onStopGeneration} onApplyCharacters={onApplyCharacters} onCompleteStage={onCompleteStage} />
       </div>
     </div>
   )

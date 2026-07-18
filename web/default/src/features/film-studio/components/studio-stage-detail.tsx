@@ -453,6 +453,35 @@ export function StudioStageDetail() {
   const characters = charsData?.data ?? []
   const selectedChar = characters.find((c) => c.id === selectedCharId) ?? null
 
+  // ── Apply AI-extracted characters ──────────────────────────────
+  const handleApplyCharacters = useCallback(
+    async (extracted: { name: string; description?: string; visual_prompt?: string }[]) => {
+      let created = 0
+      let skipped = 0
+      const existingNames = new Set(characters.map(c => c.name.trim().toLowerCase()))
+      for (const c of extracted) {
+        if (!c.name?.trim()) continue
+        if (existingNames.has(c.name.trim().toLowerCase())) { skipped++; continue }
+        try {
+          await createStudioCharacter(id, {
+            name: c.name.trim(),
+            description: c.description ?? '',
+            visual_prompt: c.visual_prompt ?? '',
+          })
+          existingNames.add(c.name.trim().toLowerCase())
+          created++
+        } catch { /* skip individual failures */ }
+      }
+      if (created > 0) {
+        void queryClient.invalidateQueries({ queryKey: [...STUDIO_QUERY_KEYS.characters(id)] })
+        toast.success(t('Added {{count}} characters.', { count: created }))
+      } else if (skipped > 0) {
+        toast.info(t('All characters already exist.'))
+      }
+    },
+    [id, characters, queryClient, t],
+  )
+
   // Get script text for AI extraction
   const scriptText = useMemo(() => {
     const scriptStage = stages.find((s) => s.key === 'script')
@@ -1127,6 +1156,8 @@ ${brief}
         addAssistantMessage(`✅ ${msg}`)
       })
     }}
+    onApplyCharacters={(extracted) => { void handleApplyCharacters(extracted) }}
+    onCompleteStage={() => { void handleMarkComplete() }}
   />
           ) : (
             /* Other non-script stages */

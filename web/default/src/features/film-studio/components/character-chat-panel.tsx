@@ -55,32 +55,10 @@ interface CharacterChatPanelProps {
   onCompleteStage?: () => void
 }
 
-function SimpleChatBubble({ message, onDelete }: { message: StageChatMessage; onDelete?: () => void }) {
-  const { t } = useTranslation()
-  const isUser = message.role === 'user'
-  return (
-    <div className={isUser ? 'flex justify-end' : ''}>
-      <div className={`group relative max-w-[80%] ${isUser ? 'bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm' : 'text-sm'}`}>
-        {isUser ? message.content : message.status === 'loading' ? (
-          <span className='text-muted-foreground animate-pulse text-xs'>···</span>
-        ) : message.status === 'error' ? (
-          <span className='text-destructive text-xs'>{t(message.content)}</span>
-        ) : (
-          <div className='prose dark:prose-invert prose-sm'><Markdown>{message.content}</Markdown></div>
-        )}
-        {onDelete ? (
-          <button type='button' className='text-muted-foreground hover:text-destructive absolute right-1 top-1 rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100' onClick={onDelete} aria-label={t('Delete')}>
-            <X className='size-3' />
-          </button>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
 export function CharacterChatPanel({
   messages, loadingHistory, isStreaming, placeholder,
   onClearMessages, onDeleteMessage, onSubmit, onStopGeneration,
+  onApplyCharacters, onCompleteStage,
 }: CharacterChatPanelProps) {
   const { t } = useTranslation()
   return (
@@ -104,7 +82,15 @@ export function CharacterChatPanel({
           ) : messages.length === 0 ? (
             <ConversationEmptyState title={t('Character Assistant')} description={t('AI will help design character details.')} icon={<Wand2 className='size-8' />} />
           ) : (
-            messages.map((msg) => <SimpleChatBubble key={msg.id} message={msg} onDelete={() => onDeleteMessage(msg.id)} />)
+            messages.map((msg) => (
+              <CharacterChatBubble
+                key={msg.id}
+                message={msg}
+                onApplyCharacters={onApplyCharacters}
+                onComplete={onCompleteStage}
+                onDelete={() => onDeleteMessage(msg.id)}
+              />
+            ))
           )}
         </ConversationContent>
         <ConversationScrollButton />
