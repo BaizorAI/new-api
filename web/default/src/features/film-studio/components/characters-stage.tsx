@@ -53,17 +53,20 @@ interface CharactersStageProps {
   messages: StageChatMessage[]
   loadingHistory: boolean
   isStreaming: boolean
+  isExtractingChars: boolean
   placeholder: string
   onClearMessages: () => void
   onDeleteMessage: (id: string) => void
   onSubmit: (message: PromptInputMessage) => void
   onStopGeneration: () => void
+  onExtractCharacters: () => void
 }
 
 export function CharactersStage({
   projectId, stageKey, scriptText, project,
-  messages, loadingHistory, isStreaming, placeholder,
+  messages, loadingHistory, isStreaming, isExtractingChars, placeholder,
   onClearMessages, onDeleteMessage, onSubmit, onStopGeneration,
+  onExtractCharacters,
 }: CharactersStageProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -196,6 +199,10 @@ export function CharactersStage({
           <h2 className='text-sm font-medium'>{t('Characters')} ({characters.length})</h2>
         </div>
         <div className='flex flex-wrap items-center gap-2 pb-2'>
+          <Button size='sm' variant='outline' disabled={!scriptText.trim() || isExtractingChars} onClick={onExtractCharacters}>
+            {isExtractingChars ? <Loader2 className='mr-1.5 size-3.5 animate-spin' /> : <Wand2 className='mr-1.5 size-3.5 text-purple-500' />}
+            {isExtractingChars ? t('Extracting...') : t('AI Extract')}
+          </Button>
           <Button size='sm' variant='outline' onClick={handleCreateChar}><Plus className='mr-1.5 size-3.5' />{t('Add Character')}</Button>
         </div>
         <div className='pb-2'>

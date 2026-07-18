@@ -819,30 +819,7 @@ ${brief}
             </Button>
           ) : null}
 
-          {/* Character stage: Step 2 → AI Extract, Step 3 → Style, Step 4 → Generate All, Step 5 → Add */}
-          {stageKey === 'characters' ? (
-            <>
-              <Button
-                size='sm'
-                variant='outline'
-                disabled={!scriptText.trim() || isExtractingChars}
-                onClick={() => {
-                  addAssistantMessage(`🔍 正在从剧本中提取角色...`)
-                  void extractCharacters(scriptText, characters.map(c => c.name), (msg) => {
-                    addAssistantMessage(`✅ ${msg}`)
-                  })
-                }}
-              >
-                {isExtractingChars ? (
-                  <Loader2 className='mr-1.5 size-3.5 animate-spin' />
-                ) : (
-                  <Wand2 className='mr-1.5 size-3.5 text-purple-500' />
-                )}
-                {isExtractingChars ? t('Extracting...') : t('AI Extract')}
-              </Button>
-            </>
-          ) : null}
-
+          {/* Character stage: AI Extract moved into CharactersStage sidebar */}
           {/* Storyboard: AI Extract → Add */}
           {stageKey === 'storyboard' ? (
             <>
@@ -1141,8 +1118,15 @@ ${brief}
 {stageKey === 'characters' ? (
   <CharactersStage projectId={id} stageKey={stageKey} scriptText={scriptText} project={project}
     messages={messages} loadingHistory={loadingHistory} isStreaming={isStreaming}
+    isExtractingChars={isExtractingChars}
     placeholder={placeholder} onClearMessages={clearMessages} onDeleteMessage={deleteMessage}
     onSubmit={handleSubmit} onStopGeneration={stopGeneration}
+    onExtractCharacters={() => {
+      addAssistantMessage(`🔍 正在从剧本中提取角色...`)
+      void extractCharacters(scriptText, characters.map(c => c.name), (msg) => {
+        addAssistantMessage(`✅ ${msg}`)
+      })
+    }}
   />
           ) : (
             /* Other non-script stages */
