@@ -28,16 +28,17 @@ type blogArticleBody struct {
 
 // blogArticleView is the API response shape (tags as []string).
 type blogArticleView struct {
-	Id          int      `json:"id"`
-	AuthorId    int      `json:"author_id"`
-	Title       string   `json:"title"`
-	Summary     string   `json:"summary"`
-	Content     string   `json:"content"`
-	Tags        []string `json:"tags"`
-	Status      string   `json:"status"`
-	CreatedTime int64    `json:"created_time"`
-	UpdatedTime int64    `json:"updated_time"`
-	PublishedAt int64    `json:"published_at"`
+	Id          int                `json:"id"`
+	AuthorId    int                `json:"author_id"`
+	Title       string             `json:"title"`
+	Summary     string             `json:"summary"`
+	Content     string             `json:"content"`
+	Tags        []string           `json:"tags"`
+	Status      string             `json:"status"`
+	CreatedTime int64              `json:"created_time"`
+	UpdatedTime int64              `json:"updated_time"`
+	PublishedAt int64              `json:"published_at"`
+	Author      *authorProfileView `json:"author,omitempty"`
 }
 
 func articleToView(a *model.BlogArticle) blogArticleView {
@@ -303,6 +304,11 @@ func GetPublishedBlogArticles(c *gin.Context) {
 	for i, a := range articles {
 		views[i] = articleToView(a)
 	}
+	views, err = attachAuthorsToViews(views)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
 
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(views)
@@ -329,7 +335,14 @@ func GetPublishedBlogArticle(c *gin.Context) {
 		return
 	}
 
-	common.ApiSuccess(c, articleToView(article))
+	view := articleToView(article)
+	author, err := buildAuthorProfileView(article.AuthorId)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	view.Author = author
+	common.ApiSuccess(c, view)
 }
 
 // ============================================================================

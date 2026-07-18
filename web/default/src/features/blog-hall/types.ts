@@ -22,6 +22,16 @@ import { z } from 'zod'
 // BlogArticle Schema & Types
 // ============================================================================
 
+export const blogAuthorSchema = z.object({
+  id: z.number(),
+  display_name: z.string(),
+  slug: z.string(),
+  avatar: z.string(),
+  bio: z.string(),
+})
+
+export type BlogAuthor = z.infer<typeof blogAuthorSchema>
+
 export const blogArticleSchema = z.object({
   id: z.number(),
   author_id: z.number(),
@@ -34,6 +44,7 @@ export const blogArticleSchema = z.object({
   created_time: z.number(),
   updated_time: z.number(),
   published_at: z.number(),
+  author: blogAuthorSchema.optional(),
 })
 
 export type BlogArticle = z.infer<typeof blogArticleSchema>

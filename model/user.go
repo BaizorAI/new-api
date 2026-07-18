@@ -343,6 +343,23 @@ func GetUserById(id int, selectAll bool) (*User, error) {
 	return &user, err
 }
 
+// GetUsersByIds returns a map of user id -> user for the given ids.
+// Password is omitted. Unknown ids are simply skipped.
+func GetUsersByIds(ids []int) (map[int]*User, error) {
+	users := make(map[int]*User)
+	if len(ids) == 0 {
+		return users, nil
+	}
+	var list []*User
+	if err := DB.Omit("password").Where("id IN ?", ids).Find(&list).Error; err != nil {
+		return nil, err
+	}
+	for _, u := range list {
+		users[u.Id] = u
+	}
+	return users, nil
+}
+
 func GetUserIdByAffCode(affCode string) (int, error) {
 	if affCode == "" {
 		return 0, errors.New("affCode 为空！")

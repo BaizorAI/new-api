@@ -90,6 +90,8 @@ func SetApiRouter(router *gin.Engine) {
 			{
 				selfRoute.GET("/self/groups", controller.GetUserGroups)
 				selfRoute.GET("/self", controller.GetSelf)
+				selfRoute.GET("/author-profile", controller.GetSelfAuthorProfile)
+				selfRoute.PUT("/author-profile", middleware.CriticalRateLimit(), controller.UpdateSelfAuthorProfile)
 				selfRoute.GET("/models", controller.GetUserModels)
 				selfRoute.PUT("/self", middleware.CriticalRateLimit(), controller.UpdateSelf)
 				selfRoute.DELETE("/self", controller.DeleteSelf)
@@ -325,6 +327,9 @@ func SetApiRouter(router *gin.Engine) {
 		blogPublicRoute := apiRouter.Group("/blog/public")
 		{
 			blogPublicRoute.GET("/", controller.GetPublishedBlogArticles)
+			blogPublicRoute.GET("/authors", controller.GetPublishedBlogAuthors)
+			blogPublicRoute.GET("/authors/:slug", controller.GetPublishedBlogAuthor)
+			blogPublicRoute.GET("/authors/:slug/articles", controller.GetPublishedBlogAuthorArticles)
 			blogPublicRoute.GET("/:id", controller.GetPublishedBlogArticle)
 		}
 		blogRoute := apiRouter.Group("/blog")

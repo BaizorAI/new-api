@@ -18,16 +18,17 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react'
+import { BookOpen, ChevronLeft, ChevronRight, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { StatusBadge } from '@/components/status-badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { formatTimestampToDate } from '@/lib/format'
 
 import { getPublishedArticles } from '../api'
-import type { BlogArticle } from '@/features/blog-hall/types'
+
+import type { BlogArticle, BlogAuthor } from '@/features/blog-hall/types'
 
 const PAGE_SIZE = 12
 
@@ -48,14 +49,23 @@ export function BlogReaderPage() {
     <div className='min-h-screen bg-background'>
       <div className='mx-auto max-w-4xl px-4 py-12'>
         {/* Header */}
-        <div className='mb-10 flex items-center gap-3'>
-          <BookOpen className='text-primary h-8 w-8' />
-          <div>
-            <h1 className='text-3xl font-bold'>{t('Blog Hall')}</h1>
-            <p className='text-muted-foreground text-sm'>
-              {t('Published articles')}
-            </p>
+        <div className='mb-10 flex items-center justify-between gap-3'>
+          <div className='flex items-center gap-3'>
+            <BookOpen className='text-primary h-8 w-8' />
+            <div>
+              <h1 className='text-3xl font-bold'>{t('Blog Hall')}</h1>
+              <p className='text-muted-foreground text-sm'>
+                {t('Published articles')}
+              </p>
+            </div>
           </div>
+          <Link
+            to='/blog/authors'
+            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+          >
+            <Users className='mr-1.5 h-4 w-4' />
+            {t('Authors')}
+          </Link>
         </div>
 
         {/* Article list */}
@@ -160,11 +170,54 @@ function ArticleCard({ article }: { article: BlogArticle }) {
             </div>
           )}
 
-          <div className='text-primary/70 mt-3 text-sm font-medium'>
-            {t('Read article')} →
+          <div className='mt-4 flex items-center justify-between'>
+            {article.author ? (
+              <AuthorInline author={article.author} />
+            ) : (
+              <span />
+            )}
+            <span className='text-primary/70 text-sm font-medium'>
+              {t('Read article')} →
+            </span>
           </div>
         </div>
       </article>
     </Link>
+  )
+}
+
+function AuthorInline({ author }: { author: BlogAuthor }) {
+  const initial = author.display_name.charAt(0).toUpperCase()
+  const avatar = author.avatar ? (
+    <img
+      src={author.avatar}
+      alt={author.display_name}
+      className='size-6 rounded-full object-cover'
+    />
+  ) : (
+    <span className='bg-primary/10 text-primary flex size-6 items-center justify-center rounded-full text-xs font-medium'>
+      {initial}
+    </span>
+  )
+
+  if (author.slug) {
+    return (
+      <Link
+        to='/blog/authors/$authorSlug'
+        params={{ authorSlug: author.slug }}
+        onClick={(e) => e.stopPropagation()}
+        className='inline-flex items-center gap-2 text-sm hover:underline'
+      >
+        {avatar}
+        <span className='text-muted-foreground'>{author.display_name}</span>
+      </Link>
+    )
+  }
+
+  return (
+    <span className='inline-flex items-center gap-2 text-sm'>
+      {avatar}
+      <span className='text-muted-foreground'>{author.display_name}</span>
+    </span>
   )
 }
