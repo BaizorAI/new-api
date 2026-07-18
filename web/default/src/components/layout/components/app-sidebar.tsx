@@ -201,7 +201,7 @@ function getProductDestination(group: NavGroup, teams: Team[]): string {
   if (group.id === 'team-collaboration') {
     const firstTeam = teams[0]
     return firstTeam
-      ? `/team-workspace?team_id=${encodeURIComponent(firstTeam.id)}`
+      ? `/workspace/team/${encodeURIComponent(firstTeam.id)}`
       : '/teams'
   }
 
@@ -226,15 +226,23 @@ function resolveActiveRootGroup(
   const panel = params.get('panel')
   const section = params.get('section')
 
+  if (pathname === '/home') {
+    return findGroup(navGroups, 'home')
+  }
+
   if (pathname === '/team-workspace') {
     if (panel === 'results') return findGroup(navGroups, 'team-collaboration')
     if (panel === 'messages') return findGroup(navGroups, 'settings')
     return params.has('team_id')
       ? findGroup(navGroups, 'team-collaboration')
-      : findGroup(navGroups, 'overview')
+      : findGroup(navGroups, 'home')
   }
 
-  if (pathname === '/teams') {
+  if (pathname.startsWith('/workspace/team/')) {
+    return findGroup(navGroups, 'team-collaboration')
+  }
+
+  if (pathname === '/teams' || pathname.startsWith('/teams/')) {
     return findGroup(navGroups, 'team-collaboration')
   }
 

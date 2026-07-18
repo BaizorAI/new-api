@@ -21,6 +21,7 @@ import { Link } from '@tanstack/react-router'
 import {
   ArrowRight,
   BriefcaseBusiness,
+  Clapperboard,
   FileCheck2,
   FileText,
   MessageSquare,
@@ -228,7 +229,7 @@ export function WorkspaceHome() {
 
   return (
     <SectionPageLayout>
-      <SectionPageLayout.Title>{t('Workspace Home')}</SectionPageLayout.Title>
+      <SectionPageLayout.Title>{t('Home')}</SectionPageLayout.Title>
       <SectionPageLayout.Actions>
         <Button size='sm' render={<Link to='/one-person-company' />}>
           <BriefcaseBusiness data-icon='inline-start' />
@@ -335,6 +336,15 @@ export function WorkspaceHome() {
                   ? { team_id: firstTeam.id, panel: 'results' }
                   : undefined
               }
+            />
+            <QuickActionCard
+              icon={<Clapperboard className='size-4' />}
+              title={t('Film Studio')}
+              description={t(
+                'Create images, videos, film projects and manage assets.'
+              )}
+              action={t('Enter Film Studio')}
+              to='/image-playground'
             />
           </div>
 
@@ -475,7 +485,7 @@ function QuickActionCard(props: {
   title: string
   description: string
   action: string
-  to: '/team-workspace' | '/hermes-playground'
+  to: '/team-workspace' | '/hermes-playground' | '/image-playground'
   search?: {
     team_id?: number
     panel?: 'sessions' | 'results' | 'skills' | 'messages' | 'tasks'

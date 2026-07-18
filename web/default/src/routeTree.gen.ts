@@ -67,6 +67,7 @@ import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
 import { Route as AuthenticatedJilaiWorkspaceIndexRouteImport } from './routes/_authenticated/jilai-workspace/index'
 import { Route as AuthenticatedImagePlaygroundIndexRouteImport } from './routes/_authenticated/image-playground/index'
+import { Route as AuthenticatedHomeIndexRouteImport } from './routes/_authenticated/home/index'
 import { Route as AuthenticatedHermesPlaygroundIndexRouteImport } from './routes/_authenticated/hermes-playground/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
@@ -83,6 +84,7 @@ import { Route as AuthenticatedWalletSubscriptionsIndexRouteImport } from './rou
 import { Route as AuthenticatedWalletRedeemIndexRouteImport } from './routes/_authenticated/wallet/redeem/index'
 import { Route as AuthenticatedWalletOverviewIndexRouteImport } from './routes/_authenticated/wallet/overview/index'
 import { Route as AuthenticatedWalletAffiliateIndexRouteImport } from './routes/_authenticated/wallet/affiliate/index'
+import { Route as AuthenticatedTeamsActivityIndexRouteImport } from './routes/_authenticated/teams/activity/index'
 import { Route as AuthenticatedSystemSettingsSiteIndexRouteImport } from './routes/_authenticated/system-settings/site/index'
 import { Route as AuthenticatedSystemSettingsSecurityIndexRouteImport } from './routes/_authenticated/system-settings/security/index'
 import { Route as AuthenticatedSystemSettingsOperationsIndexRouteImport } from './routes/_authenticated/system-settings/operations/index'
@@ -100,6 +102,7 @@ import { Route as AuthenticatedSystemSettingsModelsSectionRouteImport } from './
 import { Route as AuthenticatedSystemSettingsContentSectionRouteImport } from './routes/_authenticated/system-settings/content/$section'
 import { Route as AuthenticatedSystemSettingsBillingSectionRouteImport } from './routes/_authenticated/system-settings/billing/$section'
 import { Route as AuthenticatedSystemSettingsAuthSectionRouteImport } from './routes/_authenticated/system-settings/auth/$section'
+import { Route as AuthenticatedWorkspaceTeamTeamIdIndexRouteImport } from './routes/_authenticated/workspace/team/$teamId/index'
 import { Route as AuthenticatedStudioProjectIdStageKeyIndexRouteImport } from './routes/_authenticated/studio/$projectId/$stageKey/index'
 
 const UserAgreementRoute = UserAgreementRouteImport.update({
@@ -417,6 +420,11 @@ const AuthenticatedImagePlaygroundIndexRoute =
     path: '/image-playground/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedHomeIndexRoute = AuthenticatedHomeIndexRouteImport.update({
+  id: '/home/',
+  path: '/home/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedHermesPlaygroundIndexRoute =
   AuthenticatedHermesPlaygroundIndexRouteImport.update({
     id: '/hermes-playground/',
@@ -509,6 +517,12 @@ const AuthenticatedWalletAffiliateIndexRoute =
   AuthenticatedWalletAffiliateIndexRouteImport.update({
     id: '/wallet/affiliate/',
     path: '/wallet/affiliate/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedTeamsActivityIndexRoute =
+  AuthenticatedTeamsActivityIndexRouteImport.update({
+    id: '/teams/activity/',
+    path: '/teams/activity/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSystemSettingsSiteIndexRoute =
@@ -613,6 +627,12 @@ const AuthenticatedSystemSettingsAuthSectionRoute =
     path: '/auth/$section',
     getParentRoute: () => AuthenticatedSystemSettingsRouteRoute,
   } as any)
+const AuthenticatedWorkspaceTeamTeamIdIndexRoute =
+  AuthenticatedWorkspaceTeamTeamIdIndexRouteImport.update({
+    id: '/workspace/team/$teamId/',
+    path: '/workspace/team/$teamId/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedStudioProjectIdStageKeyIndexRoute =
   AuthenticatedStudioProjectIdStageKeyIndexRouteImport.update({
     id: '/$projectId/$stageKey/',
@@ -661,6 +681,7 @@ export interface FileRoutesByFullPath {
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/hermes-playground/': typeof AuthenticatedHermesPlaygroundIndexRoute
+  '/home/': typeof AuthenticatedHomeIndexRoute
   '/image-playground/': typeof AuthenticatedImagePlaygroundIndexRoute
   '/jilai-workspace/': typeof AuthenticatedJilaiWorkspaceIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
@@ -705,12 +726,14 @@ export interface FileRoutesByFullPath {
   '/system-settings/operations/': typeof AuthenticatedSystemSettingsOperationsIndexRoute
   '/system-settings/security/': typeof AuthenticatedSystemSettingsSecurityIndexRoute
   '/system-settings/site/': typeof AuthenticatedSystemSettingsSiteIndexRoute
+  '/teams/activity/': typeof AuthenticatedTeamsActivityIndexRoute
   '/wallet/affiliate/': typeof AuthenticatedWalletAffiliateIndexRoute
   '/wallet/overview/': typeof AuthenticatedWalletOverviewIndexRoute
   '/wallet/redeem/': typeof AuthenticatedWalletRedeemIndexRoute
   '/wallet/subscriptions/': typeof AuthenticatedWalletSubscriptionsIndexRoute
   '/wallet/topup/': typeof AuthenticatedWalletTopupIndexRoute
   '/studio/$projectId/$stageKey/': typeof AuthenticatedStudioProjectIdStageKeyIndexRoute
+  '/workspace/team/$teamId/': typeof AuthenticatedWorkspaceTeamTeamIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -749,6 +772,7 @@ export interface FileRoutesByTo {
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/hermes-playground': typeof AuthenticatedHermesPlaygroundIndexRoute
+  '/home': typeof AuthenticatedHomeIndexRoute
   '/image-playground': typeof AuthenticatedImagePlaygroundIndexRoute
   '/jilai-workspace': typeof AuthenticatedJilaiWorkspaceIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
@@ -793,12 +817,14 @@ export interface FileRoutesByTo {
   '/system-settings/operations': typeof AuthenticatedSystemSettingsOperationsIndexRoute
   '/system-settings/security': typeof AuthenticatedSystemSettingsSecurityIndexRoute
   '/system-settings/site': typeof AuthenticatedSystemSettingsSiteIndexRoute
+  '/teams/activity': typeof AuthenticatedTeamsActivityIndexRoute
   '/wallet/affiliate': typeof AuthenticatedWalletAffiliateIndexRoute
   '/wallet/overview': typeof AuthenticatedWalletOverviewIndexRoute
   '/wallet/redeem': typeof AuthenticatedWalletRedeemIndexRoute
   '/wallet/subscriptions': typeof AuthenticatedWalletSubscriptionsIndexRoute
   '/wallet/topup': typeof AuthenticatedWalletTopupIndexRoute
   '/studio/$projectId/$stageKey': typeof AuthenticatedStudioProjectIdStageKeyIndexRoute
+  '/workspace/team/$teamId': typeof AuthenticatedWorkspaceTeamTeamIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -844,6 +870,7 @@ export interface FileRoutesById {
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/hermes-playground/': typeof AuthenticatedHermesPlaygroundIndexRoute
+  '/_authenticated/home/': typeof AuthenticatedHomeIndexRoute
   '/_authenticated/image-playground/': typeof AuthenticatedImagePlaygroundIndexRoute
   '/_authenticated/jilai-workspace/': typeof AuthenticatedJilaiWorkspaceIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
@@ -888,12 +915,14 @@ export interface FileRoutesById {
   '/_authenticated/system-settings/operations/': typeof AuthenticatedSystemSettingsOperationsIndexRoute
   '/_authenticated/system-settings/security/': typeof AuthenticatedSystemSettingsSecurityIndexRoute
   '/_authenticated/system-settings/site/': typeof AuthenticatedSystemSettingsSiteIndexRoute
+  '/_authenticated/teams/activity/': typeof AuthenticatedTeamsActivityIndexRoute
   '/_authenticated/wallet/affiliate/': typeof AuthenticatedWalletAffiliateIndexRoute
   '/_authenticated/wallet/overview/': typeof AuthenticatedWalletOverviewIndexRoute
   '/_authenticated/wallet/redeem/': typeof AuthenticatedWalletRedeemIndexRoute
   '/_authenticated/wallet/subscriptions/': typeof AuthenticatedWalletSubscriptionsIndexRoute
   '/_authenticated/wallet/topup/': typeof AuthenticatedWalletTopupIndexRoute
   '/_authenticated/studio/$projectId/$stageKey/': typeof AuthenticatedStudioProjectIdStageKeyIndexRoute
+  '/_authenticated/workspace/team/$teamId/': typeof AuthenticatedWorkspaceTeamTeamIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -938,6 +967,7 @@ export interface FileRouteTypes {
     | '/channels/'
     | '/dashboard/'
     | '/hermes-playground/'
+    | '/home/'
     | '/image-playground/'
     | '/jilai-workspace/'
     | '/keys/'
@@ -982,12 +1012,14 @@ export interface FileRouteTypes {
     | '/system-settings/operations/'
     | '/system-settings/security/'
     | '/system-settings/site/'
+    | '/teams/activity/'
     | '/wallet/affiliate/'
     | '/wallet/overview/'
     | '/wallet/redeem/'
     | '/wallet/subscriptions/'
     | '/wallet/topup/'
     | '/studio/$projectId/$stageKey/'
+    | '/workspace/team/$teamId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1026,6 +1058,7 @@ export interface FileRouteTypes {
     | '/channels'
     | '/dashboard'
     | '/hermes-playground'
+    | '/home'
     | '/image-playground'
     | '/jilai-workspace'
     | '/keys'
@@ -1070,12 +1103,14 @@ export interface FileRouteTypes {
     | '/system-settings/operations'
     | '/system-settings/security'
     | '/system-settings/site'
+    | '/teams/activity'
     | '/wallet/affiliate'
     | '/wallet/overview'
     | '/wallet/redeem'
     | '/wallet/subscriptions'
     | '/wallet/topup'
     | '/studio/$projectId/$stageKey'
+    | '/workspace/team/$teamId'
   id:
     | '__root__'
     | '/'
@@ -1120,6 +1155,7 @@ export interface FileRouteTypes {
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/hermes-playground/'
+    | '/_authenticated/home/'
     | '/_authenticated/image-playground/'
     | '/_authenticated/jilai-workspace/'
     | '/_authenticated/keys/'
@@ -1164,12 +1200,14 @@ export interface FileRouteTypes {
     | '/_authenticated/system-settings/operations/'
     | '/_authenticated/system-settings/security/'
     | '/_authenticated/system-settings/site/'
+    | '/_authenticated/teams/activity/'
     | '/_authenticated/wallet/affiliate/'
     | '/_authenticated/wallet/overview/'
     | '/_authenticated/wallet/redeem/'
     | '/_authenticated/wallet/subscriptions/'
     | '/_authenticated/wallet/topup/'
     | '/_authenticated/studio/$projectId/$stageKey/'
+    | '/_authenticated/workspace/team/$teamId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1603,6 +1641,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedImagePlaygroundIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/home/': {
+      id: '/_authenticated/home/'
+      path: '/home'
+      fullPath: '/home/'
+      preLoaderRoute: typeof AuthenticatedHomeIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/hermes-playground/': {
       id: '/_authenticated/hermes-playground/'
       path: '/hermes-playground'
@@ -1713,6 +1758,13 @@ declare module '@tanstack/react-router' {
       path: '/wallet/affiliate'
       fullPath: '/wallet/affiliate/'
       preLoaderRoute: typeof AuthenticatedWalletAffiliateIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/teams/activity/': {
+      id: '/_authenticated/teams/activity/'
+      path: '/teams/activity'
+      fullPath: '/teams/activity/'
+      preLoaderRoute: typeof AuthenticatedTeamsActivityIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/system-settings/site/': {
@@ -1833,6 +1885,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/system-settings/auth/$section'
       preLoaderRoute: typeof AuthenticatedSystemSettingsAuthSectionRouteImport
       parentRoute: typeof AuthenticatedSystemSettingsRouteRoute
+    }
+    '/_authenticated/workspace/team/$teamId/': {
+      id: '/_authenticated/workspace/team/$teamId/'
+      path: '/workspace/team/$teamId'
+      fullPath: '/workspace/team/$teamId/'
+      preLoaderRoute: typeof AuthenticatedWorkspaceTeamTeamIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/studio/$projectId/$stageKey/': {
       id: '/_authenticated/studio/$projectId/$stageKey/'
@@ -1996,6 +2055,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedHermesPlaygroundIndexRoute: typeof AuthenticatedHermesPlaygroundIndexRoute
+  AuthenticatedHomeIndexRoute: typeof AuthenticatedHomeIndexRoute
   AuthenticatedImagePlaygroundIndexRoute: typeof AuthenticatedImagePlaygroundIndexRoute
   AuthenticatedJilaiWorkspaceIndexRoute: typeof AuthenticatedJilaiWorkspaceIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
@@ -2019,11 +2079,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
   AuthenticatedVideoPlaygroundIndexRoute: typeof AuthenticatedVideoPlaygroundIndexRoute
   AuthenticatedWalletIndexRoute: typeof AuthenticatedWalletIndexRoute
+  AuthenticatedTeamsActivityIndexRoute: typeof AuthenticatedTeamsActivityIndexRoute
   AuthenticatedWalletAffiliateIndexRoute: typeof AuthenticatedWalletAffiliateIndexRoute
   AuthenticatedWalletOverviewIndexRoute: typeof AuthenticatedWalletOverviewIndexRoute
   AuthenticatedWalletRedeemIndexRoute: typeof AuthenticatedWalletRedeemIndexRoute
   AuthenticatedWalletSubscriptionsIndexRoute: typeof AuthenticatedWalletSubscriptionsIndexRoute
   AuthenticatedWalletTopupIndexRoute: typeof AuthenticatedWalletTopupIndexRoute
+  AuthenticatedWorkspaceTeamTeamIdIndexRoute: typeof AuthenticatedWorkspaceTeamTeamIdIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -2043,6 +2105,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedHermesPlaygroundIndexRoute:
     AuthenticatedHermesPlaygroundIndexRoute,
+  AuthenticatedHomeIndexRoute: AuthenticatedHomeIndexRoute,
   AuthenticatedImagePlaygroundIndexRoute:
     AuthenticatedImagePlaygroundIndexRoute,
   AuthenticatedJilaiWorkspaceIndexRoute: AuthenticatedJilaiWorkspaceIndexRoute,
@@ -2070,6 +2133,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVideoPlaygroundIndexRoute:
     AuthenticatedVideoPlaygroundIndexRoute,
   AuthenticatedWalletIndexRoute: AuthenticatedWalletIndexRoute,
+  AuthenticatedTeamsActivityIndexRoute: AuthenticatedTeamsActivityIndexRoute,
   AuthenticatedWalletAffiliateIndexRoute:
     AuthenticatedWalletAffiliateIndexRoute,
   AuthenticatedWalletOverviewIndexRoute: AuthenticatedWalletOverviewIndexRoute,
@@ -2077,6 +2141,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedWalletSubscriptionsIndexRoute:
     AuthenticatedWalletSubscriptionsIndexRoute,
   AuthenticatedWalletTopupIndexRoute: AuthenticatedWalletTopupIndexRoute,
+  AuthenticatedWorkspaceTeamTeamIdIndexRoute:
+    AuthenticatedWorkspaceTeamTeamIdIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
