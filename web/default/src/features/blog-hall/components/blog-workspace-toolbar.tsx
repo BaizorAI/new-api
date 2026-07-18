@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { ImageIcon, Loader2, Send, Sparkles } from 'lucide-react'
+import { ImageIcon, Loader2, PanelLeftClose, PanelLeftOpen, Send, Sparkles } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -45,7 +45,13 @@ import { useBlogWorkspace } from './blog-workspace-provider'
 
 import type { BlogArticleStatus } from '../types'
 
-export function BlogWorkspaceToolbar() {
+export function BlogWorkspaceToolbar({
+  showArticleList,
+  onToggleArticleList,
+}: {
+  showArticleList?: boolean
+  onToggleArticleList?: () => void
+}) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const {
@@ -104,6 +110,23 @@ export function BlogWorkspaceToolbar() {
 
   return (
     <div className='border-border flex shrink-0 items-center gap-3 border-b px-4 py-2'>
+      {/* Article list toggle */}
+      {onToggleArticleList && (
+        <Button
+          size='sm'
+          variant='ghost'
+          onClick={onToggleArticleList}
+          title={showArticleList ? t('Hide articles') : t('Show articles')}
+        >
+          {showArticleList ? (
+            <PanelLeftClose className='mr-1.5 size-4' />
+          ) : (
+            <PanelLeftOpen className='mr-1.5 size-4' />
+          )}
+          {t('Articles')}
+        </Button>
+      )}
+
       {/* Status selector */}
       <Select
         onValueChange={(value) => {

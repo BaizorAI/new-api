@@ -17,6 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useParams } from '@tanstack/react-router'
+import { useState } from 'react'
+
 import {
   ResizableHandle,
   ResizablePanel,
@@ -24,6 +26,7 @@ import {
 } from '@/components/ui/resizable'
 
 import { BlogArticleContent } from './blog-article-content'
+import { BlogArticleListPanel } from './blog-article-list-panel'
 import { BlogWorkspaceChatPanel } from './blog-workspace-chat-panel'
 import { BlogWorkspaceProvider } from './blog-workspace-provider'
 import { BlogWorkspaceToolbar } from './blog-workspace-toolbar'
@@ -33,26 +36,41 @@ export function BlogArticleWorkspace() {
     from: '/_authenticated/blog-hall/$articleId/',
   })
   const id = Number(articleId)
+  const [showArticleList, setShowArticleList] = useState(false)
 
   return (
     <BlogWorkspaceProvider articleId={id}>
       <div className='flex h-full flex-col overflow-hidden'>
-        <BlogWorkspaceToolbar />
+        <BlogWorkspaceToolbar
+          showArticleList={showArticleList}
+          onToggleArticleList={() => setShowArticleList((prev) => !prev)}
+        />
 
-        {/* Two-column layout: article content (left) + AI chat (right) */}
-        <ResizablePanelGroup orientation='horizontal' className='min-h-0 flex-1'>
-          {/* Left panel: Article content with paragraph selection */}
-          <ResizablePanel defaultSize={55} minSize={30} className='flex flex-col'>
-            <BlogArticleContent />
-          </ResizablePanel>
+        <div className='flex min-h-0 flex-1'>
+          <aside
+            className={`border-border flex flex-col border-r bg-muted/20 transition-all duration-200 ${
+              showArticleList ? 'w-64' : 'w-0'
+            }`}
+          >
+            {showArticleList && (
+              <div className='flex h-full flex-col overflow-hidden'>
+                <BlogArticleListPanel />
+              </div>
+            )}
+          </aside>
 
-          <ResizableHandle withHandle />
+          <ResizablePanelGroup orientation='horizontal' className='min-h-0 flex-1'>
+            <ResizablePanel defaultSize={55} minSize={30} className='flex flex-col'>
+              <BlogArticleContent />
+            </ResizablePanel>
 
-          {/* Right panel: AI Chat */}
-          <ResizablePanel defaultSize={45} minSize={25} className='flex flex-col'>
-            <BlogWorkspaceChatPanel />
-          </ResizablePanel>
-        </ResizablePanelGroup>
+            <ResizableHandle withHandle />
+
+            <ResizablePanel defaultSize={45} minSize={25} className='flex flex-col'>
+              <BlogWorkspaceChatPanel />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
       </div>
     </BlogWorkspaceProvider>
   )
