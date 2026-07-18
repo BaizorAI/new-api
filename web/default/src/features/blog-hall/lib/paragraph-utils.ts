@@ -240,7 +240,7 @@ export function getChatActions(content: string): ChatActionType[] {
 
   // If nothing specific detected but the message is substantial,
   // treat it as a full article (AI likely wrote the whole thing)
-  if (actions.length === 0 && content.trim().length > 200) {
+  if (actions.length === 0 && content.trim().length > 80) {
     actions.push('full-article')
   }
 
