@@ -13,6 +13,7 @@ import (
 	"github.com/BaizorAI/new-api/constant"
 
 	"github.com/glebarez/sqlite"
+	"github.com/google/uuid"
 	"gorm.io/driver/clickhouse"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -327,6 +328,23 @@ func migrateDB() error {
 	} else {
 		if err := DB.AutoMigrate(&SubscriptionPlan{}); err != nil {
 			return err
+		}
+	}
+	return migrateBlogArticleGuids()
+}
+
+// migrateBlogArticleGuids backfills GUIDs for legacy blog articles that do not have one.
+func migrateBlogArticleGuids() error {
+	var articles []*BlogArticle
+	if err := DB.Where("guid IS NULL OR guid = ?", "").Find(&articles).Error; err != nil {
+		return err
+	}
+	for _, article := range articles {
+		if article.Guid == "" {
+			article.Guid = uuid.New().String()
+			if err := DB.Model(article).Update("guid", article.Guid).Error; err != nil {
+				return err
+			}
 		}
 	}
 	return nil

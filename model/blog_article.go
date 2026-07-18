@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -15,6 +16,7 @@ const (
 
 type BlogArticle struct {
 	Id          int            `json:"id" gorm:"primaryKey;autoIncrement"`
+	Guid        string         `json:"guid" gorm:"type:varchar(36);uniqueIndex"`
 	AuthorId    int            `json:"author_id" gorm:"index;not null"`
 	Title       string         `json:"title" gorm:"type:varchar(200);not null"`
 	Summary     string         `json:"summary" gorm:"type:varchar(500)"`
@@ -25,6 +27,13 @@ type BlogArticle struct {
 	UpdatedTime int64          `json:"updated_time" gorm:"bigint"`
 	PublishedAt int64          `json:"published_at" gorm:"bigint"`
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
+}
+
+func (a *BlogArticle) BeforeCreate(tx *gorm.DB) error {
+	if a.Guid == "" {
+		a.Guid = uuid.New().String()
+	}
+	return nil
 }
 
 func ValidBlogArticleStatus(status string) bool {
@@ -91,6 +100,16 @@ func GetBlogArticleById(id int) (*BlogArticle, error) {
 	}
 	var article BlogArticle
 	err := DB.First(&article, "id = ?", id).Error
+	return &article, err
+}
+
+func GetBlogArticleByGuid(guid string) (*BlogArticle, error) {
+	guid = strings.TrimSpace(guid)
+	if guid == "" {
+		return nil, errors.New("guid 为空")
+	}
+	var article BlogArticle
+	err := DB.First(&article, "guid = ?", guid).Error
 	return &article, err
 }
 
