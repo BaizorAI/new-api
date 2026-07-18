@@ -130,6 +130,7 @@ import { CharactersStage } from './characters-stage'
 import { ScriptChatBubble, extractScriptBlock, isAnalysisMessage } from './chat-bubble'
 import { ShotsStage } from './shots-stage'
 import { TimelineStage } from './timeline-stage'
+import { StudioBreadcrumb } from './studio-breadcrumb'
 
 // Stage-specific placeholder text for the chat input
 const STAGE_PLACEHOLDERS: Record<string, string> = {
@@ -779,6 +780,12 @@ ${brief}
 
   return (
     <div className='flex h-full flex-col'>
+      {/* Breadcrumb */}
+      <StudioBreadcrumb items={[
+        { label: t('Film Studio'), to: '/studio' },
+        { label: project?.name ?? '' },
+        ...(stageConfig ? [{ label: t(stageConfig.labelKey) }] : []),
+      ]} />
       {/* Header */}
       <div className='border-border flex items-center gap-3 border-b px-6 py-4'>
         <Button variant='ghost' size='icon' className='size-8' asChild>

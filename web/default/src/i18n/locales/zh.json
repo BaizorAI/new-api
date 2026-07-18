@@ -6663,6 +6663,23 @@
     "+1s": "+1秒",
     "-1s": "-1秒",
     "{{count}} scenes": "{{count}} 个场景",
-    "Failed to update duration.": "更新时长失败。"
+    "Failed to update duration.": "更新时长失败。",
+    "Swap Lab": "角色重塑",
+    "Source Character": "源角色",
+    "Reference Style": "参考风格",
+    "Describe the change": "描述修改内容",
+    "Upload": "上传",
+    "Generate Swap": "生成替换",
+    "Results": "结果",
+    "Clear all": "清除全部",
+    "Generated results will appear here.": "生成结果将显示在此处。",
+    "No characters found. Create characters in Studio projects first.": "未找到角色，请先在工作室项目中创建角色。",
+    "Select a character first.": "请先选择角色。",
+    "Describe what to change.": "请描述需要修改的内容。",
+    "e.g. Change to ancient Chinese hanfu costume, classic hairstyle...": "例如：改为古装汉服造型，经典发髻...",
+    "Character costume swap and style transformation.": "角色换装与风格变换。",
+    "Timed out": "超时",
+    "Film Studio": "影视工坊",
+    "Film Studio Projects": "影视工坊项目"
   }
 }

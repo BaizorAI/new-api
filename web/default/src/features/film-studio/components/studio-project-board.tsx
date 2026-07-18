@@ -57,6 +57,7 @@ import { LoraTrainingPanel } from './lora-training-panel'
 import { ComputeDashboard } from './compute-dashboard'
 import { PipelineProgressPanel } from './pipeline-progress-panel'
 import { usePipelineOrchestrator } from '../hooks/use-pipeline-orchestrator'
+import { StudioBreadcrumb } from './studio-breadcrumb'
 
 export function StudioProjectBoard() {
   const { t } = useTranslation()
@@ -113,6 +114,11 @@ export function StudioProjectBoard() {
 
   return (
     <div className='flex h-full flex-col'>
+      {/* Breadcrumb */}
+      <StudioBreadcrumb items={[
+        { label: t('Film Studio'), to: '/studio' },
+        { label: project.name },
+      ]} />
       {/* Header */}
       <div className='border-border flex items-center gap-3 border-b px-6 py-4'>
         <Button variant='ghost' size='icon' className='size-8' asChild>

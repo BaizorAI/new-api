@@ -15,6 +15,7 @@ var (
 		"gpt-image-1",
 		"gpt-image-2",
 		"huayu-drama-4",
+		"huayu-drama-s2",
 		"prefix:imagen-",
 		"flux-",
 		"flux.1-",
@@ -23,6 +24,8 @@ var (
 		"huayu-drama-4",
 		"huayu-drama-4-fast",
 		"huayu-drama-4-quality",
+		"huayu-drama-s2",
+		"huayu-drama-s2-fast",
 	}
 	OpenAITextModels = []string{
 		"gpt-",

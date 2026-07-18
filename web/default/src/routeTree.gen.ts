@@ -51,6 +51,7 @@ import { Route as AuthenticatedTeamsIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedTeamWorkspaceIndexRouteImport } from './routes/_authenticated/team-workspace/index'
 import { Route as AuthenticatedSystemSettingsIndexRouteImport } from './routes/_authenticated/system-settings/index'
 import { Route as AuthenticatedSystemInfoIndexRouteImport } from './routes/_authenticated/system-info/index'
+import { Route as AuthenticatedSwapLabIndexRouteImport } from './routes/_authenticated/swap-lab/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
 import { Route as AuthenticatedStudioIndexRouteImport } from './routes/_authenticated/studio/index'
 import { Route as AuthenticatedSkillWorkspaceIndexRouteImport } from './routes/_authenticated/skill-workspace/index'
@@ -319,6 +320,12 @@ const AuthenticatedSystemInfoIndexRoute =
   AuthenticatedSystemInfoIndexRouteImport.update({
     id: '/system-info/',
     path: '/system-info/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSwapLabIndexRoute =
+  AuthenticatedSwapLabIndexRouteImport.update({
+    id: '/swap-lab/',
+    path: '/swap-lab/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSubscriptionsIndexRoute =
@@ -669,6 +676,7 @@ export interface FileRoutesByFullPath {
   '/skill-workspace/': typeof AuthenticatedSkillWorkspaceIndexRoute
   '/studio/': typeof AuthenticatedStudioIndexRoute
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
+  '/swap-lab/': typeof AuthenticatedSwapLabIndexRoute
   '/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
   '/team-workspace/': typeof AuthenticatedTeamWorkspaceIndexRoute
@@ -756,6 +764,7 @@ export interface FileRoutesByTo {
   '/skill-workspace': typeof AuthenticatedSkillWorkspaceIndexRoute
   '/studio': typeof AuthenticatedStudioIndexRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
+  '/swap-lab': typeof AuthenticatedSwapLabIndexRoute
   '/system-info': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings': typeof AuthenticatedSystemSettingsIndexRoute
   '/team-workspace': typeof AuthenticatedTeamWorkspaceIndexRoute
@@ -850,6 +859,7 @@ export interface FileRoutesById {
   '/_authenticated/skill-workspace/': typeof AuthenticatedSkillWorkspaceIndexRoute
   '/_authenticated/studio/': typeof AuthenticatedStudioIndexRoute
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
+  '/_authenticated/swap-lab/': typeof AuthenticatedSwapLabIndexRoute
   '/_authenticated/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/_authenticated/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
   '/_authenticated/team-workspace/': typeof AuthenticatedTeamWorkspaceIndexRoute
@@ -943,6 +953,7 @@ export interface FileRouteTypes {
     | '/skill-workspace/'
     | '/studio/'
     | '/subscriptions/'
+    | '/swap-lab/'
     | '/system-info/'
     | '/system-settings/'
     | '/team-workspace/'
@@ -1030,6 +1041,7 @@ export interface FileRouteTypes {
     | '/skill-workspace'
     | '/studio'
     | '/subscriptions'
+    | '/swap-lab'
     | '/system-info'
     | '/system-settings'
     | '/team-workspace'
@@ -1123,6 +1135,7 @@ export interface FileRouteTypes {
     | '/_authenticated/skill-workspace/'
     | '/_authenticated/studio/'
     | '/_authenticated/subscriptions/'
+    | '/_authenticated/swap-lab/'
     | '/_authenticated/system-info/'
     | '/_authenticated/system-settings/'
     | '/_authenticated/team-workspace/'
@@ -1476,6 +1489,13 @@ declare module '@tanstack/react-router' {
       path: '/system-info'
       fullPath: '/system-info/'
       preLoaderRoute: typeof AuthenticatedSystemInfoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/swap-lab/': {
+      id: '/_authenticated/swap-lab/'
+      path: '/swap-lab'
+      fullPath: '/swap-lab/'
+      preLoaderRoute: typeof AuthenticatedSwapLabIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/subscriptions/': {
@@ -1989,6 +2009,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSkillEditorIndexRoute: typeof AuthenticatedSkillEditorIndexRoute
   AuthenticatedSkillWorkspaceIndexRoute: typeof AuthenticatedSkillWorkspaceIndexRoute
   AuthenticatedSubscriptionsIndexRoute: typeof AuthenticatedSubscriptionsIndexRoute
+  AuthenticatedSwapLabIndexRoute: typeof AuthenticatedSwapLabIndexRoute
   AuthenticatedSystemInfoIndexRoute: typeof AuthenticatedSystemInfoIndexRoute
   AuthenticatedTeamWorkspaceIndexRoute: typeof AuthenticatedTeamWorkspaceIndexRoute
   AuthenticatedTeamsIndexRoute: typeof AuthenticatedTeamsIndexRoute
@@ -2038,6 +2059,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSkillEditorIndexRoute: AuthenticatedSkillEditorIndexRoute,
   AuthenticatedSkillWorkspaceIndexRoute: AuthenticatedSkillWorkspaceIndexRoute,
   AuthenticatedSubscriptionsIndexRoute: AuthenticatedSubscriptionsIndexRoute,
+  AuthenticatedSwapLabIndexRoute: AuthenticatedSwapLabIndexRoute,
   AuthenticatedSystemInfoIndexRoute: AuthenticatedSystemInfoIndexRoute,
   AuthenticatedTeamWorkspaceIndexRoute: AuthenticatedTeamWorkspaceIndexRoute,
   AuthenticatedTeamsIndexRoute: AuthenticatedTeamsIndexRoute,
