@@ -27,11 +27,10 @@ interface BlogTagProps {
 }
 
 export function BlogTag({ tag, className, stopPropagation = true }: BlogTagProps) {
-  const encoded = encodeURIComponent(tag)
   return (
     <Link
       to='/blog/tags/$tag'
-      params={{ tag: encoded }}
+      params={{ tag }}
       onClick={stopPropagation ? (e) => e.stopPropagation() : undefined}
       className={cn(
         'inline-flex w-fit max-w-full min-w-0 shrink items-center rounded-4xl px-2 py-0.5 text-xs font-medium tracking-normal whitespace-nowrap',

@@ -51,12 +51,27 @@ func (a *BlogArticle) TagsToSlice() []string {
 	if a.Tags == "" {
 		return []string{}
 	}
-	return strings.Split(a.Tags, ",")
+	raw := strings.Split(a.Tags, ",")
+	result := make([]string, 0, len(raw))
+	for _, tag := range raw {
+		tag = strings.TrimSpace(tag)
+		if tag != "" {
+			result = append(result, tag)
+		}
+	}
+	return result
 }
 
 // TagsFromSlice joins a string slice into the stored comma-separated format.
 func TagsFromSlice(tags []string) string {
-	return strings.Join(tags, ",")
+	cleaned := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		tag = strings.TrimSpace(tag)
+		if tag != "" {
+			cleaned = append(cleaned, tag)
+		}
+	}
+	return strings.Join(cleaned, ",")
 }
 
 func GetAllBlogArticles(authorId int, status string, startIdx, num int) ([]*BlogArticle, int64, error) {
