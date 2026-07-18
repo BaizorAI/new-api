@@ -33,14 +33,8 @@ import { Button } from '@/components/ui/button'
 import { Loader2, SquareIcon, Trash2, Wand2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { CharacterChatBubble, type ExtractedCharacter } from '../components/chat-bubble'
-
-export interface StageChatMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  status: 'complete' | 'streaming' | 'loading' | 'error'
-}
+import { CharacterChatBubble, type ExtractedCharacter } from './chat-bubble'
+import type { StageChatMessage } from '../hooks/use-studio-stage-chat'
 
 interface CharacterChatPanelProps {
   messages: StageChatMessage[]
