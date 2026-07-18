@@ -40,6 +40,7 @@ import { Route as AuthenticatedSystemSettingsRouteRouteImport } from './routes/_
 import { Route as AuthenticatedStudioRouteRouteImport } from './routes/_authenticated/studio/route'
 import { Route as AuthenticatedPricingRouteRouteImport } from './routes/_authenticated/pricing/route'
 import { Route as AuthenticatedBlogHallRouteRouteImport } from './routes/_authenticated/blog-hall/route'
+import { Route as BlogSearchIndexRouteImport } from './routes/blog/search/index'
 import { Route as BlogAuthorsIndexRouteImport } from './routes/blog/authors/index'
 import { Route as BlogGuidIndexRouteImport } from './routes/blog/$guid/index'
 import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenticated/wallet/index'
@@ -80,6 +81,7 @@ import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenti
 import { Route as AuthenticatedDashboardSectionRouteImport } from './routes/_authenticated/dashboard/$section'
 import { Route as AuthenticatedChatChatIdRouteImport } from './routes/_authenticated/chat/$chatId'
 import { Route as authUserResetRouteImport } from './routes/(auth)/user/reset'
+import { Route as BlogTagsTagIndexRouteImport } from './routes/blog/tags/$tag/index'
 import { Route as BlogAuthorsAuthorSlugIndexRouteImport } from './routes/blog/authors/$authorSlug/index'
 import { Route as AuthenticatedWalletTopupIndexRouteImport } from './routes/_authenticated/wallet/topup/index'
 import { Route as AuthenticatedWalletSubscriptionsIndexRouteImport } from './routes/_authenticated/wallet/subscriptions/index'
@@ -265,6 +267,11 @@ const AuthenticatedBlogHallRouteRoute =
     path: '/blog-hall',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const BlogSearchIndexRoute = BlogSearchIndexRouteImport.update({
+  id: '/blog/search/',
+  path: '/blog/search/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogAuthorsIndexRoute = BlogAuthorsIndexRouteImport.update({
   id: '/blog/authors/',
   path: '/blog/authors/',
@@ -496,6 +503,11 @@ const authUserResetRoute = authUserResetRouteImport.update({
   id: '/user/reset',
   path: '/user/reset',
   getParentRoute: () => authRouteRoute,
+} as any)
+const BlogTagsTagIndexRoute = BlogTagsTagIndexRouteImport.update({
+  id: '/blog/tags/$tag/',
+  path: '/blog/tags/$tag/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BlogAuthorsAuthorSlugIndexRoute =
   BlogAuthorsAuthorSlugIndexRouteImport.update({
@@ -730,6 +742,7 @@ export interface FileRoutesByFullPath {
   '/wallet/': typeof AuthenticatedWalletIndexRoute
   '/blog/$guid/': typeof BlogGuidIndexRoute
   '/blog/authors/': typeof BlogAuthorsIndexRoute
+  '/blog/search/': typeof BlogSearchIndexRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
   '/system-settings/content/$section': typeof AuthenticatedSystemSettingsContentSectionRoute
@@ -755,6 +768,7 @@ export interface FileRoutesByFullPath {
   '/wallet/subscriptions/': typeof AuthenticatedWalletSubscriptionsIndexRoute
   '/wallet/topup/': typeof AuthenticatedWalletTopupIndexRoute
   '/blog/authors/$authorSlug/': typeof BlogAuthorsAuthorSlugIndexRoute
+  '/blog/tags/$tag/': typeof BlogTagsTagIndexRoute
   '/studio/$projectId/$stageKey/': typeof AuthenticatedStudioProjectIdStageKeyIndexRoute
   '/workspace/team/$teamId/': typeof AuthenticatedWorkspaceTeamTeamIdIndexRoute
 }
@@ -824,6 +838,7 @@ export interface FileRoutesByTo {
   '/wallet': typeof AuthenticatedWalletIndexRoute
   '/blog/$guid': typeof BlogGuidIndexRoute
   '/blog/authors': typeof BlogAuthorsIndexRoute
+  '/blog/search': typeof BlogSearchIndexRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
   '/system-settings/content/$section': typeof AuthenticatedSystemSettingsContentSectionRoute
@@ -849,6 +864,7 @@ export interface FileRoutesByTo {
   '/wallet/subscriptions': typeof AuthenticatedWalletSubscriptionsIndexRoute
   '/wallet/topup': typeof AuthenticatedWalletTopupIndexRoute
   '/blog/authors/$authorSlug': typeof BlogAuthorsAuthorSlugIndexRoute
+  '/blog/tags/$tag': typeof BlogTagsTagIndexRoute
   '/studio/$projectId/$stageKey': typeof AuthenticatedStudioProjectIdStageKeyIndexRoute
   '/workspace/team/$teamId': typeof AuthenticatedWorkspaceTeamTeamIdIndexRoute
 }
@@ -925,6 +941,7 @@ export interface FileRoutesById {
   '/_authenticated/wallet/': typeof AuthenticatedWalletIndexRoute
   '/blog/$guid/': typeof BlogGuidIndexRoute
   '/blog/authors/': typeof BlogAuthorsIndexRoute
+  '/blog/search/': typeof BlogSearchIndexRoute
   '/_authenticated/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/_authenticated/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
   '/_authenticated/system-settings/content/$section': typeof AuthenticatedSystemSettingsContentSectionRoute
@@ -950,6 +967,7 @@ export interface FileRoutesById {
   '/_authenticated/wallet/subscriptions/': typeof AuthenticatedWalletSubscriptionsIndexRoute
   '/_authenticated/wallet/topup/': typeof AuthenticatedWalletTopupIndexRoute
   '/blog/authors/$authorSlug/': typeof BlogAuthorsAuthorSlugIndexRoute
+  '/blog/tags/$tag/': typeof BlogTagsTagIndexRoute
   '/_authenticated/studio/$projectId/$stageKey/': typeof AuthenticatedStudioProjectIdStageKeyIndexRoute
   '/_authenticated/workspace/team/$teamId/': typeof AuthenticatedWorkspaceTeamTeamIdIndexRoute
 }
@@ -1025,6 +1043,7 @@ export interface FileRouteTypes {
     | '/wallet/'
     | '/blog/$guid/'
     | '/blog/authors/'
+    | '/blog/search/'
     | '/system-settings/auth/$section'
     | '/system-settings/billing/$section'
     | '/system-settings/content/$section'
@@ -1050,6 +1069,7 @@ export interface FileRouteTypes {
     | '/wallet/subscriptions/'
     | '/wallet/topup/'
     | '/blog/authors/$authorSlug/'
+    | '/blog/tags/$tag/'
     | '/studio/$projectId/$stageKey/'
     | '/workspace/team/$teamId/'
   fileRoutesByTo: FileRoutesByTo
@@ -1119,6 +1139,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/blog/$guid'
     | '/blog/authors'
+    | '/blog/search'
     | '/system-settings/auth/$section'
     | '/system-settings/billing/$section'
     | '/system-settings/content/$section'
@@ -1144,6 +1165,7 @@ export interface FileRouteTypes {
     | '/wallet/subscriptions'
     | '/wallet/topup'
     | '/blog/authors/$authorSlug'
+    | '/blog/tags/$tag'
     | '/studio/$projectId/$stageKey'
     | '/workspace/team/$teamId'
   id:
@@ -1219,6 +1241,7 @@ export interface FileRouteTypes {
     | '/_authenticated/wallet/'
     | '/blog/$guid/'
     | '/blog/authors/'
+    | '/blog/search/'
     | '/_authenticated/system-settings/auth/$section'
     | '/_authenticated/system-settings/billing/$section'
     | '/_authenticated/system-settings/content/$section'
@@ -1244,6 +1267,7 @@ export interface FileRouteTypes {
     | '/_authenticated/wallet/subscriptions/'
     | '/_authenticated/wallet/topup/'
     | '/blog/authors/$authorSlug/'
+    | '/blog/tags/$tag/'
     | '/_authenticated/studio/$projectId/$stageKey/'
     | '/_authenticated/workspace/team/$teamId/'
   fileRoutesById: FileRoutesById
@@ -1270,7 +1294,9 @@ export interface RootRouteChildren {
   SetupIndexRoute: typeof SetupIndexRoute
   BlogGuidIndexRoute: typeof BlogGuidIndexRoute
   BlogAuthorsIndexRoute: typeof BlogAuthorsIndexRoute
+  BlogSearchIndexRoute: typeof BlogSearchIndexRoute
   BlogAuthorsAuthorSlugIndexRoute: typeof BlogAuthorsAuthorSlugIndexRoute
+  BlogTagsTagIndexRoute: typeof BlogTagsTagIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1491,6 +1517,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/blog-hall'
       preLoaderRoute: typeof AuthenticatedBlogHallRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/blog/search/': {
+      id: '/blog/search/'
+      path: '/blog/search'
+      fullPath: '/blog/search/'
+      preLoaderRoute: typeof BlogSearchIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/blog/authors/': {
       id: '/blog/authors/'
@@ -1771,6 +1804,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/user/reset'
       preLoaderRoute: typeof authUserResetRouteImport
       parentRoute: typeof authRouteRoute
+    }
+    '/blog/tags/$tag/': {
+      id: '/blog/tags/$tag/'
+      path: '/blog/tags/$tag'
+      fullPath: '/blog/tags/$tag/'
+      preLoaderRoute: typeof BlogTagsTagIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/blog/authors/$authorSlug/': {
       id: '/blog/authors/$authorSlug/'
@@ -2233,7 +2273,9 @@ const rootRouteChildren: RootRouteChildren = {
   SetupIndexRoute: SetupIndexRoute,
   BlogGuidIndexRoute: BlogGuidIndexRoute,
   BlogAuthorsIndexRoute: BlogAuthorsIndexRoute,
+  BlogSearchIndexRoute: BlogSearchIndexRoute,
   BlogAuthorsAuthorSlugIndexRoute: BlogAuthorsAuthorSlugIndexRoute,
+  BlogTagsTagIndexRoute: BlogTagsTagIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
