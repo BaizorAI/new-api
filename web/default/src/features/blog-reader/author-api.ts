@@ -26,6 +26,7 @@ import type {
   GetSelfAuthorProfileResponse,
   UpdateSelfAuthorProfileResponse,
   AuthorProfileFormData,
+  FollowAuthorResponse,
 } from './author-types'
 
 export async function getBlogAuthors(
@@ -61,5 +62,15 @@ export async function updateSelfAuthorProfile(
   data: AuthorProfileFormData
 ): Promise<UpdateSelfAuthorProfileResponse> {
   const res = await api.put('/api/user/author-profile', data)
+  return res.data
+}
+
+export async function followBlogAuthor(slug: string): Promise<FollowAuthorResponse> {
+  const res = await api.post(`/api/blog/authors/${encodeURIComponent(slug)}/follow`)
+  return res.data
+}
+
+export async function unfollowBlogAuthor(slug: string): Promise<FollowAuthorResponse> {
+  const res = await api.delete(`/api/blog/authors/${encodeURIComponent(slug)}/unfollow`)
   return res.data
 }

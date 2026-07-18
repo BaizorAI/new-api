@@ -30,10 +30,12 @@ import type {
 export async function getPublishedArticles(
   params: GetBlogArticlesParams = {}
 ): Promise<GetBlogArticlesResponse> {
-  const { p = 1, page_size = 20 } = params
-  const res = await api.get(
-    `/api/blog/public/?p=${p}&page_size=${page_size}`
-  )
+  const { p = 1, page_size = 20, author_id } = params
+  let url = `/api/blog/public/?p=${p}&page_size=${page_size}`
+  if (author_id && author_id > 0) {
+    url += `&author_id=${author_id}`
+  }
+  const res = await api.get(url)
   return res.data
 }
 

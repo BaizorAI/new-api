@@ -21,7 +21,9 @@ type authorProfileView struct {
 // authorDetailView extends the profile with aggregate stats for the author page.
 type authorDetailView struct {
 	authorProfileView
-	ArticleCount int64 `json:"article_count"`
+	ArticleCount  int64 `json:"article_count"`
+	FollowerCount int64 `json:"follower_count"`
+	IsFollowed    bool  `json:"is_followed"`
 }
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -215,9 +217,17 @@ func GetPublishedBlogAuthor(c *gin.Context) {
 		return
 	}
 
+	followerCount := model.CountAuthorFollowers(profile.UserId)
+	isFollowed := false
+	if userId := c.GetInt("id"); userId > 0 {
+		isFollowed = model.IsFollowing(userId, profile.UserId)
+	}
+
 	common.ApiSuccess(c, authorDetailView{
 		authorProfileView: authorProfileToView(profile),
 		ArticleCount:      count,
+		FollowerCount:     followerCount,
+		IsFollowed:        isFollowed,
 	})
 }
 
@@ -274,6 +284,58 @@ func GetSelfAuthorProfile(c *gin.Context) {
 		return
 	}
 	common.ApiSuccess(c, authorProfileToView(profile))
+}
+
+// FollowBlogAuthor POST /api/blog/authors/:slug/follow
+func FollowBlogAuthor(c *gin.Context) {
+	userId := c.GetInt("id")
+	if userId <= 0 {
+		common.ApiErrorMsg(c, "未登录")
+		return
+	}
+
+	slug := strings.TrimSpace(c.Param("slug"))
+	profile, err := model.GetAuthorProfileBySlug(slug)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if profile == nil {
+		common.ApiErrorMsg(c, "作者不存在")
+		return
+	}
+
+	if err := model.FollowAuthor(userId, profile.UserId); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{"following": true, "follower_count": model.CountAuthorFollowers(profile.UserId)})
+}
+
+// UnfollowBlogAuthor DELETE /api/blog/authors/:slug/unfollow
+func UnfollowBlogAuthor(c *gin.Context) {
+	userId := c.GetInt("id")
+	if userId <= 0 {
+		common.ApiErrorMsg(c, "未登录")
+		return
+	}
+
+	slug := strings.TrimSpace(c.Param("slug"))
+	profile, err := model.GetAuthorProfileBySlug(slug)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if profile == nil {
+		common.ApiErrorMsg(c, "作者不存在")
+		return
+	}
+
+	if err := model.UnfollowAuthor(userId, profile.UserId); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{"following": false, "follower_count": model.CountAuthorFollowers(profile.UserId)})
 }
 
 // UpdateSelfAuthorProfile PUT /api/user/author-profile

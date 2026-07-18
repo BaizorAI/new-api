@@ -291,10 +291,16 @@ func DeleteBlogArticle(c *gin.Context) {
 
 // GetPublishedBlogArticles GET /api/blog/public/
 // No auth required. Returns only published articles.
-// Query params: ?p=<page>  ?page_size=<n>
+// Query params: ?p=<page>  ?page_size=<n>  ?author_id=<id>
 func GetPublishedBlogArticles(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
-	articles, total, err := model.GetAllBlogArticles(0, model.BlogArticleStatusPublished, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	authorId := 0
+	if raw := c.Query("author_id"); raw != "" {
+		if id, parseErr := strconv.Atoi(raw); parseErr == nil && id > 0 {
+			authorId = id
+		}
+	}
+	articles, total, err := model.GetAllBlogArticles(authorId, model.BlogArticleStatusPublished, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
 	if err != nil {
 		common.ApiError(c, err)
 		return

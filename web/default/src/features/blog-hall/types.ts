@@ -65,6 +65,7 @@ export interface GetBlogArticlesParams {
   p?: number
   page_size?: number
   status?: string
+  author_id?: number
 }
 
 export interface GetBlogArticlesResponse {

@@ -28,6 +28,8 @@ export interface BlogAuthor {
 
 export interface BlogAuthorDetail extends BlogAuthor {
   article_count: number
+  follower_count: number
+  is_followed: boolean
 }
 
 export interface GetBlogAuthorsParams extends GetBlogArticlesParams {}
@@ -58,3 +60,12 @@ export interface AuthorProfileFormData {
 
 export type GetSelfAuthorProfileResponse = ApiResponse<BlogAuthor | null>
 export type UpdateSelfAuthorProfileResponse = ApiResponse<BlogAuthor>
+
+export interface FollowAuthorResponse {
+  success: boolean
+  message?: string
+  data?: {
+    following: boolean
+    follower_count: number
+  }
+}

@@ -307,6 +307,7 @@ func migrateDB() error {
 		&BlogArticle{},
 		&BlogChatMessage{},
 		&AuthorProfile{},
+		&AuthorFollow{},
 		&ImagePlaygroundHistory{},
 		&VideoPlaygroundHistory{},
 		&StudioProject{},

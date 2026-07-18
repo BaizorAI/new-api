@@ -345,6 +345,10 @@ func SetApiRouter(router *gin.Engine) {
 			blogRoute.GET("/:id/messages", controller.ListBlogChatMessages)
 			blogRoute.POST("/:id/messages", controller.SaveBlogChatMessages)
 			blogRoute.DELETE("/:id/messages", controller.ClearBlogChatMessages)
+
+			// Author follow / unfollow (authenticated)
+			blogRoute.POST("/authors/:slug/follow", controller.FollowBlogAuthor)
+			blogRoute.DELETE("/authors/:slug/unfollow", controller.UnfollowBlogAuthor)
 		}
 		studioRoute := apiRouter.Group("/studio")
 		studioRoute.Use(middleware.UserAuth())
