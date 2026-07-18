@@ -17,8 +17,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { ImageIcon, Loader2, Send, Sparkles } from 'lucide-react'
-import { useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,32 +40,67 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
+import { updateBlogArticle } from '../api'
 import { useBlogWorkspace } from './blog-workspace-provider'
 
 import type { BlogArticleStatus } from '../types'
 
 export function BlogWorkspaceToolbar() {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const {
+    article,
     coverImage,
     setCoverImage,
     status,
     setStatus,
+    title,
+    summary,
+    content,
+    tags,
     save,
     isSaving,
     isDirty,
-    content,
     isAnalyzing,
     requestAnalyze,
   } = useBlogWorkspace()
 
+  const [isPublishing, setIsPublishing] = useState(false)
+
   const isPublished = status === 'published'
 
-  const handlePublishToggle = useCallback(() => {
+  // Publish/unpublish — must bypass the save() closure because React state
+  // updates are async and save() would capture the old status value.
+  const handlePublishToggle = useCallback(async () => {
+    if (!article || isPublishing) return
     const nextStatus: BlogArticleStatus = isPublished ? 'draft' : 'published'
-    setStatus(nextStatus)
-    setTimeout(() => void save(), 0)
-  }, [isPublished, setStatus, save])
+    setIsPublishing(true)
+    try {
+      const parsedTags = tags
+        ? tags.split(',').map((t) => t.trim()).filter(Boolean)
+        : []
+      const result = await updateBlogArticle(article.id, {
+        title,
+        summary,
+        content,
+        cover_image: coverImage,
+        tags: parsedTags,
+        status: nextStatus,
+      })
+      if (result.success) {
+        setStatus(nextStatus)
+        toast.success(
+          nextStatus === 'published' ? t('Article published.') : t('Article unpublished.')
+        )
+        void queryClient.invalidateQueries({ queryKey: ['blog-articles-sidebar'] })
+        void queryClient.invalidateQueries({ queryKey: ['blog-article', article.id] })
+      }
+    } catch {
+      toast.error(t('Failed to update article.'))
+    } finally {
+      setIsPublishing(false)
+    }
+  }, [article, isPublished, isPublishing, title, summary, content, coverImage, tags, setStatus, t, queryClient])
 
   return (
     <div className='border-border flex shrink-0 items-center gap-3 border-b px-4 py-2'>
