@@ -229,12 +229,18 @@ export function BlogWorkspaceChatPanel() {
     })
   }, [isStreaming, sendMessage])
 
-  // Image generation — submit prompt and poll for result, then insert into content
+  // Image generation — submit prompt, poll, then show result in chat
   const [generatingImage, setGeneratingImage] = useState(false)
+  const generatingRef = useRef(false)
   const handleGenerateImage = useCallback(
     async (prompt: string, paragraphIndex: number | null) => {
-      if (generatingImage) return
+      if (generatingRef.current) return
+      generatingRef.current = true
       setGeneratingImage(true)
+
+      // Show "generating" message in chat
+      addAssistantMessage('🎨 正在生成配图...')
+
       try {
         const pending = await submitImageGeneration({
           prompt,
@@ -249,8 +255,9 @@ export function BlogWorkspaceChatPanel() {
         const poll = async (): Promise<void> => {
           polls++
           if (polls > MAX_POLLS) {
+            generatingRef.current = false
             setGeneratingImage(false)
-            toast.error(t('Image generation timed out.'))
+            addAssistantMessage('❌ 配图生成超时，请重试。')
             return
           }
           try {
@@ -260,8 +267,10 @@ export function BlogWorkspaceChatPanel() {
               setTimeout(() => { void poll() }, 3000)
               return
             }
+            generatingRef.current = false
             setGeneratingImage(false)
             if (record.status === IMAGE_STATUS.COMPLETED && record.image_url) {
+              // Insert image into article content
               const altText = prompt.slice(0, 60)
               const newContent = insertImageIntoContent(
                 content,
@@ -270,22 +279,29 @@ export function BlogWorkspaceChatPanel() {
                 paragraphIndex
               )
               setContent(newContent)
-              toast.success(t('Image generated and inserted.'))
+              // Show result in chat as a message
+              addAssistantMessage(
+                `✅ 配图已生成并插入文章：\n\n![${altText}](${record.image_url})`
+              )
             } else {
-              toast.error(record.error_message || t('Image generation failed.'))
+              addAssistantMessage(
+                `❌ 配图生成失败：${record.error_message || t('Image generation failed.')}`
+              )
             }
           } catch {
+            generatingRef.current = false
             setGeneratingImage(false)
-            toast.error(t('Image generation failed.'))
+            addAssistantMessage(`❌ ${t('Image generation failed.')}`)
           }
         }
         setTimeout(() => { void poll() }, 3000)
       } catch {
+        generatingRef.current = false
         setGeneratingImage(false)
-        toast.error(t('Image generation failed.'))
+        addAssistantMessage(`❌ ${t('Image generation failed.')}`)
       }
     },
-    [generatingImage, content, setContent, t]
+    [content, setContent, addAssistantMessage, t]
   )
 
   // AI Analyze handler triggered from toolbar via workspace context
