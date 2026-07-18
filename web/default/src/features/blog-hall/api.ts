@@ -68,3 +68,36 @@ export async function deleteBlogArticle(
   const res = await api.delete(`/api/blog/${id}`)
   return res.data
 }
+
+// ============================================================================
+// Blog Chat Message API
+// ============================================================================
+
+export interface BlogChatMessageRecord {
+  id?: number
+  role: 'user' | 'assistant'
+  content: string
+  created_at?: string
+}
+
+export async function getBlogChatMessages(
+  articleId: number
+): Promise<ApiResponse<BlogChatMessageRecord[]>> {
+  const res = await api.get(`/api/blog/${articleId}/messages`)
+  return res.data
+}
+
+export async function saveBlogChatMessages(
+  articleId: number,
+  messages: { role: 'user' | 'assistant'; content: string }[]
+): Promise<ApiResponse<BlogChatMessageRecord[]>> {
+  const res = await api.post(`/api/blog/${articleId}/messages`, { messages })
+  return res.data
+}
+
+export async function clearBlogChatMessages(
+  articleId: number
+): Promise<ApiResponse> {
+  const res = await api.delete(`/api/blog/${articleId}/messages`)
+  return res.data
+}

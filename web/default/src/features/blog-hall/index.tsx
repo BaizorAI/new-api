@@ -17,9 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQueryClient } from '@tanstack/react-query'
-import { BookOpen } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
+import { BookOpen, Save } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import {
   PromptInput,
@@ -28,6 +30,7 @@ import {
   PromptInputTextarea,
   type PromptInputMessage,
 } from '@/components/ai-elements/prompt-input'
+import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/ui/markdown'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useStreamRequest } from '@/features/playground/hooks/use-stream-request'
@@ -35,12 +38,16 @@ import { getOrCreatePlaygroundSessionId } from '@/features/playground/lib/storag
 import type { ChatCompletionRequest } from '@/features/playground/types'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { createBlogArticle } from './api'
+
 export function BlogHall() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const { sendStreamRequest } = useStreamRequest()
   const [streamingContent, setStreamingContent] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   const hermesSessionId = useMemo(() => {
     const userId = useAuthStore.getState().auth.user?.id ?? 'anon'
@@ -52,7 +59,7 @@ export function BlogHall() {
       'X-Baizor-Playground': 'hermes',
       'X-Baizor-Hermes-Session': hermesSessionId,
       'X-Baizor-Hermes-Workspace': 'skill_blog',
-      'X-Baizor-Hermes-Skill-Activate': 'blog',
+      'X-Baizor-Hermes-Skill-Activate': '/magicalbrush',
     }),
     [hermesSessionId]
   )
@@ -91,13 +98,54 @@ export function BlogHall() {
     [isStreaming, queryClient, requestHeaders, sendStreamRequest]
   )
 
+  const handleSaveAsArticle = useCallback(async () => {
+    if (!streamingContent.trim() || isSaving) return
+    setIsSaving(true)
+    try {
+      const result = await createBlogArticle({
+        title: t('Untitled article'),
+        summary: '',
+        content: streamingContent,
+        tags: [],
+        status: 'draft',
+      })
+      if (result.success && result.data) {
+        toast.success(t('Article saved.'))
+        void queryClient.invalidateQueries({ queryKey: ['blog-articles-sidebar'] })
+        await navigate({
+          to: '/blog-hall/$articleId',
+          params: { articleId: String(result.data.id) },
+        })
+      }
+    } catch {
+      toast.error(t('Failed to save article.'))
+    } finally {
+      setIsSaving(false)
+    }
+  }, [streamingContent, isSaving, t, queryClient, navigate])
+
   return (
     <div className='flex h-full flex-col'>
       {/* Content area */}
       <ScrollArea className='flex-1'>
         {streamingContent ? (
-          <div className='prose dark:prose-invert mx-auto max-w-3xl p-6'>
-            <Markdown content={streamingContent} />
+          <div className='space-y-4'>
+            <div className='prose dark:prose-invert mx-auto max-w-3xl p-6 pb-0'>
+              <Markdown content={streamingContent} />
+            </div>
+            {/* Save button — only shown when not streaming */}
+            {!isStreaming && (
+              <div className='flex justify-center pb-6'>
+                <Button
+                  onClick={() => void handleSaveAsArticle()}
+                  disabled={isSaving}
+                  size='sm'
+                >
+                  <Save className='mr-1.5 size-4' aria-hidden='true' />
+                  {isSaving ? t('Saving...') : t('Save as Article')}
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className='flex h-full flex-col items-center justify-center gap-4 text-center'>

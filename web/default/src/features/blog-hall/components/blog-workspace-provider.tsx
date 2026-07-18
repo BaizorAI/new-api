@@ -56,6 +56,12 @@ interface BlogWorkspaceContextType {
 
   save: () => Promise<void>
   isSaving: boolean
+
+  // AI actions — triggered by toolbar, implemented by chat bar
+  analyzeRequested: number
+  isAnalyzing: boolean
+  requestAnalyze: () => void
+  setAnalyzing: (v: boolean) => void
 }
 
 const BlogWorkspaceContext = createContext<BlogWorkspaceContextType | null>(null)
@@ -97,6 +103,12 @@ export function BlogWorkspaceProvider({
   const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<number | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [initialized, setInitialized] = useState(false)
+  const [analyzeRequested, setAnalyzeRequested] = useState(0)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+
+  const requestAnalyze = useCallback(() => {
+    setAnalyzeRequested((prev) => prev + 1)
+  }, [])
 
   // Sync from fetched article to local state
   useEffect(() => {
@@ -184,6 +196,10 @@ export function BlogWorkspaceProvider({
         selectParagraph,
         save,
         isSaving,
+        analyzeRequested,
+        isAnalyzing,
+        requestAnalyze,
+        setAnalyzing: setIsAnalyzing,
       }}
     >
       {children}

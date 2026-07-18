@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { ImageIcon, Send } from 'lucide-react'
+import { ImageIcon, Loader2, Send, Sparkles } from 'lucide-react'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -54,6 +54,9 @@ export function BlogWorkspaceToolbar() {
     save,
     isSaving,
     isDirty,
+    content,
+    isAnalyzing,
+    requestAnalyze,
   } = useBlogWorkspace()
 
   const isPublished = status === 'published'
@@ -125,6 +128,22 @@ export function BlogWorkspaceToolbar() {
           )}
         </PopoverContent>
       </Popover>
+
+      {/* AI Analyze */}
+      <Button
+        size='sm'
+        variant='outline'
+        disabled={isAnalyzing || !content.trim()}
+        onClick={requestAnalyze}
+        title={t('AI analyzes article quality and publishing readiness.')}
+      >
+        {isAnalyzing ? (
+          <Loader2 className='mr-1 size-3.5 animate-spin' />
+        ) : (
+          <Sparkles className='mr-1 size-3.5 text-amber-500' />
+        )}
+        {isAnalyzing ? t('Analyzing...') : t('AI Analyze')}
+      </Button>
 
       <Button
         size='sm'

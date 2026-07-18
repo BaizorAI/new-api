@@ -8,7 +8,7 @@ RUN bun install --frozen-lockfile \
     || bun install --frozen-lockfile
 COPY ./web/default ./default
 COPY ./VERSION /build/VERSION
-RUN cd default && DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$(cat /build/VERSION) bun run build
+RUN cd default && rm -rf dist && DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$(cat /build/VERSION) bun run build
 
 FROM ccr.ccs.tencentyun.com/lucky/golang:1.26.1-alpine AS builder2
 ENV GO111MODULE=on CGO_ENABLED=0
