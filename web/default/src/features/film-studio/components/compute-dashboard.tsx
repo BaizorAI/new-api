@@ -14,17 +14,17 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-For commercial licensing, please contact support@quantumnous.com.
+For commercial licensing, please contact support@quantumnous.com
 */
+import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import {
-  Cpu,
-  DollarSign,
+  Activity,
   Gauge,
-  HardDrive,
   Layers,
+  Loader2,
   Server,
-  Thermometer,
+  TrendingUp,
   Zap,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -33,150 +33,169 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 
-type GpuNode = {
-  id: string
-  name: string
-  model: string
-  vramTotalGB: number
-  vramUsedGB: number
-  utilization: number // 0-100
-  temperature: number // Celsius
-  status: 'idle' | 'busy' | 'offline'
-}
+import {
+  getPerfMetricsSummary,
+} from '@/features/performance-metrics/api'
+import type { PerfModelSummary } from '@/features/performance-metrics/types'
 
 type ComputeDashboardProps = {
-  nodes?: GpuNode[]
-  monthlyCost?: string
-  monthlyBudget?: string
   className?: string
 }
 
-const DEFAULT_NODES: GpuNode[] = [
-  { id: 'gpu-01', name: 'Node 1', model: 'RTX 4090', vramTotalGB: 24, vramUsedGB: 12.4, utilization: 87, temperature: 72, status: 'busy' },
-  { id: 'gpu-02', name: 'Node 2', model: 'RTX 4090', vramTotalGB: 24, vramUsedGB: 8.2, utilization: 45, temperature: 65, status: 'busy' },
-  { id: 'gpu-03', name: 'Node 3', model: 'RTX 4090', vramTotalGB: 24, vramUsedGB: 0.3, utilization: 3, temperature: 42, status: 'idle' },
-  { id: 'gpu-04', name: 'Node 4', model: 'RTX 4090', vramTotalGB: 24, vramUsedGB: 0, utilization: 0, temperature: 35, status: 'offline' },
-]
-
 /**
- * Enterprise compute dashboard.
+ * Enterprise compute dashboard — powered by live performance metrics.
  *
- * Real-time GPU cluster monitoring with utilization, temperature,
- * VRAM usage, and monthly cost tracking. Includes in-platform
- * compute pack purchase integration.
+ * Fetches real model performance data from GET /api/perf-metrics/summary
+ * and displays each model as a compute "node" with success rate, latency,
+ * tokens-per-second, and request volume.
  */
-export function ComputeDashboard({
-  nodes = DEFAULT_NODES,
-  monthlyCost = '$1,247.32',
-  monthlyBudget = '$2,000.00',
-  className,
-}: ComputeDashboardProps) {
+export function ComputeDashboard({ className }: ComputeDashboardProps) {
   const { t } = useTranslation()
 
-  const activeNodes = nodes.filter((n) => n.status !== 'offline')
-  const totalVram = activeNodes.reduce((sum, n) => sum + n.vramTotalGB, 0)
-  const usedVram = activeNodes.reduce((sum, n) => sum + n.vramUsedGB, 0)
-  const avgUtilization =
-    activeNodes.length > 0
-      ? Math.round(activeNodes.reduce((sum, n) => sum + n.utilization, 0) / activeNodes.length)
-      : 0
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['perf-metrics-summary', 24],
+    queryFn: () => getPerfMetricsSummary(24),
+    staleTime: 60_000,
+    refetchInterval: 30_000,
+    retry: false,
+  })
+
+  const models: PerfModelSummary[] = data?.data?.models ?? []
+
+  // Aggregate stats across all models
+  const totalRequests = models.reduce((s, m) => s + (m.request_count ?? 0), 0)
+  const avgSuccessRate = models.length > 0
+    ? Math.round(models.reduce((s, m) => s + m.success_rate, 0) / models.length)
+    : 0
+  const avgLatency = models.length > 0
+    ? Math.round(models.reduce((s, m) => s + m.avg_latency_ms, 0) / models.length)
+    : 0
+  const maxTps = models.length > 0
+    ? Math.max(...models.map((m) => m.avg_tps))
+    : 0
 
   return (
     <div className={cn('flex flex-col', className)}>
       {/* Header */}
       <div className='flex items-center justify-between border-b px-3 py-2.5'>
         <div className='flex items-center gap-2'>
-          <Server className='size-3.5 text-muted-foreground' aria-hidden='true' />
+          <Server className='text-muted-foreground size-3.5' aria-hidden='true' />
           <span className='text-xs font-semibold'>
             {t('Compute Dashboard')}
           </span>
         </div>
-        <span className='rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground'>
-          {activeNodes.length}/{nodes.length} {t('online')}
-        </span>
+        {models.length > 0 ? (
+          <span className='bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px]'>
+            {models.length} {t('models')}
+          </span>
+        ) : null}
       </div>
 
       {/* Summary stats */}
       <div className='grid grid-cols-2 gap-2 border-b p-3'>
         <StatTile
-          icon={<Cpu className='size-3.5' />}
-          label={t('GPU Util.')}
-          value={`${avgUtilization}%`}
-          color={avgUtilization > 80 ? 'text-amber-500' : 'text-emerald-500'}
-        />
-        <StatTile
-          icon={<HardDrive className='size-3.5' />}
-          label={t('VRAM')}
-          value={`${usedVram.toFixed(1)} / ${totalVram} GB`}
-        />
-        <StatTile
-          icon={<DollarSign className='size-3.5' />}
-          label={t('This month')}
-          value={monthlyCost}
+          icon={<Activity className='size-3.5' />}
+          label={t('Success Rate')}
+          value={`${avgSuccessRate}%`}
+          color={avgSuccessRate >= 95 ? 'text-emerald-500' : avgSuccessRate >= 80 ? 'text-amber-500' : 'text-red-500'}
         />
         <StatTile
           icon={<Gauge className='size-3.5' />}
-          label={t('Budget')}
-          value={monthlyBudget}
+          label={t('Avg Latency')}
+          value={`${avgLatency}ms`}
+        />
+        <StatTile
+          icon={<TrendingUp className='size-3.5' />}
+          label={t('Peak TPS')}
+          value={maxTps.toFixed(1)}
+        />
+        <StatTile
+          icon={<Zap className='size-3.5' />}
+          label={t('Requests')}
+          value={formatRequestCount(totalRequests)}
         />
       </div>
 
-      {/* Node list */}
-      <div className='flex-1 overflow-auto divide-y'>
-        {nodes.map((node) => (
-          <div key={node.id} className='px-3 py-2.5'>
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center gap-2'>
-                <div
-                  className={cn(
-                    'size-2 rounded-full',
-                    node.status === 'busy'
-                      ? 'bg-primary'
-                      : node.status === 'idle'
+      {/* Loading / Error / Content */}
+      {isLoading ? (
+        <div className='flex flex-1 items-center justify-center py-12'>
+          <Loader2 className='text-muted-foreground size-5 animate-spin' />
+        </div>
+      ) : isError ? (
+        <div className='flex flex-1 items-center justify-center py-12'>
+          <p className='text-muted-foreground text-xs'>
+            {t('Failed to load compute metrics.')}
+          </p>
+        </div>
+      ) : models.length === 0 ? (
+        <div className='flex flex-1 items-center justify-center py-12'>
+          <p className='text-muted-foreground text-xs'>
+            {t('No performance data yet. Start making API requests to see metrics.')}
+          </p>
+        </div>
+      ) : (
+        <div className='flex-1 overflow-auto divide-y'>
+          {models.slice(0, 8).map((model) => (
+            <div key={model.model_name} className='px-3 py-2.5'>
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center gap-2 min-w-0'>
+                  <div
+                    className={cn(
+                      'size-2 shrink-0 rounded-full',
+                      model.success_rate >= 95
                         ? 'bg-emerald-500'
-                        : 'bg-muted-foreground/30'
-                  )}
-                />
-                <div>
-                  <p className='text-[11px] font-medium'>
-                    {node.name}
-                    <span className='ml-1 font-normal text-muted-foreground'>
-                      ({node.model})
-                    </span>
-                  </p>
-                  <div className='mt-1 flex items-center gap-3 text-[10px] text-muted-foreground'>
-                    <span className='flex items-center gap-1'>
-                      <HardDrive className='size-3' />
-                      {node.vramUsedGB.toFixed(1)}/{node.vramTotalGB} GB
-                    </span>
-                    <span className='flex items-center gap-1'>
-                      <Thermometer className='size-3' />
-                      {node.temperature}°C
-                    </span>
+                        : model.success_rate >= 80
+                          ? 'bg-amber-500'
+                          : 'bg-red-500'
+                    )}
+                  />
+                  <div className='min-w-0'>
+                    <p className='truncate text-[11px] font-medium'>
+                      {model.model_name}
+                    </p>
+                    <div className='mt-1 flex items-center gap-3 text-[10px] text-muted-foreground'>
+                      <span className='flex items-center gap-1'>
+                        <Gauge className='size-3' />
+                        {model.avg_latency_ms}ms
+                      </span>
+                      <span className='flex items-center gap-1'>
+                        <Activity className='size-3' />
+                        {model.success_rate.toFixed(1)}%
+                      </span>
+                      {model.request_count != null ? (
+                        <span className='flex items-center gap-1'>
+                          <Zap className='size-3' />
+                          {formatRequestCount(model.request_count)}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
+                <div className='shrink-0 text-right'>
+                  <span
+                    className={cn(
+                      'text-[11px] font-medium tabular-nums',
+                      model.avg_tps > 100
+                        ? 'text-emerald-500'
+                        : model.avg_tps > 30
+                          ? 'text-amber-500'
+                          : 'text-muted-foreground'
+                    )}
+                  >
+                    {model.avg_tps.toFixed(1)}
+                  </span>
+                  <p className='text-[9px] text-muted-foreground'>TPS</p>
+                </div>
               </div>
-              <div className='text-right'>
-                <span
-                  className={cn(
-                    'text-[11px] font-medium tabular-nums',
-                    node.utilization > 80
-                      ? 'text-amber-500'
-                      : 'text-emerald-500'
-                  )}
-                >
-                  {node.utilization}%
-                </span>
-              </div>
+              {/* Success rate bar */}
+              <Progress
+                value={model.success_rate}
+                className='mt-1.5 h-1'
+              />
             </div>
-            {/* VRAM bar */}
-            <Progress
-              value={(node.vramUsedGB / node.vramTotalGB) * 100}
-              className='mt-1.5 h-1'
-            />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Actions */}
       <div className='border-t p-3 space-y-2'>
@@ -220,4 +239,8 @@ function StatTile(props: {
   )
 }
 
-export { DEFAULT_NODES }
+function formatRequestCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`
+  return String(n)
+}

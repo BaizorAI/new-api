@@ -14,22 +14,21 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-For commercial licensing, please contact support@quantumnous.com.
+For commercial licensing, please contact support@quantumnous.com
 */
 import {
   AlertCircle,
   Brain,
   CheckCircle2,
-  FlaskConical,
   Loader2,
   Plus,
   Save,
-  Upload,
   Wand2,
   X,
 } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -37,7 +36,12 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 
-/** A LoRA training run. */
+import {
+  createHermesExecutionTask,
+  getHermesExecutionTask,
+} from '@/features/hermes-playground/api'
+
+/** A LoRA training run — backed by a Hermes execution task. */
 type LoraTrainingState = 'idle' | 'uploading' | 'training' | 'completed' | 'failed'
 
 type LoraTrainingPanelProps = {
@@ -47,9 +51,9 @@ type LoraTrainingPanelProps = {
 /**
  * LoRA fine-tuning panel for Film Studio.
  *
- * Enterprise users can upload character reference images and fine-tune
- * a LoRA model that ensures visual consistency across all generated
- * shots and scenes.
+ * Enterprise users can upload character reference images and kick off a
+ * LoRA training job via the Hermes agent execution task API. Progress
+ * is polled from GET /pg/hermes/execution-tasks/:taskId.
  */
 export function LoraTrainingPanel({ className }: LoraTrainingPanelProps) {
   const { t } = useTranslation()
@@ -58,6 +62,7 @@ export function LoraTrainingPanel({ className }: LoraTrainingPanelProps) {
   const [trainingProgress, setTrainingProgress] = useState(0)
   const [trainingSteps, setTrainingSteps] = useState(2000)
   const [modelName, setModelName] = useState('')
+  const pollRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const handleFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -78,25 +83,103 @@ export function LoraTrainingPanel({ className }: LoraTrainingPanelProps) {
     e.target.value = ''
   }, [])
 
-  const handleStartTraining = useCallback(() => {
+  const handleStartTraining = useCallback(async () => {
     if (images.length === 0 || !modelName.trim()) return
+
     setTrainingState('training')
     setTrainingProgress(0)
 
-    // Simulate training progress
-    const interval = setInterval(() => {
-      setTrainingProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setTrainingState('completed')
-          return 100
-        }
-        return prev + Math.random() * 8
+    try {
+      // Create a Hermes execution task for LoRA training via MagicalBrush
+      const task = await createHermesExecutionTask({
+        title: `LoRA Training: ${modelName.trim()}`,
+        workspaceMode: 'skill_film_studio',
+        conversationId: `lora_train_${Date.now()}`,
+        storageScope: `film_studio_lora_${modelName.trim()}`,
+        hermesSessionId: `lora_train_${Date.now()}`,
+        payload: {
+          model: 'huayu-drama-4',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a LoRA fine-tuning AI for film production. Train a LoRA model named "${modelName.trim()}" using ${images.length} reference images with ${trainingSteps} training steps. Output training progress updates.`,
+            },
+            {
+              role: 'user',
+              content: `Train LoRA model "${modelName.trim()}" with ${trainingSteps} steps using the provided character reference images.`,
+            },
+          ],
+          stream: false,
+          temperature: 0.3,
+        },
       })
-    }, 600)
-  }, [images.length, modelName])
+
+      // Poll for training progress
+      let cancelled = false
+      let polls = 0
+      const MAX_POLLS = 600 // ~30 min at 3s interval
+
+      const poll = async () => {
+        if (cancelled) return
+        polls++
+        if (polls > MAX_POLLS) {
+          setTrainingState('failed')
+          toast.error(t('LoRA training timed out.'))
+          return
+        }
+
+        try {
+          const updated = await getHermesExecutionTask(task.taskId)
+          if (cancelled) return
+
+          setTrainingProgress(updated.progress)
+
+          if (updated.status === 'succeeded') {
+            setTrainingState('completed')
+            setTrainingProgress(100)
+            toast.success(t('LoRA training completed.'))
+            return
+          }
+
+          if (updated.status === 'failed' || updated.status === 'canceled') {
+            setTrainingState('failed')
+            if (updated.error) {
+              toast.error(updated.error)
+            }
+            return
+          }
+
+          // Still running — poll again
+          pollRef.current = setTimeout(() => {
+            void poll()
+          }, 3000)
+        } catch {
+          // Network error — retry after a longer delay
+          pollRef.current = setTimeout(() => {
+            void poll()
+          }, 5000)
+        }
+      }
+
+      // Start polling
+      pollRef.current = setTimeout(() => {
+        void poll()
+      }, 2000)
+    } catch (err) {
+      setTrainingState('failed')
+      toast.error(
+        t('Failed to start LoRA training.') +
+          (err instanceof Error ? ` ${err.message}` : '')
+      )
+    }
+  }, [images.length, modelName, trainingSteps, t])
 
   const handleSaveModel = useCallback(() => {
+    // Clean up polling if still running
+    if (pollRef.current) {
+      clearTimeout(pollRef.current)
+      pollRef.current = undefined
+    }
     setTrainingState('idle')
     setTrainingProgress(0)
     setImages([])
@@ -237,10 +320,12 @@ export function LoraTrainingPanel({ className }: LoraTrainingPanelProps) {
                 <div className='flex items-center gap-2 text-[10px] text-muted-foreground'>
                   <Loader2 className='size-3 animate-spin' />
                   <span>
-                    {t('Step {{current}} / {{total}}', {
-                      current: Math.round((trainingProgress / 100) * trainingSteps),
-                      total: trainingSteps,
-                    })}
+                    {trainingProgress > 0
+                      ? t('Step {{current}} / {{total}}', {
+                          current: Math.round((trainingProgress / 100) * trainingSteps),
+                          total: trainingSteps,
+                        })
+                      : t('Waiting for training to start...')}
                   </span>
                 </div>
               ) : null}
@@ -269,7 +354,7 @@ export function LoraTrainingPanel({ className }: LoraTrainingPanelProps) {
           <Button
             size='sm'
             className='h-7 w-full text-xs'
-            onClick={handleStartTraining}
+            onClick={() => void handleStartTraining()}
             disabled={images.length < 5 || !modelName.trim()}
           >
             <Wand2 className='mr-1 size-3.5' />

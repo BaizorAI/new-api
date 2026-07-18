@@ -6453,6 +6453,15 @@
     "Edit your prompt and try again. Common fixes: simplify the description, use fewer characters, or adjust the style keywords.": "请修改提示词后重试。常见修复方法：简化描述、减少角色数量或调整风格关键词。",
     "Next: {{stage}}": "下一步：{{stage}}",
     "Failed to save shot.": "保存镜头失败。",
-    "Failed to delete shot.": "删除镜头失败。"
+    "Failed to delete shot.": "删除镜头失败。",
+    "Success Rate": "成功率",
+    "Avg Latency": "平均延迟",
+    "Peak TPS": "峰值TPS",
+    "Failed to load compute metrics.": "加载计算指标失败。",
+    "No performance data yet. Start making API requests to see metrics.": "暂无性能数据，开始调用 API 后可见指标。",
+    "Waiting for training to start...": "等待训练启动...",
+    "LoRA training timed out.": "LoRA 训练超时。",
+    "LoRA training completed.": "LoRA 训练完成。",
+    "Failed to start LoRA training.": "启动 LoRA 训练失败。"
   }
 }
