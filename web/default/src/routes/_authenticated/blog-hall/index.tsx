@@ -26,6 +26,8 @@ const blogHallSearchSchema = z.object({
   page: z.number().optional().catch(1),
   pageSize: z.number().optional().catch(20),
   status: z.array(z.enum(BLOG_ARTICLE_STATUS_VALUES)).optional().catch([]),
+  author: z.array(z.string()).optional().catch([]),
+  keyword: z.string().optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/_authenticated/blog-hall/')({

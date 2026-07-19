@@ -96,7 +96,8 @@ func canPublish(c *gin.Context) bool {
 
 // GetAllBlogArticles GET /api/blog/
 // Admin sees all articles; regular users see only their own.
-// Query params: ?status=draft|published|archived  ?p=<page>  ?page_size=<n>
+// Query params: ?status=draft|published|archived  ?author_id=<id>  ?keyword=<q>
+//                ?p=<page>  ?page_size=<n>
 func GetAllBlogArticles(c *gin.Context) {
 	userId := c.GetInt("id")
 	userRole := c.GetInt("role")
@@ -107,14 +108,21 @@ func GetAllBlogArticles(c *gin.Context) {
 		return
 	}
 
+	keyword := strings.TrimSpace(c.Query("keyword"))
+
 	// Admin queries across all authors; regular users are scoped to themselves.
 	authorId := userId
 	if userRole >= common.RoleAdminUser {
 		authorId = 0
+		if raw := c.Query("author_id"); raw != "" {
+			if id, parseErr := strconv.Atoi(raw); parseErr == nil && id > 0 {
+				authorId = id
+			}
+		}
 	}
 
 	pageInfo := common.GetPageQuery(c)
-	articles, total, err := model.GetAllBlogArticles(authorId, status, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	articles, total, err := model.SearchBlogArticles(authorId, status, keyword, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -285,6 +293,110 @@ func UpdateBlogArticle(c *gin.Context) {
 		return
 	}
 	common.ApiSuccess(c, articleToView(article))
+}
+
+// GetBlogArticleAuthors GET /api/blog/authors
+// Admin only. Returns every user who has created at least one blog article.
+func GetBlogArticleAuthors(c *gin.Context) {
+	if c.GetInt("role") < common.RoleAdminUser {
+		common.ApiErrorMsg(c, "无权访问")
+		return
+	}
+
+	var authorIds []int
+	if err := model.DB.Model(&model.BlogArticle{}).
+		Where("deleted_at IS NULL").
+		Distinct("author_id").
+		Pluck("author_id", &authorIds).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	users, err := model.GetUsersByIds(authorIds)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	type authorOption struct {
+		Id          int    `json:"id"`
+		DisplayName string `json:"display_name"`
+	}
+	options := make([]authorOption, 0, len(users))
+	for _, user := range users {
+		name := strings.TrimSpace(user.DisplayName)
+		if name == "" {
+			name = strings.TrimSpace(user.Username)
+		}
+		if name == "" {
+			continue
+		}
+		options = append(options, authorOption{
+			Id:          user.Id,
+			DisplayName: name,
+		})
+	}
+
+	common.ApiSuccess(c, options)
+}
+
+// BatchDeleteBlogArticles POST /api/blog/batch/delete
+// Admin only. Permanently deletes all articles in the request body.
+func BatchDeleteBlogArticles(c *gin.Context) {
+	if c.GetInt("role") < common.RoleAdminUser {
+		common.ApiErrorMsg(c, "无权访问")
+		return
+	}
+
+	var body struct {
+		Ids []int `json:"ids"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &body); err != nil {
+		common.ApiErrorMsg(c, "请求体解析失败")
+		return
+	}
+	if len(body.Ids) == 0 {
+		common.ApiErrorMsg(c, "ids 不能为空")
+		return
+	}
+
+	if err := model.DeleteBlogArticlesByIds(body.Ids); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, nil)
+}
+
+// BatchUpdateBlogArticles POST /api/blog/batch/update
+// Admin only. Updates the status of all articles in the request body.
+func BatchUpdateBlogArticles(c *gin.Context) {
+	if c.GetInt("role") < common.RoleAdminUser {
+		common.ApiErrorMsg(c, "无权访问")
+		return
+	}
+
+	var body struct {
+		Ids    []int  `json:"ids"`
+		Status string `json:"status"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &body); err != nil {
+		common.ApiErrorMsg(c, "请求体解析失败")
+		return
+	}
+	if len(body.Ids) == 0 {
+		common.ApiErrorMsg(c, "ids 不能为空")
+		return
+	}
+	if !model.ValidBlogArticleStatus(body.Status) {
+		common.ApiErrorMsg(c, "无效的 status 值")
+		return
+	}
+
+	if err := model.UpdateBlogArticlesStatusByIds(body.Ids, body.Status); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, nil)
 }
 
 // DeleteBlogArticle DELETE /api/blog/:id

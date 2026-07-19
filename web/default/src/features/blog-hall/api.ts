@@ -22,6 +22,8 @@ import type {
   ApiResponse,
   BlogArticle,
   BlogArticleFormData,
+  BlogAuthorOption,
+  BatchUpdateBlogArticlesRequest,
   GetBlogArticlesParams,
   GetBlogArticlesResponse,
 } from './types'
@@ -33,10 +35,14 @@ import type {
 export async function getBlogArticles(
   params: GetBlogArticlesParams = {}
 ): Promise<GetBlogArticlesResponse> {
-  const { p = 1, page_size = 20, status } = params
-  let url = `/api/blog/?p=${p}&page_size=${page_size}`
-  if (status) url += `&status=${status}`
-  const res = await api.get(url)
+  const { p = 1, page_size = 20, status, author_id, keyword } = params
+  const url = new URL('/api/blog/', window.location.origin)
+  url.searchParams.set('p', String(p))
+  url.searchParams.set('page_size', String(page_size))
+  if (status) url.searchParams.set('status', status)
+  if (author_id) url.searchParams.set('author_id', String(author_id))
+  if (keyword) url.searchParams.set('keyword', keyword)
+  const res = await api.get(url.pathname + url.search)
   return res.data
 }
 
@@ -66,6 +72,25 @@ export async function deleteBlogArticle(
   id: number
 ): Promise<ApiResponse> {
   const res = await api.delete(`/api/blog/${id}`)
+  return res.data
+}
+
+export async function batchDeleteBlogArticles(
+  ids: number[]
+): Promise<ApiResponse> {
+  const res = await api.post('/api/blog/batch/delete', { ids })
+  return res.data
+}
+
+export async function batchUpdateBlogArticles(
+  data: BatchUpdateBlogArticlesRequest
+): Promise<ApiResponse> {
+  const res = await api.post('/api/blog/batch/update', data)
+  return res.data
+}
+
+export async function getBlogAuthors(): Promise<ApiResponse<BlogAuthorOption[]>> {
+  const res = await api.get('/api/blog/authors')
   return res.data
 }
 

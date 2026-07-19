@@ -350,6 +350,14 @@ func SetApiRouter(router *gin.Engine) {
 			blogRoute.POST("/:id/messages", controller.SaveBlogChatMessages)
 			blogRoute.DELETE("/:id/messages", controller.ClearBlogChatMessages)
 
+			// Admin-only blog management helpers
+			blogAdminRoute := blogRoute.Group("").Use(middleware.AdminAuth())
+			{
+				blogAdminRoute.GET("/authors", controller.GetBlogArticleAuthors)
+				blogAdminRoute.POST("/batch/delete", controller.BatchDeleteBlogArticles)
+				blogAdminRoute.POST("/batch/update", controller.BatchUpdateBlogArticles)
+			}
+
 			// Author follow / unfollow (authenticated)
 			blogRoute.POST("/authors/:slug/follow", controller.FollowBlogAuthor)
 			blogRoute.DELETE("/authors/:slug/unfollow", controller.UnfollowBlogAuthor)

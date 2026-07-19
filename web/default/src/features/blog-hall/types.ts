@@ -67,11 +67,22 @@ export interface GetBlogArticlesParams {
   page_size?: number
   status?: string
   author_id?: number
+  keyword?: string
 }
 
 export interface SearchBlogArticlesParams extends GetBlogArticlesParams {
   q?: string
   tag?: string | string[]
+}
+
+export interface BlogAuthorOption {
+  id: number
+  display_name: string
+}
+
+export interface BatchUpdateBlogArticlesRequest {
+  ids: number[]
+  status: BlogArticleStatus
 }
 
 export interface GetBlogArticlesResponse {

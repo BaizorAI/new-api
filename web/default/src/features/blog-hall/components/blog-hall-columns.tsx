@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 
 import { StatusBadge } from '@/components/status-badge'
 import { TableId } from '@/components/table-id'
+import { Checkbox } from '@/components/ui/checkbox'
 import { formatTimestampToDate } from '@/lib/format'
 
 import { BLOG_ARTICLE_STATUSES } from '../constants'
@@ -30,6 +31,29 @@ import { BlogHallRowActions } from './blog-hall-row-actions'
 export function useBlogHallColumns(): ColumnDef<BlogArticle>[] {
   const { t } = useTranslation()
   return [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          indeterminate={table.getIsSomePageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label={t('Select all')}
+          className='translate-y-[2px]'
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label={t('Select row')}
+          className='translate-y-[2px]'
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+      size: 40,
+    },
     {
       accessorKey: 'id',
       header: t('ID'),
@@ -74,6 +98,8 @@ export function useBlogHallColumns(): ColumnDef<BlogArticle>[] {
       header: t('Author'),
       meta: { mobileHidden: true },
       accessorFn: (row) => row.author?.display_name ?? row.author_id,
+      filterFn: (row, _id, value: string[]) =>
+        value.includes(String(row.original.author_id)),
       cell: ({ row }) => {
         const article = row.original
         const author = article.author

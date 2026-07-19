@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/BaizorAI/new-api/common"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -75,6 +76,12 @@ func TagsFromSlice(tags []string) string {
 }
 
 func GetAllBlogArticles(authorId int, status string, startIdx, num int) ([]*BlogArticle, int64, error) {
+	return SearchBlogArticles(authorId, status, "", startIdx, num)
+}
+
+// SearchBlogArticles returns paginated articles filtered by author, status and
+// keyword (title/summary/content). An empty keyword disables text filtering.
+func SearchBlogArticles(authorId int, status string, keyword string, startIdx, num int) ([]*BlogArticle, int64, error) {
 	tx := DB.Begin()
 	if tx.Error != nil {
 		return nil, 0, tx.Error
@@ -92,6 +99,7 @@ func GetAllBlogArticles(authorId int, status string, startIdx, num int) ([]*Blog
 	if status != "" {
 		query = query.Where("status = ?", status)
 	}
+	query = applySearchFilter(query, keyword)
 
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
@@ -153,6 +161,40 @@ func DeleteBlogArticleById(id int) error {
 		return err
 	}
 	return article.Delete()
+}
+
+// DeleteBlogArticlesByIds permanently deletes the articles with the given ids.
+func DeleteBlogArticlesByIds(ids []int) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	return DB.Where("id IN ?", ids).Delete(&BlogArticle{}).Error
+}
+
+// UpdateBlogArticlesStatusByIds updates the status of the given articles.
+// When transitioning to published, articles without a published_at timestamp
+// receive the current time.
+func UpdateBlogArticlesStatusByIds(ids []int, status string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	if !ValidBlogArticleStatus(status) {
+		return errors.New("无效的 status 值")
+	}
+
+	now := common.GetTimestamp()
+	if err := DB.Model(&BlogArticle{}).
+		Where("id IN ?", ids).
+		Updates(BlogArticle{Status: status, UpdatedTime: now}).Error; err != nil {
+		return err
+	}
+
+	if status == BlogArticleStatusPublished {
+		return DB.Model(&BlogArticle{}).
+			Where("id IN ? AND published_at = ?", ids, 0).
+			Update("published_at", now).Error
+	}
+	return nil
 }
 
 // ============================================================================
