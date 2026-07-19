@@ -72,10 +72,10 @@ import { useBlogHall } from './blog-hall-provider'
 
 const blogArticleFormSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
-  summary: z.string().max(500).default(''),
-  content: z.string().default(''),
-  tags: z.string().default(''),
-  status: z.enum(BLOG_ARTICLE_STATUS_VALUES).default('draft'),
+  summary: z.string().max(500),
+  content: z.string(),
+  tags: z.string(),
+  status: z.enum(BLOG_ARTICLE_STATUS_VALUES),
 })
 
 type BlogArticleFormValues = z.infer<typeof blogArticleFormSchema>

@@ -211,12 +211,6 @@ export function useBlogArticleChat({
         modType === 'rewrite'
       ) {
         // Paragraph-level AI modification
-        const prompts: Record<string, string> = {
-          polish: '请润色以下段落，使其更加流畅优美：',
-          expand: '请扩写以下段落，增加更多细节和描写：',
-          shorten: '请精简以下段落，保留核心内容：',
-          rewrite: '请用不同的方式改写以下段落：',
-        }
         const parts: string[] = []
         parts.push(
           '你是一个专业的写作编辑助手，使用 MagicalBrush 技能。',

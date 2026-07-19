@@ -59,10 +59,10 @@ import type { BlogArticle } from '../types'
 
 const formSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
-  summary: z.string().max(500).default(''),
-  content: z.string().default(''),
-  tags: z.string().default(''),
-  status: z.enum(BLOG_ARTICLE_STATUS_VALUES).default('draft'),
+  summary: z.string().max(500),
+  content: z.string(),
+  tags: z.string(),
+  status: z.enum(BLOG_ARTICLE_STATUS_VALUES),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -123,7 +123,7 @@ export function BlogArticleEditorPage() {
         const tags = values.tags
           ? values.tags
               .split(',')
-              .map((tag) => tag.trim())
+              .map((tag: string) => tag.trim())
               .filter(Boolean)
           : []
         const result = await updateBlogArticle(id, { ...values, tags })

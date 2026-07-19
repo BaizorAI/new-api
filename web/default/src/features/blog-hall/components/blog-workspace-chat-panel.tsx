@@ -32,7 +32,7 @@ import {
   Wand2,
   X,
 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -125,7 +125,6 @@ export function BlogWorkspaceChatPanel() {
     setTags,
     coverImage,
     tags,
-    status,
     setStatus,
     selectedParagraphIndex,
     selectedParagraphText,
@@ -168,10 +167,15 @@ export function BlogWorkspaceChatPanel() {
   })
 
   const handleSubmit = useCallback(
-    (message: PromptInputMessage, modificationType?: BlogModificationType) => {
+    (
+      message: PromptInputMessage,
+      secondArg?: FormEvent<HTMLFormElement> | BlogModificationType
+    ) => {
       const text = (message.text ?? '').trim()
       if (!text || isStreaming) return
 
+      const modificationType =
+        typeof secondArg === 'string' ? secondArg : undefined
       if (modificationType === 'analyze') {
         setIsAnalyzing(true)
         addAssistantMessage('🔍 正在分析文章质量...')
@@ -258,7 +262,7 @@ export function BlogWorkspaceChatPanel() {
   }, [article, content, coverImage, isSaving, queryClient, setStatus, summary, tags, title, t])
 
   // Image generation — submit prompt, poll, then show result in chat
-  const [generatingImage, setGeneratingImage] = useState(false)
+  const [, setGeneratingImage] = useState(false)
   const generatingRef = useRef(false)
   const handleGenerateImage = useCallback(
     async (prompt: string, paragraphIndex: number | null) => {

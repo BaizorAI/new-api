@@ -25,7 +25,7 @@ import {
   SquareIcon,
   XIcon,
 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -110,10 +110,8 @@ export function BlogWorkspaceChatBar() {
 
   const {
     messages,
-    loadingHistory,
     sendMessage,
     stopGeneration,
-    clearMessages,
     addAssistantMessage,
     isStreaming,
   } = useBlogArticleChat({
@@ -127,10 +125,15 @@ export function BlogWorkspaceChatBar() {
   })
 
   const handleSubmit = useCallback(
-    (message: PromptInputMessage, modificationType?: BlogModificationType) => {
+    (
+      message: PromptInputMessage,
+      secondArg?: FormEvent<HTMLFormElement> | BlogModificationType
+    ) => {
       const text = (message.text ?? '').trim()
       if (!text || isStreaming) return
 
+      const modificationType =
+        typeof secondArg === 'string' ? secondArg : undefined
       if (modificationType === 'analyze') {
         setIsAnalyzing(true)
         addAssistantMessage('🔍 正在分析文章质量...')

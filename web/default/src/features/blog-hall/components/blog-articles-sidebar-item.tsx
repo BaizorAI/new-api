@@ -104,7 +104,7 @@ export function BlogArticlesItem({ item }: Props) {
       toast.success(t('Article deleted.'))
       void queryClient.invalidateQueries({ queryKey: ['blog-articles-sidebar'] })
       if (href.includes(`/blog-hall/${idToDelete}`)) {
-        void navigate({ to: '/blog-hall/' })
+        void navigate({ to: '/blog-hall' })
       }
     }
   }
@@ -114,7 +114,7 @@ export function BlogArticlesItem({ item }: Props) {
       <SidebarMenuSubItem>
         <SidebarMenuSubButton
           onClick={() => void handleCreate()}
-          disabled={isCreating}
+          aria-disabled={isCreating ? 'true' : undefined}
         >
           <Plus className='size-3.5' aria-hidden='true' />
           <span>{t('New Article')}</span>

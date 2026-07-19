@@ -31,6 +31,7 @@ import { getBlogArticleStatusOptions } from '../constants'
 import { BlogHallBulkActions } from './blog-hall-bulk-actions'
 import { useBlogHallColumns } from './blog-hall-columns'
 import { useBlogHall } from './blog-hall-provider'
+import { BlogHallMobileList } from './blog-hall-mobile-list'
 
 const route = getRouteApi('/_authenticated/blog-hall/')
 
@@ -168,22 +169,38 @@ export function BlogHallTable() {
   )
 
   return (
-    <DataTablePage
-      table={table}
-      columns={columns}
-      isLoading={isLoading}
-      isFetching={isFetching}
-      emptyTitle={t('No articles yet')}
-      emptyDescription={t(
-        'No articles yet. Start writing your first article.'
-      )}
-      skeletonKeyPrefix='blog-hall-skeleton'
-      applyHeaderSize
-      toolbarProps={{
-        searchPlaceholder: t('Search by title...'),
-        filters,
-      }}
-      bulkActions={<BlogHallBulkActions table={table} />}
-    />
+    <>
+      <DataTablePage
+        table={table}
+        columns={columns}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        emptyTitle={t('No articles yet')}
+        emptyDescription={t(
+          'No articles yet. Start writing your first article.'
+        )}
+        skeletonKeyPrefix='blog-hall-skeleton'
+        applyHeaderSize
+        toolbarProps={{
+          searchPlaceholder: t('Search by title...'),
+          filters,
+        }}
+        bulkActions={<BlogHallBulkActions table={table} />}
+        mobile={
+          isMobile ? (
+            <BlogHallMobileList
+              table={table}
+              isLoading={isLoading}
+              emptyTitle={t('No articles yet')}
+              emptyDescription={t(
+                'No articles yet. Start writing your first article.'
+              )}
+            />
+          ) : undefined
+        }
+      />
+      {isMobile && <BlogHallBulkActions table={table} />}
+    </>
   )
 }
+
