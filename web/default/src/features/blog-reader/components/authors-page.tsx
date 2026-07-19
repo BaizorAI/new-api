@@ -25,7 +25,6 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 
 import { getBlogAuthors } from '../author-api'
-import { BlogHeader } from './blog-header'
 
 import type { BlogAuthorDetail } from '../author-types'
 
@@ -46,8 +45,6 @@ export function AuthorsPage() {
 
   return (
     <div className='min-h-screen bg-background'>
-      <BlogHeader />
-
       <section className='border-b bg-gradient-to-br from-background via-background to-muted/50 pt-12 pb-10 md:pt-16 md:pb-12'>
         <div className='mx-auto max-w-6xl px-4'>
           <div className='flex items-center gap-3'>

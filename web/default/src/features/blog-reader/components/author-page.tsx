@@ -34,7 +34,6 @@ import {
   unfollowBlogAuthor,
 } from '../author-api'
 import { ArticleCard } from './article-card'
-import { BlogHeader } from './blog-header'
 import { BlogTag } from './blog-tag'
 
 import type { BlogArticle } from '@/features/blog-hall/types'
@@ -125,8 +124,6 @@ export function AuthorPage() {
 
   return (
     <div className='min-h-screen bg-background'>
-      <BlogHeader />
-
       <section className='border-b bg-gradient-to-br from-background via-background to-muted/50 pt-12 pb-10 md:pt-16 md:pb-12'>
         <div className='mx-auto max-w-6xl px-4'>
           <div className='mb-6'>
