@@ -100,6 +100,7 @@ import { Route as AuthenticatedSystemSettingsAuthIndexRouteImport } from './rout
 import { Route as AuthenticatedStudioProjectIdIndexRouteImport } from './routes/_authenticated/studio/$projectId/index'
 import { Route as AuthenticatedPricingModelIdIndexRouteImport } from './routes/_authenticated/pricing/$modelId/index'
 import { Route as AuthenticatedBlogHallNewIndexRouteImport } from './routes/_authenticated/blog-hall/new/index'
+import { Route as AuthenticatedBlogHallAuthorProfileIndexRouteImport } from './routes/_authenticated/blog-hall/author-profile/index'
 import { Route as AuthenticatedBlogHallArticleIdIndexRouteImport } from './routes/_authenticated/blog-hall/$articleId/index'
 import { Route as AuthenticatedSystemSettingsSiteSectionRouteImport } from './routes/_authenticated/system-settings/site/$section'
 import { Route as AuthenticatedSystemSettingsSecuritySectionRouteImport } from './routes/_authenticated/system-settings/security/$section'
@@ -617,6 +618,12 @@ const AuthenticatedBlogHallNewIndexRoute =
     path: '/new/',
     getParentRoute: () => AuthenticatedBlogHallRouteRoute,
   } as any)
+const AuthenticatedBlogHallAuthorProfileIndexRoute =
+  AuthenticatedBlogHallAuthorProfileIndexRouteImport.update({
+    id: '/author-profile/',
+    path: '/author-profile/',
+    getParentRoute: () => AuthenticatedBlogHallRouteRoute,
+  } as any)
 const AuthenticatedBlogHallArticleIdIndexRoute =
   AuthenticatedBlogHallArticleIdIndexRouteImport.update({
     id: '/$articleId/',
@@ -758,6 +765,7 @@ export interface FileRoutesByFullPath {
   '/system-settings/security/$section': typeof AuthenticatedSystemSettingsSecuritySectionRoute
   '/system-settings/site/$section': typeof AuthenticatedSystemSettingsSiteSectionRoute
   '/blog-hall/$articleId/': typeof AuthenticatedBlogHallArticleIdIndexRoute
+  '/blog-hall/author-profile/': typeof AuthenticatedBlogHallAuthorProfileIndexRoute
   '/blog-hall/new/': typeof AuthenticatedBlogHallNewIndexRoute
   '/pricing/$modelId/': typeof AuthenticatedPricingModelIdIndexRoute
   '/studio/$projectId/': typeof AuthenticatedStudioProjectIdIndexRoute
@@ -854,6 +862,7 @@ export interface FileRoutesByTo {
   '/system-settings/security/$section': typeof AuthenticatedSystemSettingsSecuritySectionRoute
   '/system-settings/site/$section': typeof AuthenticatedSystemSettingsSiteSectionRoute
   '/blog-hall/$articleId': typeof AuthenticatedBlogHallArticleIdIndexRoute
+  '/blog-hall/author-profile': typeof AuthenticatedBlogHallAuthorProfileIndexRoute
   '/blog-hall/new': typeof AuthenticatedBlogHallNewIndexRoute
   '/pricing/$modelId': typeof AuthenticatedPricingModelIdIndexRoute
   '/studio/$projectId': typeof AuthenticatedStudioProjectIdIndexRoute
@@ -958,6 +967,7 @@ export interface FileRoutesById {
   '/_authenticated/system-settings/security/$section': typeof AuthenticatedSystemSettingsSecuritySectionRoute
   '/_authenticated/system-settings/site/$section': typeof AuthenticatedSystemSettingsSiteSectionRoute
   '/_authenticated/blog-hall/$articleId/': typeof AuthenticatedBlogHallArticleIdIndexRoute
+  '/_authenticated/blog-hall/author-profile/': typeof AuthenticatedBlogHallAuthorProfileIndexRoute
   '/_authenticated/blog-hall/new/': typeof AuthenticatedBlogHallNewIndexRoute
   '/_authenticated/pricing/$modelId/': typeof AuthenticatedPricingModelIdIndexRoute
   '/_authenticated/studio/$projectId/': typeof AuthenticatedStudioProjectIdIndexRoute
@@ -1061,6 +1071,7 @@ export interface FileRouteTypes {
     | '/system-settings/security/$section'
     | '/system-settings/site/$section'
     | '/blog-hall/$articleId/'
+    | '/blog-hall/author-profile/'
     | '/blog-hall/new/'
     | '/pricing/$modelId/'
     | '/studio/$projectId/'
@@ -1157,6 +1168,7 @@ export interface FileRouteTypes {
     | '/system-settings/security/$section'
     | '/system-settings/site/$section'
     | '/blog-hall/$articleId'
+    | '/blog-hall/author-profile'
     | '/blog-hall/new'
     | '/pricing/$modelId'
     | '/studio/$projectId'
@@ -1260,6 +1272,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system-settings/security/$section'
     | '/_authenticated/system-settings/site/$section'
     | '/_authenticated/blog-hall/$articleId/'
+    | '/_authenticated/blog-hall/author-profile/'
     | '/_authenticated/blog-hall/new/'
     | '/_authenticated/pricing/$modelId/'
     | '/_authenticated/studio/$projectId/'
@@ -1943,6 +1956,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBlogHallNewIndexRouteImport
       parentRoute: typeof AuthenticatedBlogHallRouteRoute
     }
+    '/_authenticated/blog-hall/author-profile/': {
+      id: '/_authenticated/blog-hall/author-profile/'
+      path: '/author-profile'
+      fullPath: '/blog-hall/author-profile/'
+      preLoaderRoute: typeof AuthenticatedBlogHallAuthorProfileIndexRouteImport
+      parentRoute: typeof AuthenticatedBlogHallRouteRoute
+    }
     '/_authenticated/blog-hall/$articleId/': {
       id: '/_authenticated/blog-hall/$articleId/'
       path: '/$articleId'
@@ -2045,6 +2065,7 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 interface AuthenticatedBlogHallRouteRouteChildren {
   AuthenticatedBlogHallIndexRoute: typeof AuthenticatedBlogHallIndexRoute
   AuthenticatedBlogHallArticleIdIndexRoute: typeof AuthenticatedBlogHallArticleIdIndexRoute
+  AuthenticatedBlogHallAuthorProfileIndexRoute: typeof AuthenticatedBlogHallAuthorProfileIndexRoute
   AuthenticatedBlogHallNewIndexRoute: typeof AuthenticatedBlogHallNewIndexRoute
 }
 
@@ -2053,6 +2074,8 @@ const AuthenticatedBlogHallRouteRouteChildren: AuthenticatedBlogHallRouteRouteCh
     AuthenticatedBlogHallIndexRoute: AuthenticatedBlogHallIndexRoute,
     AuthenticatedBlogHallArticleIdIndexRoute:
       AuthenticatedBlogHallArticleIdIndexRoute,
+    AuthenticatedBlogHallAuthorProfileIndexRoute:
+      AuthenticatedBlogHallAuthorProfileIndexRoute,
     AuthenticatedBlogHallNewIndexRoute: AuthenticatedBlogHallNewIndexRoute,
   }
 

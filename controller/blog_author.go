@@ -382,7 +382,7 @@ func UpdateSelfAuthorProfile(c *gin.Context) {
 		return
 	}
 
-	isPublic := false
+	isPublic := true
 	if body.IsPublic != nil {
 		isPublic = *body.IsPublic
 	}

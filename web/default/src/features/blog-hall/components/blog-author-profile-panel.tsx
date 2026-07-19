@@ -36,7 +36,13 @@ import { uploadBlogImage } from '../api'
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
-export function BlogAuthorProfilePanel() {
+interface BlogAuthorProfilePanelProps {
+  variant?: 'sidebar' | 'page'
+}
+
+export function BlogAuthorProfilePanel({
+  variant = 'sidebar',
+}: BlogAuthorProfilePanelProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -51,7 +57,7 @@ export function BlogAuthorProfilePanel() {
   const [slug, setSlug] = useState('')
   const [avatar, setAvatar] = useState('')
   const [bio, setBio] = useState('')
-  const [isPublic, setIsPublic] = useState(false)
+  const [isPublic, setIsPublic] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -61,7 +67,7 @@ export function BlogAuthorProfilePanel() {
       setSlug(profile.slug || '')
       setAvatar(profile.avatar || '')
       setBio(profile.bio || '')
-      setIsPublic(profile.is_public ?? false)
+      setIsPublic(profile.is_public ?? true)
     }
   }, [profile])
 
@@ -124,7 +130,22 @@ export function BlogAuthorProfilePanel() {
     }
   }
 
+  const isPage = variant === 'page'
+  const inputIdPrefix = isPage ? 'page' : 'sidebar'
+
   if (isLoading) {
+    if (isPage) {
+      return (
+        <div className='mx-auto w-full max-w-2xl space-y-6 p-4 sm:p-6'>
+          <div className='bg-muted h-6 w-48 rounded' />
+          <div className='bg-muted h-4 w-64 rounded' />
+          <div className='bg-muted mx-auto h-24 w-24 rounded-full' />
+          <div className='bg-muted h-10 rounded' />
+          <div className='bg-muted h-10 rounded' />
+          <div className='bg-muted h-24 rounded' />
+        </div>
+      )
+    }
     return (
       <div className='border-b p-3 space-y-3'>
         <div className='bg-muted h-4 w-1/2 rounded' />
@@ -137,11 +158,31 @@ export function BlogAuthorProfilePanel() {
   }
 
   return (
-    <div className='border-b p-3 space-y-3'>
-      <div className='flex items-center gap-2 text-sm font-medium text-muted-foreground'>
-        <User className='h-4 w-4' aria-hidden='true' />
-        {t('Edit author profile')}
-      </div>
+    <div
+      className={
+        isPage
+          ? 'mx-auto w-full max-w-2xl space-y-6 p-4 sm:p-6'
+          : 'border-b p-3 space-y-3'
+      }
+    >
+      {isPage ? (
+        <div className='flex items-center gap-4'>
+          <div className='flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10'>
+            <User className='h-6 w-6 text-primary' aria-hidden='true' />
+          </div>
+          <div>
+            <h1 className='text-xl font-semibold'>{t('Author Profile')}</h1>
+            <p className='text-muted-foreground text-sm'>
+              {t('Edit your public author profile')}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className='flex items-center gap-2 text-sm font-medium text-muted-foreground'>
+          <User className='h-4 w-4' aria-hidden='true' />
+          {t('Edit author profile')}
+        </div>
+      )}
 
       {/* Avatar upload */}
       <div className='flex justify-center'>
@@ -149,7 +190,9 @@ export function BlogAuthorProfilePanel() {
           type='button'
           onClick={handleAvatarClick}
           disabled={isUploading}
-          className='relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border bg-muted transition-colors hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          className={`relative flex items-center justify-center overflow-hidden rounded-full border bg-muted transition-colors hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+            isPage ? 'h-24 w-24' : 'h-16 w-16'
+          }`}
           aria-label={t('Upload image')}
           title={t('Upload image')}
         >
@@ -163,7 +206,10 @@ export function BlogAuthorProfilePanel() {
               }}
             />
           ) : (
-            <User className='text-muted-foreground h-8 w-8' aria-hidden='true' />
+            <User
+              className={`text-muted-foreground ${isPage ? 'h-12 w-12' : 'h-8 w-8'}`}
+              aria-hidden='true'
+            />
           )}
           <span className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100'>
             {isUploading ? (
@@ -183,71 +229,87 @@ export function BlogAuthorProfilePanel() {
       </div>
 
       {/* Display name */}
-      <div className='space-y-1.5'>
-        <Label htmlFor='sidebar-author-display-name' className='text-xs'>
+      <div className={isPage ? 'space-y-2' : 'space-y-1.5'}>
+        <Label
+          htmlFor={`${inputIdPrefix}-author-display-name`}
+          className={isPage ? 'text-sm' : 'text-xs'}
+        >
           {t('Display Name')}
         </Label>
         <Input
-          id='sidebar-author-display-name'
+          id={`${inputIdPrefix}-author-display-name`}
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder={t('How readers will see you')}
-          className='h-8 text-xs'
+          className={isPage ? 'h-10 text-sm' : 'h-8 text-xs'}
         />
       </div>
 
       {/* Slug */}
-      <div className='space-y-1.5'>
-        <Label htmlFor='sidebar-author-slug' className='text-xs'>
+      <div className={isPage ? 'space-y-2' : 'space-y-1.5'}>
+        <Label
+          htmlFor={`${inputIdPrefix}-author-slug`}
+          className={isPage ? 'text-sm' : 'text-xs'}
+        >
           {t('Slug')}
         </Label>
         <Input
-          id='sidebar-author-slug'
+          id={`${inputIdPrefix}-author-slug`}
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
           placeholder={t('your-name')}
-          className='h-8 text-xs'
+          className={isPage ? 'h-10 text-sm' : 'h-8 text-xs'}
         />
-        <p className='text-muted-foreground text-[11px]'>
+        <p className={`text-muted-foreground ${isPage ? 'text-xs' : 'text-[11px]'}`}>
           {t('Lowercase letters, numbers, and hyphens only')}
         </p>
       </div>
 
       {/* Bio */}
-      <div className='space-y-1.5'>
-        <Label htmlFor='sidebar-author-bio' className='text-xs'>
+      <div className={isPage ? 'space-y-2' : 'space-y-1.5'}>
+        <Label
+          htmlFor={`${inputIdPrefix}-author-bio`}
+          className={isPage ? 'text-sm' : 'text-xs'}
+        >
           {t('Bio')}
         </Label>
         <Textarea
-          id='sidebar-author-bio'
+          id={`${inputIdPrefix}-author-bio`}
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           placeholder={t('A short introduction about you')}
-          rows={2}
-          className='resize-none text-xs'
+          rows={isPage ? 4 : 2}
+          className={`resize-none ${isPage ? 'text-sm' : 'text-xs'}`}
         />
       </div>
 
       {/* Public switch */}
-      <div className='flex items-center justify-between rounded-lg border p-2'>
+      <div
+        className={`flex items-center justify-between rounded-lg border ${
+          isPage ? 'p-3' : 'p-2'
+        }`}
+      >
         <div>
-          <Label htmlFor='sidebar-author-public' className='text-xs font-medium'>
+          <Label
+            htmlFor={`${inputIdPrefix}-author-public`}
+            className={`font-medium ${isPage ? 'text-sm' : 'text-xs'}`}
+          >
             {t('Public profile')}
           </Label>
-          <p className='text-muted-foreground text-[11px]'>
+          <p className={`text-muted-foreground ${isPage ? 'text-xs' : 'text-[11px]'}`}>
             {t('Make your author page visible to readers')}
           </p>
         </div>
         <Switch
-          id='sidebar-author-public'
+          id={`${inputIdPrefix}-author-public`}
           checked={isPublic}
           onCheckedChange={setIsPublic}
         />
       </div>
 
       <Button
-        size='sm'
-        className='w-full'
+        size={isPage ? 'default' : 'sm'}
+        className={isPage ? '' : 'w-full'}
         onClick={() => void handleSave()}
         disabled={isSaving || isUploading}
       >

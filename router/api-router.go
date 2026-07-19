@@ -350,9 +350,6 @@ func SetApiRouter(router *gin.Engine) {
 			blogRoute.POST("/:id/messages", controller.SaveBlogChatMessages)
 			blogRoute.DELETE("/:id/messages", controller.ClearBlogChatMessages)
 
-			// Blog public file serving
-			blogPublicRoute.GET("/files/:filename", controller.ServeBlogImage)
-
 			// Author follow / unfollow (authenticated)
 			blogRoute.POST("/authors/:slug/follow", controller.FollowBlogAuthor)
 			blogRoute.DELETE("/authors/:slug/unfollow", controller.UnfollowBlogAuthor)
@@ -360,6 +357,10 @@ func SetApiRouter(router *gin.Engine) {
 			// Blog image upload (authenticated)
 			blogRoute.POST("/files/upload", controller.UploadBlogImage)
 		}
+
+		// Public blog image serving (no auth)
+		apiRouter.GET("/blog/files/:filename", controller.ServeBlogImage)
+
 		studioRoute := apiRouter.Group("/studio")
 		studioRoute.Use(middleware.UserAuth())
 		{
