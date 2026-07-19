@@ -3502,6 +3502,7 @@
     "Models that are being used but not configured in the system": "正在使用但未在系统中配置的模型",
     "Models that skip thinking suffix processing": "不自动处理思考后缀的模型",
     "Models updated successfully": "模型更新成功",
+    "Modify according to suggestions": "按建议修改",
     "Modify existing subscription plan configuration": "修改现有订阅套餐的配置",
     "Modify with AI": "AI 修改",
     "Module availability": "模块可用性",

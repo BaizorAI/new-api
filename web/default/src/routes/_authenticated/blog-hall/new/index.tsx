@@ -19,10 +19,8 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
-  Eye,
   Loader2,
   Pencil,
-  PenLine,
   Save,
   SquareIcon,
   Trash2,
@@ -53,8 +51,6 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from '@/components/ui/resizable'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Textarea } from '@/components/ui/textarea'
 import { useStreamRequest } from '@/features/playground/hooks/use-stream-request'
 import { getOrCreatePlaygroundSessionId } from '@/features/playground/lib/storage'
 import type { ChatCompletionRequest } from '@/features/playground/types'
@@ -66,6 +62,7 @@ import {
   extractTitle,
   extractSummary,
 } from '@/features/blog-hall/lib/paragraph-utils'
+import { BlogArticleEditor } from '@/features/blog-hall/components/blog-article-editor'
 
 export const Route = createFileRoute('/_authenticated/blog-hall/new/')({
   component: BlogArticleCreate,
@@ -98,7 +95,7 @@ export function BlogArticleCreate() {
   const [content, setContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [savedArticleId, setSavedArticleId] = useState<number | null>(null)
-  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit')
+  const [generatingField, setGeneratingField] = useState<'title' | 'summary' | null>(null)
 
   // Chat state
   const [messages, setMessages] = useState<CreateChatMessage[]>([])
@@ -189,7 +186,6 @@ export function BlogArticleCreate() {
             const tSummary = extractSummary(finalContent)
             if (tTitle) setTitle(tTitle)
             if (tSummary) setSummary(tSummary)
-            setViewMode('preview')
           } else if (finalContent.trim().length > 100) {
             // No code block but substantial — treat as article body
             setContent(finalContent)
@@ -197,8 +193,8 @@ export function BlogArticleCreate() {
             if (tTitle) setTitle(tTitle)
             const tSummary = extractSummary(finalContent)
             if (tSummary) setSummary(tSummary)
-            setViewMode('preview')
           }
+          setGeneratingField(null)
 
           void queryClient.invalidateQueries({
             queryKey: ['blog-articles-sidebar'],
@@ -206,6 +202,7 @@ export function BlogArticleCreate() {
         },
         () => {
           isStreamingRef.current = false
+          setGeneratingField(null)
           setMessages((prev) => {
             const last = prev[prev.length - 1]
             if (!last || last.role !== 'assistant') return prev
@@ -223,6 +220,7 @@ export function BlogArticleCreate() {
   const handleStop = useCallback(() => {
     stopStream()
     isStreamingRef.current = false
+    setGeneratingField(null)
     setMessages((prev) => {
       const last = prev[prev.length - 1]
       if (!last || last.role !== 'assistant') return prev
@@ -245,8 +243,7 @@ export function BlogArticleCreate() {
     const tSummary = extractSummary(articleContent)
     if (tTitle) setTitle(tTitle)
     if (tSummary) setSummary(tSummary)
-    setViewMode('preview')
-  }, [setViewMode])
+  }, [])
 
   const handleUseTitle = useCallback((tTitle: string) => {
     setTitle(tTitle)
@@ -257,6 +254,17 @@ export function BlogArticleCreate() {
     setSummary(s)
     toast.success(t('Summary updated.'))
   }, [t])
+
+  // ── AI generate title / summary via the chat panel ─────────────────
+  const requestGenTitle = useCallback(() => {
+    setGeneratingField('title')
+    handleSubmit({ text: '请为文章生成 3 个候选标题。' } as PromptInputMessage)
+  }, [handleSubmit])
+
+  const requestGenSummary = useCallback(() => {
+    setGeneratingField('summary')
+    handleSubmit({ text: '请为文章生成一段简洁的摘要。' } as PromptInputMessage)
+  }, [handleSubmit])
 
   // ── Save as draft ────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
@@ -336,28 +344,6 @@ export function BlogArticleCreate() {
         <div className='border-border flex shrink-0 items-center gap-2 border-b px-4 py-2'>
           <h2 className='text-sm font-medium'>{t('New Article')}</h2>
           <div className='flex-1' />
-          <div className='bg-muted flex rounded-md p-0.5'>
-            <Button
-              type='button'
-              size='sm'
-              variant={viewMode === 'edit' ? 'default' : 'ghost'}
-              className='h-7 gap-1.5 px-2.5 text-xs'
-              onClick={() => setViewMode('edit')}
-            >
-              <PenLine className='size-3.5' aria-hidden='true' />
-              {t('Edit')}
-            </Button>
-            <Button
-              type='button'
-              size='sm'
-              variant={viewMode === 'preview' ? 'default' : 'ghost'}
-              className='h-7 gap-1.5 px-2.5 text-xs'
-              onClick={() => setViewMode('preview')}
-            >
-              <Eye className='size-3.5' aria-hidden='true' />
-              {t('Preview')}
-            </Button>
-          </div>
           {(title || content) && (
             <>
               <Button
@@ -381,43 +367,18 @@ export function BlogArticleCreate() {
           )}
         </div>
 
-        {viewMode === 'edit' ? (
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder={t('Write your article content here (Markdown supported)')}
-            className='min-h-0 flex-1 resize-none rounded-none border-0 px-6 py-4 font-mono text-sm leading-relaxed focus-visible:ring-0'
-          />
-        ) : (
-          <ScrollArea className='min-h-0 flex-1'>
-          {content ? (
-            <div className='mx-auto max-w-3xl px-6 py-8'>
-              <h1 className='mb-4 text-3xl font-bold leading-tight'>
-                {title || t('Untitled article')}
-              </h1>
-              {summary && (
-                <p className='text-muted-foreground border-l-primary/40 mb-6 border-l-2 pl-4 text-base italic'>
-                  {summary}
-                </p>
-              )}
-              <hr className='border-border mb-6' />
-              <Markdown>{content}</Markdown>
-            </div>
-          ) : (
-            <div className='flex h-full flex-col items-center justify-center gap-3 text-center'>
-              <Wand2 className='text-muted-foreground/30 size-10' />
-              <div>
-                <p className='text-muted-foreground text-sm font-medium'>
-                  {t('Enter a topic in the chat panel to create a new article.')}
-                </p>
-                <p className='text-muted-foreground/60 mt-1 text-xs'>
-                  {t('Your article preview will appear here as AI writes.')}
-                </p>
-              </div>
-            </div>
-          )}
-        </ScrollArea>
-        )}
+        <BlogArticleEditor
+          content={content}
+          setContent={setContent}
+          title={title}
+          setTitle={setTitle}
+          summary={summary}
+          setSummary={setSummary}
+          initialMode='edit'
+          generatingField={generatingField}
+          onGenerateTitle={requestGenTitle}
+          onGenerateSummary={requestGenSummary}
+        />
       </ResizablePanel>
 
       <ResizableHandle withHandle />

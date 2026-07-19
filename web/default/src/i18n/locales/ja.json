@@ -3502,6 +3502,7 @@
     "Models that are being used but not configured in the system": "使用されているがシステムに設定されていないモデル",
     "Models that skip thinking suffix processing": "thinking サフィックス処理をスキップするモデル",
     "Models updated successfully": "モデルが正常に更新されました",
+    "Modify according to suggestions": "提案に従って修正",
     "Modify existing subscription plan configuration": "既存のサブスクリプションプラン設定を変更",
     "Modify with AI": "Modify with AI",
     "Module availability": "モジュールの可用性",

@@ -58,6 +58,7 @@ import {
 } from '@/features/image-playground/api'
 import { IMAGE_STATUS } from '@/features/image-playground/types'
 
+import { updateBlogArticle } from '../api'
 import { useBlogArticleChat, type BlogModificationType } from '../hooks/use-blog-article-chat'
 import {
   extractFullArticle,
@@ -122,6 +123,10 @@ export function BlogWorkspaceChatPanel() {
     setTitle,
     setSummary,
     setTags,
+    coverImage,
+    tags,
+    status,
+    setStatus,
     selectedParagraphIndex,
     selectedParagraphText,
     selectParagraph,
@@ -130,6 +135,7 @@ export function BlogWorkspaceChatPanel() {
     genTitleRequested,
     genSummaryRequested,
     setGeneratingField,
+    isSaving,
   } = useBlogWorkspace()
 
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -228,6 +234,28 @@ export function BlogWorkspaceChatPanel() {
       modificationType: 'rewrite',
     })
   }, [isStreaming, sendMessage])
+
+  // Publish article when AI analysis says it's ready
+  const handlePublish = useCallback(async () => {
+    if (!article || isSaving) return
+    const parsedTags = tags
+      ? tags.split(',').map((tag) => tag.trim()).filter(Boolean)
+      : []
+    const result = await updateBlogArticle(article.id, {
+      title,
+      summary,
+      content,
+      cover_image: coverImage,
+      tags: parsedTags,
+      status: 'published',
+    })
+    if (result.success) {
+      setStatus('published')
+      toast.success(t('Article published.'))
+      void queryClient.invalidateQueries({ queryKey: ['blog-articles-sidebar'] })
+      void queryClient.invalidateQueries({ queryKey: ['blog-article', article.id] })
+    }
+  }, [article, content, coverImage, isSaving, queryClient, setStatus, summary, tags, title, t])
 
   // Image generation — submit prompt, poll, then show result in chat
   const [generatingImage, setGeneratingImage] = useState(false)
@@ -428,6 +456,7 @@ export function BlogWorkspaceChatPanel() {
                 onSetTags={handleSetTags}
                 onGenerateImage={handleGenerateImage}
                 onRewriteFromAnalysis={handleRewriteFromAnalysis}
+                onPublish={handlePublish}
               />
             ))
           )}
@@ -598,6 +627,7 @@ interface BlogChatBubbleProps {
   onSetTags?: (tags: string) => void
   onGenerateImage?: (prompt: string, paragraphIndex: number | null) => void
   onRewriteFromAnalysis?: () => void
+  onPublish?: () => void
   paragraphText?: string | null
 }
 
@@ -610,6 +640,7 @@ function BlogChatBubble({
   onSetTags,
   onGenerateImage,
   onRewriteFromAnalysis,
+  onPublish,
 }: BlogChatBubbleProps) {
   const { t } = useTranslation()
   const [applied, setApplied] = useState(false)
@@ -762,6 +793,18 @@ function BlogChatBubble({
               </Button>
             )}
 
+            {actions.includes('analysis-pass') && onPublish && (
+              <Button
+                size='sm'
+                variant='outline'
+                className='h-7 gap-1 px-2 text-xs'
+                onClick={onPublish}
+              >
+                <Check className='size-3 text-emerald-500' />
+                {t('Publish')}
+              </Button>
+            )}
+
             {actions.includes('analysis-suggest') && onRewriteFromAnalysis && (
               <Button
                 size='sm'
@@ -770,7 +813,7 @@ function BlogChatBubble({
                 onClick={onRewriteFromAnalysis}
               >
                 <RefreshCw className='size-3 text-amber-500' />
-                {t('Rewrite with suggestions')}
+                {t('Modify according to suggestions')}
               </Button>
             )}
           </div>
