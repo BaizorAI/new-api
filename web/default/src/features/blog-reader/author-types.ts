@@ -24,6 +24,7 @@ export interface BlogAuthor {
   slug: string
   avatar: string
   bio: string
+  is_public: boolean
 }
 
 export interface BlogAuthorDetail extends BlogAuthor {

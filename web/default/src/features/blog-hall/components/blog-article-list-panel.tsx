@@ -38,6 +38,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 
 import { createBlogArticle, deleteBlogArticle, getBlogArticles } from '../api'
 import { groupArticlesByTime } from '../lib/time-groups'
+import { BlogAuthorProfilePanel } from './blog-author-profile-panel'
 
 export function BlogArticleListPanel() {
   const { t } = useTranslation()
@@ -110,6 +111,11 @@ export function BlogArticleListPanel() {
           <Plus className='size-4' aria-hidden='true' />
           {t('New Blog')}
         </Button>
+      </div>
+
+      {/* Author profile */}
+      <div className='shrink-0 overflow-y-auto'>
+        <BlogAuthorProfilePanel />
       </div>
 
       {/* Article list */}

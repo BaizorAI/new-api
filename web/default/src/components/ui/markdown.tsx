@@ -723,10 +723,14 @@ function createMarkdownRenderer(options: MarkdownRenderOptions): Renderer {
 }
 
 function createMarkdownParser(options: MarkdownRenderOptions): Marked {
-  const parser = new Marked({
-    ...markdownOptions,
-    renderer: createMarkdownRenderer(options),
-  })
+  // Use setOptions() for the renderer so marked does not create a wrapper
+  // renderer. If the renderer is passed through the constructor/use(), marked
+  // copies our methods onto a fresh Renderer instance and our bound default
+  // helpers still reference the original renderer, whose `parser` property is
+  // never set by the Parser — causing "Cannot read properties of undefined
+  // (reading 'parseInline')" for headings.
+  const parser = new Marked(markdownOptions)
+  parser.setOptions({ renderer: createMarkdownRenderer(options) })
   parser.use(...markdownExtensions)
   return parser
 }

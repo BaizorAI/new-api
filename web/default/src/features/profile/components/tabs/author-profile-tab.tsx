@@ -56,7 +56,7 @@ export function AuthorProfileTab() {
       setSlug(profile.slug || '')
       setAvatar(profile.avatar || '')
       setBio(profile.bio || '')
-      setIsPublic(false)
+      setIsPublic(profile.is_public ?? false)
     }
   }, [profile])
 

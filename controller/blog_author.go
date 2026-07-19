@@ -16,6 +16,7 @@ type authorProfileView struct {
 	Slug        string `json:"slug"`
 	Avatar      string `json:"avatar"`
 	Bio         string `json:"bio"`
+	IsPublic    bool   `json:"is_public"`
 }
 
 // authorDetailView extends the profile with aggregate stats for the author page.
@@ -38,6 +39,7 @@ func authorProfileToView(p *model.AuthorProfile) authorProfileView {
 		Slug:        p.Slug,
 		Avatar:      p.Avatar,
 		Bio:         p.Bio,
+		IsPublic:    p.IsPublic,
 	}
 }
 
@@ -81,6 +83,7 @@ func buildAuthorProfileView(userId int) (*authorProfileView, error) {
 		Slug:        "", // no slug when profile is missing
 		Avatar:      "",
 		Bio:         "",
+		IsPublic:    false,
 	}, nil
 }
 
