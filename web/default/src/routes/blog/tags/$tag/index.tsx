@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useParams } from '@tanstack/react-router'
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Tag } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -59,25 +59,43 @@ function BlogTagPage() {
 
   return (
     <div className='min-h-screen bg-background'>
-      <div className='mx-auto max-w-4xl px-4 py-12'>
-        <div className='mb-8'>
-          <Link
-            to='/blog'
-            className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-          >
-            <ArrowLeft className='h-4 w-4' />
-            {t('All Articles')}
-          </Link>
+      <section className='border-b bg-gradient-to-br from-background via-background to-muted/50 pt-12 pb-10 md:pt-16 md:pb-12'>
+        <div className='mx-auto max-w-6xl px-4'>
+          <div className='mb-6'>
+            <Link
+              to='/blog'
+              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+            >
+              <ArrowLeft className='mr-1 h-4 w-4' />
+              {t('All Articles')}
+            </Link>
+          </div>
+
+          <div className='flex items-center gap-3'>
+            <span className='bg-primary/10 text-primary flex size-12 items-center justify-center rounded-xl'>
+              <Tag className='size-6' />
+            </span>
+            <div>
+              <h1 className='font-serif text-3xl font-bold tracking-tight md:text-4xl'>
+                {title}
+              </h1>
+              {!isLoading && (
+                <p className='text-muted-foreground mt-1 text-sm'>
+                  {t('{{count}} results', { count: total })}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
+      </section>
 
-        <h1 className='mb-6 text-3xl font-bold'>{title}</h1>
-
+      <main className='mx-auto max-w-6xl px-4 py-12'>
         {isLoading ? (
-          <div className='space-y-4'>
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
+            {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className='bg-muted animate-pulse h-36 rounded-lg p-6'
+                className='bg-muted animate-pulse h-80 rounded-2xl'
               />
             ))}
           </div>
@@ -88,14 +106,14 @@ function BlogTagPage() {
           </div>
         ) : (
           <>
-            <div className='space-y-4'>
+            <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
               {articles.map((article: BlogArticle) => (
                 <ArticleCard key={article.guid} article={article} />
               ))}
             </div>
 
             {totalPages > 1 && (
-              <div className='mt-8 flex items-center justify-center gap-3'>
+              <div className='mt-12 flex items-center justify-center gap-3'>
                 <Button
                   variant='outline'
                   size='sm'
@@ -121,7 +139,7 @@ function BlogTagPage() {
             )}
           </>
         )}
-      </div>
+      </main>
     </div>
   )
 }

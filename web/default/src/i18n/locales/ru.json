@@ -151,6 +151,7 @@
     "About {{days}} days left": "Примерно {{days}} дней",
     "About Baizor AI Platform": "About Baizor AI Platform",
     "About New API": "О New API",
+    "Accept": "Применить",
     "Accept Edits": "接受编辑",
     "Accept Unpriced Models": "Принимать модели без цены",
     "Accepts a JSON array of model identifiers that support the Imagine API.": "Принимает JSON-массив идентификаторов моделей, поддерживающих Imagine API.",
@@ -370,6 +371,7 @@
     "AI Proxy Library": "Библиотека прокси AI",
     "AI Reading Assistant": "ИИ-ассистент для чтения",
     "AI resource governance": "Управление AI-ресурсами",
+    "AI result": "Результат ИИ",
     "AI service operators": "Операторы AI-сервисов",
     "AI user guide": "AI user guide",
     "AI will generate an initial script based on your project brief.": "AI will generate an initial script based on your project brief.",
@@ -2468,6 +2470,7 @@
     "FAQ updated. Click \"Save Settings\" to apply.": "FAQ обновлён. Нажмите \"Сохранить настройки\" чтобы применить.",
     "FastGPT": "FastGPT",
     "Feature in development": "Функция в разработке",
+    "Featured": "Избранное",
     "Features": "Features",
     "Fee": "Сбор",
     "Fee Amount": "Сумма сбора",
@@ -3124,7 +3127,7 @@
     "Latency check": "Проверка задержки",
     "Latency short": "Зад.",
     "Latency trend (last 24h)": "Тренд задержки (за 24 часа)",
-    "Latest": "Latest",
+    "Latest": "Последние",
     "Latest platform updates and notices": "Последние обновления и уведомления платформы",
     "Latest results": "Latest results",
     "Launch client": "Launch client",
@@ -6689,6 +6692,7 @@
     "Write your article content here (Markdown supported)": "Write your article content here (Markdown supported)",
     "Write your screenplay here...": "Write your screenplay here...",
     "Write, edit and publish articles to Blog Hall.": "Write, edit and publish articles to Blog Hall.",
+    "Writing...": "Пишу...",
     "x": "x",
     "xAI": "xAI",
     "Xinchuang Certification": "Сертификация Xinchuang",
@@ -6744,6 +6748,8 @@
     "Zero-dependency install": "Zero-dependency install",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Continue writing": "Continue writing",
+    "Tip: select text to polish, expand, shorten, or rewrite.": "Tip: select text to polish, expand, shorten, or rewrite."
   }
 }

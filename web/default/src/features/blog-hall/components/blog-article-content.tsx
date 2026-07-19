@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Check, Eye, Loader2, MousePointerClick, PenLine, Sparkles } from 'lucide-react'
+import { Eye, Loader2, MousePointerClick, PenLine, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -28,6 +28,8 @@ import { cn } from '@/lib/utils'
 
 import { splitMarkdownIntoParagraphs } from '../lib/paragraph-utils'
 import { useBlogWorkspace } from './blog-workspace-provider'
+import { BlogAiEditToolbar } from './blog-ai-edit-toolbar'
+import { BlogAiInlineToolbar } from './blog-ai-inline-toolbar'
 
 // ============================================================================
 // Types
@@ -42,6 +44,7 @@ type EditorMode = 'edit' | 'select' | 'preview'
 export function BlogArticleContent() {
   const { t } = useTranslation()
   const {
+    article,
     content,
     setContent,
     title,
@@ -292,13 +295,31 @@ export function BlogArticleContent() {
 
       {/* ── Content area ────────────────────────────────────────── */}
       {mode === 'edit' ? (
-        <Textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder={t('Write your article content here (Markdown supported)')}
-          className='min-h-0 flex-1 resize-none font-mono text-sm leading-relaxed max-h-none'
-        />
+        <div className='flex min-h-0 flex-1 flex-col gap-3'>
+          <BlogAiEditToolbar
+            textareaRef={textareaRef}
+            content={content}
+            setContent={setContent}
+            title={title}
+            summary={summary}
+            articleId={article?.id}
+          />
+          <Textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder={t('Write your article content here (Markdown supported)')}
+            className='min-h-0 flex-1 resize-none font-mono text-sm leading-relaxed max-h-none'
+          />
+          <BlogAiInlineToolbar
+            textareaRef={textareaRef}
+            content={content}
+            setContent={setContent}
+            title={title}
+            summary={summary}
+            articleId={article?.id}
+          />
+        </div>
       ) : mode === 'select' ? (
         <div className='min-h-0 flex-1 overflow-hidden rounded-lg border'>
           {trimmedContent ? (

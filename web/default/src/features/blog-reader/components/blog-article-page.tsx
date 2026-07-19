@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from '@tanstack/react-router'
-import { ArrowLeft, BookOpen } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Type } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -31,6 +31,8 @@ import {
   estimateReadingTime,
   extractMarkdownHeadings,
 } from '@/lib/reading-utils'
+
+import { getPublishedArticle, getPublishedArticles } from '../api'
 import { ArticleToc } from './article-toc'
 import { BlogReaderPanel } from './blog-reader-panel'
 import { BlogTag } from './blog-tag'
@@ -42,7 +44,6 @@ import {
   type ReadingPreferences,
   useReadingPreferences,
 } from '../hooks/use-reading-preferences'
-import { getPublishedArticle, getPublishedArticles } from '../api'
 
 import type { BlogArticle, BlogAuthor } from '@/features/blog-hall/types'
 
@@ -131,145 +132,151 @@ export function BlogArticlePage() {
   return (
     <div className='min-h-screen bg-background'>
       <ReadingProgressBar />
-      <div className='mx-auto max-w-7xl px-4 py-12'>
-        <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
-          <div className='lg:col-span-2'>
-            {/* Back button */}
-            <div className='mb-8'>
-              <Link
-                to='/blog'
-                className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-              >
-                <ArrowLeft className='h-4 w-4' />
-                {t('All Articles')}
-              </Link>
-            </div>
 
-            {isLoading && (
-              <div className='space-y-4'>
-                <div className='bg-muted animate-pulse h-10 w-3/4 rounded' />
-                <div className='bg-muted animate-pulse h-4 w-1/3 rounded' />
-                <div className='bg-muted animate-pulse mt-8 h-64 rounded' />
-              </div>
-            )}
+      <div className='mx-auto max-w-6xl px-4 py-8 lg:py-12'>
+        <div className='mb-8'>
+          <Link
+            to='/blog'
+            className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+          >
+            <ArrowLeft className='mr-1.5 h-4 w-4' />
+            {t('All Articles')}
+          </Link>
+        </div>
 
-            {isError && (
-              <p className='text-destructive text-center'>
-                {t('Article not found or not yet published.')}
-              </p>
-            )}
+        {isLoading && (
+          <div className='mx-auto max-w-3xl space-y-4'>
+            <div className='bg-muted animate-pulse mx-auto h-8 w-3/4 rounded' />
+            <div className='bg-muted animate-pulse mx-auto h-4 w-1/3 rounded' />
+            <div className='bg-muted animate-pulse mt-8 h-64 rounded' />
+          </div>
+        )}
 
-            {article && (
-              <article>
+        {isError && (
+          <p className='text-destructive text-center'>
+            {t('Article not found or not yet published.')}
+          </p>
+        )}
+
+        {article && (
+          <div className='grid grid-cols-1 gap-10 lg:grid-cols-12'>
+            {/* Main article */}
+            <article className='lg:col-span-8'>
+              <div className='mx-auto max-w-3xl'>
                 {/* Cover image */}
                 {article.cover_image && (
-                  <img
-                    src={article.cover_image}
-                    alt={article.title}
-                    className='mb-6 w-full rounded-lg object-cover'
-                    style={{ maxHeight: '400px' }}
-                  />
-                )}
-
-                {/* Title */}
-                <h1 className='mb-4 text-3xl font-bold leading-tight'>
-                  {article.title}
-                </h1>
-
-                {/* Author byline */}
-                {article.author && (
-                  <div className='mb-6'>
-                    <AuthorByline author={article.author} />
+                  <div className='mb-8 overflow-hidden rounded-2xl'>
+                    <img
+                      src={article.cover_image}
+                      alt={article.title}
+                      className='aspect-[21/9] w-full object-cover'
+                    />
                   </div>
                 )}
 
-                {/* Metadata */}
-                <div className='text-muted-foreground mb-2 flex flex-wrap items-center gap-3 text-sm'>
-                  <time className='font-mono'>
-                    {formatTimestampToDate(
-                      article.published_at || article.created_time
+                {/* Title */}
+                <h1 className='font-serif text-4xl font-bold tracking-tight md:text-5xl'>
+                  {article.title}
+                </h1>
+
+                {/* Summary */}
+                {article.summary && (
+                  <p className='text-muted-foreground mt-4 text-lg leading-relaxed md:text-xl'>
+                    {article.summary}
+                  </p>
+                )}
+
+                {/* Byline */}
+                <div className='mt-6 flex flex-wrap items-center gap-4 border-y py-4 text-sm text-muted-foreground'>
+                  {article.author && <AuthorByline author={article.author} />}
+                  <div className='flex flex-wrap items-center gap-3'>
+                    <span className='inline-flex items-center gap-1.5'>
+                      <Calendar className='size-3.5' />
+                      <time>
+                        {formatTimestampToDate(
+                          article.published_at || article.created_time
+                        )}
+                      </time>
+                    </span>
+                    {article.content && (
+                      <>
+                        <span aria-hidden='true'>·</span>
+                        <span className='inline-flex items-center gap-1.5'>
+                          <Clock className='size-3.5' />
+                          {t('{{count}} min read', { count: readingTime })}
+                        </span>
+                        <span aria-hidden='true'>·</span>
+                        <span className='inline-flex items-center gap-1.5'>
+                          <Type className='size-3.5' />
+                          {t('{{count}} words', { count: wordCount })}
+                        </span>
+                      </>
                     )}
-                  </time>
-                  {article.content && (
-                    <>
-                      <span aria-hidden='true'>•</span>
-                      <span>
-                        {t('{{count}} min read', { count: readingTime })}
-                      </span>
-                      <span aria-hidden='true'>•</span>
-                      <span>
-                        {t('{{count}} words', { count: wordCount })}
-                      </span>
-                    </>
-                  )}
+                  </div>
                 </div>
 
                 {/* Tags */}
                 {article.tags.length > 0 && (
-                  <div className='mb-6 flex flex-wrap gap-1.5'>
+                  <div className='mt-4 flex flex-wrap gap-2'>
                     {article.tags.map((tag) => (
                       <BlogTag key={tag} tag={tag} />
                     ))}
                   </div>
                 )}
 
-                {/* Summary */}
-                {article.summary && (
-                  <p className='text-muted-foreground border-l-primary/40 mb-6 border-l-2 pl-4 text-base italic'>
-                    {article.summary}
-                  </p>
-                )}
-
                 {/* Content */}
-                <Markdown
-                  className={`prose-neutral ${lineHeightClasses[preferences.lineHeight]}`}
-                  headingIds
-                  imageZoom
-                  codeCopy
-                  proseSize={preferences.fontSize}
-                >
-                  {article.content || ''}
-                </Markdown>
+                <div className='mt-10'>
+                  <Markdown
+                    className={`prose-neutral ${lineHeightClasses[preferences.lineHeight]}`}
+                    headingIds
+                    imageZoom
+                    codeCopy
+                    proseSize={preferences.fontSize}
+                  >
+                    {article.content || ''}
+                  </Markdown>
+                </div>
 
                 {/* Author card */}
                 {article.author && (
-                  <div className='mt-12'>
+                  <div className='mt-14'>
                     <AuthorCard author={article.author} />
                   </div>
                 )}
 
                 {/* Related reading */}
-                {article && (
+                <div className='mt-14'>
                   <RelatedArticles
                     articleId={article.id}
                     currentGuid={article.guid}
                   />
-                )}
+                </div>
 
                 {/* More articles by this author */}
-                {article && (
+                <div className='mt-14'>
                   <MoreArticlesByAuthor
                     authorId={article.author_id}
                     currentGuid={article.guid}
                   />
-                )}
-              </article>
-            )}
-          </div>
-
-          <aside className='lg:col-span-1'>
-            {article && (
-              <div className='space-y-6 lg:sticky lg:top-24'>
-                <ReadingPreferencesPanel
-                  preferences={preferences}
-                  onChange={setPreferences}
-                />
-                <ArticleToc headings={headings} activeId={activeId} />
-                <BlogReaderPanel article={article} />
+                </div>
               </div>
-            )}
-          </aside>
-        </div>
+            </article>
+
+            {/* Sidebar */}
+            <aside className='lg:col-span-4'>
+              {article && (
+                <div className='space-y-6 lg:sticky lg:top-24'>
+                  <ReadingPreferencesPanel
+                    preferences={preferences}
+                    onChange={setPreferences}
+                  />
+                  <ArticleToc headings={headings} activeId={activeId} />
+                  <BlogReaderPanel article={article} />
+                </div>
+              )}
+            </aside>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -279,8 +286,8 @@ function AuthorByline({ author }: { author: BlogAuthor }) {
   const { t } = useTranslation()
   const content = (
     <>
-      <AuthorAvatar author={author} />
-      <span className='font-medium'>{author.display_name}</span>
+      <AuthorAvatar author={author} className='size-8' />
+      <span className='font-medium text-foreground'>{author.display_name}</span>
     </>
   )
 
@@ -289,7 +296,7 @@ function AuthorByline({ author }: { author: BlogAuthor }) {
       <Link
         to='/blog/authors/$authorSlug'
         params={{ authorSlug: author.slug }}
-        className='inline-flex items-center gap-2 text-sm hover:underline'
+        className='inline-flex items-center gap-2 hover:underline'
       >
         {content}
       </Link>
@@ -297,7 +304,7 @@ function AuthorByline({ author }: { author: BlogAuthor }) {
   }
 
   return (
-    <span className='inline-flex items-center gap-2 text-sm' title={t('Author')}>
+    <span className='inline-flex items-center gap-2' title={t('Author')}>
       {content}
     </span>
   )
@@ -306,11 +313,13 @@ function AuthorByline({ author }: { author: BlogAuthor }) {
 function AuthorCard({ author }: { author: BlogAuthor }) {
   const { t } = useTranslation()
   return (
-    <div className='bg-card border-border rounded-lg border p-6'>
+    <div className='bg-card border-border rounded-2xl border p-6'>
       <div className='flex items-start gap-4'>
         <AuthorAvatar author={author} className='size-16 text-lg' />
         <div className='flex-1'>
-          <h3 className='text-lg font-semibold'>{author.display_name}</h3>
+          <h3 className='font-serif text-lg font-semibold'>
+            {author.display_name}
+          </h3>
           {author.bio && (
             <p className='text-muted-foreground mt-1 text-sm'>{author.bio}</p>
           )}
@@ -342,13 +351,13 @@ function AuthorAvatar({
       <img
         src={author.avatar}
         alt={author.display_name}
-        className={`rounded-full object-cover ${className}`}
+        className={`rounded-full object-cover ring-1 ring-border ${className}`}
       />
     )
   }
   return (
     <span
-      className={`bg-primary/10 text-primary flex items-center justify-center rounded-full font-medium ${className}`}
+      className={`bg-primary/10 text-primary flex items-center justify-center rounded-full font-medium ring-1 ring-border ${className}`}
       aria-hidden='true'
     >
       {initial}
@@ -376,13 +385,12 @@ function MoreArticlesByAuthor({
   if (articles.length === 0) return null
 
   return (
-    <div className='mt-16'>
-      <h2 className='mb-4 flex items-center gap-2 text-xl font-semibold'>
-        <BookOpen className='h-5 w-5' />
+    <div>
+      <h2 className='mb-4 font-serif text-xl font-semibold'>
         {t('More from this author')}
       </h2>
-      <div className='space-y-4'>
-        {articles.slice(0, 3).map((article: BlogArticle) => (
+      <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+        {articles.slice(0, 2).map((article: BlogArticle) => (
           <MoreArticleCard key={article.guid} article={article} />
         ))}
       </div>
@@ -395,10 +403,10 @@ function MoreArticleCard({ article }: { article: BlogArticle }) {
     <Link
       to='/blog/$guid'
       params={{ guid: article.guid }}
-      className='block'
+      className='group block'
     >
-      <article className='group border-border bg-card hover:border-primary/50 rounded-lg border p-4 transition-colors'>
-        <h3 className='text-card-foreground group-hover:text-primary text-lg font-semibold leading-snug transition-colors'>
+      <article className='bg-card border-border hover:border-primary/20 h-full rounded-2xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-md'>
+        <h3 className='font-serif text-card-foreground group-hover:text-primary text-lg font-semibold leading-snug transition-colors'>
           {article.title}
         </h3>
         {article.summary && (

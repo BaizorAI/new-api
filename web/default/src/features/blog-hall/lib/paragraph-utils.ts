@@ -194,6 +194,15 @@ export function extractImagePrompt(content: string): string | null {
 }
 
 /**
+ * Extract continued text from an AI response.
+ * Looks for a fenced code block with the language `continue`.
+ */
+export function extractContinue(content: string): string | null {
+  const match = content.match(/```continue\s*\n([\s\S]*?)```/)
+  return match ? match[1].trim() : null
+}
+
+/**
  * Detect analysis result markers in AI response.
  * Returns the analysis type: 'pass' (✅), 'suggest' (⚠️), or null.
  */

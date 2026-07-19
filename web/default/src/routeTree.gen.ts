@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UserAgreementRouteImport } from './routes/user-agreement'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
+import { Route as BlogRouteRouteImport } from './routes/blog/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -120,6 +121,11 @@ const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
   path: '/privacy-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogRouteRoute = BlogRouteRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -154,9 +160,9 @@ const DocsIndexRoute = DocsIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
-  id: '/blog/',
-  path: '/blog/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => BlogRouteRoute,
 } as any)
 const AboutIndexRoute = AboutIndexRouteImport.update({
   id: '/about/',
@@ -268,19 +274,19 @@ const AuthenticatedBlogHallRouteRoute =
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const BlogSearchIndexRoute = BlogSearchIndexRouteImport.update({
-  id: '/blog/search/',
-  path: '/blog/search/',
-  getParentRoute: () => rootRouteImport,
+  id: '/search/',
+  path: '/search/',
+  getParentRoute: () => BlogRouteRoute,
 } as any)
 const BlogAuthorsIndexRoute = BlogAuthorsIndexRouteImport.update({
-  id: '/blog/authors/',
-  path: '/blog/authors/',
-  getParentRoute: () => rootRouteImport,
+  id: '/authors/',
+  path: '/authors/',
+  getParentRoute: () => BlogRouteRoute,
 } as any)
 const BlogGuidIndexRoute = BlogGuidIndexRouteImport.update({
-  id: '/blog/$guid/',
-  path: '/blog/$guid/',
-  getParentRoute: () => rootRouteImport,
+  id: '/$guid/',
+  path: '/$guid/',
+  getParentRoute: () => BlogRouteRoute,
 } as any)
 const AuthenticatedWalletIndexRoute =
   AuthenticatedWalletIndexRouteImport.update({
@@ -505,15 +511,15 @@ const authUserResetRoute = authUserResetRouteImport.update({
   getParentRoute: () => authRouteRoute,
 } as any)
 const BlogTagsTagIndexRoute = BlogTagsTagIndexRouteImport.update({
-  id: '/blog/tags/$tag/',
-  path: '/blog/tags/$tag/',
-  getParentRoute: () => rootRouteImport,
+  id: '/tags/$tag/',
+  path: '/tags/$tag/',
+  getParentRoute: () => BlogRouteRoute,
 } as any)
 const BlogAuthorsAuthorSlugIndexRoute =
   BlogAuthorsAuthorSlugIndexRouteImport.update({
-    id: '/blog/authors/$authorSlug/',
-    path: '/blog/authors/$authorSlug/',
-    getParentRoute: () => rootRouteImport,
+    id: '/authors/$authorSlug/',
+    path: '/authors/$authorSlug/',
+    getParentRoute: () => BlogRouteRoute,
   } as any)
 const AuthenticatedWalletTopupIndexRoute =
   AuthenticatedWalletTopupIndexRouteImport.update({
@@ -674,6 +680,7 @@ const AuthenticatedStudioProjectIdStageKeyIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/blog': typeof BlogRouteRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/user-agreement': typeof UserAgreementRoute
   '/blog-hall': typeof AuthenticatedBlogHallRouteRouteWithChildren
@@ -873,6 +880,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/(auth)': typeof authRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/blog': typeof BlogRouteRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/user-agreement': typeof UserAgreementRoute
   '/_authenticated/blog-hall': typeof AuthenticatedBlogHallRouteRouteWithChildren
@@ -975,6 +983,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/blog'
     | '/privacy-policy'
     | '/user-agreement'
     | '/blog-hall'
@@ -1173,6 +1182,7 @@ export interface FileRouteTypes {
     | '/'
     | '/(auth)'
     | '/_authenticated'
+    | '/blog'
     | '/privacy-policy'
     | '/user-agreement'
     | '/_authenticated/blog-hall'
@@ -1276,6 +1286,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   authRouteRoute: typeof authRouteRouteWithChildren
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  BlogRouteRoute: typeof BlogRouteRouteWithChildren
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   UserAgreementRoute: typeof UserAgreementRoute
   errors401Route: typeof errors401Route
@@ -1287,16 +1298,10 @@ export interface RootRouteChildren {
   ConsoleTopupRoute: typeof ConsoleTopupRoute
   OauthProviderRoute: typeof OauthProviderRoute
   AboutIndexRoute: typeof AboutIndexRoute
-  BlogIndexRoute: typeof BlogIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
   HuayuIndexRoute: typeof HuayuIndexRoute
   RankingsIndexRoute: typeof RankingsIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
-  BlogGuidIndexRoute: typeof BlogGuidIndexRoute
-  BlogAuthorsIndexRoute: typeof BlogAuthorsIndexRoute
-  BlogSearchIndexRoute: typeof BlogSearchIndexRoute
-  BlogAuthorsAuthorSlugIndexRoute: typeof BlogAuthorsAuthorSlugIndexRoute
-  BlogTagsTagIndexRoute: typeof BlogTagsTagIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1313,6 +1318,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy-policy'
       fullPath: '/privacy-policy'
       preLoaderRoute: typeof PrivacyPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -1366,10 +1378,10 @@ declare module '@tanstack/react-router' {
     }
     '/blog/': {
       id: '/blog/'
-      path: '/blog'
+      path: '/'
       fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BlogRouteRoute
     }
     '/about/': {
       id: '/about/'
@@ -1520,24 +1532,24 @@ declare module '@tanstack/react-router' {
     }
     '/blog/search/': {
       id: '/blog/search/'
-      path: '/blog/search'
+      path: '/search'
       fullPath: '/blog/search/'
       preLoaderRoute: typeof BlogSearchIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BlogRouteRoute
     }
     '/blog/authors/': {
       id: '/blog/authors/'
-      path: '/blog/authors'
+      path: '/authors'
       fullPath: '/blog/authors/'
       preLoaderRoute: typeof BlogAuthorsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BlogRouteRoute
     }
     '/blog/$guid/': {
       id: '/blog/$guid/'
-      path: '/blog/$guid'
+      path: '/$guid'
       fullPath: '/blog/$guid/'
       preLoaderRoute: typeof BlogGuidIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BlogRouteRoute
     }
     '/_authenticated/wallet/': {
       id: '/_authenticated/wallet/'
@@ -1807,17 +1819,17 @@ declare module '@tanstack/react-router' {
     }
     '/blog/tags/$tag/': {
       id: '/blog/tags/$tag/'
-      path: '/blog/tags/$tag'
+      path: '/tags/$tag'
       fullPath: '/blog/tags/$tag/'
       preLoaderRoute: typeof BlogTagsTagIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BlogRouteRoute
     }
     '/blog/authors/$authorSlug/': {
       id: '/blog/authors/$authorSlug/'
-      path: '/blog/authors/$authorSlug'
+      path: '/authors/$authorSlug'
       fullPath: '/blog/authors/$authorSlug/'
       preLoaderRoute: typeof BlogAuthorsAuthorSlugIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BlogRouteRoute
     }
     '/_authenticated/wallet/topup/': {
       id: '/_authenticated/wallet/topup/'
@@ -2251,10 +2263,33 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface BlogRouteRouteChildren {
+  BlogIndexRoute: typeof BlogIndexRoute
+  BlogGuidIndexRoute: typeof BlogGuidIndexRoute
+  BlogAuthorsIndexRoute: typeof BlogAuthorsIndexRoute
+  BlogSearchIndexRoute: typeof BlogSearchIndexRoute
+  BlogAuthorsAuthorSlugIndexRoute: typeof BlogAuthorsAuthorSlugIndexRoute
+  BlogTagsTagIndexRoute: typeof BlogTagsTagIndexRoute
+}
+
+const BlogRouteRouteChildren: BlogRouteRouteChildren = {
+  BlogIndexRoute: BlogIndexRoute,
+  BlogGuidIndexRoute: BlogGuidIndexRoute,
+  BlogAuthorsIndexRoute: BlogAuthorsIndexRoute,
+  BlogSearchIndexRoute: BlogSearchIndexRoute,
+  BlogAuthorsAuthorSlugIndexRoute: BlogAuthorsAuthorSlugIndexRoute,
+  BlogTagsTagIndexRoute: BlogTagsTagIndexRoute,
+}
+
+const BlogRouteRouteWithChildren = BlogRouteRoute._addFileChildren(
+  BlogRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   authRouteRoute: authRouteRouteWithChildren,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  BlogRouteRoute: BlogRouteRouteWithChildren,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   UserAgreementRoute: UserAgreementRoute,
   errors401Route: errors401Route,
@@ -2266,16 +2301,10 @@ const rootRouteChildren: RootRouteChildren = {
   ConsoleTopupRoute: ConsoleTopupRoute,
   OauthProviderRoute: OauthProviderRoute,
   AboutIndexRoute: AboutIndexRoute,
-  BlogIndexRoute: BlogIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
   HuayuIndexRoute: HuayuIndexRoute,
   RankingsIndexRoute: RankingsIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
-  BlogGuidIndexRoute: BlogGuidIndexRoute,
-  BlogAuthorsIndexRoute: BlogAuthorsIndexRoute,
-  BlogSearchIndexRoute: BlogSearchIndexRoute,
-  BlogAuthorsAuthorSlugIndexRoute: BlogAuthorsAuthorSlugIndexRoute,
-  BlogTagsTagIndexRoute: BlogTagsTagIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

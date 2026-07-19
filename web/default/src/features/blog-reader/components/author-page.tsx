@@ -34,6 +34,7 @@ import {
   unfollowBlogAuthor,
 } from '../author-api'
 import { ArticleCard } from './article-card'
+import { BlogHeader } from './blog-header'
 import { BlogTag } from './blog-tag'
 
 import type { BlogArticle } from '@/features/blog-hall/types'
@@ -119,57 +120,57 @@ export function AuthorPage() {
         counts.set(tag, (counts.get(tag) || 0) + 1)
       }
     }
-    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10)
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 12)
   }, [articles])
 
   return (
     <div className='min-h-screen bg-background'>
-      <div className='mx-auto max-w-4xl px-4 py-12'>
-        {/* Back button */}
-        <div className='mb-8'>
-          <Link
-            to='/blog'
-            className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-          >
-            <ArrowLeft className='h-4 w-4' />
-            {t('All Articles')}
-          </Link>
-        </div>
+      <BlogHeader />
 
-        {authorQuery.isLoading ? (
-          <div className='space-y-4'>
-            <div className='bg-muted animate-pulse h-24 w-full rounded-lg' />
+      <section className='border-b bg-gradient-to-br from-background via-background to-muted/50 pt-12 pb-10 md:pt-16 md:pb-12'>
+        <div className='mx-auto max-w-6xl px-4'>
+          <div className='mb-6'>
+            <Link
+              to='/blog'
+              className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+            >
+              <ArrowLeft className='mr-1 h-4 w-4' />
+              {t('All Articles')}
+            </Link>
           </div>
-        ) : !author ? (
-          <p className='text-destructive text-center'>{t('Author not found.')}</p>
-        ) : (
-          <>
-            {/* Author header */}
-            <div className='mb-10 flex items-start gap-5'>
+
+          {authorQuery.isLoading ? (
+            <div className='bg-muted animate-pulse h-32 w-full rounded-2xl' />
+          ) : !author ? (
+            <p className='text-destructive text-center'>{t('Author not found.')}</p>
+          ) : (
+            <div className='flex flex-col items-start gap-5 sm:flex-row sm:items-center'>
               {author.avatar ? (
                 <img
                   src={author.avatar}
                   alt={author.display_name}
-                  className='size-20 rounded-full object-cover'
+                  className='size-24 rounded-full object-cover ring-4 ring-background'
                 />
               ) : (
-                <span className='bg-primary/10 text-primary flex size-20 items-center justify-center rounded-full text-3xl font-medium'>
+                <span className='bg-primary/10 text-primary flex size-24 items-center justify-center rounded-full text-4xl font-medium ring-4 ring-background'>
                   {initial}
                 </span>
               )}
               <div className='flex-1'>
-                <h1 className='text-3xl font-bold'>{author.display_name}</h1>
+                <h1 className='font-serif text-3xl font-bold tracking-tight md:text-4xl'>
+                  {author.display_name}
+                </h1>
                 {author.bio && (
                   <p className='text-muted-foreground mt-2 max-w-2xl whitespace-pre-line'>
                     {author.bio}
                   </p>
                 )}
                 <div className='text-muted-foreground mt-3 flex flex-wrap items-center gap-4 text-sm'>
-                  <span className='flex items-center gap-1'>
+                  <span className='inline-flex items-center gap-1'>
                     <BookOpen className='h-4 w-4' />
                     {t('{count} articles', { count: author.article_count })}
                   </span>
-                  <span className='flex items-center gap-1'>
+                  <span className='inline-flex items-center gap-1'>
                     <Users className='h-4 w-4' />
                     {t('{count} followers', { count: author.follower_count })}
                   </span>
@@ -179,103 +180,101 @@ export function AuthorPage() {
                     </span>
                   )}
                 </div>
-                <div className='mt-4'>
-                  {author.is_followed ? (
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      disabled={unfollowMutation.isPending}
-                      onClick={() => void unfollowMutation.mutate()}
-                    >
-                      {unfollowMutation.isPending ? t('Unfollowing...') : t('Unfollow')}
-                    </Button>
-                  ) : (
-                    <Button
-                      size='sm'
-                      disabled={followMutation.isPending}
-                      onClick={() => void followMutation.mutate()}
-                    >
-                      {followMutation.isPending ? t('Following...') : t('Follow')}
-                    </Button>
-                  )}
-                </div>
+              </div>
+              <div className='shrink-0'>
+                {author.is_followed ? (
+                  <Button
+                    variant='outline'
+                    disabled={unfollowMutation.isPending}
+                    onClick={() => void unfollowMutation.mutate()}
+                  >
+                    {unfollowMutation.isPending ? t('Unfollowing...') : t('Unfollow')}
+                  </Button>
+                ) : (
+                  <Button
+                    disabled={followMutation.isPending}
+                    onClick={() => void followMutation.mutate()}
+                  >
+                    {followMutation.isPending ? t('Following...') : t('Follow')}
+                  </Button>
+                )}
               </div>
             </div>
+          )}
+        </div>
+      </section>
 
-            {/* Tag cloud */}
-            {tagCounts.length > 0 && (
-              <div className='mb-8'>
-                <h2 className='mb-3 text-sm font-semibold'>{t('Topics')}</h2>
-                <div className='flex flex-wrap gap-2'>
-                  {tagCounts.map(([tag, count]) => (
-                    <span
-                      key={tag}
-                      className='inline-flex items-center gap-1'
-                    >
-                      <BlogTag tag={tag} />
-                      <span className='text-muted-foreground/60 text-xs'>×{count}</span>
-                    </span>
-                  ))}
-                </div>
+      <main className='mx-auto max-w-6xl px-4 py-12'>
+        {/* Tag cloud */}
+        {tagCounts.length > 0 && (
+          <div className='mb-10'>
+            <h2 className='mb-3 text-sm font-semibold'>{t('Topics')}</h2>
+            <div className='flex flex-wrap gap-2'>
+              {tagCounts.map(([tag, count]) => (
+                <span
+                  key={tag}
+                  className='inline-flex items-center gap-1'
+                >
+                  <BlogTag tag={tag} />
+                  <span className='text-muted-foreground/60 text-xs'>×{count}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Articles */}
+        <h2 className='mb-4 flex items-center gap-2 font-serif text-xl font-semibold tracking-tight'>
+          <BookOpen className='h-5 w-5' />
+          {t('Articles')}
+        </h2>
+
+        {articlesQuery.isLoading ? (
+          <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className='bg-muted animate-pulse h-80 rounded-2xl' />
+            ))}
+          </div>
+        ) : articles.length === 0 ? (
+          <p className='text-muted-foreground py-12 text-center'>
+            {t('No published articles yet.')}
+          </p>
+        ) : (
+          <>
+            <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
+              {articles.map((article: BlogArticle) => (
+                <ArticleCard key={article.guid} article={article} />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className='mt-12 flex items-center justify-center gap-3'>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className='h-4 w-4' />
+                  {t('Previous')}
+                </Button>
+                <span className='text-muted-foreground text-sm'>
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  {t('Next')}
+                  <ChevronRight className='h-4 w-4' />
+                </Button>
               </div>
-            )}
-
-            {/* Articles */}
-            <h2 className='mb-4 flex items-center gap-2 text-xl font-semibold'>
-              <BookOpen className='h-5 w-5' />
-              {t('Articles')}
-            </h2>
-
-            {articlesQuery.isLoading ? (
-              <div className='space-y-4'>
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className='bg-muted animate-pulse h-36 rounded-lg' />
-                ))}
-              </div>
-            ) : articles.length === 0 ? (
-              <p className='text-muted-foreground py-12 text-center'>
-                {t('No published articles yet.')}
-              </p>
-            ) : (
-              <>
-                <div className='space-y-4'>
-                  {articles.map((article: BlogArticle) => (
-                    <ArticleCard key={article.guid} article={article} />
-                  ))}
-                </div>
-
-                {totalPages > 1 && (
-                  <div className='mt-8 flex items-center justify-center gap-3'>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className='h-4 w-4' />
-                      {t('Previous')}
-                    </Button>
-                    <span className='text-muted-foreground text-sm'>
-                      {page} / {totalPages}
-                    </span>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                    >
-                      {t('Next')}
-                      <ChevronRight className='h-4 w-4' />
-                    </Button>
-                  </div>
-                )}
-              </>
             )}
           </>
         )}
-      </div>
+      </main>
     </div>
   )
 }
-
-

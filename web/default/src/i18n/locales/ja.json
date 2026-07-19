@@ -151,6 +151,7 @@
     "About {{days}} days left": "約 {{days}} 日分",
     "About Baizor AI Platform": "About Baizor AI Platform",
     "About New API": "New API について",
+    "Accept": "適用",
     "Accept Edits": "接受编辑",
     "Accept Unpriced Models": "価格設定されていないモデルを許可",
     "Accepts a JSON array of model identifiers that support the Imagine API.": "Imagine APIをサポートするモデル識別子のJSON配列を受け入れます。",
@@ -370,6 +371,7 @@
     "AI Proxy Library": "AIプロキシライブラリ",
     "AI Reading Assistant": "AI読書アシスタント",
     "AI resource governance": "AI リソースガバナンス",
+    "AI result": "AI 結果",
     "AI service operators": "AI サービス運用者",
     "AI user guide": "AI user guide",
     "AI will generate an initial script based on your project brief.": "AI will generate an initial script based on your project brief.",
@@ -2468,6 +2470,7 @@
     "FAQ updated. Click \"Save Settings\" to apply.": "FAQ が更新されました。「設定を保存」をクリックして適用してください。",
     "FastGPT": "FastGPT",
     "Feature in development": "開発中の機能です",
+    "Featured": "注目",
     "Features": "Features",
     "Fee": "手数料",
     "Fee Amount": "料金額",
@@ -3124,7 +3127,7 @@
     "Latency check": "レイテンシ確認",
     "Latency short": "遅延",
     "Latency trend (last 24h)": "レイテンシ推移（直近 24 時間）",
-    "Latest": "Latest",
+    "Latest": "最新",
     "Latest platform updates and notices": "最新のプラットフォーム更新と通知",
     "Latest results": "Latest results",
     "Launch client": "Launch client",
@@ -6689,6 +6692,7 @@
     "Write your article content here (Markdown supported)": "Write your article content here (Markdown supported)",
     "Write your screenplay here...": "Write your screenplay here...",
     "Write, edit and publish articles to Blog Hall.": "Write, edit and publish articles to Blog Hall.",
+    "Writing...": "作成中...",
     "x": "x",
     "xAI": "xAI",
     "Xinchuang Certification": "信創認証",
@@ -6744,6 +6748,8 @@
     "Zero-dependency install": "Zero-dependency install",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム"
+    "Zoom": "ズーム",
+    "Continue writing": "Continue writing",
+    "Tip: select text to polish, expand, shorten, or rewrite.": "Tip: select text to polish, expand, shorten, or rewrite."
   }
 }

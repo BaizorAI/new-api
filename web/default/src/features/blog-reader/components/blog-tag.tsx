@@ -24,19 +24,39 @@ interface BlogTagProps {
   tag: string
   className?: string
   stopPropagation?: boolean
+  variant?: 'default' | 'pill' | 'filled'
 }
 
-export function BlogTag({ tag, className, stopPropagation = true }: BlogTagProps) {
+function tagHue(tag: string): number {
+  let hash = 0
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return Math.abs(hash) % 360
+}
+
+export function BlogTag({
+  tag,
+  className,
+  stopPropagation = true,
+  variant = 'default',
+}: BlogTagProps) {
+  const hue = tagHue(tag)
+  const isFilled = variant === 'filled'
+
   return (
     <Link
       to='/blog/tags/$tag'
       params={{ tag }}
       onClick={stopPropagation ? (e) => e.stopPropagation() : undefined}
       className={cn(
-        'inline-flex w-fit max-w-full min-w-0 shrink items-center rounded-4xl px-2 py-0.5 text-xs font-medium tracking-normal whitespace-nowrap',
-        'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors',
+        'inline-flex w-fit max-w-full min-w-0 shrink items-center rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-all',
+        isFilled
+          ? 'text-white shadow-sm hover:opacity-90'
+          : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground',
         className
       )}
+      style={isFilled ? { backgroundColor: `hsl(${hue} 65% 55%)` } : undefined}
       title={tag}
     >
       <span className='min-w-0 truncate leading-normal'>{tag}</span>

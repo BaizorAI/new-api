@@ -151,6 +151,7 @@
     "About {{days}} days left": "约剩 {{days}} 天",
     "About Baizor AI Platform": "关于 Baizor AI 平台",
     "About New API": "关于 New API",
+    "Accept": "接受",
     "Accept Edits": "接受编辑",
     "Accept Unpriced Models": "接受未定价模型",
     "Accepts a JSON array of model identifiers that support the Imagine API.": "接受支持 Imagine API 的模型标识符的 JSON 数组。",
@@ -370,6 +371,7 @@
     "AI Proxy Library": "AI 代理库",
     "AI Reading Assistant": "AI 阅读助手",
     "AI resource governance": "AI 资源治理",
+    "AI result": "AI 结果",
     "AI service operators": "AI 服务运营者",
     "AI user guide": "AI 使用者指南",
     "AI will generate an initial script based on your project brief.": "AI 将根据项目简报生成初步剧本。",
@@ -2468,6 +2470,7 @@
     "FAQ updated. Click \"Save Settings\" to apply.": "FAQ 已更新。点击 \"保存设置\" 以应用。",
     "FastGPT": "FastGPT",
     "Feature in development": "功能开发中",
+    "Featured": "精选",
     "Features": "功能特性",
     "Fee": "扣费",
     "Fee Amount": "扣费金额",
@@ -3124,7 +3127,7 @@
     "Latency check": "延迟检测",
     "Latency short": "延迟",
     "Latency trend (last 24h)": "延迟趋势（最近 24 小时）",
-    "Latest": "最近更新",
+    "Latest": "最新",
     "Latest platform updates and notices": "最新平台更新和通知",
     "Latest results": "最新成果",
     "Launch client": "启动客户端",
@@ -6689,6 +6692,7 @@
     "Write your article content here (Markdown supported)": "在此处写入文章内容（支持 Markdown）",
     "Write your screenplay here...": "在此编写剧本……",
     "Write, edit and publish articles to Blog Hall.": "在博客堂写作、编辑并发布文章。",
+    "Writing...": "正在写作...",
     "x": "x",
     "xAI": "xAI",
     "Xinchuang Certification": "信创认证",
@@ -6744,6 +6748,8 @@
     "Zero-dependency install": "零依赖安装",
     "Zhipu": "智谱",
     "Zhipu V4": "智谱 V4",
-    "Zoom": "缩放"
+    "Zoom": "缩放",
+    "Continue writing": "续写",
+    "Tip: select text to polish, expand, shorten, or rewrite.": "提示：选中文本即可进行润色、扩写、精简或重写。"
   }
 }

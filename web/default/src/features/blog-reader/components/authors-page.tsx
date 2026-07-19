@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 
 import { getBlogAuthors } from '../author-api'
+import { BlogHeader } from './blog-header'
 
 import type { BlogAuthorDetail } from '../author-types'
 
@@ -45,22 +46,31 @@ export function AuthorsPage() {
 
   return (
     <div className='min-h-screen bg-background'>
-      <div className='mx-auto max-w-4xl px-4 py-12'>
-        {/* Header */}
-        <div className='mb-10 flex items-center gap-3'>
-          <Users className='text-primary h-8 w-8' />
-          <div>
-            <h1 className='text-3xl font-bold'>{t('Authors')}</h1>
-            <p className='text-muted-foreground text-sm'>
-              {t('People behind the articles')}
-            </p>
+      <BlogHeader />
+
+      <section className='border-b bg-gradient-to-br from-background via-background to-muted/50 pt-12 pb-10 md:pt-16 md:pb-12'>
+        <div className='mx-auto max-w-6xl px-4'>
+          <div className='flex items-center gap-3'>
+            <span className='bg-primary/10 text-primary flex size-12 items-center justify-center rounded-xl'>
+              <Users className='size-6' />
+            </span>
+            <div>
+              <h1 className='font-serif text-3xl font-bold tracking-tight md:text-4xl'>
+                {t('Authors')}
+              </h1>
+              <p className='text-muted-foreground mt-1 text-sm'>
+                {t('People behind the articles')}
+              </p>
+            </div>
           </div>
         </div>
+      </section>
 
+      <main className='mx-auto max-w-6xl px-4 py-12'>
         {isLoading ? (
-          <div className='grid gap-4 sm:grid-cols-2'>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className='bg-muted animate-pulse h-32 rounded-lg' />
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className='bg-muted animate-pulse h-40 rounded-2xl' />
             ))}
           </div>
         ) : authors.length === 0 ? (
@@ -70,14 +80,14 @@ export function AuthorsPage() {
           </div>
         ) : (
           <>
-            <div className='grid gap-4 sm:grid-cols-2'>
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'>
               {authors.map((author) => (
                 <AuthorCard key={author.id} author={author} />
               ))}
             </div>
 
             {totalPages > 1 && (
-              <div className='mt-8 flex items-center justify-center gap-3'>
+              <div className='mt-12 flex items-center justify-center gap-3'>
                 <Button
                   variant='outline'
                   size='sm'
@@ -103,7 +113,7 @@ export function AuthorsPage() {
             )}
           </>
         )}
-      </div>
+      </main>
     </div>
   )
 }
@@ -117,32 +127,34 @@ function AuthorCard({ author }: { author: BlogAuthorDetail }) {
       params={{ authorSlug: author.slug }}
       className='block'
     >
-      <div className='group border-border bg-card hover:border-primary/50 rounded-lg border p-5 transition-colors'>
-        <div className='flex items-start gap-4'>
+      <div className='group bg-card border-border hover:border-primary/30 h-full overflow-hidden rounded-2xl border p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg'>
+        <div className='flex flex-col items-center text-center'>
           {author.avatar ? (
             <img
               src={author.avatar}
               alt={author.display_name}
-              className='size-14 rounded-full object-cover'
+              className='size-20 rounded-full object-cover ring-4 ring-background'
             />
           ) : (
-            <span className='bg-primary/10 text-primary flex size-14 items-center justify-center rounded-full text-xl font-medium'>
+            <span className='bg-primary/10 text-primary flex size-20 items-center justify-center rounded-full text-2xl font-medium ring-4 ring-background'>
               {initial}
             </span>
           )}
-          <div className='flex-1'>
-            <h2 className='text-lg font-semibold group-hover:text-primary transition-colors'>
-              {author.display_name}
-            </h2>
-            {author.bio && (
-              <p className='text-muted-foreground mt-1 line-clamp-2 text-sm'>
-                {author.bio}
-              </p>
-            )}
-            <p className='text-muted-foreground mt-2 text-xs'>
-              {t('{count} articles', { count: author.article_count })}
+          <h2 className='mt-4 text-lg font-semibold transition-colors group-hover:text-primary'>
+            {author.display_name}
+          </h2>
+          {author.bio ? (
+            <p className='text-muted-foreground mt-1 line-clamp-2 text-sm'>
+              {author.bio}
             </p>
-          </div>
+          ) : (
+            <p className='text-muted-foreground/50 mt-1 text-sm italic'>
+              {t('A short introduction about you')}
+            </p>
+          )}
+          <p className='text-muted-foreground mt-4 text-xs'>
+            {t('{count} articles', { count: author.article_count })}
+          </p>
         </div>
       </div>
     </Link>

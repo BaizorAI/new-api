@@ -151,6 +151,7 @@
     "About {{days}} days left": "About {{days}} days left",
     "About Baizor AI Platform": "About Baizor AI Platform",
     "About New API": "About New API",
+    "Accept": "Accept",
     "Accept Edits": "接受编辑",
     "Accept Unpriced Models": "Accept Unpriced Models",
     "Accepts a JSON array of model identifiers that support the Imagine API.": "Accepts a JSON array of model identifiers that support the Imagine API.",
@@ -370,6 +371,7 @@
     "AI Proxy Library": "AI Proxy Library",
     "AI Reading Assistant": "AI Reading Assistant",
     "AI resource governance": "AI resource governance",
+    "AI result": "AI result",
     "AI service operators": "AI service operators",
     "AI user guide": "AI user guide",
     "AI will generate an initial script based on your project brief.": "AI will generate an initial script based on your project brief.",
@@ -2468,6 +2470,7 @@
     "FAQ updated. Click \"Save Settings\" to apply.": "FAQ updated. Click \"Save Settings\" to apply.",
     "FastGPT": "FastGPT",
     "Feature in development": "Feature in development",
+    "Featured": "Featured",
     "Features": "Features",
     "Fee": "Fee",
     "Fee Amount": "Fee Amount",
@@ -6689,6 +6692,7 @@
     "Write your article content here (Markdown supported)": "Write your article content here (Markdown supported)",
     "Write your screenplay here...": "Write your screenplay here...",
     "Write, edit and publish articles to Blog Hall.": "Write, edit and publish articles to Blog Hall.",
+    "Writing...": "Writing...",
     "x": "x",
     "xAI": "xAI",
     "Xinchuang Certification": "Xinchuang Certification",
@@ -6744,6 +6748,8 @@
     "Zero-dependency install": "Zero-dependency install",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Continue writing": "Continue writing",
+    "Tip: select text to polish, expand, shorten, or rewrite.": "Tip: select text to polish, expand, shorten, or rewrite."
   }
 }
