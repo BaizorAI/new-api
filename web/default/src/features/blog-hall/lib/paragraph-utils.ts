@@ -119,31 +119,64 @@ export function extractFullArticle(content: string): string | null {
   return null
 }
 
+function cleanTitleLine(line: string): string | null {
+  const cleaned = line
+    .trim()
+    // Remove leading list markers / numbering such as "1.", "2)", "-", "*", ">"
+    .replace(/^[\d]+[.)、．\s]+/, '')
+    .replace(/^[-*•>\s]+/, '')
+    // Remove surrounding bold/italic markers and quotes
+    .replace(/^[*"'"'`]+|[*"'"'`]+$/g, '')
+    .trim()
+  return cleaned || null
+}
+
 /**
- * Extract title suggestion from AI response text.
- * Looks for: H1 heading (# Title), bold title (**Title**), or 标题: label.
+ * Extract title candidate list from AI response text.
+ * Looks for a ```titles block first; falls back to a single H1 heading,
+ * bold title, or 标题:/Title: label.
  */
-export function extractTitle(content: string): string | null {
-  // titles block — AI generates multiple candidates, take the first one
+export function extractTitles(content: string): string[] {
   const titlesMatch = content.match(/```titles\s*\n([\s\S]*?)```/)
   if (titlesMatch?.[1]?.trim()) {
-    const lines = titlesMatch[1].trim().split(/\n/).filter(Boolean)
-    if (lines.length > 0) return lines[0].trim().replace(/^[\d.]+\s*/, '')
+    const seen = new Set<string>()
+    const titles: string[] = []
+    for (const line of titlesMatch[1].trim().split(/\n/)) {
+      const cleaned = cleanTitleLine(line)
+      if (cleaned && !seen.has(cleaned)) {
+        seen.add(cleaned)
+        titles.push(cleaned)
+      }
+    }
+    if (titles.length > 0) return titles
   }
 
   // # Title style heading
   const h1Match = content.match(/^#\s+(.+?)(?:\n|$)/m)
-  if (h1Match?.[1]?.trim()) return h1Match[1].trim().replace(/\*\*/g, '')
+  if (h1Match?.[1]?.trim()) {
+    return [h1Match[1].trim().replace(/\*\*/g, '')]
+  }
 
   // **Title** on its own line
   const boldMatch = content.match(/^\*\*(.+?)\*\*\s*$/m)
-  if (boldMatch?.[1]?.trim()) return boldMatch[1].trim()
+  if (boldMatch?.[1]?.trim()) {
+    return [boldMatch[1].trim()]
+  }
 
   // 标题：/ 标题: style
   const labelMatch = content.match(/(?:标题|Title)[：:]\s*(.+?)(?:\n|$)/im)
-  if (labelMatch?.[1]?.trim()) return labelMatch[1].trim().replace(/[\*\"]/g, '')
+  if (labelMatch?.[1]?.trim()) {
+    return [labelMatch[1].trim().replace(/[\*\"]/g, '')]
+  }
 
-  return null
+  return []
+}
+
+/**
+ * Extract a single title suggestion from AI response text.
+ */
+export function extractTitle(content: string): string | null {
+  return extractTitles(content)[0] ?? null
 }
 
 /**

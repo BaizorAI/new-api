@@ -1390,6 +1390,7 @@
     "Continue work": "Continue work",
     "Continue working": "続けて加工",
     "Continue working from this result prompt": "この成果をもとに続けて作業してください：\n\nタイトル：{{title}}\n\nファイル：\n{{files}}\n\nプレビュー：\n{{preview}}\n\nこの成果の改善、書き換え、要約、変換、または拡張を続けてください。目的が不明な場合は、何を変更したいか確認してください。",
+    "Continue writing": "Continue writing",
     "Contract review, compliance, summarisation": "契約レビュー・コンプライアンス・要約",
     "Control users, API tokens, OAuth, 2FA, passkeys, model limits, request logs and secure reveal flows for sensitive credentials.": "Control users, API tokens, OAuth, 2FA, passkeys, model limits, request logs and secure reveal flows for sensitive credentials.",
     "Control users, application credentials, model permissions, quota boundaries, request logs and security audit records.": "Control users, application credentials, model permissions, quota boundaries, request logs and security audit records.",
@@ -3992,6 +3993,7 @@
     "Open a source model first": "先にソースモデルを開いてください",
     "Open and extensible": "Open and extensible",
     "Open CC Switch": "CC Switch を開く",
+    "Open editor": "エディタを開く",
     "Open HermesAgent": "Open HermesAgent",
     "Open in chat": "チャットで開く",
     "Open in new tab": "新しいタブで開く",
@@ -5958,6 +5960,7 @@
     "Timing": "所要時間",
     "Tip: click a paragraph to select it for AI modification.": "Tip: click a paragraph to select it for AI modification.",
     "Tip: double-click a paragraph to select it, then use the AI panel to modify.": "Tip: double-click a paragraph to select it, then use the AI panel to modify.",
+    "Tip: select text to polish, expand, shorten, or rewrite.": "Tip: select text to polish, expand, shorten, or rewrite.",
     "Title": "标题",
     "Title updated.": "Title updated.",
     "to access this resource.": "このリソースにアクセスするには。",
@@ -6748,8 +6751,6 @@
     "Zero-dependency install": "Zero-dependency install",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム",
-    "Continue writing": "Continue writing",
-    "Tip: select text to polish, expand, shorten, or rewrite.": "Tip: select text to polish, expand, shorten, or rewrite."
+    "Zoom": "ズーム"
   }
 }

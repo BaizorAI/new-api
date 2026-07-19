@@ -19,8 +19,10 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
+  Eye,
   Loader2,
   Pencil,
+  PenLine,
   Save,
   SquareIcon,
   Trash2,
@@ -52,6 +54,7 @@ import {
   ResizablePanelGroup,
 } from '@/components/ui/resizable'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Textarea } from '@/components/ui/textarea'
 import { useStreamRequest } from '@/features/playground/hooks/use-stream-request'
 import { getOrCreatePlaygroundSessionId } from '@/features/playground/lib/storage'
 import type { ChatCompletionRequest } from '@/features/playground/types'
@@ -95,6 +98,7 @@ export function BlogArticleCreate() {
   const [content, setContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [savedArticleId, setSavedArticleId] = useState<number | null>(null)
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit')
 
   // Chat state
   const [messages, setMessages] = useState<CreateChatMessage[]>([])
@@ -185,6 +189,7 @@ export function BlogArticleCreate() {
             const tSummary = extractSummary(finalContent)
             if (tTitle) setTitle(tTitle)
             if (tSummary) setSummary(tSummary)
+            setViewMode('preview')
           } else if (finalContent.trim().length > 100) {
             // No code block but substantial — treat as article body
             setContent(finalContent)
@@ -192,6 +197,7 @@ export function BlogArticleCreate() {
             if (tTitle) setTitle(tTitle)
             const tSummary = extractSummary(finalContent)
             if (tSummary) setSummary(tSummary)
+            setViewMode('preview')
           }
 
           void queryClient.invalidateQueries({
@@ -211,7 +217,7 @@ export function BlogArticleCreate() {
         }
       )
     },
-    [isStreaming, queryClient, requestHeaders, sendStreamRequest]
+    [isStreaming, queryClient, requestHeaders, sendStreamRequest, setViewMode]
   )
 
   const handleStop = useCallback(() => {
@@ -239,7 +245,8 @@ export function BlogArticleCreate() {
     const tSummary = extractSummary(articleContent)
     if (tTitle) setTitle(tTitle)
     if (tSummary) setSummary(tSummary)
-  }, [])
+    setViewMode('preview')
+  }, [setViewMode])
 
   const handleUseTitle = useCallback((tTitle: string) => {
     setTitle(tTitle)
@@ -329,6 +336,28 @@ export function BlogArticleCreate() {
         <div className='border-border flex shrink-0 items-center gap-2 border-b px-4 py-2'>
           <h2 className='text-sm font-medium'>{t('New Article')}</h2>
           <div className='flex-1' />
+          <div className='bg-muted flex rounded-md p-0.5'>
+            <Button
+              type='button'
+              size='sm'
+              variant={viewMode === 'edit' ? 'default' : 'ghost'}
+              className='h-7 gap-1.5 px-2.5 text-xs'
+              onClick={() => setViewMode('edit')}
+            >
+              <PenLine className='size-3.5' aria-hidden='true' />
+              {t('Edit')}
+            </Button>
+            <Button
+              type='button'
+              size='sm'
+              variant={viewMode === 'preview' ? 'default' : 'ghost'}
+              className='h-7 gap-1.5 px-2.5 text-xs'
+              onClick={() => setViewMode('preview')}
+            >
+              <Eye className='size-3.5' aria-hidden='true' />
+              {t('Preview')}
+            </Button>
+          </div>
           {(title || content) && (
             <>
               <Button
@@ -346,14 +375,21 @@ export function BlogArticleCreate() {
                 onClick={() => void handleOpenEditor()}
               >
                 <Pencil className='mr-1.5 size-3.5' />
-                {t('Edit')}
+                {t('Open editor')}
               </Button>
             </>
           )}
         </div>
 
-        {/* Preview */}
-        <ScrollArea className='min-h-0 flex-1'>
+        {viewMode === 'edit' ? (
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder={t('Write your article content here (Markdown supported)')}
+            className='min-h-0 flex-1 resize-none rounded-none border-0 px-6 py-4 font-mono text-sm leading-relaxed focus-visible:ring-0'
+          />
+        ) : (
+          <ScrollArea className='min-h-0 flex-1'>
           {content ? (
             <div className='mx-auto max-w-3xl px-6 py-8'>
               <h1 className='mb-4 text-3xl font-bold leading-tight'>
@@ -381,6 +417,7 @@ export function BlogArticleCreate() {
             </div>
           )}
         </ScrollArea>
+        )}
       </ResizablePanel>
 
       <ResizableHandle withHandle />

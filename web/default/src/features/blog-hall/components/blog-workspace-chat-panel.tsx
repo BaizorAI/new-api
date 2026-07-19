@@ -65,7 +65,7 @@ import {
   extractRevisedParagraph,
   extractSummary,
   extractTags,
-  extractTitle,
+  extractTitles,
   getChatActions,
   insertImageIntoContent,
   replaceParagraph,
@@ -655,7 +655,7 @@ function BlogChatBubble({
   const actions = isComplete ? getChatActions(message.content) : []
   const revisedPara = extractRevisedParagraph(message.content)
   const fullArticle = extractFullArticle(message.content)
-  const title = extractTitle(message.content)
+  const titles = extractTitles(message.content)
   const summary = extractSummary(message.content)
   const tags = extractTags(message.content)
   const imagePrompt = extractImagePrompt(message.content)
@@ -708,17 +708,21 @@ function BlogChatBubble({
               </Button>
             )}
 
-            {actions.includes('title') && onUseTitle && title && (
-              <Button
-                size='sm'
-                variant='outline'
-                className='h-7 gap-1 px-2 text-xs'
-                onClick={() => onUseTitle(title)}
-              >
-                <Pencil className='size-3 text-amber-500' />
-                {t('Use as title')}
-              </Button>
-            )}
+            {actions.includes('title') &&
+              onUseTitle &&
+              titles.map((title) => (
+                <Button
+                  key={title}
+                  size='sm'
+                  variant='outline'
+                  className='h-7 gap-1 px-2 text-xs'
+                  onClick={() => onUseTitle(title)}
+                  title={title}
+                >
+                  <Pencil className='size-3 text-amber-500' />
+                  {t('Use as title')}
+                </Button>
+              ))}
 
             {actions.includes('summary') && onUseSummary && summary && (
               <Button

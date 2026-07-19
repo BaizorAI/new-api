@@ -1390,6 +1390,7 @@
     "Continue work": "Continue work",
     "Continue working": "Continuer le travail",
     "Continue working from this result prompt": "Continuez à partir de ce résultat :\n\nTitre : {{title}}\n\nFichiers :\n{{files}}\n\nAperçu :\n{{preview}}\n\nAidez-moi à améliorer, réécrire, résumer, convertir ou étendre ce résultat. Si l’objectif n’est pas clair, demandez-moi ce que je veux modifier.",
+    "Continue writing": "Continue writing",
     "Contract review, compliance, summarisation": "Revue de contrats, conformité, résumé",
     "Control users, API tokens, OAuth, 2FA, passkeys, model limits, request logs and secure reveal flows for sensitive credentials.": "Control users, API tokens, OAuth, 2FA, passkeys, model limits, request logs and secure reveal flows for sensitive credentials.",
     "Control users, application credentials, model permissions, quota boundaries, request logs and security audit records.": "Control users, application credentials, model permissions, quota boundaries, request logs and security audit records.",
@@ -3992,6 +3993,7 @@
     "Open a source model first": "Ouvrez d’abord un modèle source",
     "Open and extensible": "Open and extensible",
     "Open CC Switch": "Ouvrir le commutateur CC",
+    "Open editor": "Ouvrir l'éditeur",
     "Open HermesAgent": "Open HermesAgent",
     "Open in chat": "Ouvrir dans le chat",
     "Open in new tab": "Ouvrir dans un nouvel onglet",
@@ -5958,6 +5960,7 @@
     "Timing": "Durée",
     "Tip: click a paragraph to select it for AI modification.": "Tip: click a paragraph to select it for AI modification.",
     "Tip: double-click a paragraph to select it, then use the AI panel to modify.": "Tip: double-click a paragraph to select it, then use the AI panel to modify.",
+    "Tip: select text to polish, expand, shorten, or rewrite.": "Tip: select text to polish, expand, shorten, or rewrite.",
     "Title": "标题",
     "Title updated.": "Title updated.",
     "to access this resource.": "pour accéder à cette ressource.",
@@ -6748,8 +6751,6 @@
     "Zero-dependency install": "Zero-dependency install",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom",
-    "Continue writing": "Continue writing",
-    "Tip: select text to polish, expand, shorten, or rewrite.": "Tip: select text to polish, expand, shorten, or rewrite."
+    "Zoom": "Zoom"
   }
 }

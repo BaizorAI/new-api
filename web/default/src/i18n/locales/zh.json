@@ -1390,6 +1390,7 @@
     "Continue work": "继续工作",
     "Continue working": "继续加工",
     "Continue working from this result prompt": "请基于这个成果继续加工：\n\n标题：{{title}}\n\n文件：\n{{files}}\n\n预览：\n{{preview}}\n\n请帮我继续优化、改写、总结、转换或扩展这个成果。如果目标不明确，先问我想改什么。",
+    "Continue writing": "续写",
     "Contract review, compliance, summarisation": "合同审阅、合规与摘要",
     "Control users, API tokens, OAuth, 2FA, passkeys, model limits, request logs and secure reveal flows for sensitive credentials.": "控制用户、API 令牌、OAuth、2FA、Passkey、模型限制、请求日志和敏感凭据安全查看流程。",
     "Control users, application credentials, model permissions, quota boundaries, request logs and security audit records.": "管控用户、应用凭据、模型权限、额度边界、请求日志和安全审计记录。",
@@ -3992,6 +3993,7 @@
     "Open a source model first": "请先打开一个源模型",
     "Open and extensible": "开放可扩展",
     "Open CC Switch": "打开 CC Switch",
+    "Open editor": "打开编辑器",
     "Open HermesAgent": "打开爱马仕Agent",
     "Open in chat": "在聊天中打开",
     "Open in new tab": "在新标签页中打开",
@@ -5958,6 +5960,7 @@
     "Timing": "耗时",
     "Tip: click a paragraph to select it for AI modification.": "提示：点击段落即可选中，用 AI 进行针对性修改。",
     "Tip: double-click a paragraph to select it, then use the AI panel to modify.": "提示：双击段落即可选中，然后用右侧 AI 面板修改。",
+    "Tip: select text to polish, expand, shorten, or rewrite.": "提示：选中文本即可进行润色、扩写、精简或重写。",
     "Title": "标题",
     "Title updated.": "标题已更新。",
     "to access this resource.": "访问此资源。",
@@ -6748,8 +6751,6 @@
     "Zero-dependency install": "零依赖安装",
     "Zhipu": "智谱",
     "Zhipu V4": "智谱 V4",
-    "Zoom": "缩放",
-    "Continue writing": "续写",
-    "Tip: select text to polish, expand, shorten, or rewrite.": "提示：选中文本即可进行润色、扩写、精简或重写。"
+    "Zoom": "缩放"
   }
 }
