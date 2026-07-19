@@ -124,6 +124,11 @@ func GetAllBlogArticles(c *gin.Context) {
 	for i, a := range articles {
 		views[i] = articleToView(a)
 	}
+	views, err = attachAuthorsToViews(views)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
 
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(views)

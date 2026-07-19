@@ -214,7 +214,7 @@ export function BlogArticleCreate() {
         }
       )
     },
-    [isStreaming, queryClient, requestHeaders, sendStreamRequest, setViewMode]
+    [isStreaming, queryClient, requestHeaders, sendStreamRequest]
   )
 
   const handleStop = useCallback(() => {

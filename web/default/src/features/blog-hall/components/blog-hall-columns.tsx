@@ -70,6 +70,34 @@ export function useBlogHallColumns(): ColumnDef<BlogArticle>[] {
       size: 120,
     },
     {
+      id: 'author',
+      header: t('Author'),
+      meta: { mobileHidden: true },
+      accessorFn: (row) => row.author?.display_name ?? row.author_id,
+      cell: ({ row }) => {
+        const article = row.original
+        const author = article.author
+        const authorId = article.author_id
+        const displayName = author?.display_name
+        if (!displayName) {
+          return (
+            <span className='text-muted-foreground text-sm'>
+              ID: {authorId}
+            </span>
+          )
+        }
+        return (
+          <div className='flex flex-col'>
+            <span className='text-sm'>{displayName}</span>
+            <span className='text-muted-foreground text-xs'>
+              ID: {authorId}
+            </span>
+          </div>
+        )
+      },
+      size: 160,
+    },
+    {
       accessorKey: 'tags',
       header: t('Tags'),
       meta: { mobileHidden: true },
