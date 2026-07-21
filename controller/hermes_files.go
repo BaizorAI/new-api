@@ -14,7 +14,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const defaultHermesDataRoot = "/hermes-data"
+// defaultHermesDataRoot is kept for tests that may reference the constant
+// directly. Production code should use common.GetHermesConfig().DataDir.
+const defaultHermesDataRoot = "/opt/data"
 
 var hermesDeniedPathSegments = map[string]struct{}{
 	".env":      {},
@@ -93,7 +95,7 @@ func HermesPlaygroundFile(c *gin.Context) {
 		return
 	}
 
-	root := filepath.Clean(common.GetEnvOrDefaultString("HERMES_DATA_DIR", defaultHermesDataRoot))
+	root := filepath.Clean(common.GetHermesConfig().DataDir)
 	filePath := filepath.Join(root, filepath.FromSlash(relativePath))
 	rootWithSeparator := root + string(os.PathSeparator)
 	if filePath != root && !strings.HasPrefix(filePath, rootWithSeparator) {
@@ -163,7 +165,31 @@ func normalizeHermesDataPath(value string) (string, bool) {
 	if cleaned == "." || strings.HasPrefix(cleaned, "../") || cleaned == ".." {
 		return "", false
 	}
+
+	for _, part := range strings.Split(cleaned, "/") {
+		if !isHermesSafePathSegment(part) {
+			return "", false
+		}
+	}
+
 	return cleaned, true
+}
+
+// isHermesSafePathSegment rejects path segments that contain control
+// characters, path separators, or other characters that are unnecessary for
+// Hermes artifact filenames and could be used to obscure malicious paths.
+func isHermesSafePathSegment(value string) bool {
+	if value == "" || value == "." || value == ".." {
+		return false
+	}
+	for i := 0; i < len(value); i++ {
+		b := value[i]
+		// Reject control characters, backslash, and null.
+		if b < 0x20 || b == 0x7f || b == '\\' {
+			return false
+		}
+	}
+	return true
 }
 
 func isHermesIndexedResultFileAllowed(relativePath string, userID int) bool {
@@ -201,7 +227,7 @@ func isHermesDataPathAllowed(relativePath string, userID int) bool {
 
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
-		if part == "" || part == "." || part == ".." {
+		if !isHermesSafePathSegment(part) {
 			return false
 		}
 		lower := strings.ToLower(part)

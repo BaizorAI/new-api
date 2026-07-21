@@ -232,15 +232,17 @@ func SearchRateLimit() func(c *gin.Context) {
 }
 
 func HermesWeixinActionRateLimit() func(c *gin.Context) {
-	if !common.HermesWeixinActionRateLimitEnable {
+	cfg := common.GetHermesConfig()
+	if !cfg.WeixinActionRateLimitEnable {
 		return defNext
 	}
-	return userRateLimitFactory(common.HermesWeixinActionRateLimitNum, common.HermesWeixinActionRateLimitDuration, "HWX-A")
+	return userRateLimitFactory(cfg.WeixinActionRateLimitNum, cfg.WeixinActionRateLimitDuration, "HWX-A")
 }
 
 func HermesWeixinStatusRateLimit() func(c *gin.Context) {
-	if !common.HermesWeixinStatusRateLimitEnable {
+	cfg := common.GetHermesConfig()
+	if !cfg.WeixinStatusRateLimitEnable {
 		return defNext
 	}
-	return userRateLimitFactory(common.HermesWeixinStatusRateLimitNum, common.HermesWeixinStatusRateLimitDuration, "HWX-S")
+	return userRateLimitFactory(cfg.WeixinStatusRateLimitNum, cfg.WeixinStatusRateLimitDuration, "HWX-S")
 }

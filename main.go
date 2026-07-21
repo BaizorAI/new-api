@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
@@ -53,6 +54,8 @@ func main() {
 		common.FatalLog("failed to initialize resources: " + err.Error())
 		return
 	}
+
+	validateHermesSidecarConfig()
 
 	common.SysLog("New API " + common.Version + " started")
 	if os.Getenv("GIN_MODE") != "debug" {
@@ -277,6 +280,65 @@ var _hmt = _hmt || [];
 	analyticsInject := []byte(analyticsInjectBuilder.String())
 	placeholder := []byte("<!--Baidu Analytics-->\n")
 	indexPage = bytes.ReplaceAll(indexPage, placeholder, analyticsInject)
+}
+
+// validateHermesSidecarConfig checks that Hermes sidecar environment
+// variables are consistent when the sidecar is enabled, and asynchronously
+// probes the sidecar /health endpoint so operators see reachability issues
+// early in the logs. It does not block startup because Hermes may still be
+// starting when new-api boots.
+func validateHermesSidecarConfig() {
+	cfg := common.GetHermesConfig()
+
+	if !cfg.SidecarEnabled && cfg.APIURL == "" && cfg.APIKey == "" {
+		// Hermes is not configured; nothing to validate.
+		return
+	}
+
+	if cfg.APIURL != "" {
+		if parsed, err := url.Parse(cfg.APIURL); err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+			common.FatalLog(fmt.Sprintf("HERMES_API_SERVER_URL is invalid: %q", cfg.APIURL))
+			return
+		}
+	}
+
+	if cfg.SidecarEnabled {
+		if cfg.APIURL == "" {
+			common.FatalLog("HERMES_SIDECAR_ENABLED=true but HERMES_API_SERVER_URL is not set")
+			return
+		}
+		if cfg.APIKey == "" {
+			common.FatalLog("HERMES_SIDECAR_ENABLED=true but HERMES_API_SERVER_KEY is not set")
+			return
+		}
+		common.SysLog(fmt.Sprintf("Hermes sidecar configured: %s", cfg.APIURL))
+	} else if cfg.APIURL != "" || cfg.APIKey != "" {
+		common.SysLog("Hermes sidecar environment variables are set but HERMES_SIDECAR_ENABLED is not true; validation skipped")
+		return
+	}
+
+	if cfg.APIURL == "" {
+		return
+	}
+
+	// Probe the sidecar health endpoint asynchronously. Hermes may not be
+	// ready yet (it typically depends_on new-api), so we retry a few times.
+	go func(baseURL string) {
+		healthURL := strings.TrimRight(baseURL, "/") + "/health"
+		client := &http.Client{Timeout: 5 * time.Second}
+		for i := 0; i < 6; i++ {
+			resp, err := client.Get(healthURL)
+			if err == nil {
+				resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					common.SysLog("Hermes sidecar health check passed: " + healthURL)
+					return
+				}
+			}
+			time.Sleep(5 * time.Second)
+		}
+		common.SysError("Hermes sidecar health check failed: " + healthURL + " (sidecar may still be starting)")
+	}(cfg.APIURL)
 }
 
 func InitResources() error {

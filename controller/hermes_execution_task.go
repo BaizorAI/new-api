@@ -295,7 +295,7 @@ func resolveHermesExecutionTaskTeamID(c *gin.Context, bodyTeamID int) (int, erro
 }
 
 func validateHermesGatewayExecutionSecret(c *gin.Context) bool {
-	secret := strings.TrimSpace(common.GetEnvOrDefaultString("HERMES_API_SERVER_KEY", ""))
+	secret := strings.TrimSpace(common.GetHermesConfig().APIKey)
 	if secret == "" {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "HERMES_API_SERVER_KEY is not configured"})
 		return false

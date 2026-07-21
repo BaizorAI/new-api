@@ -609,7 +609,7 @@ func applyHermesDelegatedBillingContext(c *gin.Context, token *model.Token) erro
 	if c == nil || c.Request == nil || token == nil {
 		return nil
 	}
-	secret := common.GetEnvOrDefaultString("HERMES_API_SERVER_KEY", "")
+	secret := common.GetHermesConfig().APIKey
 	delegation, ok, err := common.VerifyHermesDelegationHeaders(c.Request.Header, secret, common.GetTimestamp())
 	if !ok {
 		return nil

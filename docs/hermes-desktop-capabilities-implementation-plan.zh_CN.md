@@ -43,7 +43,7 @@
 
 ### 任务
 
-1. 确认远端和本地 `version.ini` 使用的 Hermes 镜像版本不低于 `1.0.3`。
+1. 确认远端和本地 `version.ini` 使用的 Hermes 镜像版本为 `1.0.27`（最低不低于 `1.0.3`）。
 2. 确认 `new-api` 容器能读取 `HERMES_API_SERVER_URL` 与 `HERMES_API_SERVER_KEY`。
 3. 确认 Hermes sidecar 已支持：
    - `GET /v1/skills`

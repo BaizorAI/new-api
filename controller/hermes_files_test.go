@@ -172,6 +172,26 @@ func TestHermesPlaygroundFileRejectsSensitiveAndOtherUserPaths(t *testing.T) {
 	}
 }
 
+func TestHermesDataPathRejectsPathTraversal(t *testing.T) {
+	for _, path := range []string{
+		"../../../etc/passwd",
+		"baizor-users/42/workspace/../../43/workspace/secret.txt",
+		"baizor-users/42/workspace/..",
+		"teams/7/uploads/..",
+		"teams/0/workspaces/foo/..\\..\\secret",
+		"image_cache/report.png%00.jpg",
+		"image_cache/report\x00.png",
+		"image_cache/report\\backslash.png",
+		"baizor-users/42/.env",
+		"baizor-users/42/skills/test/SKILL.md",
+		"baizor-users/42/workspaces/..../secret",
+	} {
+		assert.False(t, isHermesDataPathAllowed(path, 42), path)
+		_, ok := normalizeHermesDataPath(path)
+		assert.False(t, ok, "normalize: "+path)
+	}
+}
+
 func TestHermesPlaygroundFileRejectsUnindexedRootLevelResultFile(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db := setupModelListControllerTestDB(t)

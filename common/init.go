@@ -130,12 +130,13 @@ func InitEnv() {
 	SearchRateLimitNum = GetEnvOrDefault("SEARCH_RATE_LIMIT", 10)
 	SearchRateLimitDuration = int64(GetEnvOrDefault("SEARCH_RATE_LIMIT_DURATION", 60))
 
-	HermesWeixinActionRateLimitEnable = GetEnvOrDefaultBool("HERMES_WEIXIN_ACTION_RATE_LIMIT_ENABLE", true)
-	HermesWeixinActionRateLimitNum = GetEnvOrDefault("HERMES_WEIXIN_ACTION_RATE_LIMIT", 6)
-	HermesWeixinActionRateLimitDuration = int64(GetEnvOrDefault("HERMES_WEIXIN_ACTION_RATE_LIMIT_DURATION", 60))
-	HermesWeixinStatusRateLimitEnable = GetEnvOrDefaultBool("HERMES_WEIXIN_STATUS_RATE_LIMIT_ENABLE", true)
-	HermesWeixinStatusRateLimitNum = GetEnvOrDefault("HERMES_WEIXIN_STATUS_RATE_LIMIT", 40)
-	HermesWeixinStatusRateLimitDuration = int64(GetEnvOrDefault("HERMES_WEIXIN_STATUS_RATE_LIMIT_DURATION", 60))
+	hermesCfg := GetHermesConfig()
+	HermesWeixinActionRateLimitEnable = hermesCfg.WeixinActionRateLimitEnable
+	HermesWeixinActionRateLimitNum = hermesCfg.WeixinActionRateLimitNum
+	HermesWeixinActionRateLimitDuration = hermesCfg.WeixinActionRateLimitDuration
+	HermesWeixinStatusRateLimitEnable = hermesCfg.WeixinStatusRateLimitEnable
+	HermesWeixinStatusRateLimitNum = hermesCfg.WeixinStatusRateLimitNum
+	HermesWeixinStatusRateLimitDuration = hermesCfg.WeixinStatusRateLimitDuration
 
 	// WeChat Open Platform OAuth (QR code login)
 	WeChatOAuthEnabled = GetEnvOrDefaultBool("WECHAT_OAUTH_ENABLED", false)

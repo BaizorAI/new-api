@@ -32,9 +32,9 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
-import { fetchAssets } from '../asset-center/api'
-import type { AssetItem, AssetType } from '../asset-center/types'
-import { ASSET_TYPE_LABELS } from '../asset-center/types'
+import { fetchAssets } from '../api'
+import type { AssetItem, AssetType } from '../types'
+import { ASSET_TYPE_LABELS } from '../types'
 
 type AssetPickerProps = {
   /** Whether the picker dialog is open */

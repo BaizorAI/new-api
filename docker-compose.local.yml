@@ -1,0 +1,20 @@
+# Local overlay for environments that cannot reach Docker Hub.
+# Uses the ccr.ccs.tencentyun.com/lucky/ mirror registry.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.hermes.yml up -d
+
+services:
+  new-api:
+    image: ${NEW_API_IMAGE:-ccr.ccs.tencentyun.com/lucky/baizor-newapi:1.4.56}
+
+  redis:
+    image: ${REDIS_IMAGE:-ccr.ccs.tencentyun.com/lucky/redis:latest}
+
+  postgres:
+    image: ${POSTGRES_IMAGE:-ccr.ccs.tencentyun.com/lucky/postgres:18}
+
+  # uptime-kuma 镜像暂未上传，后续需要时再启用
+  # uptime-kuma:
+  #   image: ${UPTIME_KUMA_IMAGE:-ccr.ccs.tencentyun.com/lucky/uptime-kuma:1}

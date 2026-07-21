@@ -44,20 +44,20 @@ http://hermes:8642/v1
 
 ```ini
 image_name_hermes=ccr.ccs.tencentyun.com/lucky/baizor-hermes
-hermes_versions=1.0.6
+hermes_versions=1.0.27
 ```
 
 当前推荐镜像：
 
 ```text
-ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.6
+ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.27
 ```
 
 如需从源码构建并推送：
 
 ```bash
-docker build --pull --no-cache -f hermes-agent/gateway/platforms/Dockerfile.baizor-overlay -t ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.6 hermes-agent
-docker push ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.6
+docker build --pull --no-cache -f hermes-agent/gateway/platforms/Dockerfile.baizor-overlay -t ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.27 hermes-agent
+docker push ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.27
 ```
 
 ## 必要环境变量
@@ -65,16 +65,21 @@ docker push ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.6
 远端 `/lucky/NewApi/.env` 至少需要：
 
 ```dotenv
-HERMES_IMAGE=ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.6
+HERMES_SIDECAR_ENABLED=true
+HERMES_IMAGE=ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.27
 HERMES_API_SERVER_URL=http://baizor-hermes:8642
 HERMES_API_SERVER_KEY=replace-with-a-long-random-secret
 HERMES_API_SERVER_PORT=8642
 HERMES_WEIXIN_QR_ENABLED=true
+HERMES_INFERENCE_BASE_URL=http://new-api:3000/v1
+HERMES_INFERENCE_API_KEY=replace-with-a-token-for-hermes
 ```
 
 说明：
 
+- `HERMES_SIDECAR_ENABLED` 必须设置为 `true`，new-api 才会把 Hermes 当作已启用并代理请求。
 - `HERMES_API_SERVER_KEY` 是 new-api 与 Hermes sidecar 之间的服务端密钥，只能保存在服务端环境变量或渠道密钥中。
+- `HERMES_INFERENCE_API_KEY` 是 Hermes 内部调用 new-api OpenAI-compatible 端点时使用的 API Key，**必须在平台中创建一个对应 Token**（建议使用独立服务账号或 root 账号下的 Token，并设置无限额度）。
 - `HERMES_WEIXIN_QR_ENABLED=false` 时，Hermes 会返回微信扫码能力已禁用，前端不暴露可用连接流程。
 - 镜像必须包含 Hermes weixin 适配器依赖，否则接口会返回 `disabled`。
 - 可选限流变量：`HERMES_WEIXIN_ACTION_RATE_LIMIT_ENABLE`、`HERMES_WEIXIN_ACTION_RATE_LIMIT`、`HERMES_WEIXIN_ACTION_RATE_LIMIT_DURATION` 控制创建二维码和断开连接；`HERMES_WEIXIN_STATUS_RATE_LIMIT_ENABLE`、`HERMES_WEIXIN_STATUS_RATE_LIMIT`、`HERMES_WEIXIN_STATUS_RATE_LIMIT_DURATION` 控制状态查询和二维码轮询。

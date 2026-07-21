@@ -22,6 +22,7 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/setup", controller.GetSetup)
 		apiRouter.POST("/setup", anonymousRequestBodyLimit, controller.PostSetup)
 		apiRouter.GET("/status", controller.GetStatus)
+		apiRouter.GET("/status/hermes", middleware.AdminAuth(), controller.GetHermesStatus)
 		apiRouter.GET("/uptime/status", controller.GetUptimeKumaStatus)
 		// CLI login flow (no auth required)
 		apiRouter.POST("/cli/submit", anonymousRequestBodyLimit, controller.SubmitCliKey)

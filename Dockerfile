@@ -29,7 +29,18 @@ RUN go build -ldflags "-s -w -X 'github.com/BaizorAI/new-api/common.Version=$(ca
 
 FROM  ccr.ccs.tencentyun.com/lucky/debian:bookworm-slim
 
-RUN apt-get update \
+# Use a local mirror when the default Debian repo is unreachable from the
+# build environment. Aliyun mirror is used over plain HTTP so that the build
+# can bootstrap before ca-certificates is installed.
+RUN set -eu; \
+    sources=/etc/apt/sources.list.d/debian.sources; \
+    if [ -f "$sources" ]; then \
+        sed -i 's|https://deb.debian.org|http://mirrors.aliyun.com|g; \
+                  s|https://security.debian.org|http://mirrors.aliyun.com|g; \
+                  s|http://deb.debian.org|http://mirrors.aliyun.com|g; \
+                  s|http://security.debian.org|http://mirrors.aliyun.com|g' "$sources"; \
+    fi; \
+    apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates tzdata libasan8 wget \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates

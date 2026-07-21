@@ -14,7 +14,7 @@
 
 services:
   baizor-hermes:
-    image: ${HERMES_IMAGE:-ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.25}
+    image: ${HERMES_IMAGE:-ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.27}
     container_name: baizor-hermes
     restart: unless-stopped
     command: ["gateway", "run"]
@@ -38,5 +38,18 @@ services:
       - no_proxy=${no_proxy:-localhost,127.0.0.1,new-api,hermes,baizor-hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}
     depends_on:
       - new-api
+    deploy:
+      resources:
+        limits:
+          cpus: '2.00'
+          memory: 8G
+        reservations:
+          cpus: '1.00'
+          memory: 2G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
     networks:
       - ${HERMES_NETWORK:-new-api-network}
