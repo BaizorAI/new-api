@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -103,6 +104,12 @@ func proxyHermesPlayground(c *gin.Context, method string, path string, body []by
 // proxyHermesPlaygroundWithQuery forwards a request to the Hermes sidecar with
 // optional query parameters and writes the response back to the Gin context.
 func proxyHermesPlaygroundWithQuery(c *gin.Context, method string, path string, query url.Values, body []byte) hermesProxyResult {
+	// ComfyUI skill requests bypass the Hermes agent entirely — they are
+	// routed to a dedicated service that executes workflow scripts directly.
+	if strings.Contains(path, "/chat/completions") && isComfyuiSkillActivated(c) {
+		return handleComfyuiSkill(c, body)
+	}
+
 	baseURL := strings.TrimRight(common.GetHermesConfig().APIURL, "/")
 	apiKey := strings.TrimSpace(common.GetHermesConfig().APIKey)
 	if apiKey == "" {
@@ -169,4 +176,196 @@ func proxyHermesPlaygroundWithQuery(c *gin.Context, method string, path string, 
 	}
 	c.Data(resp.StatusCode, contentType, respBody)
 	return hermesProxyResult{StatusCode: resp.StatusCode, Body: respBody}
+}
+
+// ── ComfyUI Skill Direct Routing ──────────────────────────────────────────
+
+const comfyuiServiceBase = "http://baizor-hermes:8650"
+
+type comfyuiGenerateRequest struct {
+	Prompt string `json:"prompt"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
+	Frames int    `json:"frames"`
+	Steps  int    `json:"steps"`
+}
+
+type comfyuiGenerateResponse struct {
+	Status   string        `json:"status"`
+	PromptID string        `json:"prompt_id"`
+	Files    []comfyuiFile `json:"files"`
+	Error    string        `json:"error"`
+}
+
+type comfyuiFile struct {
+	Filename   string `json:"filename"`
+	URL        string `json:"url"`
+	ComfyUIURL string `json:"comfyui_url"`
+	LocalPath  string `json:"local_path"`
+	LocalURL   string `json:"local_url"`
+	SCPOk      bool   `json:"scp_ok"`
+	SCPError   string `json:"scp_error"`
+	NodeID     string `json:"node_id"`
+}
+
+// ComfyuiSkillBypass is a Gin middleware that intercepts comfyui skill
+// requests and routes them directly to the comfyui execution service,
+// bypassing the channel distribution middleware.
+func ComfyuiSkillBypass() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		if !isComfyuiSkillActivated(c) {
+			c.Next()
+			return
+		}
+		body, _ := io.ReadAll(c.Request.Body)
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+		handleComfyuiSkill(c, body)
+		c.Abort()
+	}
+}
+
+// isComfyuiSkillActivated checks whether the comfyui skill is active based on
+// both the client request header and the already-built Hermes headers.
+func isComfyuiSkillActivated(c *gin.Context) bool {
+	activeSkill := strings.TrimSpace(c.GetHeader("X-Baizor-Hermes-Skill-Activate"))
+	return strings.EqualFold(activeSkill, "comfyui")
+}
+
+// extractUserPrompt extracts the last user-message content from a chat
+// completion request payload.
+func extractUserPrompt(body []byte) string {
+	var req struct {
+		Messages []struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		} `json:"messages"`
+	}
+	if err := common.Unmarshal(body, &req); err != nil {
+		return ""
+	}
+	for i := len(req.Messages) - 1; i >= 0; i-- {
+		if req.Messages[i].Role == "user" {
+			return req.Messages[i].Content
+		}
+	}
+	return ""
+}
+
+// handleComfyuiSkill forwards the request to the dedicated comfyui service
+// running inside the baizor-hermes container and returns a chat-completion
+// formatted response.
+func handleComfyuiSkill(c *gin.Context, body []byte) hermesProxyResult {
+	prompt := extractUserPrompt(body)
+	if prompt == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "No user prompt found in messages"})
+		return hermesProxyResult{StatusCode: http.StatusBadRequest}
+	}
+
+	genReq := comfyuiGenerateRequest{
+		Prompt: prompt,
+		Width:  256,
+		Height: 256,
+		Frames: 17,
+		Steps:  10,
+	}
+
+	reqBody, err := common.Marshal(genReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to marshal request"})
+		return hermesProxyResult{StatusCode: http.StatusInternalServerError}
+	}
+
+	client := &http.Client{Timeout: 10 * time.Minute}
+	resp, err := client.Post(comfyuiServiceBase+"/generate", "application/json", bytes.NewReader(reqBody))
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to reach comfyui service"})
+		return hermesProxyResult{StatusCode: http.StatusBadGateway}
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+
+	var genResp comfyuiGenerateResponse
+	if err := common.Unmarshal(respBody, &genResp); err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to parse comfyui response"})
+		return hermesProxyResult{StatusCode: http.StatusBadGateway}
+	}
+
+	if genResp.Error != "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": genResp.Error})
+		return hermesProxyResult{StatusCode: http.StatusInternalServerError}
+	}
+
+	// Build a chat-completion response
+	content := fmt.Sprintf("Video generated successfully.\nPrompt ID: %s\n", genResp.PromptID)
+	for _, f := range genResp.Files {
+		url := f.LocalURL
+		if url == "" {
+			url = f.ComfyUIURL
+		}
+		content += fmt.Sprintf("- %s\n  %s\n", f.Filename, url)
+	}
+
+	promptID := genResp.PromptID
+	if len(promptID) > 8 {
+		promptID = promptID[:8]
+	}
+	chatResp := map[string]interface{}{
+		"id":      "chatcmpl-" + promptID,
+		"object":  "chat.completion",
+		"created": time.Now().Unix(),
+		"model":   "comfyui-sulphur",
+		"choices": []map[string]interface{}{
+			{
+				"index": 0,
+				"message": map[string]interface{}{
+					"role":    "assistant",
+					"content": content,
+				},
+				"finish_reason": "stop",
+			},
+		},
+		"usage": map[string]interface{}{
+			"prompt_tokens":     0,
+			"completion_tokens": 0,
+			"total_tokens":      0,
+		},
+	}
+
+	chatRespBody, _ := common.Marshal(chatResp)
+	c.Data(http.StatusOK, "application/json", chatRespBody)
+	return hermesProxyResult{StatusCode: http.StatusOK, Body: chatRespBody}
+}
+
+// HermesComfyuiFileProxy forwards file requests to the comfyui service
+// running inside the hermes container. Access via:
+//
+//	GET /pg/hermes/files/comfyui/<filename>
+func HermesComfyuiFileProxy(c *gin.Context) {
+	filename := c.Param("path")
+	if filename == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "missing filename"})
+		return
+	}
+
+	fileURL := comfyuiServiceBase + "/files/" + filename
+	req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, fileURL, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create proxy request"})
+		return
+	}
+
+	client := &http.Client{Timeout: 5 * time.Minute}
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"message": "failed to reach comfyui service"})
+		return
+	}
+	defer resp.Body.Close()
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	c.DataFromReader(resp.StatusCode, resp.ContentLength, contentType, resp.Body, nil)
 }

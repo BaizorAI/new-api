@@ -1,7 +1,9 @@
 package controller
 
 import (
+	"bytes"
 	"errors"
+	"io"
 
 	"github.com/BaizorAI/new-api/middleware"
 	"github.com/BaizorAI/new-api/model"
@@ -21,6 +23,16 @@ func Playground(c *gin.Context) {
 			})
 		}
 	}()
+
+	// ── ComfyUI Skill Bypass ──────────────────────────────────────
+	// Intercept comfyui skill requests and route them directly to
+	// the comfyui execution service, bypassing the normal relay.
+	if isComfyuiSkillActivated(c) {
+		body, _ := io.ReadAll(c.Request.Body)
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+		handleComfyuiSkill(c, body)
+		return
+	}
 
 	useAccessToken := c.GetBool("use_access_token")
 	if useAccessToken {

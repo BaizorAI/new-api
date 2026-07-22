@@ -25,7 +25,6 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
-import { RiskAcknowledgementDialog } from '@/components/risk-acknowledgement-dialog'
 import {
   Alert,
   AlertAction,
@@ -246,7 +245,6 @@ export function PaymentSettingsSection({
     React.useState(true)
   const [creemProductsVisualMode, setCreemProductsVisualMode] =
     React.useState(true)
-  const [showComplianceDialog, setShowComplianceDialog] = React.useState(false)
   const [waffoPayMethods, setWaffoPayMethods] = React.useState<PayMethod[]>(
     () => parseWaffoPayMethods(waffoDefaultValues.WaffoPayMethods)
   )
@@ -298,33 +296,6 @@ export function PaymentSettingsSection({
     [t]
   )
 
-  const complianceRequiredTextParts = React.useMemo(
-    () => [
-      {
-        type: 'input' as const,
-        text: t('I have read and understood the above compliance reminder'),
-      },
-      { type: 'static' as const, text: t(', ') },
-      {
-        type: 'input' as const,
-        text: t('acknowledge the related legal risks'),
-      },
-      { type: 'static' as const, text: t(', and ') },
-      {
-        type: 'input' as const,
-        text: t(
-          'confirm that I bear legal responsibility arising from deployment, operation, and charging behavior'
-        ),
-      },
-    ],
-    [t]
-  )
-
-  const complianceRequiredText = React.useMemo(
-    () => complianceRequiredTextParts.map((part) => part.text).join(''),
-    [complianceRequiredTextParts]
-  )
-
   const complianceConfirmed =
     complianceDefaults.confirmed &&
     complianceDefaults.termsVersion === CURRENT_COMPLIANCE_TERMS_VERSION
@@ -334,7 +305,6 @@ export function PaymentSettingsSection({
     onSuccess: (data) => {
       if (data.success) {
         toast.success(t('Compliance confirmed successfully'))
-        setShowComplianceDialog(false)
         queryClient.invalidateQueries({ queryKey: ['system-options'] })
       } else {
         toast.error(data.message || t('Failed to confirm compliance'))
@@ -881,7 +851,7 @@ export function PaymentSettingsSection({
               type='button'
               size='sm'
               variant='destructive'
-              onClick={() => setShowComplianceDialog(true)}
+              onClick={() => confirmComplianceMutation.mutate()}
             >
               {t('Confirm compliance')}
             </Button>
@@ -902,24 +872,6 @@ export function PaymentSettingsSection({
           </AlertDescription>
         </Alert>
       )}
-
-      <RiskAcknowledgementDialog
-        open={showComplianceDialog}
-        onOpenChange={setShowComplianceDialog}
-        title={t('Confirm compliance terms')}
-        description={t(
-          'This confirmation unlocks payment, redemption code, subscription plan, and invitation reward features. Please read the statements carefully.'
-        )}
-        items={complianceStatements}
-        requiredText={complianceRequiredText}
-        requiredTextParts={complianceRequiredTextParts}
-        inputPrompt={t('Please type the following text to confirm:')}
-        inputPlaceholder={t('Type the confirmation text here')}
-        mismatchHint={t('The entered text does not match the required text.')}
-        confirmText={t('Confirm and enable')}
-        isLoading={confirmComplianceMutation.isPending}
-        onConfirm={() => confirmComplianceMutation.mutate()}
-      />
 
       <Form {...form}>
         <SettingsForm
