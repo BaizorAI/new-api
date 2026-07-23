@@ -12,7 +12,7 @@ import (
 )
 
 var StartTime = time.Now().Unix() // unit: second
-var Version = "v0.0.0"            // this hard coding will be replaced automatically when building, no need to manually change
+var Version = "0000"                // this hard coding will be replaced automatically when building, no need to manually change
 var SystemName = "白泽AI平台"
 var Footer = "<p>白泽AI平台 · 以 AI 之智，传文化之美</p><p>清大华宇（厦门）数字科技有限公司 </p> <p> <a href=\"https://beian.miit.gov.cn/\" target=\"_blank\" rel=\"noopener\">闽ICP备2024082627号-2</a> </p> <p>增值电信业务经营许可证: B1-20252819  </p> <p>DSMM数据 安全管理认证 2级：01125DSMM10081R0S</p>"
 var Logo = ""

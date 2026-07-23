@@ -75,6 +75,7 @@ func SetRelayRouter(router *gin.Engine) {
 	hermesFileRouter.Use(middleware.BrowserSessionAuth())
 	{
 		hermesFileRouter.GET("/files/*path", controller.HermesPlaygroundFile)
+		hermesFileRouter.GET("/comfyui-files/*path", controller.HermesComfyuiFileProxy)
 	}
 	hermesGatewayRouter := router.Group("/pg/hermes/gateway")
 	hermesGatewayRouter.Use(middleware.RouteTag("relay"))
@@ -114,7 +115,6 @@ func SetRelayRouter(router *gin.Engine) {
 		hermesPlaygroundRouter.POST("/platforms/weixin/disconnect", middleware.HermesWeixinActionRateLimit(), controller.HermesPlaygroundWeixinDisconnect)
 		hermesPlaygroundRouter.GET("/platforms/weixin/sessions", middleware.HermesWeixinStatusRateLimit(), controller.HermesPlaygroundWeixinSessions)
 		hermesPlaygroundRouter.GET("/sessions/:session_id/messages", middleware.HermesWeixinStatusRateLimit(), controller.HermesPlaygroundSessionMessages)
-		hermesPlaygroundRouter.GET("/comfyui-files/*path", controller.HermesComfyuiFileProxy)
 	}
 	relayV1Router := router.Group("/v1")
 	relayV1Router.Use(middleware.RouteTag("relay"))

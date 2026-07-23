@@ -260,7 +260,7 @@ function resolveActiveRootGroup(
     return findGroup(navGroups, 'blog-hall')
   }
 
-  if (pathname.startsWith('/studio') || pathname === '/image-playground' || pathname === '/video-playground' || pathname === '/asset-center' || pathname === '/swap-lab') {
+  if (pathname.startsWith('/studio') || pathname === '/image-playground' || pathname === '/video-playground' || pathname === '/asset-center' || pathname === '/swap-lab' || pathname === '/comfyui-playground') {
     return findGroup(navGroups, 'film-studio')
   }
 

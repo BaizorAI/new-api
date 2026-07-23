@@ -155,6 +155,13 @@ export function useSidebarData(): SidebarData {
             icon: Video,
           },
           {
+            title: t('ComfyUI Video'),
+            description: t('AI 视频生成，基于 ComfyUI LTX 2.3 模型。'),
+            url: '/comfyui-playground',
+            activeUrls: ['/comfyui-playground'],
+            icon: Video,
+          },
+          {
             title: t('Swap Lab'),
             description: t('角色换装、风格迁移、局部替换。'),
             url: '/swap-lab',

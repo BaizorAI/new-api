@@ -13,6 +13,7 @@ import (
 
 	"github.com/BaizorAI/new-api/common"
 	"github.com/BaizorAI/new-api/constant"
+	"github.com/BaizorAI/new-api/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,7 +22,13 @@ import (
 // the channel header override map when the request is a Hermes playground chat
 // completion.
 func applyHermesPlaygroundHeaderOverride(c *gin.Context, userId int) {
-	if c == nil || c.Request == nil || !strings.HasPrefix(c.Request.URL.Path, "/pg/chat/completions") {
+	if c == nil || c.Request == nil {
+		return
+	}
+	// NOTE: Use the PlaygroundContextKey instead of checking the URL path here,
+	// because PlaygroundPathRewrite middleware rewrites /pg/… to /v1/… before
+	// we run, so c.Request.URL.Path no longer contains the original /pg/ prefix.
+	if !c.GetBool(middleware.PlaygroundContextKey) {
 		return
 	}
 	if !strings.EqualFold(strings.TrimSpace(c.GetHeader("X-Baizor-Playground")), "hermes") {
@@ -231,42 +238,69 @@ func isComfyuiSkillActivated(c *gin.Context) bool {
 	return strings.EqualFold(activeSkill, "comfyui")
 }
 
-// extractUserPrompt extracts the last user-message content from a chat
-// completion request payload.
-func extractUserPrompt(body []byte) string {
-	var req struct {
-		Messages []struct {
-			Role    string `json:"role"`
-			Content string `json:"content"`
-		} `json:"messages"`
-	}
+type comfyuiChatRequest struct {
+	Model    string `json:"model"`
+	Messages []struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	} `json:"messages"`
+	Width  int `json:"width"`
+	Height int `json:"height"`
+	Frames int `json:"frames"`
+	Steps  int `json:"steps"`
+}
+
+// extractComfyuiParams extracts the prompt and optional generation parameters
+// from a chat-completion style request body. Parameters that are unspecified
+// (zero value) are left as zero, and the caller applies defaults.
+func extractComfyuiParams(body []byte) (prompt string, width, height, frames, steps int) {
+	var req comfyuiChatRequest
 	if err := common.Unmarshal(body, &req); err != nil {
-		return ""
+		return
 	}
 	for i := len(req.Messages) - 1; i >= 0; i-- {
 		if req.Messages[i].Role == "user" {
-			return req.Messages[i].Content
+			prompt = req.Messages[i].Content
+			break
 		}
 	}
-	return ""
+	width = req.Width
+	height = req.Height
+	frames = req.Frames
+	steps = req.Steps
+	return
 }
 
 // handleComfyuiSkill forwards the request to the dedicated comfyui service
 // running inside the baizor-hermes container and returns a chat-completion
 // formatted response.
 func handleComfyuiSkill(c *gin.Context, body []byte) hermesProxyResult {
-	prompt := extractUserPrompt(body)
+	prompt, width, height, frames, steps := extractComfyuiParams(body)
 	if prompt == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "No user prompt found in messages"})
 		return hermesProxyResult{StatusCode: http.StatusBadRequest}
 	}
 
+	// Apply sensible defaults when user doesn't specify a value.
+	if width <= 0 {
+		width = 512
+	}
+	if height <= 0 {
+		height = 512
+	}
+	if frames <= 0 {
+		frames = 33
+	}
+	if steps <= 0 {
+		steps = 30
+	}
+
 	genReq := comfyuiGenerateRequest{
 		Prompt: prompt,
-		Width:  256,
-		Height: 256,
-		Frames: 17,
-		Steps:  10,
+		Width:  width,
+		Height: height,
+		Frames: frames,
+		Steps:  steps,
 	}
 
 	reqBody, err := common.Marshal(genReq)

@@ -73,6 +73,7 @@ import { Route as AuthenticatedImagePlaygroundIndexRouteImport } from './routes/
 import { Route as AuthenticatedHomeIndexRouteImport } from './routes/_authenticated/home/index'
 import { Route as AuthenticatedHermesPlaygroundIndexRouteImport } from './routes/_authenticated/hermes-playground/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
+import { Route as AuthenticatedComfyuiPlaygroundIndexRouteImport } from './routes/_authenticated/comfyui-playground/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedBlogHallIndexRouteImport } from './routes/_authenticated/blog-hall/index'
 import { Route as AuthenticatedAssetCenterIndexRouteImport } from './routes/_authenticated/asset-center/index'
@@ -459,6 +460,12 @@ const AuthenticatedDashboardIndexRoute =
     path: '/dashboard/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedComfyuiPlaygroundIndexRoute =
+  AuthenticatedComfyuiPlaygroundIndexRouteImport.update({
+    id: '/comfyui-playground/',
+    path: '/comfyui-playground/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedChannelsIndexRoute =
   AuthenticatedChannelsIndexRouteImport.update({
     id: '/channels/',
@@ -725,6 +732,7 @@ export interface FileRoutesByFullPath {
   '/asset-center/': typeof AuthenticatedAssetCenterIndexRoute
   '/blog-hall/': typeof AuthenticatedBlogHallIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
+  '/comfyui-playground/': typeof AuthenticatedComfyuiPlaygroundIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/hermes-playground/': typeof AuthenticatedHermesPlaygroundIndexRoute
   '/home/': typeof AuthenticatedHomeIndexRoute
@@ -822,6 +830,7 @@ export interface FileRoutesByTo {
   '/asset-center': typeof AuthenticatedAssetCenterIndexRoute
   '/blog-hall': typeof AuthenticatedBlogHallIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
+  '/comfyui-playground': typeof AuthenticatedComfyuiPlaygroundIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/hermes-playground': typeof AuthenticatedHermesPlaygroundIndexRoute
   '/home': typeof AuthenticatedHomeIndexRoute
@@ -927,6 +936,7 @@ export interface FileRoutesById {
   '/_authenticated/asset-center/': typeof AuthenticatedAssetCenterIndexRoute
   '/_authenticated/blog-hall/': typeof AuthenticatedBlogHallIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
+  '/_authenticated/comfyui-playground/': typeof AuthenticatedComfyuiPlaygroundIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/hermes-playground/': typeof AuthenticatedHermesPlaygroundIndexRoute
   '/_authenticated/home/': typeof AuthenticatedHomeIndexRoute
@@ -1031,6 +1041,7 @@ export interface FileRouteTypes {
     | '/asset-center/'
     | '/blog-hall/'
     | '/channels/'
+    | '/comfyui-playground/'
     | '/dashboard/'
     | '/hermes-playground/'
     | '/home/'
@@ -1128,6 +1139,7 @@ export interface FileRouteTypes {
     | '/asset-center'
     | '/blog-hall'
     | '/channels'
+    | '/comfyui-playground'
     | '/dashboard'
     | '/hermes-playground'
     | '/home'
@@ -1232,6 +1244,7 @@ export interface FileRouteTypes {
     | '/_authenticated/asset-center/'
     | '/_authenticated/blog-hall/'
     | '/_authenticated/channels/'
+    | '/_authenticated/comfyui-playground/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/hermes-playground/'
     | '/_authenticated/home/'
@@ -1767,6 +1780,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/comfyui-playground/': {
+      id: '/_authenticated/comfyui-playground/'
+      path: '/comfyui-playground'
+      fullPath: '/comfyui-playground/'
+      preLoaderRoute: typeof AuthenticatedComfyuiPlaygroundIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/channels/': {
       id: '/_authenticated/channels/'
       path: '/channels'
@@ -2191,6 +2211,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
   AuthenticatedAssetCenterIndexRoute: typeof AuthenticatedAssetCenterIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
+  AuthenticatedComfyuiPlaygroundIndexRoute: typeof AuthenticatedComfyuiPlaygroundIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedHermesPlaygroundIndexRoute: typeof AuthenticatedHermesPlaygroundIndexRoute
   AuthenticatedHomeIndexRoute: typeof AuthenticatedHomeIndexRoute
@@ -2240,6 +2261,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
   AuthenticatedAssetCenterIndexRoute: AuthenticatedAssetCenterIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
+  AuthenticatedComfyuiPlaygroundIndexRoute:
+    AuthenticatedComfyuiPlaygroundIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedHermesPlaygroundIndexRoute:
     AuthenticatedHermesPlaygroundIndexRoute,
