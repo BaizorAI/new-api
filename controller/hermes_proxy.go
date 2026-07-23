@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -190,11 +191,12 @@ func proxyHermesPlaygroundWithQuery(c *gin.Context, method string, path string, 
 const comfyuiServiceBase = "http://baizor-hermes:8650"
 
 type comfyuiGenerateRequest struct {
-	Prompt string `json:"prompt"`
-	Width  int    `json:"width"`
-	Height int    `json:"height"`
-	Frames int    `json:"frames"`
-	Steps  int    `json:"steps"`
+	Prompt   string          `json:"prompt"`
+	Width    int             `json:"width"`
+	Height   int             `json:"height"`
+	Frames   int             `json:"frames"`
+	Steps    int             `json:"steps"`
+	Workflow json.RawMessage `json:"workflow,omitempty"`
 }
 
 type comfyuiGenerateResponse struct {
@@ -215,19 +217,33 @@ type comfyuiFile struct {
 	NodeID     string `json:"node_id"`
 }
 
-// ComfyuiSkillBypass is a Gin middleware that intercepts comfyui skill
-// requests and routes them directly to the comfyui execution service,
-// bypassing the channel distribution middleware.
+// ComfyuiSkillBypass is a Gin middleware that intercepts Hermes playground
+// chat completion requests and routes them to the appropriate backend before
+// they reach the channel distribution middleware:
+//
+//   - ComfyUI skill (X-Baizor-Hermes-Skill-Activate: comfyui): forwarded to
+//     the comfyui execution service directly.
+//   - Generic Hermes playground (X-Baizor-Playground: hermes, no skill):
+//     forwarded to the Hermes sidecar's chat completions endpoint.
+//
+// Both paths bypass Distribute, so no database channel is required.
 func ComfyuiSkillBypass() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		if !isComfyuiSkillActivated(c) {
-			c.Next()
+		if isComfyuiSkillActivated(c) {
+			body, _ := io.ReadAll(c.Request.Body)
+			c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+			handleComfyuiSkill(c, body)
+			c.Abort()
 			return
 		}
-		body, _ := io.ReadAll(c.Request.Body)
-		c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
-		handleComfyuiSkill(c, body)
-		c.Abort()
+		if strings.EqualFold(strings.TrimSpace(c.GetHeader("X-Baizor-Playground")), "hermes") {
+			body, _ := io.ReadAll(c.Request.Body)
+			c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+			proxyHermesPlayground(c, http.MethodPost, "/v1/chat/completions", body)
+			c.Abort()
+			return
+		}
+		c.Next()
 	}
 }
 
@@ -244,16 +260,17 @@ type comfyuiChatRequest struct {
 		Role    string `json:"role"`
 		Content string `json:"content"`
 	} `json:"messages"`
-	Width  int `json:"width"`
-	Height int `json:"height"`
-	Frames int `json:"frames"`
-	Steps  int `json:"steps"`
+	Width    int             `json:"width"`
+	Height   int             `json:"height"`
+	Frames   int             `json:"frames"`
+	Steps    int             `json:"steps"`
+	Workflow json.RawMessage `json:"workflow,omitempty"`
 }
 
 // extractComfyuiParams extracts the prompt and optional generation parameters
 // from a chat-completion style request body. Parameters that are unspecified
 // (zero value) are left as zero, and the caller applies defaults.
-func extractComfyuiParams(body []byte) (prompt string, width, height, frames, steps int) {
+func extractComfyuiParams(body []byte) (prompt string, width, height, frames, steps int, workflow json.RawMessage) {
 	var req comfyuiChatRequest
 	if err := common.Unmarshal(body, &req); err != nil {
 		return
@@ -268,6 +285,7 @@ func extractComfyuiParams(body []byte) (prompt string, width, height, frames, st
 	height = req.Height
 	frames = req.Frames
 	steps = req.Steps
+	workflow = req.Workflow
 	return
 }
 
@@ -275,7 +293,7 @@ func extractComfyuiParams(body []byte) (prompt string, width, height, frames, st
 // running inside the baizor-hermes container and returns a chat-completion
 // formatted response.
 func handleComfyuiSkill(c *gin.Context, body []byte) hermesProxyResult {
-	prompt, width, height, frames, steps := extractComfyuiParams(body)
+	prompt, width, height, frames, steps, workflow := extractComfyuiParams(body)
 	if prompt == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "No user prompt found in messages"})
 		return hermesProxyResult{StatusCode: http.StatusBadRequest}
@@ -296,11 +314,12 @@ func handleComfyuiSkill(c *gin.Context, body []byte) hermesProxyResult {
 	}
 
 	genReq := comfyuiGenerateRequest{
-		Prompt: prompt,
-		Width:  width,
-		Height: height,
-		Frames: frames,
-		Steps:  steps,
+		Prompt:   prompt,
+		Width:    width,
+		Height:   height,
+		Frames:   frames,
+		Steps:    steps,
+		Workflow: workflow,
 	}
 
 	reqBody, err := common.Marshal(genReq)
@@ -402,4 +421,31 @@ func HermesComfyuiFileProxy(c *gin.Context) {
 		contentType = "application/octet-stream"
 	}
 	c.DataFromReader(resp.StatusCode, resp.ContentLength, contentType, resp.Body, nil)
+}
+
+// HermesComfyuiWorkflows proxies GET /pg/hermes/comfyui-workflows to the
+// comfyui service's workflow listing endpoint.
+func HermesComfyuiWorkflows(c *gin.Context) {
+	resp, err := http.Get(comfyuiServiceBase + "/workflows")
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to reach comfyui service"})
+		return
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	c.Data(resp.StatusCode, "application/json", body)
+}
+
+// HermesComfyuiWorkflow proxies GET /pg/hermes/comfyui-workflows/:name to
+// the comfyui service's workflow retrieval endpoint.
+func HermesComfyuiWorkflow(c *gin.Context) {
+	name := c.Param("name")
+	resp, err := http.Get(comfyuiServiceBase + "/workflows/" + name)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to reach comfyui service"})
+		return
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	c.Data(resp.StatusCode, "application/json", body)
 }

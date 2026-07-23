@@ -16,12 +16,35 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Undo2, Redo2, Download, Upload, Copy, RotateCcw } from 'lucide-react'
 
-import { generateComfyuiVideo, enhancePrompt } from './api'
+import { generateComfyuiVideo, enhancePrompt, fetchWorkflow, pollQueueStatus } from './api'
+import { WorkflowCanvas } from './workflow-canvas'
+import { WorkflowSelector } from './workflow-selector'
+import { SidebarPanel } from './sidebar-panel'
+import { PresetSelector } from './preset-selector'
+import { WorkflowImportDialog } from './workflow-import-dialog'
+import { ShortcutsDialog } from './shortcuts-dialog'
+import { RestoreDraftDialog } from './restore-draft-dialog'
+import { hasAutoSave, clearAutoSave, loadAutoSave, scheduleAutoSave } from './auto-save-manager'
+import { loadPresets, savePreset, deletePreset, renamePreset } from './preset-manager'
+import { saveHistoryEntry, loadHistory } from './history-manager'
+import {
+  detectCommonParams,
+  readCommonParam,
+  writeCommonParam,
+} from './workflow-parser'
+import type { CommonParams } from './workflow-parser'
+import type { ComfyuiWorkflow, WorkflowDetail, WorkflowPreset, GenerationEntry } from './types'
 
-function parseVideoUrls(content: string): { promptId: string; videos: { name: string; url: string }[] } {
+const MAX_HISTORY = 50
+
+function parseVideoUrls(content: string): {
+  promptId: string
+  videos: { name: string; url: string }[]
+} {
   const promptId = content.match(/Prompt ID:\s*(\S+)/)?.[1] ?? ''
   const videoLines = content.matchAll(/^- (.+\.mp4)\s+(.+)$/gm)
   const videos = Array.from(videoLines, ([_, name, url]) => ({
@@ -31,24 +54,422 @@ function parseVideoUrls(content: string): { promptId: string; videos: { name: st
   return { promptId, videos }
 }
 
+const DEFAULT_PARAMS = { width: 768, height: 512, frames: 33, steps: 30 }
+
 export function ComfyuiPlayground() {
   const { t } = useTranslation()
+
+  // ── Workflow state ──
+  const [workflowDetail, setWorkflowDetail] = useState<WorkflowDetail | null>(null)
+  const [workflow, setWorkflow] = useState<ComfyuiWorkflow | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [wfLoading, setWfLoading] = useState(false)
+
+  // ── Undo / redo ──
+  const [undoStack, setUndoStack] = useState<ComfyuiWorkflow[]>([])
+  const [redoStack, setRedoStack] = useState<ComfyuiWorkflow[]>([])
+
+  // ── Presets ──
+  const [presets, setPresets] = useState<WorkflowPreset[]>(() => loadPresets())
+
+  // ── History ──
+  const [history, setHistory] = useState<GenerationEntry[]>(() => loadHistory())
+
+  // Derived common params
+  const commonParams = useMemo<CommonParams>(
+    () => detectCommonParams(workflowDetail?.adjustable_params ?? []),
+    [workflowDetail],
+  )
+
+  // ── Sidebar state ──
   const [prompt, setPrompt] = useState('')
   const [enhancedPrompt, setEnhancedPrompt] = useState('')
   const [enhancing, setEnhancing] = useState(false)
-  const [width, setWidth] = useState(768)
-  const [height, setHeight] = useState(512)
-  const [frames, setFrames] = useState(33)
-  const [steps, setSteps] = useState(30)
+  const [width, setWidth] = useState(DEFAULT_PARAMS.width)
+  const [height, setHeight] = useState(DEFAULT_PARAMS.height)
+  const [frames, setFrames] = useState(DEFAULT_PARAMS.frames)
+  const [steps, setSteps] = useState(DEFAULT_PARAMS.steps)
+  const [seed, setSeed] = useState(-1)
+  const [cfg, setCfg] = useState(7)
+
+  // ── Generation state ──
   const [loading, setLoading] = useState(false)
+  const [queuePosition, setQueuePosition] = useState(-1)
+  const [currentPromptId, setCurrentPromptId] = useState<string | null>(null)
   const [result, setResult] = useState<{
     promptId: string
     videos: { name: string; url: string }[]
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [draftDialogOpen, setDraftDialogOpen] = useState(false)
 
   const effectivePrompt = enhancedPrompt || prompt
 
+  // Sync sidebar values from a restored workflow
+  const syncSidebar = useCallback(
+    (wf: ComfyuiWorkflow) => {
+      const cp = commonParams
+      const p = readCommonParam(wf, cp.promptNodeId, cp.promptField)
+      if (typeof p === 'string') {
+        setPrompt(p)
+        setEnhancedPrompt('')
+      }
+      const w = readCommonParam(wf, cp.latentNodeId, cp.widthField)
+      if (typeof w === 'number' && !Number.isNaN(w)) setWidth(w)
+      const h = readCommonParam(wf, cp.latentNodeId, cp.heightField)
+      if (typeof h === 'number' && !Number.isNaN(h)) setHeight(h)
+      const f = readCommonParam(wf, cp.latentNodeId, cp.framesField)
+      if (typeof f === 'number' && !Number.isNaN(f)) setFrames(f)
+      const s = readCommonParam(wf, cp.samplerNodeId, cp.stepsField)
+      if (typeof s === 'number' && !Number.isNaN(s)) setSteps(s)
+      const sd = readCommonParam(wf, cp.samplerNodeId, cp.seedField)
+      if (typeof sd === 'number' && !Number.isNaN(sd)) setSeed(sd)
+      const c = readCommonParam(wf, cp.samplerNodeId, cp.cfgField)
+      if (typeof c === 'number' && !Number.isNaN(c)) setCfg(c)
+    },
+    [commonParams],
+  )
+
+  // Push workflow snapshot to undo stack before overwriting
+  const pushWorkflow = useCallback(
+    (wf: ComfyuiWorkflow) => {
+      setWorkflow((prev) => {
+        if (prev) setUndoStack((s) => [...s.slice(-(MAX_HISTORY - 1)), prev])
+        return wf
+      })
+      setRedoStack([])
+    },
+    [],
+  )
+
+  // ── Undo / Redo ──
+  const handleUndo = useCallback(() => {
+    if (undoStack.length === 0) return
+    const prev = undoStack[undoStack.length - 1]
+    setWorkflow((current) => {
+      if (current) setRedoStack((s) => [...s, current])
+      return prev
+    })
+    setUndoStack((s) => s.slice(0, -1))
+    syncSidebar(prev)
+  }, [undoStack, syncSidebar])
+
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0) return
+    const next = redoStack[redoStack.length - 1]
+    setWorkflow((current) => {
+      if (current) setUndoStack((s) => [...s, current])
+      return next
+    })
+    setRedoStack((s) => s.slice(0, -1))
+    syncSidebar(next)
+  }, [redoStack, syncSidebar])
+
+  // ── Export workflow ──
+  const handleExport = useCallback(() => {
+    if (!workflow) return
+    const json = JSON.stringify(workflow, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${workflowDetail?.name ?? 'workflow'}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [workflow, workflowDetail])
+
+  // ── Preset handlers ──
+  const handleSavePreset = useCallback(
+    (name: string) => {
+      if (!workflow) return
+      const preset: WorkflowPreset = {
+        name,
+        savedAt: Date.now(),
+        workflow,
+        workflowName: workflowDetail?.name ?? null,
+      }
+      savePreset(preset)
+      setPresets(loadPresets())
+    },
+    [workflow, workflowDetail],
+  )
+
+  const handleLoadPreset = useCallback(
+    (preset: WorkflowPreset) => {
+      setWorkflow(preset.workflow)
+      setUndoStack([])
+      setRedoStack([])
+      syncSidebar(preset.workflow)
+      // Reconstruct workflowDetail from preset metadata so node inspector works
+      if (preset.workflowName) {
+        setWorkflowDetail({
+          name: preset.workflowName,
+          workflow: preset.workflow,
+          adjustable_params: workflowDetail?.adjustable_params ?? [],
+        })
+      }
+    },
+    [syncSidebar, workflowDetail],
+  )
+
+  const handleDeletePreset = useCallback((name: string) => {
+    deletePreset(name)
+    setPresets(loadPresets())
+  }, [])
+
+  const handleRenamePreset = useCallback((oldName: string, newName: string) => {
+    renamePreset(oldName, newName)
+    setPresets(loadPresets())
+  }, [])
+
+  // ── Copy workflow to clipboard ──
+  const handleCopy = useCallback(async () => {
+    if (!workflow) return
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(workflow, null, 2))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // ignored
+    }
+  }, [workflow])
+
+  // ── Import workflow ──
+  const handleImport = useCallback((detail: WorkflowDetail) => {
+    setWorkflowDetail(detail)
+    setWorkflow(detail.workflow)
+    setSelectedNodeId(null)
+    setUndoStack([])
+    setRedoStack([])
+
+    const cp = detectCommonParams(detail.adjustable_params)
+    const p = readCommonParam(detail.workflow, cp.promptNodeId, cp.promptField)
+    if (typeof p === 'string') {
+      setPrompt(p)
+      setEnhancedPrompt('')
+    }
+    const w = readCommonParam(detail.workflow, cp.latentNodeId, cp.widthField)
+    if (typeof w === 'number' && !Number.isNaN(w)) setWidth(w)
+    const h = readCommonParam(detail.workflow, cp.latentNodeId, cp.heightField)
+    if (typeof h === 'number' && !Number.isNaN(h)) setHeight(h)
+    const f = readCommonParam(detail.workflow, cp.latentNodeId, cp.framesField)
+    if (typeof f === 'number' && !Number.isNaN(f)) setFrames(f)
+    const s = readCommonParam(detail.workflow, cp.samplerNodeId, cp.stepsField)
+    if (typeof s === 'number' && !Number.isNaN(s)) setSteps(s)
+    const sd = readCommonParam(detail.workflow, cp.samplerNodeId, cp.seedField)
+    if (typeof sd === 'number' && !Number.isNaN(sd)) setSeed(sd)
+    const c = readCommonParam(detail.workflow, cp.samplerNodeId, cp.cfgField)
+    if (typeof c === 'number' && !Number.isNaN(c)) setCfg(c)
+  }, [])
+
+  // ── Reset to server original ──
+  const handleReset = useCallback(() => {
+    if (!window.confirm(t('Discard changes and reload from server?'))) return
+    setWorkflow(workflowDetail?.workflow ?? null)
+    setUndoStack([])
+    setRedoStack([])
+    if (workflowDetail) syncSidebar(workflowDetail.workflow)
+  }, [workflowDetail, syncSidebar, t])
+
+  // ── Keyboard shortcuts ──
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const meta = e.metaKey || e.ctrlKey
+      const target = e.target as HTMLElement
+      const inInput =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+
+      if (meta && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        handleUndo()
+      } else if (meta && e.key === 'z' && e.shiftKey) {
+        e.preventDefault()
+        handleRedo()
+      } else if (meta && e.key === 's') {
+        e.preventDefault()
+        handleExport()
+      } else if (meta && e.key === 'i') {
+        e.preventDefault()
+        setImportOpen(true)
+      } else if (e.key === '?' && !inInput) {
+        setShortcutsOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [handleUndo, handleRedo, handleExport])
+
+  // ── Update workflow via common-param helpers ──
+  const updateWorkflowParam = useCallback(
+    (nodeId: string | null, field: string | null, value: unknown) => {
+      setWorkflow((prev) => {
+        if (!prev) return prev
+        const updated = writeCommonParam(prev, nodeId, field, value)
+        setUndoStack((s) => [...s.slice(-(MAX_HISTORY - 1)), prev])
+        setRedoStack([])
+        return updated
+      })
+    },
+    [],
+  )
+
+  // ── Load workflow ──
+  const handleSelectWorkflow = useCallback(
+    async (name: string) => {
+      setWfLoading(true)
+      try {
+        const detail = await fetchWorkflow(name)
+        setWorkflowDetail(detail)
+        setWorkflow(detail.workflow)
+        setSelectedNodeId(null)
+        setUndoStack([])
+        setRedoStack([])
+
+        const cp = detectCommonParams(detail.adjustable_params)
+        const p = readCommonParam(detail.workflow, cp.promptNodeId, cp.promptField)
+        if (typeof p === 'string') setPrompt(p)
+        setEnhancedPrompt('')
+        const sd = readCommonParam(detail.workflow, cp.samplerNodeId, cp.seedField)
+        if (typeof sd === 'number' && !Number.isNaN(sd)) setSeed(sd)
+        const c = readCommonParam(detail.workflow, cp.samplerNodeId, cp.cfgField)
+        if (typeof c === 'number' && !Number.isNaN(c)) setCfg(c)
+      } finally {
+        setWfLoading(false)
+      }
+    },
+    [],
+  )
+
+  // ── Sidebar → workflow → canvas ──
+  const handlePromptChange = useCallback(
+    (val: string) => {
+      setPrompt(val)
+      setEnhancedPrompt('')
+      updateWorkflowParam(commonParams.promptNodeId, commonParams.promptField, val)
+    },
+    [commonParams, updateWorkflowParam],
+  )
+
+  const handleWidthChange = useCallback(
+    (val: number) => {
+      setWidth(val)
+      updateWorkflowParam(commonParams.latentNodeId, commonParams.widthField, val)
+    },
+    [commonParams, updateWorkflowParam],
+  )
+
+  const handleHeightChange = useCallback(
+    (val: number) => {
+      setHeight(val)
+      updateWorkflowParam(commonParams.latentNodeId, commonParams.heightField, val)
+    },
+    [commonParams, updateWorkflowParam],
+  )
+
+  const handleFramesChange = useCallback(
+    (val: number) => {
+      setFrames(val)
+      updateWorkflowParam(commonParams.latentNodeId, commonParams.framesField, val)
+    },
+    [commonParams, updateWorkflowParam],
+  )
+
+  const handleStepsChange = useCallback(
+    (val: number) => {
+      setSteps(val)
+      updateWorkflowParam(commonParams.samplerNodeId, commonParams.stepsField, val)
+    },
+    [commonParams, updateWorkflowParam],
+  )
+
+  const handleSeedChange = useCallback(
+    (val: number) => {
+      setSeed(val)
+      updateWorkflowParam(commonParams.samplerNodeId, commonParams.seedField, val)
+    },
+    [commonParams, updateWorkflowParam],
+  )
+
+  const handleRandomSeed = useCallback(() => {
+    const val = Math.floor(Math.random() * 999999999999) + 1
+    setSeed(val)
+    updateWorkflowParam(commonParams.samplerNodeId, commonParams.seedField, val)
+  }, [commonParams, updateWorkflowParam])
+
+  const handleCfgChange = useCallback(
+    (val: number) => {
+      setCfg(val)
+      updateWorkflowParam(commonParams.samplerNodeId, commonParams.cfgField, val)
+    },
+    [commonParams, updateWorkflowParam],
+  )
+
+  const handlePresetSelect = useCallback(
+    (w: number, h: number) => {
+      setWidth(w)
+      setHeight(h)
+      setWorkflow((prev) => {
+        if (!prev) return prev
+        let updated = writeCommonParam(prev, commonParams.latentNodeId, commonParams.widthField, w)
+        updated = writeCommonParam(updated, commonParams.latentNodeId, commonParams.heightField, h)
+        setUndoStack((s) => [...s.slice(-(MAX_HISTORY - 1)), prev])
+        setRedoStack([])
+        return updated
+      })
+    },
+    [commonParams],
+  )
+
+  const handleHistoryLoad = useCallback(
+    (entry: GenerationEntry) => {
+      const p = entry.enhancedPrompt || entry.prompt
+      setPrompt(entry.prompt)
+      setEnhancedPrompt(entry.enhancedPrompt)
+      setWidth(entry.width)
+      setHeight(entry.height)
+      setFrames(entry.frames)
+      setSteps(entry.steps)
+      setSeed(entry.seed)
+      setCfg(entry.cfg)
+      setWorkflow((prev) => {
+        if (!prev) return prev
+        let updated = writeCommonParam(prev, commonParams.promptNodeId, commonParams.promptField, p)
+        updated = writeCommonParam(updated, commonParams.latentNodeId, commonParams.widthField, entry.width)
+        updated = writeCommonParam(updated, commonParams.latentNodeId, commonParams.heightField, entry.height)
+        if (commonParams.framesField) {
+          updated = writeCommonParam(updated, commonParams.latentNodeId, commonParams.framesField, entry.frames)
+        }
+        updated = writeCommonParam(updated, commonParams.samplerNodeId, commonParams.stepsField, entry.steps)
+        updated = writeCommonParam(updated, commonParams.samplerNodeId, commonParams.seedField, entry.seed)
+        updated = writeCommonParam(updated, commonParams.samplerNodeId, commonParams.cfgField, entry.cfg)
+        setUndoStack((s) => [...s.slice(-(MAX_HISTORY - 1)), prev])
+        setRedoStack([])
+        return updated
+      })
+    },
+    [commonParams],
+  )
+
+  const handleHistoryRefresh = useCallback(() => {
+    setHistory(loadHistory())
+  }, [])
+
+  // ── Canvas → workflow → sidebar sync ──
+  const handleWorkflowChange = useCallback(
+    (updated: ComfyuiWorkflow) => {
+      pushWorkflow(updated)
+      syncSidebar(updated)
+    },
+    [pushWorkflow, syncSidebar],
+  )
+
+  // ── Enhance ──
   const handleEnhance = useCallback(async () => {
     if (!prompt.trim()) return
     setEnhancing(true)
@@ -56,237 +477,341 @@ export function ComfyuiPlayground() {
     try {
       const enhanced = await enhancePrompt(prompt.trim())
       setEnhancedPrompt(enhanced)
+      updateWorkflowParam(commonParams.promptNodeId, commonParams.promptField, enhanced)
     } catch {
       setError(t('Prompt enhancement failed'))
     } finally {
       setEnhancing(false)
     }
-  }, [prompt, t])
+  }, [prompt, commonParams, updateWorkflowParam, t])
 
+  // ── Generate ──
   const handleGenerate = useCallback(async () => {
-    const targetPrompt = enhancedPrompt || prompt
-    if (!targetPrompt.trim()) return
+    if (!effectivePrompt.trim()) return
     setLoading(true)
     setError(null)
     setResult(null)
+    setQueuePosition(-1)
 
     try {
-      const res = await generateComfyuiVideo(targetPrompt.trim(), {
+      const res = await generateComfyuiVideo(effectivePrompt.trim(), {
         width,
         height,
         frames,
         steps,
+        workflow: workflow ?? undefined,
       })
       const content = res.choices[0]?.message?.content ?? ''
       const parsed = parseVideoUrls(content)
       setResult(parsed)
+      if (parsed.promptId) setCurrentPromptId(parsed.promptId)
+      const entry: GenerationEntry = {
+        id: parsed.promptId || Date.now().toString(),
+        prompt,
+        enhancedPrompt,
+        width,
+        height,
+        frames,
+        steps,
+        seed,
+        cfg,
+        promptId: parsed.promptId,
+        videos: parsed.videos,
+        workflowName: workflowDetail?.name ?? null,
+        createdAt: Date.now(),
+      }
+      saveHistoryEntry(entry)
+      setHistory(loadHistory())
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e)
       setError(msg || t('Video generation failed'))
     } finally {
       setLoading(false)
     }
-  }, [enhancedPrompt, prompt, width, height, frames, steps, t])
+  }, [effectivePrompt, width, height, frames, steps, seed, cfg, workflow, t])
+
+  // ── Poll queue position during generation ──
+  useEffect(() => {
+    if (!currentPromptId) return
+    let cancelled = false
+
+    const poll = async () => {
+      try {
+        const status = await pollQueueStatus(currentPromptId)
+        if (cancelled) return
+        setQueuePosition(status.queue_position)
+        if (status.status === 'done' || status.status === 'processing') {
+          // Stop showing queue number once processing starts
+        }
+        if (status.status !== 'done') {
+          // Continue polling
+          setTimeout(poll, 3000)
+        }
+      } catch {
+        // Silently stop polling on error
+      }
+    }
+
+    poll()
+    return () => { cancelled = true }
+  }, [currentPromptId])
+
+  // ── Node inspector data ──
+  const selectedNodeParams = useMemo(() => {
+    if (!selectedNodeId || !workflowDetail) return []
+    return workflowDetail.adjustable_params.filter((p) => p.node_id === selectedNodeId)
+  }, [selectedNodeId, workflowDetail])
+
+  const handleNodeParamChange = useCallback(
+    (nodeId: string, field: string, value: unknown) => {
+      setWorkflow((prev) => {
+        if (!prev) return prev
+        const updated = writeCommonParam(prev, nodeId, field, value)
+        setUndoStack((s) => [...s.slice(-(MAX_HISTORY - 1)), prev])
+        setRedoStack([])
+        return updated
+      })
+    },
+    [],
+  )
+
+  const handleDraftRestore = useCallback(() => {
+    const data = loadAutoSave()
+    if (!data) {
+      setDraftDialogOpen(false)
+      handleSelectWorkflow('wan_video_t2v')
+      return
+    }
+    clearAutoSave()
+    setWorkflowDetail({
+      name: data.workflowName ?? 'Draft',
+      workflow: data.workflow,
+      adjustable_params: data.adjustableParams,
+    })
+    setWorkflow(data.workflow)
+    setSelectedNodeId(null)
+    setUndoStack([])
+    setRedoStack([])
+    setEnhancedPrompt(data.enhancedPrompt)
+    setDraftDialogOpen(false)
+  }, [])
+
+  const handleDraftDiscard = useCallback(() => {
+    clearAutoSave()
+    setDraftDialogOpen(false)
+    handleSelectWorkflow('wan_video_t2v')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Auto-load default (or show draft dialog) ──
+  useEffect(() => {
+    if (hasAutoSave()) {
+      setDraftDialogOpen(true)
+      return
+    }
+    handleSelectWorkflow('wan_video_t2v')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Auto-save throttle ──
+  useEffect(() => {
+    if (!workflow) return
+    scheduleAutoSave({
+      workflow,
+      enhancedPrompt,
+      workflowName: workflowDetail?.name ?? null,
+      adjustableParams: workflowDetail?.adjustable_params ?? [],
+      savedAt: Date.now(),
+    })
+  }, [workflow, enhancedPrompt, workflowDetail])
+
+  const canUndo = undoStack.length > 0
+  const canRedo = redoStack.length > 0
 
   return (
-    <div className='flex h-full flex-col'>
-      {/* Header */}
-      <div className='border-b px-6 py-4'>
-        <h1 className='text-xl font-semibold'>{t('ComfyUI Video Lab')}</h1>
-        <p className='mt-1 text-sm text-muted-foreground'>
-          {t('AI video generation powered by ComfyUI with LTX 2.3.')}
-        </p>
-      </div>
-
-      {/* Main content */}
-      <div className='flex flex-1 overflow-hidden'>
-        {/* Left: controls */}
-        <div className='flex w-80 flex-col gap-4 border-r p-6'>
-          {/* Prompt */}
-          <div>
-            <label className='mb-1.5 block text-sm font-medium'>
-              {t('Prompt')}
-            </label>
-            <textarea
-              className='w-full rounded-lg border bg-background px-3 py-2 text-sm resize-none
-                focus:outline-none focus:ring-2 focus:ring-primary/20'
-              rows={4}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder={t('Describe the video you want to generate...')}
-            />
-            <button
-              className='mt-1.5 w-full rounded-lg border border-dashed border-muted-foreground/30
-                px-3 py-1.5 text-xs font-medium text-muted-foreground
-                transition-colors hover:border-primary/50 hover:text-primary
-                disabled:opacity-50'
-              disabled={!prompt.trim() || enhancing || loading}
-              onClick={handleEnhance}
-            >
-              {enhancing ? t('Enhancing...') : t('AI Enhance Prompt')}
-            </button>
-          </div>
-
-          {/* Enhanced prompt display */}
-          {(enhancedPrompt || enhancing) && (
-            <div>
-              <label className='mb-1.5 block text-sm font-medium'>
-                {t('Enhanced Prompt')}
-              </label>
-              <textarea
-                className='w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm resize-none
-                  focus:outline-none'
-                rows={4}
-                value={enhancedPrompt}
-                readOnly
-                placeholder={t('Generating enhanced prompt...')}
-              />
-            </div>
-          )}
-
-          {/* Parameters */}
-          <div className='grid grid-cols-2 gap-3'>
-            <div>
-              <label className='mb-1 block text-xs font-medium text-muted-foreground'>
-                {t('Width')}
-              </label>
-              <input
-                type='number'
-                className='w-full rounded-lg border bg-background px-2 py-1.5 text-sm
-                  focus:outline-none focus:ring-2 focus:ring-primary/20'
-                value={width}
-                min={64}
-                max={2048}
-                step={64}
-                onChange={(e) => setWidth(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className='mb-1 block text-xs font-medium text-muted-foreground'>
-                {t('Height')}
-              </label>
-              <input
-                type='number'
-                className='w-full rounded-lg border bg-background px-2 py-1.5 text-sm
-                  focus:outline-none focus:ring-2 focus:ring-primary/20'
-                value={height}
-                min={64}
-                max={2048}
-                step={64}
-                onChange={(e) => setHeight(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className='mb-1 block text-xs font-medium text-muted-foreground'>
-                {t('Frames')}
-              </label>
-              <input
-                type='number'
-                className='w-full rounded-lg border bg-background px-2 py-1.5 text-sm
-                  focus:outline-none focus:ring-2 focus:ring-primary/20'
-                value={frames}
-                min={1}
-                max={120}
-                onChange={(e) => setFrames(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className='mb-1 block text-xs font-medium text-muted-foreground'>
-                {t('Steps')}
-              </label>
-              <input
-                type='number'
-                className='w-full rounded-lg border bg-background px-2 py-1.5 text-sm
-                  focus:outline-none focus:ring-2 focus:ring-primary/20'
-                value={steps}
-                min={1}
-                max={100}
-                onChange={(e) => setSteps(Number(e.target.value))}
-              />
-            </div>
-          </div>
-
-          {/* Generate button */}
+    <div className='flex h-full flex-col relative'>
+      {/* ── Header ── */}
+      <div className='flex items-center gap-2 border-b px-6 py-3'>
+        <h1 className='text-lg font-semibold whitespace-nowrap mr-2'>
+          {t('ComfyUI Video Lab')}
+        </h1>
+        <WorkflowSelector
+          onSelect={handleSelectWorkflow}
+          selectedName={workflowDetail?.name ?? null}
+          loading={wfLoading}
+          disabled={loading}
+        />
+        <div className='flex items-center gap-1 ml-auto'>
+          <PresetSelector
+            presets={presets}
+            disabled={loading}
+            onSave={handleSavePreset}
+            onLoad={handleLoadPreset}
+            onDelete={handleDeletePreset}
+            onRename={handleRenamePreset}
+          />
+          <div className='mx-1 h-5 w-px bg-border' />
           <button
-            className='mt-2 w-full rounded-lg bg-rose-500 px-4 py-2.5 text-sm font-medium
+            className='rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30'
+            disabled={!canUndo}
+            onClick={handleUndo}
+            title={`${t('Undo')} (⌘Z)`}
+          >
+            <Undo2 className='h-4 w-4' />
+          </button>
+          <button
+            className='rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30'
+            disabled={!canRedo}
+            onClick={handleRedo}
+            title={`${t('Redo')} (⌘⇧Z)`}
+          >
+            <Redo2 className='h-4 w-4' />
+          </button>
+          <button
+            className='rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30'
+            disabled={!workflow}
+            onClick={handleExport}
+            title={t('Export Workflow')}
+          >
+            <Download className='h-4 w-4' />
+          </button>
+          <button
+            className='rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30'
+            disabled={wfLoading || loading}
+            onClick={() => setImportOpen(true)}
+            title={t('Import Workflow')}
+          >
+            <Upload className='h-4 w-4' />
+          </button>
+          <div className='mx-1 h-5 w-px bg-border' />
+          <button
+            className='rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30'
+            disabled={!workflow}
+            onClick={handleCopy}
+            title={copied ? t('Copied!') : t('Copy Workflow')}
+          >
+            <Copy className='h-4 w-4' />
+          </button>
+          <button
+            className='rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30'
+            disabled={!workflowDetail?.workflow}
+            onClick={handleReset}
+            title={t('Reset Workflow')}
+          >
+            <RotateCcw className='h-4 w-4' />
+          </button>
+          <button
+            className='ml-2 flex items-center gap-2 rounded-lg bg-rose-500 px-4 py-2 text-sm font-medium
               text-white transition-colors hover:bg-rose-600 disabled:opacity-50'
             disabled={loading || !effectivePrompt.trim()}
             onClick={handleGenerate}
           >
-            {loading ? t('Generating...') : t('Generate Video')}
+            {loading ? (
+              <span className='flex items-center gap-2'>
+                <span className='h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent' />
+                {queuePosition > 0
+                  ? t('Generating video...') + ` (${t('Queue position')}: ${queuePosition})`
+                  : t('Generating video...')}
+              </span>
+            ) : (
+              t('Generate')
+            )}
           </button>
-
-          {/* Error */}
-          {error && (
-            <div className='rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
-              {error}
-            </div>
-          )}
-        </div>
-
-        {/* Right: result */}
-        <div className='flex-1 overflow-auto p-6'>
-          {loading && (
-            <div className='flex h-full items-center justify-center'>
-              <div className='flex flex-col items-center gap-3'>
-                <div className='h-8 w-8 animate-spin rounded-full border-2 border-rose-500 border-t-transparent' />
-                <p className='text-sm text-muted-foreground'>
-                  {t('Generating video, this may take a few minutes...')}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {!loading && !result && !error && (
-            <div className='flex h-full items-center justify-center'>
-              <div className='text-center'>
-                <p className='text-sm text-muted-foreground'>
-                  {t('Enter a prompt and click Generate to create a video.')}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {result && (
-            <div className='space-y-6'>
-              <div className='text-sm text-muted-foreground'>
-                Prompt ID: <code className='rounded bg-muted px-1.5 py-0.5 text-xs'>{result.promptId}</code>
-              </div>
-
-              {result.videos.map((video, i) => (
-                <div key={i} className='overflow-hidden rounded-lg border'>
-                  <div className='border-b bg-muted/50 px-4 py-2 text-sm font-medium'>
-                    {video.name}
-                  </div>
-                  <div className='p-4'>
-                    <video
-                      controls
-                      className='w-full max-h-96 rounded'
-                      src={video.url}
-                    >
-                      {t('Your browser does not support video playback.')}
-                    </video>
-                    <div className='mt-2 flex items-center gap-2'>
-                      <a
-                        href={video.url}
-                        download={video.name}
-                        className='text-xs text-primary hover:underline'
-                        target='_blank'
-                        rel='noreferrer'
-                      >
-                        {t('Download')}
-                      </a>
-                      <span className='text-xs text-muted-foreground'>
-                        {video.url}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
+
+      {/* ── Main: sidebar + canvas ── */}
+      <div className='flex flex-1 overflow-hidden'>
+        <SidebarPanel
+          prompt={prompt}
+          enhancedPrompt={enhancedPrompt}
+          enhancing={enhancing}
+          loading={loading}
+          width={width}
+          height={height}
+          frames={frames}
+          steps={steps}
+          seed={seed}
+          cfg={cfg}
+          selectedNodeId={selectedNodeId}
+          selectedNodeParams={selectedNodeParams}
+          workflow={workflow}
+          error={error}
+          onPromptChange={handlePromptChange}
+          onEnhance={handleEnhance}
+          onWidthChange={handleWidthChange}
+          onHeightChange={handleHeightChange}
+          onFramesChange={handleFramesChange}
+          onStepsChange={handleStepsChange}
+          onSeedChange={handleSeedChange}
+          onRandomSeed={handleRandomSeed}
+          onCfgChange={handleCfgChange}
+          onPresetSelect={handlePresetSelect}
+          onNodeParamChange={handleNodeParamChange}
+          history={history}
+          onHistoryLoad={handleHistoryLoad}
+          onHistoryRefresh={handleHistoryRefresh}
+        />
+
+        {/* Right: Canvas */}
+        <div className='flex-1'>
+          <WorkflowCanvas
+            workflow={workflow}
+            selectedNodeId={selectedNodeId}
+            loading={wfLoading}
+            onNodeSelect={setSelectedNodeId}
+            onWorkflowChange={handleWorkflowChange}
+          />
+        </div>
+      </div>
+
+      {/* ── Results ── */}
+      {result && (
+        <div className='border-t p-4'>
+          <div className='text-xs text-muted-foreground mb-2'>
+            Prompt ID:{' '}
+            <code className='rounded bg-muted px-1 py-0.5'>{result.promptId}</code>
+          </div>
+          <div className='flex gap-4 overflow-x-auto'>
+            {result.videos.map((video, i) => (
+              <div key={i} className='shrink-0 overflow-hidden rounded-lg border w-[360px]'>
+                <div className='border-b bg-muted/50 px-3 py-1.5 text-xs font-medium'>
+                  {video.name}
+                </div>
+                <video controls className='w-full max-h-56' src={video.url}>
+                  {t('Your browser does not support video playback.')}
+                </video>
+                <div className='px-3 py-1.5'>
+                  <a
+                    href={video.url}
+                    download={video.name}
+                    className='text-xs text-primary hover:underline'
+                    target='_blank'
+                    rel='noreferrer'
+                  >
+                    {t('Download')}
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <WorkflowImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImport={handleImport}
+      />
+      <ShortcutsDialog
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
+      <RestoreDraftDialog
+        open={draftDialogOpen}
+        onRestore={handleDraftRestore}
+        onDiscard={handleDraftDiscard}
+      />
     </div>
   )
 }

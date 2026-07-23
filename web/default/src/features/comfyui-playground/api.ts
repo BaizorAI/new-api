@@ -1,6 +1,14 @@
 import { api } from '@/lib/api'
 
-import type { ComfyuiChatResponse } from './types'
+import type {
+  AdjustableParam,
+  ComfyuiChatResponse,
+  ComfyuiWorkflow,
+  QueueStatus,
+  WorkflowDetail,
+  WorkflowListItem,
+  WorkflowListResponse,
+} from './types'
 
 const COMPYUI_PG_ENDPOINT = '/pg/chat/completions'
 
@@ -11,16 +19,18 @@ export async function generateComfyuiVideo(
     height?: number
     frames?: number
     steps?: number
+    workflow?: ComfyuiWorkflow
   }
 ): Promise<ComfyuiChatResponse> {
-  const body = {
+  const body: Record<string, unknown> = {
     model: 'comfyui-sulphur',
     messages: [{ role: 'user', content: prompt }],
-    ...(params?.width && { width: params.width }),
-    ...(params?.height && { height: params.height }),
-    ...(params?.frames && { frames: params.frames }),
-    ...(params?.steps && { steps: params.steps }),
   }
+  if (params?.width) body.width = params.width
+  if (params?.height) body.height = params.height
+  if (params?.frames) body.frames = params.frames
+  if (params?.steps) body.steps = params.steps
+  if (params?.workflow) body.workflow = params.workflow
 
   const res = await api.post(COMPYUI_PG_ENDPOINT, body, {
     headers: {
@@ -31,6 +41,24 @@ export async function generateComfyuiVideo(
     skipBusinessError: true,
   })
 
+  return res.data
+}
+
+export async function fetchWorkflows(): Promise<WorkflowListItem[]> {
+  const res = await api.get<WorkflowListResponse>('/pg/hermes/comfyui-workflows')
+  return res.data?.workflows ?? []
+}
+
+export async function fetchWorkflow(name: string): Promise<WorkflowDetail> {
+  const res = await api.get<WorkflowDetail>(`/pg/hermes/comfyui-workflows/${name}`)
+  return res.data
+}
+
+export async function pollQueueStatus(promptId: string): Promise<QueueStatus> {
+  const res = await api.get<QueueStatus>(
+    `/pg/hermes/comfyui-queue/${promptId}`,
+    { skipBusinessError: true },
+  )
   return res.data
 }
 
@@ -65,4 +93,41 @@ export async function enhancePrompt(userPrompt: string): Promise<string> {
   })
 
   return res.data?.choices?.[0]?.message?.content ?? ''
+}
+
+/**
+ * Parse a raw ComfyUI workflow JSON string into a WorkflowDetail.
+ * Replicates the backend get_workflow_meta() parsing logic client-side.
+ */
+export function parseImportedWorkflow(rawJson: string): WorkflowDetail {
+  const wf: ComfyuiWorkflow = JSON.parse(rawJson)
+  const adjustableParams: AdjustableParam[] = []
+
+  for (const [nodeId, node] of Object.entries(wf)) {
+    if (typeof node !== 'object' || node === null) continue
+    const classType = (node as Record<string, unknown>).class_type as string ?? ''
+    const meta = (node as Record<string, unknown>)._meta as { title?: string } | null
+    const title = meta?.title ?? classType
+    const inputs = (node as Record<string, unknown>).inputs as Record<string, unknown> ?? {}
+
+    for (const [inputName, inputVal] of Object.entries(inputs)) {
+      if (Array.isArray(inputVal)) continue
+      const t =
+        typeof inputVal === 'boolean'
+          ? ('boolean' as const)
+          : typeof inputVal === 'number'
+            ? ('number' as const)
+            : ('string' as const)
+      adjustableParams.push({
+        node_id: nodeId,
+        class_type: classType,
+        title,
+        field_name: inputName,
+        type: t,
+        default_value: inputVal,
+      })
+    }
+  }
+
+  return { name: 'Imported', workflow: wf, adjustable_params: adjustableParams }
 }

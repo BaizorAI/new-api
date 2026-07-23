@@ -61,3 +61,80 @@ export interface ComfyuiChatResponse {
   model: string
   choices: ComfyuiChatChoice[]
 }
+
+export interface QueueStatus {
+  queue_position: number
+  status: 'queued' | 'processing' | 'done'
+}
+
+// ── Workflow-related types ───────────────────────────────────────────────
+
+/** A ComfyUI workflow node (API format). */
+export interface ComfyuiWorkflowNode {
+  class_type: string
+  _meta?: { title: string }
+  inputs: Record<string, ComfyuiNodeInput>
+}
+
+/** An input value: primitive or a connection tuple [sourceNodeId, outputIndex]. */
+export type ComfyuiNodeInput = string | number | boolean | ComfyuiNodeConnection
+
+export type ComfyuiNodeConnection = [string, number]
+
+/** Full ComfyUI workflow: nodeId → node. */
+export interface ComfyuiWorkflow {
+  [nodeId: string]: ComfyuiWorkflowNode
+}
+
+/** A single adjustable parameter discovered by the backend. */
+export interface AdjustableParam {
+  node_id: string
+  class_type: string
+  title: string
+  field_name: string
+  type: 'string' | 'number' | 'boolean'
+  default_value: unknown
+}
+
+/** Workflow file in the listing. */
+export interface WorkflowListItem {
+  name: string
+  path: string
+}
+
+/** Response from GET /pg/hermes/comfyui-workflows. */
+export interface WorkflowListResponse {
+  workflows: WorkflowListItem[]
+}
+
+/** Response from GET /pg/hermes/comfyui-workflows/:name. */
+export interface WorkflowDetail {
+  name: string
+  workflow: ComfyuiWorkflow
+  adjustable_params: AdjustableParam[]
+}
+
+/** A user-saved workflow preset stored in localStorage. */
+export interface WorkflowPreset {
+  name: string
+  savedAt: number
+  workflow: ComfyuiWorkflow
+  workflowName: string | null
+}
+
+/** A past generation result saved in localStorage. */
+export interface GenerationEntry {
+  id: string
+  prompt: string
+  enhancedPrompt: string
+  width: number
+  height: number
+  frames: number
+  steps: number
+  seed: number
+  cfg: number
+  promptId: string
+  videos: { name: string; url: string }[]
+  workflowName: string | null
+  createdAt: number
+}

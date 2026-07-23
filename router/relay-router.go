@@ -76,6 +76,8 @@ func SetRelayRouter(router *gin.Engine) {
 	{
 		hermesFileRouter.GET("/files/*path", controller.HermesPlaygroundFile)
 		hermesFileRouter.GET("/comfyui-files/*path", controller.HermesComfyuiFileProxy)
+		hermesFileRouter.GET("/comfyui-workflows", controller.HermesComfyuiWorkflows)
+		hermesFileRouter.GET("/comfyui-workflows/:name", controller.HermesComfyuiWorkflow)
 	}
 	hermesGatewayRouter := router.Group("/pg/hermes/gateway")
 	hermesGatewayRouter.Use(middleware.RouteTag("relay"))

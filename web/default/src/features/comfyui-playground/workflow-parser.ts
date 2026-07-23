@@ -1,0 +1,318 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import type { Node, Edge, MarkerType } from '@xyflow/react'
+
+import type {
+  ComfyuiWorkflow,
+  ComfyuiWorkflowNode,
+  ComfyuiNodeInput,
+  AdjustableParam,
+} from './types'
+
+/**
+ * Categorises ComfyUI class_types into layout columns.
+ * Left (0) → loaders, Right (4) → outputs.
+ */
+const COLUMN_MAP: Record<string, number> = {
+  CheckpointLoaderSimple: 0,
+  UNETLoader: 0,
+  CLIPLoader: 0,
+  VAELoader: 0,
+  DualCLIPLoader: 0,
+  UpscaleModelLoader: 0,
+  LoadImage: 0,
+  LoadImageMask: 0,
+
+  CLIPTextEncode: 1,
+
+  EmptyLatentImage: 1,
+  EmptySD3LatentImage: 1,
+  EmptyHunyuanLatentVideo: 1,
+  EmptyLTXVideoLatent: 1,
+
+  KSampler: 2,
+  SamplerCustomAdvanced: 2,
+  KSamplerSelect: 2,
+  BasicScheduler: 2,
+  BasicGuider: 2,
+  RandomNoise: 2,
+
+  VAEDecode: 3,
+  VAEEncode: 3,
+  VAEEncodeForInpaint: 3,
+
+  SaveImage: 4,
+  PreviewImage: 4,
+  VHS_VideoCombine: 4,
+  ImageUpscaleWithModel: 4,
+
+  ADE_AnimateDiffLoaderWithContext: 1,
+}
+
+function columnForNode(node: ComfyuiWorkflowNode): number {
+  return COLUMN_MAP[node.class_type] ?? 2
+}
+
+/** Generate positions for every node in a simple grid layout. */
+function layoutNodes(wf: ComfyuiWorkflow): Record<string, { x: number; y: number }> {
+  const positions: Record<string, { x: number; y: number }> = {}
+  const columnRows: Record<number, number> = {}
+
+  for (const [nodeId, node] of Object.entries(wf)) {
+    const col = columnForNode(node)
+    const row = columnRows[col] ?? 0
+    positions[nodeId] = { x: col * 300, y: row * 190 }
+    columnRows[col] = row + 1
+  }
+  return positions
+}
+
+/** Class types that are connection-only — their inputs are always edges. */
+const CONNECTION_ONLY_TYPES = new Set([
+  'VAEDecode',
+  'VAEEncode',
+  'VAEEncodeForInpaint',
+  'ImageUpscaleWithModel',
+  'ADE_AnimateDiffLoaderWithContext',
+])
+
+/** Fields that represent model name selections (shown as labels, not inputs). */
+const MODEL_NAME_FIELDS = new Set([
+  'ckpt_name',
+  'unet_name',
+  'clip_name1',
+  'clip_name2',
+  'vae_name',
+  'model_name',
+  'lora_name',
+])
+
+/**
+ * Build a compact one-line summary of the key values on this node.
+ * Returns null for fully connection-based nodes (e.g. VAEDecode).
+ */
+function nodeSummary(node: ComfyuiWorkflowNode): string | null {
+  if (CONNECTION_ONLY_TYPES.has(node.class_type)) return null
+  const inputs = node.inputs ?? {}
+  const parts: string[] = []
+
+  for (const [key, val] of Object.entries(inputs)) {
+    if (Array.isArray(val)) continue
+    if (MODEL_NAME_FIELDS.has(key)) {
+      // Trim model name down for display
+      const s = String(val)
+      parts.push(s.length > 22 ? s.slice(0, 20) + '..' : s)
+    } else if (key === 'text' || key === 'value') {
+      const s = String(val)
+      parts.push(s.length > 28 ? s.slice(0, 26) + '..' : s)
+    } else if (typeof val === 'number' || typeof val === 'boolean') {
+      parts.push(`${key}: ${String(val)}`)
+    }
+  }
+  return parts.length > 0 ? parts.join('  ·  ') : null
+}
+
+export interface ParsedGraph {
+  nodes: Node[]
+  edges: Edge[]
+}
+
+export function parseWorkflowToGraph(
+  wf: ComfyuiWorkflow,
+  onInputChange: (nodeId: string, fieldName: string, value: unknown) => void
+): ParsedGraph {
+  const positions = layoutNodes(wf)
+  const nodes: Node[] = []
+  const edges: Edge[] = []
+
+  for (const [nodeId, node] of Object.entries(wf)) {
+    const { class_type: classType, inputs } = node
+    const meta = node._meta ?? { title: classType }
+    const title = meta.title || classType
+
+    const adjustable: Array<{
+      fieldName: string
+      type: 'string' | 'number' | 'boolean'
+      value: unknown
+    }> = []
+
+    const connectionHandles: Record<string, [string, number]> = {}
+    let outIdx = 0
+
+    for (const [fieldName, val] of Object.entries(inputs ?? {})) {
+      if (Array.isArray(val) && val.length === 2 && typeof val[0] === 'string') {
+        connectionHandles[fieldName] = val as [string, number]
+        edges.push({
+          id: `${val[0]}-${nodeId}-${fieldName}`,
+          source: val[0],
+          target: nodeId,
+          sourceHandle: String(val[1]),
+          targetHandle: fieldName,
+          type: 'smoothstep',
+          animated: true,
+          label: fieldName,
+          labelStyle: { fontSize: 9, fill: 'var(--muted-foreground)' },
+          labelBgStyle: { fill: 'var(--background)', fillOpacity: 0.8 },
+          style: { stroke: 'var(--primary)', strokeWidth: 1.5 },
+          markerEnd: { type: 'arrowclosed' as typeof MarkerType.ArrowClosed },
+        })
+      } else {
+        const t =
+          typeof val === 'boolean'
+            ? ('boolean' as const)
+            : typeof val === 'number'
+              ? ('number' as const)
+              : ('string' as const)
+        adjustable.push({ fieldName, type: t, value: val })
+        outIdx++
+      }
+    }
+
+    const pos = positions[nodeId] ?? { x: 0, y: 0 }
+    const summary = nodeSummary(node)
+    const hasConnections = Object.keys(connectionHandles).length > 0
+    const isSource = !CONNECTION_ONLY_TYPES.has(classType)
+
+    nodes.push({
+      id: nodeId,
+      type: 'comfyui',
+      position: pos,
+      data: {
+        classType,
+        title,
+        summary,
+        adjustable,
+        hasConnections,
+        isSource,
+        hasTargetHandles: hasConnections,
+        dimmed: false,
+        onInputChange: (fieldName: string, value: unknown) =>
+          onInputChange(nodeId, fieldName, value),
+      },
+    })
+  }
+
+  return { nodes, edges }
+}
+
+/**
+ * Find common top-level params in a workflow by scanning adjustable_params
+ * for known field names.
+ */
+export interface CommonParams {
+  promptNodeId: string | null
+  promptField: string | null
+  latentNodeId: string | null
+  widthField: string | null
+  heightField: string | null
+  framesField: string | null
+  samplerNodeId: string | null
+  stepsField: string | null
+  seedField: string | null
+  cfgField: string | null
+}
+
+export function detectCommonParams(params: AdjustableParam[]): CommonParams {
+  const result: CommonParams = {
+    promptNodeId: null,
+    promptField: null,
+    latentNodeId: null,
+    widthField: null,
+    heightField: null,
+    framesField: null,
+    samplerNodeId: null,
+    stepsField: null,
+    seedField: null,
+    cfgField: null,
+  }
+
+  for (const p of params) {
+    const { node_id: nid, class_type: ct, field_name: fn } = p
+
+    if (ct === 'CLIPTextEncode' && (fn === 'text' || fn === 'value')) {
+      result.promptNodeId = nid
+      result.promptField = fn
+    } else if (
+      (ct === 'EmptyLTXVideoLatent' ||
+        ct === 'EmptyHunyuanLatentVideo' ||
+        ct === 'EmptyLatentImage' ||
+        ct === 'EmptySD3LatentImage') &&
+      fn === 'width'
+    ) {
+      result.latentNodeId = nid
+      result.widthField = fn
+    } else if (
+      (ct === 'EmptyLTXVideoLatent' ||
+        ct === 'EmptyHunyuanLatentVideo' ||
+        ct === 'EmptyLatentImage' ||
+        ct === 'EmptySD3LatentImage') &&
+      fn === 'height'
+    ) {
+      result.latentNodeId = nid
+      result.heightField = fn
+    } else if (
+      (ct === 'EmptyLTXVideoLatent' || ct === 'EmptyHunyuanLatentVideo') &&
+      (fn === 'length' || fn === 'frames')
+    ) {
+      result.latentNodeId = nid
+      result.framesField = fn
+    } else if (ct === 'KSampler' && fn === 'steps') {
+      result.samplerNodeId = nid
+      result.stepsField = fn
+    } else if (ct === 'KSampler' && fn === 'seed') {
+      result.samplerNodeId = nid
+      result.seedField = fn
+    } else if (ct === 'KSampler' && fn === 'cfg') {
+      result.samplerNodeId = nid
+      result.cfgField = fn
+    }
+  }
+
+  return result
+}
+
+/**
+ * Read and write common params from/to the workflow.
+ */
+export function readCommonParam(
+  wf: ComfyuiWorkflow | null,
+  nodeId: string | null,
+  field: string | null
+): unknown {
+  if (!wf || !nodeId || !field) return undefined
+  return wf[nodeId]?.inputs?.[field]
+}
+
+export function writeCommonParam(
+  wf: ComfyuiWorkflow,
+  nodeId: string | null,
+  field: string | null,
+  value: unknown
+): ComfyuiWorkflow {
+  if (!nodeId || !field) return wf
+  const node = wf[nodeId]
+  const updatedInputs: Record<string, ComfyuiNodeInput> = {
+    ...node.inputs,
+    [field]: value as ComfyuiNodeInput,
+  }
+  return {
+    ...wf,
+    [nodeId]: { ...node, inputs: updatedInputs },
+  }
+}

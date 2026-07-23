@@ -237,3 +237,12 @@ For commercial licensing, please contact support@quantumnous.com
     var(--background)
   );
 }
+
+/* ── ReactFlow MiniMap dark-mode overrides ── */
+.dark .react-flow__minimap {
+  background-color: hsl(var(--muted));
+  border-color: hsl(var(--border));
+}
+.dark .react-flow__minimap-mask {
+  fill: rgba(0, 0, 0, 0.35);
+}
