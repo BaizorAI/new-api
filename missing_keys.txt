@@ -4,11 +4,12 @@
 # but are NOT present in en.json translation file.
 #
 # Total keys in en.json: 6962
-# Total unique t() string literals found: 4963
-# Total MISSING keys: 2
+# Total unique t() string literals found in source: 4982
+# Total MISSING keys: 3
 #
 # Keys are sorted alphabetically (case-insensitive).
 # =============================
 
 e.g., https://xxx.services.ai.azure.com/openai/v1
+https://your-domain.com
 Please use WeChat's "Scan QR Code" feature to complete the binding process.
