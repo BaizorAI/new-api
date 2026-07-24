@@ -131,6 +131,12 @@ const MODULE_MATCHERS: ModuleMatcher[] = [
   },
   {
     type: 'exact',
+    path: '/image-to-video',
+    section: 'chat',
+    module: 'playground',
+  },
+  {
+    type: 'exact',
     path: '/hermes-playground',
     section: 'chat',
     module: 'hermes_playground',

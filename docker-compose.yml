@@ -41,9 +41,9 @@ services:
       - ERROR_LOG_ENABLED=true # 是否启用错误日志记录 (Whether to enable error log recording)
       - BATCH_UPDATE_ENABLED=true  # 是否启用批量更新 (Whether to enable batch update)
       - NODE_NAME=new-api-node-1  # 节点名称，用于审计日志中标识节点身份；多节点/容器部署时建议设置 (Node name used in audit logs; recommended when running multiple instances or in containers)
-      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,new-api,hermes,baizor-hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}
-      - no_proxy=${no_proxy:-localhost,127.0.0.1,new-api,hermes,baizor-hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}
-      - HERMES_API_SERVER_URL=${HERMES_API_SERVER_URL:-http://baizor-hermes:8642}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,new-api,hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}
+      - no_proxy=${no_proxy:-localhost,127.0.0.1,new-api,hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}
+      - HERMES_API_SERVER_URL=${HERMES_API_SERVER_URL:-http://hermes:8642}
       - HERMES_API_SERVER_KEY=${HERMES_API_SERVER_KEY:-}
       - HERMES_SIDECAR_ENABLED=${HERMES_SIDECAR_ENABLED:-false}
       - SESSION_SECRET=${SESSION_SECRET:-}

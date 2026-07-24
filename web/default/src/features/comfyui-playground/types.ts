@@ -142,4 +142,30 @@ export interface GenerationEntry {
   videos: { name: string; url: string }[]
   workflowName: string | null
   createdAt: number
+  /** Has an image source (i2v generation). */
+  hasImage?: boolean
+}
+
+/** Response from POST /pg/hermes/comfyui-i2v (async submission). */
+export interface ComfyuiI2VSubmitResponse {
+  id: string
+  status: 'queued' | 'processing' | 'completed' | 'failed'
+  model: string
+  created: number
+  started_at?: number
+  finished_at?: number
+  data?: Array<{ b64_json: string }>
+  error?: string | { message: string }
+}
+
+/** Response from GET /pg/hermes/comfyui-i2v/:job_id (completed job). */
+export interface ComfyuiI2VStatusResponse {
+  id: string
+  status: 'queued' | 'processing' | 'completed' | 'failed'
+  model: string
+  created: number
+  started_at?: number
+  finished_at?: number
+  data?: Array<{ b64_json: string }>
+  error?: string | { message: string }
 }

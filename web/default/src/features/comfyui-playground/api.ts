@@ -3,6 +3,8 @@ import { api } from '@/lib/api'
 import type {
   AdjustableParam,
   ComfyuiChatResponse,
+  ComfyuiI2VStatusResponse,
+  ComfyuiI2VSubmitResponse,
   ComfyuiWorkflow,
   QueueStatus,
   WorkflowDetail,
@@ -11,6 +13,7 @@ import type {
 } from './types'
 
 const COMPYUI_PG_ENDPOINT = '/pg/chat/completions'
+const COMPYUI_I2V_ENDPOINT = '/pg/hermes/comfyui-i2v'
 
 export async function generateComfyuiVideo(
   prompt: string,
@@ -49,6 +52,44 @@ export async function generateComfyuiVideo(
     skipBusinessError: true,
   })
 
+  return res.data
+}
+
+export async function generateComfyuiI2V(
+  imageBase64: string,
+  prompt: string,
+  params?: {
+    width?: number
+    height?: number
+    num_frames?: number
+    fps?: number
+    seed?: number
+    model?: string
+  }
+): Promise<ComfyuiI2VSubmitResponse> {
+  const body: Record<string, unknown> = {
+    image: imageBase64,
+    prompt,
+    model: params?.model ?? 'sulphur-2-fast',
+  }
+  if (params?.width) body.width = params.width
+  if (params?.height) body.height = params.height
+  if (params?.num_frames) body.num_frames = params.num_frames
+  if (params?.fps) body.fps = params.fps
+  if (params?.seed) body.seed = params.seed
+
+  const res = await api.post<ComfyuiI2VSubmitResponse>(COMPYUI_I2V_ENDPOINT, body, {
+    skipBusinessError: true,
+  })
+
+  return res.data
+}
+
+export async function pollI2VStatus(jobId: string): Promise<ComfyuiI2VStatusResponse> {
+  const res = await api.get<ComfyuiI2VStatusResponse>(
+    `${COMPYUI_I2V_ENDPOINT}/${jobId}`,
+    { skipBusinessError: true },
+  )
   return res.data
 }
 

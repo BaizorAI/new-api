@@ -9,13 +9,13 @@
 #
 # The Hermes API server is exposed only inside the Docker network. Add Hermes
 # to the platform as an OpenAI-compatible channel with:
-#   Base URL: http://baizor-hermes:8642/v1
+#   Base URL: http://hermes:8642/v1
 #   API Key:  ${HERMES_API_SERVER_KEY}
 
 services:
-  baizor-hermes:
+  hermes:
     image: ${HERMES_IMAGE:-ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.27}
-    container_name: baizor-hermes
+    container_name: hermes
     restart: unless-stopped
     command: ["gateway", "run"]
     expose:
@@ -47,8 +47,8 @@ services:
       - COMFYUI_REMOTE_OUTPUT_DIR=${COMFYUI_REMOTE_OUTPUT_DIR:-/luckydata/proxy-logs}
       - LOCAL_OUTPUT_DIR=/opt/data/comfyui-output
       - SSH_KEY_FILE=${SSH_KEY_FILE:-/opt/data/.ssh/id_rsa}
-      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,new-api,hermes,baizor-hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}
-      - no_proxy=${no_proxy:-localhost,127.0.0.1,new-api,hermes,baizor-hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}
+      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,new-api,hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}
+      - no_proxy=${no_proxy:-localhost,127.0.0.1,new-api,hermes,postgres,redis,newapi-postgres,newapi-redis,kimi-agent}
     depends_on:
       - new-api
     deploy:

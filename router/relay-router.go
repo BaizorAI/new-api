@@ -102,6 +102,8 @@ func SetRelayRouter(router *gin.Engine) {
 		hermesPlaygroundRouter.PUT("/skills/assets", controller.HermesPlaygroundSkillAssets)
 		hermesPlaygroundRouter.GET("/skills/assets/file", controller.HermesPlaygroundSkillAssetFile)
 		hermesPlaygroundRouter.POST("/skills/generate", controller.HermesPlaygroundSkillGenerate)
+		hermesPlaygroundRouter.POST("/comfyui-i2v", controller.HandleComfyuiI2V)
+		hermesPlaygroundRouter.GET("/comfyui-i2v/:job_id", controller.HandleComfyuiI2VStatus)
 		hermesPlaygroundRouter.GET("/toolsets", controller.HermesPlaygroundToolsets)
 		hermesPlaygroundRouter.GET("/results", controller.ListHermesResults)
 		hermesPlaygroundRouter.POST("/results/sync", controller.SyncHermesResults)

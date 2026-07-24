@@ -15,6 +15,7 @@ import (
 	"github.com/BaizorAI/new-api/common"
 	"github.com/BaizorAI/new-api/constant"
 	"github.com/BaizorAI/new-api/middleware"
+	"github.com/BaizorAI/new-api/model"
 
 	"github.com/gin-gonic/gin"
 )
@@ -192,6 +193,7 @@ func proxyHermesPlaygroundWithQuery(c *gin.Context, method string, path string, 
 func comfyuiServiceBase() string {
 	return common.GetHermesConfig().ComfyUIServiceURL
 }
+
 
 type comfyuiGenerateRequest struct {
 	Prompt         string          `json:"prompt"`
@@ -479,4 +481,167 @@ func HermesComfyuiWorkflow(c *gin.Context) {
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	c.Data(resp.StatusCode, "application/json", body)
+}
+
+// ── ComfyUI i2v proxy ─────────────────────────────────────────────────────
+
+// i2vModelName is the model name used to look up the channel that routes video
+// generation requests to the llama-proxy (→ sulphur2 / scail2).
+const i2vModelName = "huayu-drama-4"
+
+// i2vChannelRequestPath is the upstream request path used for channel lookup.
+// It must match a path that the channel is configured to handle so that
+// path-aware channel selection works correctly.
+const i2vChannelRequestPath = "/v1/videos/generations"
+
+// resolveI2VChannel resolves the proxy base URL and API key from the channel
+// configured to handle video generation requests.
+func resolveI2VChannel(c *gin.Context) (baseURL string, apiKey string, err error) {
+	userGroup := common.GetContextKeyString(c, constant.ContextKeyUsingGroup)
+	channel, err := model.GetRandomSatisfiedChannel(userGroup, i2vModelName, 0, i2vChannelRequestPath)
+	if err != nil {
+		return "", "", fmt.Errorf("no channel available for i2v: %w", err)
+	}
+	baseURL = channel.GetBaseURL()
+	apiKey, _, _ = channel.GetNextEnabledKey()
+	if baseURL == "" || apiKey == "" {
+		return "", "", fmt.Errorf("channel for i2v has no base URL or API key")
+	}
+	return baseURL, apiKey, nil
+}
+
+// HandleComfyuiI2V relays image-to-video requests through the channel system
+// to the llama-proxy that forwards to the sulphur2 service.
+//
+//	POST /pg/hermes/comfyui-i2v
+func HandleComfyuiI2V(c *gin.Context) {
+	proxyURL, proxyKey, err := resolveI2VChannel(c)
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"message": err.Error()})
+		return
+	}
+
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to read request body"})
+		return
+	}
+
+	var req struct {
+		Prompt    string `json:"prompt"`
+		Image     string `json:"image"`
+		ImageURL  string `json:"image_url"`
+		Model     string `json:"model"`
+		Width     int    `json:"width"`
+		Height    int    `json:"height"`
+		NumFrames int    `json:"num_frames"`
+		Fps       int    `json:"fps"`
+		Seed      int    `json:"seed"`
+	}
+	if err := common.Unmarshal(body, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request body"})
+		return
+	}
+	if req.Prompt == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "prompt is required"})
+		return
+	}
+	imagePayload := req.ImageURL
+	if imagePayload == "" {
+		imagePayload = req.Image
+	}
+	if imagePayload == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "image or image_url is required for image-to-video"})
+		return
+	}
+
+	if req.Model == "" {
+		req.Model = "sulphur-2-fast"
+	}
+
+	size := ""
+	if req.Width > 0 && req.Height > 0 {
+		size = fmt.Sprintf("%dx%d", req.Width, req.Height)
+	}
+	upstreamReq := map[string]interface{}{
+		"prompt": req.Prompt,
+		"image":  imagePayload,
+		"model":  req.Model,
+		"async":  true,
+	}
+	if size != "" {
+		upstreamReq["size"] = size
+	}
+	if req.NumFrames > 0 {
+		upstreamReq["num_frames"] = req.NumFrames
+	}
+	if req.Fps > 0 {
+		upstreamReq["fps"] = req.Fps
+	}
+	if req.Seed > 0 {
+		upstreamReq["seed"] = req.Seed
+	}
+
+	upstreamBody, err := common.Marshal(upstreamReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to build upstream request"})
+		return
+	}
+
+	targetURL := proxyURL + "/v1/videos/image-to-video"
+	httpReq, err := http.NewRequestWithContext(context.Background(), http.MethodPost, targetURL, bytes.NewReader(upstreamBody))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create proxy request"})
+		return
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+proxyKey)
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Minute}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to reach i2v service: " + err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	c.Data(resp.StatusCode, "application/json", respBody)
+}
+
+// HandleComfyuiI2VStatus polls the status of an async i2v job through the
+// channel system.
+//
+//	GET /pg/hermes/comfyui-i2v/:job_id
+func HandleComfyuiI2VStatus(c *gin.Context) {
+	proxyURL, proxyKey, err := resolveI2VChannel(c)
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"message": err.Error()})
+		return
+	}
+
+	jobID := c.Param("job_id")
+	if jobID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "job_id is required"})
+		return
+	}
+
+	targetURL := proxyURL + "/v1/videos/generations/" + jobID
+	httpReq, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, targetURL, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create proxy request"})
+		return
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+proxyKey)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to reach i2v service"})
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	c.Data(resp.StatusCode, "application/json", respBody)
 }

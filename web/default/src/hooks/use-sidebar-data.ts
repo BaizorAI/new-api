@@ -155,6 +155,13 @@ export function useSidebarData(): SidebarData {
             icon: Video,
           },
           {
+            title: t('Image to Video'),
+            description: t('上传一张图片，AI 将其转为动态视频。'),
+            url: '/image-to-video',
+            activeUrls: ['/image-to-video'],
+            icon: Video,
+          },
+          {
             title: t('ComfyUI Video'),
             description: t('AI 视频生成，基于 ComfyUI LTX 2.3 模型。'),
             url: '/comfyui-playground',

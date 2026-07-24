@@ -13,7 +13,7 @@ services:
     image: ${REDIS_IMAGE:-ccr.ccs.tencentyun.com/lucky/redis:latest}
 
   postgres:
-    image: ${POSTGRES_IMAGE:-ccr.ccs.tencentyun.com/lucky/postgres:18}
+    image: ${POSTGRES_IMAGE:-ccr.ccs.tencentyun.com/lucky/postgres:15}
 
   # uptime-kuma 镜像暂未上传，后续需要时再启用
   # uptime-kuma:
