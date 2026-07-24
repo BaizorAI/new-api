@@ -1,4 +1,4 @@
-FROM ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.27
+FROM ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.28
 
 USER root
 

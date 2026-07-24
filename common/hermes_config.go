@@ -34,7 +34,7 @@ const (
 	defaultHermesAPIURL           = "http://hermes:8642"
 	defaultHermesAPIPort          = 8642
 	defaultHermesDataDir          = "/opt/data"
-	defaultHermesImage            = "ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.27"
+	defaultHermesImage            = "ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.28"
 	defaultHermesInferenceBaseURL = "http://new-api:3000/v1"
 	defaultHermesUID              = 10000
 	defaultHermesGID              = 10000
