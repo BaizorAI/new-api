@@ -191,12 +191,16 @@ func proxyHermesPlaygroundWithQuery(c *gin.Context, method string, path string, 
 const comfyuiServiceBase = "http://baizor-hermes:8650"
 
 type comfyuiGenerateRequest struct {
-	Prompt   string          `json:"prompt"`
-	Width    int             `json:"width"`
-	Height   int             `json:"height"`
-	Frames   int             `json:"frames"`
-	Steps    int             `json:"steps"`
-	Workflow json.RawMessage `json:"workflow,omitempty"`
+	Prompt         string          `json:"prompt"`
+	Width          int             `json:"width"`
+	Height         int             `json:"height"`
+	Frames         int             `json:"frames"`
+	Steps          int             `json:"steps"`
+	Cfg            float64         `json:"cfg"`
+	Fps            int             `json:"fps"`
+	NegativePrompt string          `json:"negative_prompt,omitempty"`
+	Seed           int             `json:"seed"`
+	Workflow       json.RawMessage `json:"workflow,omitempty"`
 }
 
 type comfyuiGenerateResponse struct {
