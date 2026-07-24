@@ -18,7 +18,7 @@
 #   待 New-Api 创建好令牌后再回填并重启 Hermes。
 
 services:
-  baizor-hermes:
+  hermes:
     # 如果本地源码有修改且网络允许，保留 build 块从源码构建；
     # 如果想直接使用 deploy.sh 或仓库生成的镜像，注释掉 build 块并取消 image 行注释。
     build:
@@ -27,13 +27,15 @@ services:
       args:
         - GITHUB_MIRROR=${GITHUB_MIRROR:-}
     # image: ${HERMES_IMAGE:-ccr.ccs.tencentyun.com/lucky/baizor-hermes:1.0.27}
-    container_name: baizor-hermes
+    container_name: hermes
     restart: unless-stopped
     command: ["gateway", "run"]
     ports:
       - "${HERMES_API_SERVER_PORT:-8642}:8642"
+      - "8650:8650"
     volumes:
       - ./hermes-data:/opt/data
+      - ./hermes-agent/skills:/opt/hermes-skills:ro
     environment:
       - HERMES_UID=${HERMES_UID:-10000}
       - HERMES_GID=${HERMES_GID:-10000}
@@ -53,3 +55,14 @@ services:
       - HTTPS_PROXY=
       - http_proxy=
       - https_proxy=
+      # ComfyUI skill: override bundled skills with host source (allows local edits)
+      - HERMES_BUNDLED_SKILLS=/opt/hermes-skills
+      # ComfyUI server URL
+      - COMFYUI_HOST=${COMFYUI_HOST:-http://host.docker.internal:8188}
+      # ComfyUI SCP file transfer
+      - COMFYUI_REMOTE_HOST=${COMFYUI_REMOTE_HOST:-}
+      - COMFYUI_REMOTE_PORT=${COMFYUI_REMOTE_PORT:-30022}
+      - COMFYUI_REMOTE_USER=${COMFYUI_REMOTE_USER:-}
+      - COMFYUI_REMOTE_OUTPUT_DIR=${COMFYUI_REMOTE_OUTPUT_DIR:-}
+      - LOCAL_OUTPUT_DIR=/opt/data/comfyui-output
+      - SSH_KEY_FILE=${SSH_KEY_FILE:-/opt/data/.ssh/id_rsa}

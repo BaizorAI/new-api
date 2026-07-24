@@ -188,7 +188,10 @@ func proxyHermesPlaygroundWithQuery(c *gin.Context, method string, path string, 
 
 // ── ComfyUI Skill Direct Routing ──────────────────────────────────────────
 
-const comfyuiServiceBase = "http://baizor-hermes:8650"
+// comfyuiServiceBase returns the base URL of the comfyui execution service.
+func comfyuiServiceBase() string {
+	return common.GetHermesConfig().ComfyUIServiceURL
+}
 
 type comfyuiGenerateRequest struct {
 	Prompt         string          `json:"prompt"`
@@ -357,7 +360,7 @@ func handleComfyuiSkill(c *gin.Context, body []byte) hermesProxyResult {
 	}
 
 	client := &http.Client{Timeout: 10 * time.Minute}
-	resp, err := client.Post(comfyuiServiceBase+"/generate", "application/json", bytes.NewReader(reqBody))
+	resp, err := client.Post(comfyuiServiceBase()+"/generate", "application/json", bytes.NewReader(reqBody))
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to reach comfyui service"})
 		return hermesProxyResult{StatusCode: http.StatusBadGateway}
@@ -429,7 +432,7 @@ func HermesComfyuiFileProxy(c *gin.Context) {
 		return
 	}
 
-	fileURL := comfyuiServiceBase + "/files/" + filename
+	fileURL := comfyuiServiceBase() + "/files/" + filename
 	req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, fileURL, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create proxy request"})
@@ -454,7 +457,7 @@ func HermesComfyuiFileProxy(c *gin.Context) {
 // HermesComfyuiWorkflows proxies GET /pg/hermes/comfyui-workflows to the
 // comfyui service's workflow listing endpoint.
 func HermesComfyuiWorkflows(c *gin.Context) {
-	resp, err := http.Get(comfyuiServiceBase + "/workflows")
+	resp, err := http.Get(comfyuiServiceBase() + "/workflows")
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to reach comfyui service"})
 		return
@@ -468,7 +471,7 @@ func HermesComfyuiWorkflows(c *gin.Context) {
 // the comfyui service's workflow retrieval endpoint.
 func HermesComfyuiWorkflow(c *gin.Context) {
 	name := c.Param("name")
-	resp, err := http.Get(comfyuiServiceBase + "/workflows/" + name)
+	resp, err := http.Get(comfyuiServiceBase() + "/workflows/" + name)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"message": "Failed to reach comfyui service"})
 		return
