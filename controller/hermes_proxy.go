@@ -264,17 +264,27 @@ type comfyuiChatRequest struct {
 		Role    string `json:"role"`
 		Content string `json:"content"`
 	} `json:"messages"`
-	Width    int             `json:"width"`
-	Height   int             `json:"height"`
-	Frames   int             `json:"frames"`
-	Steps    int             `json:"steps"`
-	Workflow json.RawMessage `json:"workflow,omitempty"`
+	Width          int             `json:"width"`
+	Height         int             `json:"height"`
+	Frames         int             `json:"frames"`
+	Steps          int             `json:"steps"`
+	Cfg            float64         `json:"cfg"`
+	Fps            int             `json:"fps"`
+	NegativePrompt string          `json:"negative_prompt,omitempty"`
+	Seed           int             `json:"seed"`
+	Workflow       json.RawMessage `json:"workflow,omitempty"`
 }
 
 // extractComfyuiParams extracts the prompt and optional generation parameters
 // from a chat-completion style request body. Parameters that are unspecified
 // (zero value) are left as zero, and the caller applies defaults.
-func extractComfyuiParams(body []byte) (prompt string, width, height, frames, steps int, workflow json.RawMessage) {
+func extractComfyuiParams(body []byte) (
+	prompt string,
+	width, height, frames, steps, fps, seed int,
+	cfg float64,
+	negativePrompt string,
+	workflow json.RawMessage,
+) {
 	var req comfyuiChatRequest
 	if err := common.Unmarshal(body, &req); err != nil {
 		return
@@ -289,6 +299,10 @@ func extractComfyuiParams(body []byte) (prompt string, width, height, frames, st
 	height = req.Height
 	frames = req.Frames
 	steps = req.Steps
+	cfg = req.Cfg
+	fps = req.Fps
+	seed = req.Seed
+	negativePrompt = req.NegativePrompt
 	workflow = req.Workflow
 	return
 }
@@ -297,7 +311,7 @@ func extractComfyuiParams(body []byte) (prompt string, width, height, frames, st
 // running inside the baizor-hermes container and returns a chat-completion
 // formatted response.
 func handleComfyuiSkill(c *gin.Context, body []byte) hermesProxyResult {
-	prompt, width, height, frames, steps, workflow := extractComfyuiParams(body)
+	prompt, width, height, frames, steps, fps, seed, cfg, negativePrompt, workflow := extractComfyuiParams(body)
 	if prompt == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "No user prompt found in messages"})
 		return hermesProxyResult{StatusCode: http.StatusBadRequest}
@@ -316,14 +330,24 @@ func handleComfyuiSkill(c *gin.Context, body []byte) hermesProxyResult {
 	if steps <= 0 {
 		steps = 30
 	}
+	if cfg <= 0 {
+		cfg = 3.6
+	}
+	if fps <= 0 {
+		fps = 24
+	}
 
 	genReq := comfyuiGenerateRequest{
-		Prompt:   prompt,
-		Width:    width,
-		Height:   height,
-		Frames:   frames,
-		Steps:    steps,
-		Workflow: workflow,
+		Prompt:         prompt,
+		Width:          width,
+		Height:         height,
+		Frames:         frames,
+		Steps:          steps,
+		Cfg:            cfg,
+		Fps:            fps,
+		NegativePrompt: negativePrompt,
+		Seed:           seed,
+		Workflow:       workflow,
 	}
 
 	reqBody, err := common.Marshal(genReq)
