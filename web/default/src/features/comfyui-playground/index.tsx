@@ -35,6 +35,7 @@ import {
   detectCommonParams,
   readCommonParam,
   writeCommonParam,
+  paramNodeId,
 } from './workflow-parser'
 import type { CommonParams } from './workflow-parser'
 import type { ComfyuiWorkflow, WorkflowDetail, WorkflowPreset, GenerationEntry } from './types'
@@ -54,7 +55,7 @@ function parseVideoUrls(content: string): {
   return { promptId, videos }
 }
 
-const DEFAULT_PARAMS = { width: 768, height: 512, frames: 33, steps: 30 }
+const DEFAULT_PARAMS = { width: 768, height: 512, frames: 33, steps: 30, fps: 24 }
 
 export function ComfyuiPlayground() {
   const { t } = useTranslation()
@@ -88,6 +89,7 @@ export function ComfyuiPlayground() {
   const [width, setWidth] = useState(DEFAULT_PARAMS.width)
   const [height, setHeight] = useState(DEFAULT_PARAMS.height)
   const [frames, setFrames] = useState(DEFAULT_PARAMS.frames)
+  const [fps, setFps] = useState(DEFAULT_PARAMS.fps)
   const [steps, setSteps] = useState(DEFAULT_PARAMS.steps)
   const [seed, setSeed] = useState(-1)
   const [cfg, setCfg] = useState(7)
@@ -117,17 +119,19 @@ export function ComfyuiPlayground() {
         setPrompt(p)
         setEnhancedPrompt('')
       }
-      const w = readCommonParam(wf, cp.latentNodeId, cp.widthField)
+      const w = readCommonParam(wf, cp.widthNodeId, cp.widthField)
       if (typeof w === 'number' && !Number.isNaN(w)) setWidth(w)
-      const h = readCommonParam(wf, cp.latentNodeId, cp.heightField)
+      const h = readCommonParam(wf, cp.heightNodeId, cp.heightField)
       if (typeof h === 'number' && !Number.isNaN(h)) setHeight(h)
-      const f = readCommonParam(wf, cp.latentNodeId, cp.framesField)
+      const f = readCommonParam(wf, cp.framesNodeId, cp.framesField)
       if (typeof f === 'number' && !Number.isNaN(f)) setFrames(f)
-      const s = readCommonParam(wf, cp.samplerNodeId, cp.stepsField)
+      const fp = readCommonParam(wf, cp.fpsNodeId, cp.fpsField)
+      if (typeof fp === 'number' && !Number.isNaN(fp)) setFps(fp)
+      const s = readCommonParam(wf, cp.stepsNodeId, cp.stepsField)
       if (typeof s === 'number' && !Number.isNaN(s)) setSteps(s)
-      const sd = readCommonParam(wf, cp.samplerNodeId, cp.seedField)
+      const sd = readCommonParam(wf, cp.seedNodeId, cp.seedField)
       if (typeof sd === 'number' && !Number.isNaN(sd)) setSeed(sd)
-      const c = readCommonParam(wf, cp.samplerNodeId, cp.cfgField)
+      const c = readCommonParam(wf, cp.cfgNodeId, cp.cfgField)
       if (typeof c === 'number' && !Number.isNaN(c)) setCfg(c)
     },
     [commonParams],
@@ -251,17 +255,19 @@ export function ComfyuiPlayground() {
       setPrompt(p)
       setEnhancedPrompt('')
     }
-    const w = readCommonParam(detail.workflow, cp.latentNodeId, cp.widthField)
+    const w = readCommonParam(detail.workflow, cp.widthNodeId, cp.widthField)
     if (typeof w === 'number' && !Number.isNaN(w)) setWidth(w)
-    const h = readCommonParam(detail.workflow, cp.latentNodeId, cp.heightField)
+    const h = readCommonParam(detail.workflow, cp.heightNodeId, cp.heightField)
     if (typeof h === 'number' && !Number.isNaN(h)) setHeight(h)
-    const f = readCommonParam(detail.workflow, cp.latentNodeId, cp.framesField)
+    const f = readCommonParam(detail.workflow, cp.framesNodeId, cp.framesField)
     if (typeof f === 'number' && !Number.isNaN(f)) setFrames(f)
-    const s = readCommonParam(detail.workflow, cp.samplerNodeId, cp.stepsField)
+    const fp = readCommonParam(detail.workflow, cp.fpsNodeId, cp.fpsField)
+    if (typeof fp === 'number' && !Number.isNaN(fp)) setFps(fp)
+    const s = readCommonParam(detail.workflow, cp.stepsNodeId, cp.stepsField)
     if (typeof s === 'number' && !Number.isNaN(s)) setSteps(s)
-    const sd = readCommonParam(detail.workflow, cp.samplerNodeId, cp.seedField)
+    const sd = readCommonParam(detail.workflow, cp.seedNodeId, cp.seedField)
     if (typeof sd === 'number' && !Number.isNaN(sd)) setSeed(sd)
-    const c = readCommonParam(detail.workflow, cp.samplerNodeId, cp.cfgField)
+    const c = readCommonParam(detail.workflow, cp.cfgNodeId, cp.cfgField)
     if (typeof c === 'number' && !Number.isNaN(c)) setCfg(c)
   }, [])
 
@@ -335,9 +341,11 @@ export function ComfyuiPlayground() {
         const p = readCommonParam(detail.workflow, cp.promptNodeId, cp.promptField)
         if (typeof p === 'string') setPrompt(p)
         setEnhancedPrompt('')
-        const sd = readCommonParam(detail.workflow, cp.samplerNodeId, cp.seedField)
+        const fp = readCommonParam(detail.workflow, cp.fpsNodeId, cp.fpsField)
+        if (typeof fp === 'number' && !Number.isNaN(fp)) setFps(fp)
+        const sd = readCommonParam(detail.workflow, cp.seedNodeId, cp.seedField)
         if (typeof sd === 'number' && !Number.isNaN(sd)) setSeed(sd)
-        const c = readCommonParam(detail.workflow, cp.samplerNodeId, cp.cfgField)
+        const c = readCommonParam(detail.workflow, cp.cfgNodeId, cp.cfgField)
         if (typeof c === 'number' && !Number.isNaN(c)) setCfg(c)
       } finally {
         setWfLoading(false)
@@ -359,7 +367,7 @@ export function ComfyuiPlayground() {
   const handleWidthChange = useCallback(
     (val: number) => {
       setWidth(val)
-      updateWorkflowParam(commonParams.latentNodeId, commonParams.widthField, val)
+      updateWorkflowParam(commonParams.widthNodeId, commonParams.widthField, val)
     },
     [commonParams, updateWorkflowParam],
   )
@@ -367,7 +375,7 @@ export function ComfyuiPlayground() {
   const handleHeightChange = useCallback(
     (val: number) => {
       setHeight(val)
-      updateWorkflowParam(commonParams.latentNodeId, commonParams.heightField, val)
+      updateWorkflowParam(commonParams.heightNodeId, commonParams.heightField, val)
     },
     [commonParams, updateWorkflowParam],
   )
@@ -375,7 +383,15 @@ export function ComfyuiPlayground() {
   const handleFramesChange = useCallback(
     (val: number) => {
       setFrames(val)
-      updateWorkflowParam(commonParams.latentNodeId, commonParams.framesField, val)
+      updateWorkflowParam(commonParams.framesNodeId, commonParams.framesField, val)
+    },
+    [commonParams, updateWorkflowParam],
+  )
+
+  const handleFpsChange = useCallback(
+    (val: number) => {
+      setFps(val)
+      updateWorkflowParam(commonParams.fpsNodeId, commonParams.fpsField, val)
     },
     [commonParams, updateWorkflowParam],
   )
@@ -383,7 +399,7 @@ export function ComfyuiPlayground() {
   const handleStepsChange = useCallback(
     (val: number) => {
       setSteps(val)
-      updateWorkflowParam(commonParams.samplerNodeId, commonParams.stepsField, val)
+      updateWorkflowParam(commonParams.stepsNodeId, commonParams.stepsField, val)
     },
     [commonParams, updateWorkflowParam],
   )
@@ -391,7 +407,7 @@ export function ComfyuiPlayground() {
   const handleSeedChange = useCallback(
     (val: number) => {
       setSeed(val)
-      updateWorkflowParam(commonParams.samplerNodeId, commonParams.seedField, val)
+      updateWorkflowParam(commonParams.seedNodeId, commonParams.seedField, val)
     },
     [commonParams, updateWorkflowParam],
   )
@@ -399,13 +415,13 @@ export function ComfyuiPlayground() {
   const handleRandomSeed = useCallback(() => {
     const val = Math.floor(Math.random() * 999999999999) + 1
     setSeed(val)
-    updateWorkflowParam(commonParams.samplerNodeId, commonParams.seedField, val)
+    updateWorkflowParam(commonParams.seedNodeId, commonParams.seedField, val)
   }, [commonParams, updateWorkflowParam])
 
   const handleCfgChange = useCallback(
     (val: number) => {
       setCfg(val)
-      updateWorkflowParam(commonParams.samplerNodeId, commonParams.cfgField, val)
+      updateWorkflowParam(commonParams.cfgNodeId, commonParams.cfgField, val)
     },
     [commonParams, updateWorkflowParam],
   )
@@ -416,8 +432,8 @@ export function ComfyuiPlayground() {
       setHeight(h)
       setWorkflow((prev) => {
         if (!prev) return prev
-        let updated = writeCommonParam(prev, commonParams.latentNodeId, commonParams.widthField, w)
-        updated = writeCommonParam(updated, commonParams.latentNodeId, commonParams.heightField, h)
+        let updated = writeCommonParam(prev, commonParams.widthNodeId, commonParams.widthField, w)
+        updated = writeCommonParam(updated, commonParams.heightNodeId, commonParams.heightField, h)
         setUndoStack((s) => [...s.slice(-(MAX_HISTORY - 1)), prev])
         setRedoStack([])
         return updated
@@ -434,20 +450,24 @@ export function ComfyuiPlayground() {
       setWidth(entry.width)
       setHeight(entry.height)
       setFrames(entry.frames)
+      setFps(entry.fps ?? 24)
       setSteps(entry.steps)
       setSeed(entry.seed)
       setCfg(entry.cfg)
       setWorkflow((prev) => {
         if (!prev) return prev
         let updated = writeCommonParam(prev, commonParams.promptNodeId, commonParams.promptField, p)
-        updated = writeCommonParam(updated, commonParams.latentNodeId, commonParams.widthField, entry.width)
-        updated = writeCommonParam(updated, commonParams.latentNodeId, commonParams.heightField, entry.height)
-        if (commonParams.framesField) {
-          updated = writeCommonParam(updated, commonParams.latentNodeId, commonParams.framesField, entry.frames)
+        updated = writeCommonParam(updated, commonParams.widthNodeId, commonParams.widthField, entry.width)
+        updated = writeCommonParam(updated, commonParams.heightNodeId, commonParams.heightField, entry.height)
+        if (commonParams.framesNodeId && commonParams.framesField) {
+          updated = writeCommonParam(updated, commonParams.framesNodeId, commonParams.framesField, entry.frames)
         }
-        updated = writeCommonParam(updated, commonParams.samplerNodeId, commonParams.stepsField, entry.steps)
-        updated = writeCommonParam(updated, commonParams.samplerNodeId, commonParams.seedField, entry.seed)
-        updated = writeCommonParam(updated, commonParams.samplerNodeId, commonParams.cfgField, entry.cfg)
+        if (commonParams.fpsNodeId && commonParams.fpsField) {
+          updated = writeCommonParam(updated, commonParams.fpsNodeId, commonParams.fpsField, entry.fps ?? 24)
+        }
+        updated = writeCommonParam(updated, commonParams.stepsNodeId, commonParams.stepsField, entry.steps)
+        updated = writeCommonParam(updated, commonParams.seedNodeId, commonParams.seedField, entry.seed)
+        updated = writeCommonParam(updated, commonParams.cfgNodeId, commonParams.cfgField, entry.cfg)
         setUndoStack((s) => [...s.slice(-(MAX_HISTORY - 1)), prev])
         setRedoStack([])
         return updated
@@ -499,6 +519,9 @@ export function ComfyuiPlayground() {
         height,
         frames,
         steps,
+        cfg,
+        fps,
+        seed: seed > 0 ? seed : undefined,
         workflow: workflow ?? undefined,
       })
       const content = res.choices[0]?.message?.content ?? ''
@@ -515,6 +538,7 @@ export function ComfyuiPlayground() {
         steps,
         seed,
         cfg,
+        fps,
         promptId: parsed.promptId,
         videos: parsed.videos,
         workflowName: workflowDetail?.name ?? null,
@@ -528,7 +552,7 @@ export function ComfyuiPlayground() {
     } finally {
       setLoading(false)
     }
-  }, [effectivePrompt, width, height, frames, steps, seed, cfg, workflow, t])
+  }, [effectivePrompt, width, height, frames, steps, seed, cfg, fps, workflow, t])
 
   // ── Poll queue position during generation ──
   useEffect(() => {
@@ -579,7 +603,7 @@ export function ComfyuiPlayground() {
     const data = loadAutoSave()
     if (!data) {
       setDraftDialogOpen(false)
-      handleSelectWorkflow('wan_video_t2v')
+      handleSelectWorkflow('ltx_t2v')
       return
     }
     clearAutoSave()
@@ -599,7 +623,7 @@ export function ComfyuiPlayground() {
   const handleDraftDiscard = useCallback(() => {
     clearAutoSave()
     setDraftDialogOpen(false)
-    handleSelectWorkflow('wan_video_t2v')
+    handleSelectWorkflow('ltx_t2v')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -609,7 +633,7 @@ export function ComfyuiPlayground() {
       setDraftDialogOpen(true)
       return
     }
-    handleSelectWorkflow('wan_video_t2v')
+    handleSelectWorkflow('ltx_t2v')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -730,6 +754,7 @@ export function ComfyuiPlayground() {
           width={width}
           height={height}
           frames={frames}
+          fps={fps}
           steps={steps}
           seed={seed}
           cfg={cfg}
@@ -742,6 +767,7 @@ export function ComfyuiPlayground() {
           onWidthChange={handleWidthChange}
           onHeightChange={handleHeightChange}
           onFramesChange={handleFramesChange}
+          onFpsChange={handleFpsChange}
           onStepsChange={handleStepsChange}
           onSeedChange={handleSeedChange}
           onRandomSeed={handleRandomSeed}

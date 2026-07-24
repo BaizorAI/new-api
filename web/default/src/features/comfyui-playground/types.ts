@@ -22,6 +22,10 @@ export interface ComfyuiGenerateRequest {
   height?: number
   frames?: number
   steps?: number
+  cfg?: number
+  fps?: number
+  seed?: number
+  negative_prompt?: string
 }
 
 export interface ComfyuiFile {
@@ -133,6 +137,7 @@ export interface GenerationEntry {
   steps: number
   seed: number
   cfg: number
+  fps: number
   promptId: string
   videos: { name: string; url: string }[]
   workflowName: string | null

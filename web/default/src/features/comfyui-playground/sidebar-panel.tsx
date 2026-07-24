@@ -50,6 +50,7 @@ interface SidebarPanelProps {
   width: number
   height: number
   frames: number
+  fps: number
   steps: number
   seed: number
   cfg: number
@@ -62,6 +63,7 @@ interface SidebarPanelProps {
   onWidthChange: (val: number) => void
   onHeightChange: (val: number) => void
   onFramesChange: (val: number) => void
+  onFpsChange: (val: number) => void
   onStepsChange: (val: number) => void
   onSeedChange: (val: number) => void
   onRandomSeed: () => void
@@ -81,6 +83,7 @@ export function SidebarPanel({
   width,
   height,
   frames,
+  fps,
   steps,
   seed,
   cfg,
@@ -93,6 +96,7 @@ export function SidebarPanel({
   onWidthChange,
   onHeightChange,
   onFramesChange,
+  onFpsChange,
   onStepsChange,
   onSeedChange,
   onRandomSeed,
@@ -189,6 +193,21 @@ export function SidebarPanel({
             min={1}
             max={120}
             onChange={(e) => onFramesChange(Number(e.target.value))}
+          />
+        </div>
+        <div>
+          <label className='mb-1 block text-[11px] font-medium text-muted-foreground'>
+            {t('FPS')}
+          </label>
+          <input
+            type='number'
+            className={`w-full rounded-lg border bg-background px-2 py-1 text-sm
+              focus:outline-none focus:ring-2 focus:ring-primary/20 ${warnClass(fps, 8, 60)}`}
+            min={1}
+            max={60}
+            step={1}
+            value={fps}
+            onChange={(e) => onFpsChange(Number(e.target.value))}
           />
         </div>
         <div>

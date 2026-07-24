@@ -19,6 +19,10 @@ export async function generateComfyuiVideo(
     height?: number
     frames?: number
     steps?: number
+    cfg?: number
+    fps?: number
+    seed?: number
+    negative_prompt?: string
     workflow?: ComfyuiWorkflow
   }
 ): Promise<ComfyuiChatResponse> {
@@ -30,6 +34,10 @@ export async function generateComfyuiVideo(
   if (params?.height) body.height = params.height
   if (params?.frames) body.frames = params.frames
   if (params?.steps) body.steps = params.steps
+  if (params?.cfg) body.cfg = params.cfg
+  if (params?.fps) body.fps = params.fps
+  if (params?.seed) body.seed = params.seed
+  if (params?.negative_prompt) body.negative_prompt = params.negative_prompt
   if (params?.workflow) body.workflow = params.workflow
 
   const res = await api.post(COMPYUI_PG_ENDPOINT, body, {

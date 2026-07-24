@@ -36,15 +36,27 @@ const COLUMN_MAP: Record<string, number> = {
   VAELoader: 0,
   DualCLIPLoader: 0,
   UpscaleModelLoader: 0,
+  LatentUpscaleModelLoader: 0,
   LoadImage: 0,
   LoadImageMask: 0,
+  LTXVAudioVAELoader: 0,
+  LTXAVTextEncoderLoader: 0,
 
   CLIPTextEncode: 1,
+  PrimitiveInt: 1,
+  PrimitiveStringMultiline: 1,
+  ComfyMathExpression: 1,
+  LTXVConditioning: 1,
 
   EmptyLatentImage: 1,
   EmptySD3LatentImage: 1,
   EmptyHunyuanLatentVideo: 1,
   EmptyLTXVideoLatent: 1,
+  EmptyLTXVLatentVideo: 1,
+  LTXVEmptyLatentAudio: 1,
+  LTXVConcatAVLatent: 1,
+  LTXVSeparateAVLatent: 1,
+  LTXVCropGuides: 1,
 
   KSampler: 2,
   SamplerCustomAdvanced: 2,
@@ -52,15 +64,25 @@ const COLUMN_MAP: Record<string, number> = {
   BasicScheduler: 2,
   BasicGuider: 2,
   RandomNoise: 2,
+  CFGGuider: 2,
+  LTXVScheduler: 2,
+  ManualSigmas: 2,
+  PathchSageAttentionKJ: 2,
+  LTX2SamplingPreviewOverride: 2,
 
   VAEDecode: 3,
   VAEEncode: 3,
   VAEEncodeForInpaint: 3,
+  VAEDecodeTiled: 3,
+  LTXVAudioVAEDecode: 3,
+  LTXVLatentUpsampler: 3,
 
   SaveImage: 4,
   PreviewImage: 4,
   VHS_VideoCombine: 4,
   ImageUpscaleWithModel: 4,
+  SaveVideo: 4,
+  CreateVideo: 4,
 
   ADE_AnimateDiffLoaderWithContext: 1,
 }
@@ -90,6 +112,12 @@ const CONNECTION_ONLY_TYPES = new Set([
   'VAEEncodeForInpaint',
   'ImageUpscaleWithModel',
   'ADE_AnimateDiffLoaderWithContext',
+  'ComfyMathExpression',
+  'LTXVConcatAVLatent',
+  'LTXVSeparateAVLatent',
+  'LTXVCropGuides',
+  'PathchSageAttentionKJ',
+  'LTX2SamplingPreviewOverride',
 ])
 
 /** Fields that represent model name selections (shown as labels, not inputs). */
@@ -101,6 +129,9 @@ const MODEL_NAME_FIELDS = new Set([
   'vae_name',
   'model_name',
   'lora_name',
+  'text_encoder',
+  'audio_vae',
+  'upscale_model',
 ])
 
 /**
@@ -213,74 +244,117 @@ export function parseWorkflowToGraph(
 
 /**
  * Find common top-level params in a workflow by scanning adjustable_params
- * for known field names.
+ * for known field names. Handles both SD-style (single latent/sampler node
+ * with multiple fields) and LTX-style (separate PrimitiveInt/CFGGuider/etc.
+ * nodes per field).
  */
 export interface CommonParams {
   promptNodeId: string | null
   promptField: string | null
-  latentNodeId: string | null
+  widthNodeId: string | null
+  heightNodeId: string | null
+  framesNodeId: string | null
+  fpsNodeId: string | null
   widthField: string | null
   heightField: string | null
   framesField: string | null
-  samplerNodeId: string | null
+  fpsField: string | null
+  stepsNodeId: string | null
   stepsField: string | null
+  seedNodeId: string | null
   seedField: string | null
+  cfgNodeId: string | null
   cfgField: string | null
+}
+
+/** Resolve the node ID for a param, preferring the specific field node ID. */
+export function paramNodeId(specific: string | null, fallback: string | null): string | null {
+  return specific || fallback
 }
 
 export function detectCommonParams(params: AdjustableParam[]): CommonParams {
   const result: CommonParams = {
     promptNodeId: null,
     promptField: null,
-    latentNodeId: null,
+    widthNodeId: null,
+    heightNodeId: null,
+    framesNodeId: null,
+    fpsNodeId: null,
     widthField: null,
     heightField: null,
     framesField: null,
-    samplerNodeId: null,
+    fpsField: null,
+    stepsNodeId: null,
     stepsField: null,
+    seedNodeId: null,
     seedField: null,
+    cfgNodeId: null,
     cfgField: null,
   }
 
   for (const p of params) {
-    const { node_id: nid, class_type: ct, field_name: fn } = p
+    const { node_id: nid, class_type: ct, field_name: fn, title } = p
 
-    if (ct === 'CLIPTextEncode' && (fn === 'text' || fn === 'value')) {
-      result.promptNodeId = nid
-      result.promptField = fn
-    } else if (
-      (ct === 'EmptyLTXVideoLatent' ||
-        ct === 'EmptyHunyuanLatentVideo' ||
-        ct === 'EmptyLatentImage' ||
-        ct === 'EmptySD3LatentImage') &&
-      fn === 'width'
-    ) {
-      result.latentNodeId = nid
+    // Prompt — CLIPTextEncode or PrimitiveStringMultiline with text/value fields
+    if (fn === 'text' || fn === 'value') {
+      if (ct === 'CLIPTextEncode' || ct === 'PrimitiveStringMultiline' || title === 'Prompt') {
+        result.promptNodeId = nid
+        result.promptField = fn
+      }
+    }
+
+    // Width — latent node width field, or PrimitiveInt titled "Width"
+    if (fn === 'width' || (ct === 'PrimitiveInt' && title === 'Width' && fn === 'value')) {
+      result.widthNodeId = nid
       result.widthField = fn
-    } else if (
-      (ct === 'EmptyLTXVideoLatent' ||
-        ct === 'EmptyHunyuanLatentVideo' ||
-        ct === 'EmptyLatentImage' ||
-        ct === 'EmptySD3LatentImage') &&
-      fn === 'height'
-    ) {
-      result.latentNodeId = nid
+    }
+
+    // Height — latent node height field, or PrimitiveInt titled "Height"
+    if (fn === 'height' || (ct === 'PrimitiveInt' && title === 'Height' && fn === 'value')) {
+      result.heightNodeId = nid
       result.heightField = fn
-    } else if (
-      (ct === 'EmptyLTXVideoLatent' || ct === 'EmptyHunyuanLatentVideo') &&
-      (fn === 'length' || fn === 'frames')
+    }
+
+    // Frames — latent node length/frames field, or PrimitiveInt titled "Length"
+    if (
+      fn === 'length' || fn === 'frames' ||
+      (ct === 'PrimitiveInt' && title === 'Length' && fn === 'value')
     ) {
-      result.latentNodeId = nid
+      result.framesNodeId = nid
       result.framesField = fn
-    } else if (ct === 'KSampler' && fn === 'steps') {
-      result.samplerNodeId = nid
-      result.stepsField = fn
-    } else if (ct === 'KSampler' && fn === 'seed') {
-      result.samplerNodeId = nid
-      result.seedField = fn
-    } else if (ct === 'KSampler' && fn === 'cfg') {
-      result.samplerNodeId = nid
-      result.cfgField = fn
+    }
+
+    // FPS — PrimitiveInt titled "Frame Rate" with value field
+    if (
+      fn === 'fps' || fn === 'frame_rate' ||
+      (ct === 'PrimitiveInt' && title === 'Frame Rate' && fn === 'value')
+    ) {
+      result.fpsNodeId = nid
+      result.fpsField = fn
+    }
+
+    // Steps — KSampler, LTXVScheduler, BasicScheduler, or SamplerCustomAdvanced
+    if (fn === 'steps') {
+      if (ct === 'KSampler' || ct === 'LTXVScheduler' || ct === 'BasicScheduler') {
+        result.stepsNodeId = nid
+        result.stepsField = fn
+      }
+    }
+
+    // Seed — KSampler seed, or RandomNoise noise_seed
+    if (fn === 'seed' || fn === 'noise_seed') {
+      if (ct === 'KSampler' || ct === 'RandomNoise') {
+        result.seedNodeId = nid
+        result.seedField = fn
+      }
+    }
+
+    // CFG — KSampler cfg, or CFGGuider cfg
+    if (fn === 'cfg') {
+      if (ct === 'KSampler' || ct === 'CFGGuider') {
+        result.cfgNodeId = nid
+        result.cfgField = fn
+      }
     }
   }
 
