@@ -13,7 +13,7 @@
 set -e
 
 REMOTE_HOST="${REMOTE_HOST:-baizor}"
-CONTAINER="${HERMES_SERVICE_NAME:-baizor-hermes}"
+CONTAINER="${HERMES_SERVICE_NAME:-hermes}"
 SKILL_SRC="hermes-agent/optional-skills/creative/blog-reader-v1"
 REMOTE_TMP="/tmp/blog-reader-v1-skills.tar.gz"
 DEST_DIR="/opt/data/skills/creative"

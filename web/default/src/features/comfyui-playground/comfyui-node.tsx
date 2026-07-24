@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { memo, useCallback } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { X } from 'lucide-react'
 
 const COLOR_MAP: Record<string, string> = {
   CLIPTextEncode: 'border-yellow-400',
@@ -80,23 +81,31 @@ export interface ComfyuiNodeData {
     type: 'string' | 'number' | 'boolean'
     value: unknown
   }>
-  hasConnections: boolean
-  isSource: boolean
-  hasTargetHandles: boolean
+  targetHandles: string[]
+  sourceHandles: number[]
   dimmed: boolean
   onInputChange: (fieldName: string, value: unknown) => void
+  onDelete?: () => void
 }
 
 function fieldLabel(fieldName: string): string {
   return fieldName.replace(/_/g, ' ')
 }
 
+function handleTop(idx: number, total: number): string {
+  if (total <= 1) return '50%'
+  return `${25 + (idx / (total - 1)) * 55}%`
+}
+
 export const ComfyuiNode = memo(function ComfyuiNode({
   data,
   selected,
 }: NodeProps) {
-  const { classType, title, summary, adjustable, isSource, hasTargetHandles, dimmed, onInputChange } =
-    data as unknown as ComfyuiNodeData
+  const {
+    classType, title, summary, adjustable,
+    targetHandles, sourceHandles, dimmed,
+    onInputChange, onDelete,
+  } = data as unknown as ComfyuiNodeData
 
   const borderColor = COLOR_MAP[classType] ?? 'border-gray-300'
 
@@ -116,16 +125,30 @@ export const ComfyuiNode = memo(function ComfyuiNode({
 
   return (
     <div
-      className={`w-56 rounded-lg border-2 bg-card shadow-md transition-all duration-200 ${borderColor} ${
+      className={`group w-56 rounded-lg border-2 bg-card shadow-md transition-all duration-200 ${borderColor} ${
         selected ? 'ring-2 ring-primary/50' : ''
       } ${dimmed ? 'opacity-25' : ''}`}
     >
       {/* Header */}
-      <div className='rounded-t-md bg-muted/60 px-3 py-1.5 border-b'>
+      <div className='relative rounded-t-md bg-muted/60 px-3 py-1.5 border-b'>
         <p className='text-[11px] font-semibold leading-tight truncate text-foreground/80'>
           {title}
         </p>
-        <p className='text-[10px] text-muted-foreground'>{classType}</p>
+        <p className='text-[10px] text-muted-foreground pr-5'>{classType}</p>
+        {onDelete && (
+          <button
+            className='absolute right-1.5 top-1.5 rounded p-0.5 text-muted-foreground
+              opacity-0 hover:bg-muted hover:text-red-500 transition-all
+              group-hover:opacity-100'
+            title='Delete node'
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete()
+            }}
+          >
+            <X className='h-3 w-3' />
+          </button>
+        )}
       </div>
 
       {/* Body: summary or editable inputs */}
@@ -163,9 +186,29 @@ export const ComfyuiNode = memo(function ComfyuiNode({
         </div>
       ) : null}
 
-      {/* Handles */}
-      {hasTargetHandles && <Handle type='target' position={Position.Left} className='!h-2.5 !w-2.5' />}
-      {isSource && <Handle type='source' position={Position.Right} className='!h-2.5 !w-2.5' />}
+      {/* Target handles (left) — one per input field */}
+      {(targetHandles ?? []).map((fieldName, idx, arr) => (
+        <Handle
+          key={`t-${fieldName}`}
+          id={fieldName}
+          type='target'
+          position={Position.Left}
+          style={{ top: handleTop(idx, arr.length) }}
+          className='!h-2.5 !w-2.5 !bg-primary'
+        />
+      ))}
+
+      {/* Source handles (right) — one per output */}
+      {(sourceHandles ?? []).map((outputIdx, idx, arr) => (
+        <Handle
+          key={`s-${outputIdx}`}
+          id={String(outputIdx)}
+          type='source'
+          position={Position.Right}
+          style={{ top: handleTop(idx, arr.length) }}
+          className='!h-2.5 !w-2.5 !bg-primary'
+        />
+      ))}
     </div>
   )
 })

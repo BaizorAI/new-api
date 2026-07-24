@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next'
 import { Shuffle } from 'lucide-react'
 
 import { HistoryPanel } from './history-panel'
+import { NodeLibraryPanel } from './node-library-panel'
 import { readCommonParam } from './workflow-parser'
 import type { AdjustableParam, ComfyuiWorkflow, GenerationEntry } from './types'
 
@@ -70,6 +71,7 @@ interface SidebarPanelProps {
   onCfgChange: (val: number) => void
   onPresetSelect: (width: number, height: number) => void
   onNodeParamChange: (nodeId: string, field: string, value: unknown) => void
+  onAddNode: (classType: string) => void
   history: GenerationEntry[]
   onHistoryLoad: (entry: GenerationEntry) => void
   onHistoryRefresh: () => void
@@ -103,6 +105,7 @@ export function SidebarPanel({
   onCfgChange,
   onPresetSelect,
   onNodeParamChange,
+  onAddNode,
   history,
   onHistoryLoad,
   onHistoryRefresh,
@@ -359,6 +362,9 @@ export function SidebarPanel({
         onLoad={onHistoryLoad}
         onRefresh={onHistoryRefresh}
       />
+
+      {/* Node library */}
+      <NodeLibraryPanel onAddNode={onAddNode} />
     </div>
   )
 }

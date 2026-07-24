@@ -18,11 +18,14 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import type { Node, Edge, MarkerType } from '@xyflow/react'
 
+import { NODE_LIBRARY } from './node-library'
 import type {
   ComfyuiWorkflow,
   ComfyuiWorkflowNode,
   ComfyuiNodeInput,
+  ComfyuiNodeConnection,
   AdjustableParam,
+  NodePositions,
 } from './types'
 
 /**
@@ -91,12 +94,37 @@ function columnForNode(node: ComfyuiWorkflowNode): number {
   return COLUMN_MAP[node.class_type] ?? 2
 }
 
-/** Generate positions for every node in a simple grid layout. */
-function layoutNodes(wf: ComfyuiWorkflow): Record<string, { x: number; y: number }> {
-  const positions: Record<string, { x: number; y: number }> = {}
-  const columnRows: Record<number, number> = {}
+/** Pure sink node types that never have source handles. */
+const PURE_SINK_TYPES = new Set([
+  'SaveImage', 'PreviewImage', 'VHS_VideoCombine', 'SaveVideo', 'CreateVideo',
+])
 
+/** Get the number of source handles for a given class type. */
+export function getNodeOutputCount(classType: string): number {
+  const entry = NODE_LIBRARY.find((e) => e.classType === classType)
+  if (entry) return entry.outputCount
+  if (PURE_SINK_TYPES.has(classType)) return 0
+  return 1
+}
+
+/** Generate positions for every node, applying saved positions first. */
+function layoutNodes(
+  wf: ComfyuiWorkflow,
+  savedPositions?: NodePositions,
+): Record<string, { x: number; y: number }> {
+  const positions: Record<string, { x: number; y: number }> = {}
+
+  // 1. Apply saved positions first
+  if (savedPositions) {
+    for (const [nodeId, pos] of Object.entries(savedPositions)) {
+      if (wf[nodeId]) positions[nodeId] = { ...pos }
+    }
+  }
+
+  // 2. Auto-layout remaining nodes in grid
+  const columnRows: Record<number, number> = {}
   for (const [nodeId, node] of Object.entries(wf)) {
+    if (positions[nodeId]) continue
     const col = columnForNode(node)
     const row = columnRows[col] ?? 0
     positions[nodeId] = { x: col * 300, y: row * 190 }
@@ -146,7 +174,6 @@ function nodeSummary(node: ComfyuiWorkflowNode): string | null {
   for (const [key, val] of Object.entries(inputs)) {
     if (Array.isArray(val)) continue
     if (MODEL_NAME_FIELDS.has(key)) {
-      // Trim model name down for display
       const s = String(val)
       parts.push(s.length > 22 ? s.slice(0, 20) + '..' : s)
     } else if (key === 'text' || key === 'value') {
@@ -166,9 +193,11 @@ export interface ParsedGraph {
 
 export function parseWorkflowToGraph(
   wf: ComfyuiWorkflow,
-  onInputChange: (nodeId: string, fieldName: string, value: unknown) => void
+  onInputChange: (nodeId: string, fieldName: string, value: unknown) => void,
+  savedPositions?: NodePositions,
+  onDeleteNode?: (nodeId: string) => void,
 ): ParsedGraph {
-  const positions = layoutNodes(wf)
+  const positions = layoutNodes(wf, savedPositions)
   const nodes: Node[] = []
   const edges: Edge[] = []
 
@@ -183,12 +212,14 @@ export function parseWorkflowToGraph(
       value: unknown
     }> = []
 
-    const connectionHandles: Record<string, [string, number]> = {}
-    let outIdx = 0
+    // Build target handles: one per input field
+    const targetHandles: string[] = Object.keys(inputs ?? {})
+    // Build source handles: one per output index
+    const outputCount = getNodeOutputCount(classType)
+    const sourceHandles: number[] = Array.from({ length: outputCount }, (_, i) => i)
 
     for (const [fieldName, val] of Object.entries(inputs ?? {})) {
       if (Array.isArray(val) && val.length === 2 && typeof val[0] === 'string') {
-        connectionHandles[fieldName] = val as [string, number]
         edges.push({
           id: `${val[0]}-${nodeId}-${fieldName}`,
           source: val[0],
@@ -202,6 +233,12 @@ export function parseWorkflowToGraph(
           labelBgStyle: { fill: 'var(--background)', fillOpacity: 0.8 },
           style: { stroke: 'var(--primary)', strokeWidth: 1.5 },
           markerEnd: { type: 'arrowclosed' as typeof MarkerType.ArrowClosed },
+          data: {
+            targetNodeId: nodeId,
+            targetField: fieldName,
+            sourceNodeId: val[0] as string,
+            sourceOutput: val[1] as number,
+          },
         })
       } else {
         const t =
@@ -211,14 +248,11 @@ export function parseWorkflowToGraph(
               ? ('number' as const)
               : ('string' as const)
         adjustable.push({ fieldName, type: t, value: val })
-        outIdx++
       }
     }
 
     const pos = positions[nodeId] ?? { x: 0, y: 0 }
     const summary = nodeSummary(node)
-    const hasConnections = Object.keys(connectionHandles).length > 0
-    const isSource = !CONNECTION_ONLY_TYPES.has(classType)
 
     nodes.push({
       id: nodeId,
@@ -229,18 +263,109 @@ export function parseWorkflowToGraph(
         title,
         summary,
         adjustable,
-        hasConnections,
-        isSource,
-        hasTargetHandles: hasConnections,
+        targetHandles,
+        sourceHandles,
         dimmed: false,
         onInputChange: (fieldName: string, value: unknown) =>
           onInputChange(nodeId, fieldName, value),
+        onDelete: onDeleteNode ? () => onDeleteNode(nodeId) : undefined,
       },
     })
   }
 
   return { nodes, edges }
 }
+
+// ── Workflow mutation functions ───────────────────────────────────────────
+
+/** Add a new node to the workflow. */
+export function addNodeToWorkflow(
+  wf: ComfyuiWorkflow,
+  nodeId: string,
+  classType: string,
+  defaultInputs: Record<string, ComfyuiNodeInput>,
+  meta?: { title: string },
+): ComfyuiWorkflow {
+  return {
+    ...wf,
+    [nodeId]: {
+      class_type: classType,
+      _meta: meta ?? { title: classType },
+      inputs: { ...defaultInputs },
+    },
+  }
+}
+
+/** Remove a node and clean up all connections referencing it from other nodes. */
+export function removeNodeFromWorkflow(
+  wf: ComfyuiWorkflow,
+  nodeId: string,
+): ComfyuiWorkflow {
+  const { [nodeId]: _removed, ...rest } = wf
+
+  for (const [id, node] of Object.entries(rest)) {
+    let needsUpdate = false
+    const cleanedInputs: Record<string, ComfyuiNodeInput> = {}
+    for (const [field, value] of Object.entries(node.inputs ?? {})) {
+      if (Array.isArray(value) && value.length === 2 && typeof value[0] === 'string' && value[0] === nodeId) {
+        cleanedInputs[field] = ''
+        needsUpdate = true
+      } else {
+        cleanedInputs[field] = value
+      }
+    }
+    if (needsUpdate) {
+      rest[id] = { ...node, inputs: cleanedInputs }
+    }
+  }
+  return rest
+}
+
+/** Add a connection between two nodes. Overwrites existing value at targetField. */
+export function addConnectionToWorkflow(
+  wf: ComfyuiWorkflow,
+  sourceId: string,
+  sourceOutput: number,
+  targetId: string,
+  targetField: string,
+): ComfyuiWorkflow {
+  const node = wf[targetId]
+  if (!node) return wf
+  return {
+    ...wf,
+    [targetId]: {
+      ...node,
+      inputs: {
+        ...node.inputs,
+        [targetField]: [sourceId, sourceOutput] as ComfyuiNodeConnection,
+      },
+    },
+  }
+}
+
+/** Remove a connection from a node's input, resetting to empty string. */
+export function removeConnectionFromWorkflow(
+  wf: ComfyuiWorkflow,
+  nodeId: string,
+  fieldName: string,
+): ComfyuiWorkflow {
+  const node = wf[nodeId]
+  if (!node) return wf
+  const currentValue = node.inputs[fieldName]
+  if (!Array.isArray(currentValue)) return wf
+  return {
+    ...wf,
+    [nodeId]: {
+      ...node,
+      inputs: {
+        ...node.inputs,
+        [fieldName]: '',
+      },
+    },
+  }
+}
+
+// ── Common params detection ───────────────────────────────────────────────
 
 /**
  * Find common top-level params in a workflow by scanning adjustable_params

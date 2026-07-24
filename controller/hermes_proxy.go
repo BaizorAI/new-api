@@ -313,7 +313,7 @@ func extractComfyuiParams(body []byte) (
 }
 
 // handleComfyuiSkill forwards the request to the dedicated comfyui service
-// running inside the baizor-hermes container and returns a chat-completion
+// running inside the hermes container and returns a chat-completion
 // formatted response.
 func handleComfyuiSkill(c *gin.Context, body []byte) hermesProxyResult {
 	prompt, width, height, frames, steps, fps, seed, cfg, negativePrompt, workflow := extractComfyuiParams(body)

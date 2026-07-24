@@ -1,6 +1,6 @@
 #!/bin/sh
 # One-shot: copy legacy skills into unified skills/ directory.
-# Run inside hermes container:  docker exec -u root baizor-hermes sh /migrate-skills.sh /opt/data
+# Run inside hermes container:  docker exec -u root hermes sh /migrate-skills.sh /opt/data
 set -e
 
 DATA_DIR="${1:-/opt/data}"

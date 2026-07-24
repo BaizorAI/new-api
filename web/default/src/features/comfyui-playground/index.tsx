@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Undo2, Redo2, Download, Upload, Copy, RotateCcw } from 'lucide-react'
 
@@ -35,10 +35,12 @@ import {
   detectCommonParams,
   readCommonParam,
   writeCommonParam,
-  paramNodeId,
+  addNodeToWorkflow,
+  removeNodeFromWorkflow,
 } from './workflow-parser'
 import type { CommonParams } from './workflow-parser'
-import type { ComfyuiWorkflow, WorkflowDetail, WorkflowPreset, GenerationEntry } from './types'
+import { NODE_LIBRARY } from './node-library'
+import type { ComfyuiWorkflow, WorkflowDetail, WorkflowPreset, GenerationEntry, NodePositions } from './types'
 
 const MAX_HISTORY = 50
 
@@ -75,6 +77,11 @@ export function ComfyuiPlayground() {
 
   // ── History ──
   const [history, setHistory] = useState<GenerationEntry[]>(() => loadHistory())
+
+  // ── Canvas interactivity state ──
+  const [nodePositions, setNodePositions] = useState<NodePositions>({})
+  const viewportCenterRef = useRef({ x: 400, y: 300 })
+  const nextNodeIdRef = useRef(0)
 
   // Derived common params
   const commonParams = useMemo<CommonParams>(
@@ -206,8 +213,8 @@ export function ComfyuiPlayground() {
       setWorkflow(preset.workflow)
       setUndoStack([])
       setRedoStack([])
+      setNodePositions({})
       syncSidebar(preset.workflow)
-      // Reconstruct workflowDetail from preset metadata so node inspector works
       if (preset.workflowName) {
         setWorkflowDetail({
           name: preset.workflowName,
@@ -248,6 +255,7 @@ export function ComfyuiPlayground() {
     setSelectedNodeId(null)
     setUndoStack([])
     setRedoStack([])
+    setNodePositions({})
 
     const cp = detectCommonParams(detail.adjustable_params)
     const p = readCommonParam(detail.workflow, cp.promptNodeId, cp.promptField)
@@ -277,10 +285,23 @@ export function ComfyuiPlayground() {
     setWorkflow(workflowDetail?.workflow ?? null)
     setUndoStack([])
     setRedoStack([])
+    setNodePositions({})
     if (workflowDetail) syncSidebar(workflowDetail.workflow)
   }, [workflowDetail, syncSidebar, t])
 
   // ── Keyboard shortcuts ──
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    if (!workflow) return
+    const updated = removeNodeFromWorkflow(workflow, nodeId)
+    pushWorkflow(updated)
+    setNodePositions(prev => {
+      const next = { ...prev }
+      delete next[nodeId]
+      return next
+    })
+    if (selectedNodeId === nodeId) setSelectedNodeId(null)
+  }, [workflow, pushWorkflow, selectedNodeId])
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey
@@ -303,13 +324,16 @@ export function ComfyuiPlayground() {
       } else if (meta && e.key === 'i') {
         e.preventDefault()
         setImportOpen(true)
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeId && !inInput) {
+        e.preventDefault()
+        handleDeleteNode(selectedNodeId)
       } else if (e.key === '?' && !inInput) {
         setShortcutsOpen(true)
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [handleUndo, handleRedo, handleExport])
+  }, [handleUndo, handleRedo, handleExport, selectedNodeId, handleDeleteNode])
 
   // ── Update workflow via common-param helpers ──
   const updateWorkflowParam = useCallback(
@@ -336,6 +360,7 @@ export function ComfyuiPlayground() {
         setSelectedNodeId(null)
         setUndoStack([])
         setRedoStack([])
+        setNodePositions({})
 
         const cp = detectCommonParams(detail.adjustable_params)
         const p = readCommonParam(detail.workflow, cp.promptNodeId, cp.promptField)
@@ -489,6 +514,35 @@ export function ComfyuiPlayground() {
     [pushWorkflow, syncSidebar],
   )
 
+  // ── Canvas interactivity handlers ──
+  const handleViewportCenterChange = useCallback(
+    (center: { x: number; y: number }) => {
+      viewportCenterRef.current = center
+    },
+    [],
+  )
+
+  const handleAddNode = useCallback((classType: string) => {
+    const entry = NODE_LIBRARY.find(e => e.classType === classType)
+    if (!entry) return
+
+    const nodeId = `new_${Date.now()}_${nextNodeIdRef.current++}`
+    const center = viewportCenterRef.current
+    setNodePositions(prev => ({ ...prev, [nodeId]: { x: center.x - 100, y: center.y - 75 } }))
+
+    const current = workflow ?? {}
+    const updated = addNodeToWorkflow(current, nodeId, entry.classType, entry.defaultInputs, entry.defaultMeta)
+    pushWorkflow(updated)
+    setSelectedNodeId(nodeId)
+  }, [workflow, pushWorkflow])
+
+  const handlePositionsChange = useCallback((positions: NodePositions) => {
+    setNodePositions(positions)
+  }, [])
+
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  const handleNodeDragComplete = useCallback(() => {}, [])
+
   // ── Enhance ──
   const handleEnhance = useCallback(async () => {
     if (!prompt.trim()) return
@@ -613,6 +667,7 @@ export function ComfyuiPlayground() {
       adjustable_params: data.adjustableParams,
     })
     setWorkflow(data.workflow)
+    setNodePositions(data.positions ?? {})
     setSelectedNodeId(null)
     setUndoStack([])
     setRedoStack([])
@@ -645,9 +700,10 @@ export function ComfyuiPlayground() {
       enhancedPrompt,
       workflowName: workflowDetail?.name ?? null,
       adjustableParams: workflowDetail?.adjustable_params ?? [],
+      positions: nodePositions,
       savedAt: Date.now(),
     })
-  }, [workflow, enhancedPrompt, workflowDetail])
+  }, [workflow, enhancedPrompt, workflowDetail, nodePositions])
 
   const canUndo = undoStack.length > 0
   const canRedo = redoStack.length > 0
@@ -774,6 +830,7 @@ export function ComfyuiPlayground() {
           onCfgChange={handleCfgChange}
           onPresetSelect={handlePresetSelect}
           onNodeParamChange={handleNodeParamChange}
+          onAddNode={handleAddNode}
           history={history}
           onHistoryLoad={handleHistoryLoad}
           onHistoryRefresh={handleHistoryRefresh}
@@ -785,8 +842,13 @@ export function ComfyuiPlayground() {
             workflow={workflow}
             selectedNodeId={selectedNodeId}
             loading={wfLoading}
+            savedPositions={nodePositions}
             onNodeSelect={setSelectedNodeId}
             onWorkflowChange={handleWorkflowChange}
+            onPositionsChange={handlePositionsChange}
+            onNodeDragComplete={handleNodeDragComplete}
+            onViewportCenterChange={handleViewportCenterChange}
+            onDeleteNode={handleDeleteNode}
           />
         </div>
       </div>

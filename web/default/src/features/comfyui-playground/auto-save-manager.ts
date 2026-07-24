@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { AdjustableParam, ComfyuiWorkflow } from './types'
+import type { AdjustableParam, ComfyuiWorkflow, NodePositions } from './types'
 
 const STORAGE_KEY = 'comfyui-autosave'
 const SAVE_DELAY = 2000
@@ -28,6 +28,7 @@ export interface AutoSaveData {
   enhancedPrompt: string
   workflowName: string | null
   adjustableParams: AdjustableParam[]
+  positions: NodePositions
   savedAt: number
 }
 

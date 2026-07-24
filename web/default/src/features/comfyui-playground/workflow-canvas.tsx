@@ -17,12 +17,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useCallback, useMemo, useRef } from 'react'
-import { ReactFlow, Background, Controls, MiniMap, type Node, type Edge } from '@xyflow/react'
+import { ReactFlow, Background, Controls, MiniMap, type Node, type Edge, type Connection } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
 import { ComfyuiNode } from './comfyui-node'
-import { parseWorkflowToGraph } from './workflow-parser'
-import type { ComfyuiWorkflow, ComfyuiNodeInput } from './types'
+import {
+  parseWorkflowToGraph,
+  addConnectionToWorkflow,
+  removeConnectionFromWorkflow,
+} from './workflow-parser'
+import type { ComfyuiWorkflow, ComfyuiNodeInput, NodePositions } from './types'
 
 const nodeTypes = { comfyui: ComfyuiNode }
 
@@ -30,16 +34,26 @@ interface WorkflowCanvasProps {
   workflow: ComfyuiWorkflow | null
   selectedNodeId: string | null
   loading: boolean
+  savedPositions: NodePositions
   onNodeSelect: (nodeId: string | null) => void
   onWorkflowChange: (workflow: ComfyuiWorkflow) => void
+  onPositionsChange: (positions: NodePositions) => void
+  onNodeDragComplete: () => void
+  onViewportCenterChange: (center: { x: number; y: number }) => void
+  onDeleteNode: (nodeId: string) => void
 }
 
 export function WorkflowCanvas({
   workflow,
-  selectedNodeId: _selectedNodeId,
+  selectedNodeId,
   loading,
+  savedPositions,
   onNodeSelect,
   onWorkflowChange,
+  onPositionsChange,
+  onNodeDragComplete,
+  onViewportCenterChange,
+  onDeleteNode,
 }: WorkflowCanvasProps) {
   const workflowRef = useRef(workflow)
   workflowRef.current = workflow
@@ -65,8 +79,8 @@ export function WorkflowCanvas({
 
   const graph = useMemo(() => {
     if (!workflow) return { nodes: [] as Node[], edges: [] as Edge[] }
-    return parseWorkflowToGraph(workflow, handleInputChange)
-  }, [workflow, handleInputChange])
+    return parseWorkflowToGraph(workflow, handleInputChange, savedPositions, onDeleteNode)
+  }, [workflow, handleInputChange, savedPositions, onDeleteNode])
 
   // Apply search highlight to graph
   const highlightedGraph = useMemo(() => {
@@ -119,6 +133,66 @@ export function WorkflowCanvas({
     }))
   }, [highlightedGraph.edges, hoveredNodeId])
 
+  // ── Drag → position persistence ──
+  const handleNodeDragStop = useCallback(
+    (_event: unknown, node: Node) => {
+      onPositionsChange({
+        ...savedPositions,
+        [node.id]: node.position,
+      })
+      onNodeDragComplete()
+    },
+    [savedPositions, onPositionsChange, onNodeDragComplete],
+  )
+
+  // ── Drag-to-connect ──
+  const handleConnect = useCallback(
+    (connection: Connection) => {
+      const wf = workflowRef.current
+      if (!wf) return
+      const { source, target, sourceHandle, targetHandle } = connection
+      if (!source || !target || sourceHandle == null || targetHandle == null) return
+
+      const updated = addConnectionToWorkflow(
+        wf, source, Number(sourceHandle), target, targetHandle,
+      )
+      onWorkflowChange(updated)
+    },
+    [onWorkflowChange],
+  )
+
+  // ── Delete selected edges ──
+  const handleEdgesDelete = useCallback(
+    (deletedEdges: Edge[]) => {
+      const wf = workflowRef.current
+      if (!wf) return
+      let updated = wf
+      for (const edge of deletedEdges) {
+        const edgeData = edge.data as { targetNodeId?: string; targetField?: string }
+        if (edgeData?.targetNodeId && edgeData?.targetField) {
+          updated = removeConnectionFromWorkflow(updated, edgeData.targetNodeId, edgeData.targetField)
+        }
+      }
+      onWorkflowChange(updated)
+    },
+    [onWorkflowChange],
+  )
+
+  // ── Track viewport center for new node placement ──
+  const handleMove = useCallback(
+    (_event: unknown, viewport: { x: number; y: number; zoom: number }) => {
+      // Convert screen center to flow coordinates
+      const el = document.querySelector('.react-flow__viewport')
+      if (el) {
+        const rect = el.getBoundingClientRect()
+        const centerX = (rect.width / 2 - viewport.x) / viewport.zoom
+        const centerY = (rect.height / 2 - viewport.y) / viewport.zoom
+        onViewportCenterChange({ x: centerX, y: centerY })
+      }
+    },
+    [onViewportCenterChange],
+  )
+
   return (
     <div className='h-full w-full relative'>
       {/* Search bar */}
@@ -161,10 +235,15 @@ export function WorkflowCanvas({
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.2}
         maxZoom={2}
-        nodesDraggable={false}
-        nodesConnectable={false}
+        nodesDraggable={true}
+        nodesConnectable={true}
         elementsSelectable={true}
+        onNodeDragStop={handleNodeDragStop}
+        onConnect={handleConnect}
+        onEdgesDelete={handleEdgesDelete}
+        onMove={handleMove}
         proOptions={{ hideAttribution: true }}
+        deleteKeyCode={['Backspace', 'Delete']}
       >
         <Background bgColor='var(--sidebar)' />
         <Controls />

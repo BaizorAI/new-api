@@ -13,7 +13,7 @@
 #   ./sync-hermes-skills.sh pull jilai      # pull only jilai-skills
 
 REMOTE_HOST="${REMOTE_HOST:-baizor-root}"
-CONTAINER="${CONTAINER:-baizor-hermes}"
+CONTAINER="${CONTAINER:-hermes}"
 LOCAL_ROOT="$(cd "$(dirname "$0")/hermes-agent" && pwd)"
 SSH="ssh -o LogLevel=ERROR"
 SCP="scp -o LogLevel=ERROR"

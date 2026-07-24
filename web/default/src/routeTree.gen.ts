@@ -69,6 +69,7 @@ import { Route as AuthenticatedMyUsageLogsIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
 import { Route as AuthenticatedJilaiWorkspaceIndexRouteImport } from './routes/_authenticated/jilai-workspace/index'
+import { Route as AuthenticatedImageToVideoIndexRouteImport } from './routes/_authenticated/image-to-video/index'
 import { Route as AuthenticatedImagePlaygroundIndexRouteImport } from './routes/_authenticated/image-playground/index'
 import { Route as AuthenticatedHomeIndexRouteImport } from './routes/_authenticated/home/index'
 import { Route as AuthenticatedHermesPlaygroundIndexRouteImport } from './routes/_authenticated/hermes-playground/index'
@@ -437,6 +438,12 @@ const AuthenticatedJilaiWorkspaceIndexRoute =
     path: '/jilai-workspace/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedImageToVideoIndexRoute =
+  AuthenticatedImageToVideoIndexRouteImport.update({
+    id: '/image-to-video/',
+    path: '/image-to-video/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedImagePlaygroundIndexRoute =
   AuthenticatedImagePlaygroundIndexRouteImport.update({
     id: '/image-playground/',
@@ -737,6 +744,7 @@ export interface FileRoutesByFullPath {
   '/hermes-playground/': typeof AuthenticatedHermesPlaygroundIndexRoute
   '/home/': typeof AuthenticatedHomeIndexRoute
   '/image-playground/': typeof AuthenticatedImagePlaygroundIndexRoute
+  '/image-to-video/': typeof AuthenticatedImageToVideoIndexRoute
   '/jilai-workspace/': typeof AuthenticatedJilaiWorkspaceIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
@@ -835,6 +843,7 @@ export interface FileRoutesByTo {
   '/hermes-playground': typeof AuthenticatedHermesPlaygroundIndexRoute
   '/home': typeof AuthenticatedHomeIndexRoute
   '/image-playground': typeof AuthenticatedImagePlaygroundIndexRoute
+  '/image-to-video': typeof AuthenticatedImageToVideoIndexRoute
   '/jilai-workspace': typeof AuthenticatedJilaiWorkspaceIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
@@ -941,6 +950,7 @@ export interface FileRoutesById {
   '/_authenticated/hermes-playground/': typeof AuthenticatedHermesPlaygroundIndexRoute
   '/_authenticated/home/': typeof AuthenticatedHomeIndexRoute
   '/_authenticated/image-playground/': typeof AuthenticatedImagePlaygroundIndexRoute
+  '/_authenticated/image-to-video/': typeof AuthenticatedImageToVideoIndexRoute
   '/_authenticated/jilai-workspace/': typeof AuthenticatedJilaiWorkspaceIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
@@ -1046,6 +1056,7 @@ export interface FileRouteTypes {
     | '/hermes-playground/'
     | '/home/'
     | '/image-playground/'
+    | '/image-to-video/'
     | '/jilai-workspace/'
     | '/keys/'
     | '/models/'
@@ -1144,6 +1155,7 @@ export interface FileRouteTypes {
     | '/hermes-playground'
     | '/home'
     | '/image-playground'
+    | '/image-to-video'
     | '/jilai-workspace'
     | '/keys'
     | '/models'
@@ -1249,6 +1261,7 @@ export interface FileRouteTypes {
     | '/_authenticated/hermes-playground/'
     | '/_authenticated/home/'
     | '/_authenticated/image-playground/'
+    | '/_authenticated/image-to-video/'
     | '/_authenticated/jilai-workspace/'
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
@@ -1752,6 +1765,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedJilaiWorkspaceIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/image-to-video/': {
+      id: '/_authenticated/image-to-video/'
+      path: '/image-to-video'
+      fullPath: '/image-to-video/'
+      preLoaderRoute: typeof AuthenticatedImageToVideoIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/image-playground/': {
       id: '/_authenticated/image-playground/'
       path: '/image-playground'
@@ -2216,6 +2236,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHermesPlaygroundIndexRoute: typeof AuthenticatedHermesPlaygroundIndexRoute
   AuthenticatedHomeIndexRoute: typeof AuthenticatedHomeIndexRoute
   AuthenticatedImagePlaygroundIndexRoute: typeof AuthenticatedImagePlaygroundIndexRoute
+  AuthenticatedImageToVideoIndexRoute: typeof AuthenticatedImageToVideoIndexRoute
   AuthenticatedJilaiWorkspaceIndexRoute: typeof AuthenticatedJilaiWorkspaceIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
@@ -2269,6 +2290,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHomeIndexRoute: AuthenticatedHomeIndexRoute,
   AuthenticatedImagePlaygroundIndexRoute:
     AuthenticatedImagePlaygroundIndexRoute,
+  AuthenticatedImageToVideoIndexRoute: AuthenticatedImageToVideoIndexRoute,
   AuthenticatedJilaiWorkspaceIndexRoute: AuthenticatedJilaiWorkspaceIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,

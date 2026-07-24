@@ -12,7 +12,7 @@ HERMES_SIDECAR_ENABLED="${HERMES_SIDECAR_ENABLED:-true}"
 SKIP_HERMES_BUILD="${SKIP_HERMES_BUILD:-false}"
 HERMES_BUILD_CONTEXT="${HERMES_BUILD_CONTEXT:-hermes-agent}"
 HERMES_DOCKERFILE="${HERMES_DOCKERFILE:-deploy/Dockerfile.hermes-full-overlay}"
-HERMES_SERVICE_NAME="${HERMES_SERVICE_NAME:-baizor-hermes}"
+HERMES_SERVICE_NAME="${HERMES_SERVICE_NAME:-hermes}"
 
 ini_value() {
   grep -i "^$1=" "$INI_FILE" | head -n 1 | awk -F= '{print $2}'

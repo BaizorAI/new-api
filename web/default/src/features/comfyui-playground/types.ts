@@ -169,3 +169,18 @@ export interface ComfyuiI2VStatusResponse {
   data?: Array<{ b64_json: string }>
   error?: string | { message: string }
 }
+
+/** Persisted drag positions for each node. Survives workflow re-parsing. */
+export interface NodePositions {
+  [nodeId: string]: { x: number; y: number }
+}
+
+/** Entry in the static node library for adding new nodes to the canvas. */
+export interface NodeLibraryEntry {
+  classType: string
+  category: 'loaders' | 'conditioning' | 'latent' | 'sampling' | 'output' | 'primitives' | 'other'
+  defaultInputs: Record<string, ComfyuiNodeInput>
+  defaultMeta?: { title: string }
+  outputCount: number
+  searchAliases?: string[]
+}
